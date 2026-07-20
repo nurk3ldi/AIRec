@@ -3,7 +3,7 @@ export default function BrandMark() {
     <img
       src="/aireca-logo.svg"
       alt=""
-      className="block h-auto w-10"
+      className="block h-auto w-[52px]"
       aria-hidden="true"
     />
   )

@@ -4,8 +4,8 @@ import styles from '../styles/Settings.module.css'
 export default function SettingsPage() {
   return (
     <>
-      <Head><title>Баптаулар — AIReca</title></Head>
-      <div className={styles.page} aria-label="Баптаулар беті" />
+      <Head><title>Настройки — AIReca</title></Head>
+      <div className={styles.page} aria-label="Страница настроек" />
     </>
   )
 }

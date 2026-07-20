@@ -8,10 +8,10 @@ export default function HomePage() {
         <title>AIReca</title>
         <meta
           name="description"
-          content="AIReca — клиенттермен сөйлесетін және қабылдауға жазатын AI-администратор."
+          content="AIReca — AI-администратор, который общается с клиентами и записывает их на приём."
         />
       </Head>
-      <div className={styles.page} aria-label="Басты бет" />
+      <div className={styles.page} aria-label="Главная страница" />
     </>
   )
 }

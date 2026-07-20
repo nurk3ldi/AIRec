@@ -1,23 +1,23 @@
 # AIReca Frontend
 
-AI-администраторға арналған Next.js интерфейсі.
+Интерфейс AI-администратора на Next.js.
 
-## Технологиялар
+## Технологии
 
 - Next.js (Pages Router)
 - React
 - Tailwind CSS
-- Hugeicons
+- Hugeicons React
 - CSS Modules
 
-## Іске қосу
+## Запуск
 
 ```bash
 npm install
 npm run dev
 ```
 
-Қосымша командалар:
+Дополнительные команды:
 
 ```bash
 npm run lint
@@ -25,10 +25,10 @@ npm run build
 npm start
 ```
 
-Негізгі құрылым:
+Основная структура:
 
 ```text
-components/  ортақ интерфейс компоненттері
-pages/       беттер мен маршруттар
-styles/      global және әр бетке арналған стильдер
+components/  общие компоненты интерфейса
+pages/       страницы и маршруты
+styles/      глобальные стили и стили отдельных страниц
 ```

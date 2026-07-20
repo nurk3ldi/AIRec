@@ -1,4 +1,4 @@
 .page {
-  min-height: 100vh;
-  background: #ffffff;
+  min-height: calc(100vh - 68px);
+  background: #f6f8fa;
 }
