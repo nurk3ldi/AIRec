@@ -1,0 +1,65 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-brand-blue: #3248f2;
+  --color-brand-black: #171215;
+  --color-brand-gray: #999999;
+  --color-brand-soft: #f6f8fa;
+  --color-brand-white: #ffffff;
+  --font-sans: 'Roboto Variable', Roboto, sans-serif;
+  --font-display: Poppins, 'Roboto Variable', sans-serif;
+}
+
+:root {
+  color-scheme: light;
+  font-family: 'Roboto Variable', Roboto, sans-serif;
+  color: #171215;
+  background: #ffffff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#__next {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+  background: #ffffff;
+}
+
+body {
+  font-family: 'Roboto Variable', Roboto, sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: Poppins, 'Roboto Variable', sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  color: #ffffff;
+  background: #3248f2;
+}
