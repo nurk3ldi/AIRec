@@ -2,21 +2,19 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
-  Analytics01Icon,
-  DashboardCircleIcon,
-  Settings01Icon,
-  UserGroup02Icon,
-  Wallet01Icon,
+  Home01Icon,
+  Chat01Icon,
+  NoteIcon,
+  Activity02Icon,
 } from '@hugeicons/core-free-icons'
 import BrandMark from './BrandMark'
 import ProfileAvatar from './ProfileAvatar'
 
 const navigation = [
-  { label: 'Главная', href: '/', icon: DashboardCircleIcon },
-  { label: 'Диалоги', href: '/inbox', icon: Wallet01Icon },
-  { label: 'Записи', href: '/appointments', icon: Analytics01Icon },
-  { label: 'Клиенты', href: '/clients', icon: UserGroup02Icon },
-  { label: 'Настройки', href: '/settings', icon: Settings01Icon },
+  { label: 'Главная', href: '/', icon: Home01Icon },
+  { label: 'Диалоги', href: '/inbox', icon: Chat01Icon },
+  { label: 'Записи', href: '/appointments', icon: NoteIcon },
+  { label: 'Аналитика', href: '/analytics', icon: Activity02Icon },
 ]
 
 export default function Sidebar({ profileImageUrl = null }) {
@@ -51,10 +49,10 @@ export default function Sidebar({ profileImageUrl = null }) {
             >
               <HugeiconsIcon
                 icon={item.icon}
-                size={17}
+                size={18}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={1.8}
+                strokeWidth={2.15}
               />
               <span className="pointer-events-none absolute left-[46px] z-50 whitespace-nowrap rounded-md bg-[#171215] px-2.5 py-1.5 font-sans text-[11px] font-medium text-white opacity-0 shadow-xl transition-all duration-150 group-hover:translate-x-1 group-hover:opacity-100">
                 {item.label}

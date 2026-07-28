@@ -5,7 +5,7 @@ export default function ProfilePage() {
   return (
     <>
       <Head>
-        <title>Профиль — AIReca</title>
+        <title>AIRec</title>
       </Head>
       <div className={styles.page} aria-label="Страница профиля" />
     </>

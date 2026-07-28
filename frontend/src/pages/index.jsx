@@ -5,10 +5,10 @@ export default function HomePage() {
   return (
     <>
       <Head>
-        <title>AIReca</title>
+        <title>AIRec</title>
         <meta
           name="description"
-          content="AIReca — AI-администратор, который общается с клиентами и записывает их на приём."
+          content="AIRec — AI-администратор, который общается с клиентами и записывает их на приём."
         />
       </Head>
       <div className={styles.page} aria-label="Главная страница" />

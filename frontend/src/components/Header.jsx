@@ -1,11 +1,10 @@
 import { useRouter } from 'next/router'
 
 const pageTitles = {
-  '/': 'Аналитика 👋',
+  '/': 'Главная',
   '/inbox': 'Диалоги',
   '/appointments': 'Записи',
-  '/clients': 'Клиенты',
-  '/settings': 'Настройки',
+  '/analytics': 'Аналитика',
   '/profile': 'Профиль',
 }
 
