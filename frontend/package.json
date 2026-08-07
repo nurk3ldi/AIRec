@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "oxlint pages components"
+    "lint": "oxlint src/pages src/components"
   },
   "dependencies": {
     "@fontsource-variable/roboto": "^5.2.10",

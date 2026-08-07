@@ -11,7 +11,7 @@ import BrandMark from './BrandMark'
 import ProfileAvatar from './ProfileAvatar'
 
 const navigation = [
-  { label: 'Главная', href: '/', icon: Home01Icon },
+  { label: 'Главная', href: '/dashboard', icon: Home01Icon },
   { label: 'Диалоги', href: '/inbox', icon: Chat01Icon },
   { label: 'Записи', href: '/appointments', icon: NoteIcon },
   { label: 'Аналитика', href: '/analytics', icon: Activity02Icon },
@@ -23,7 +23,7 @@ export default function Sidebar({ profileImageUrl = null }) {
   return (
     <aside className="fixed inset-y-0 left-0 z-50 flex w-16 flex-col overflow-visible border-r border-[#999999]/45 bg-[#171215] text-white shadow-[6px_0_20px_rgba(23,18,21,0.08)]">
       <div className="flex h-[68px] shrink-0 items-center justify-center border-b border-[#999999]/30">
-        <Link href="/" aria-label="Главная страница AIReca">
+        <Link href="/dashboard" aria-label="Главная страница AIReca">
           <BrandMark />
         </Link>
       </div>

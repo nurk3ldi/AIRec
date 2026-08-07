@@ -1,10 +1,3 @@
-export default function BrandMark() {
-  return (
-    <img
-      src="/airec_logo.png"
-      alt=""
-      className="block h-auto w-[64px]"
-      aria-hidden="true"
-    />
-  )
+export default function BrandMark({ className = 'block h-auto w-[64px]' }) {
+  return <img src="/airec_logo.png" alt="" className={className} aria-hidden="true" />
 }

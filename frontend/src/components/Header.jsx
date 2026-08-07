@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router'
 
 const pageTitles = {
-  '/': 'Главная',
+  '/dashboard': 'Главная',
   '/inbox': 'Диалоги',
   '/appointments': 'Записи',
   '/analytics': 'Аналитика',
