@@ -1,4 +1,4 @@
-# AIReca Frontend
+# AIRec Frontend
 
 Интерфейс AI-администратора на Next.js.
 
