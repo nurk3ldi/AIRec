@@ -65,20 +65,22 @@ export async function verifySession() {
 
 /**
  * Redirects to /login when there is no valid session. Use in the dashboard shell.
- * Returns `true` once the check has run and the caller is clear to render —
- * before that, render nothing so protected content never flashes on screen.
+ * Returns the signed-in user once the check has run, or `null` while it's still
+ * in flight — callers must render nothing until it's non-null, so protected
+ * content never flashes on screen. The user is returned rather than a bare
+ * boolean so the shell can show their avatar without a second `/auth/me` call.
  */
 export function useRequireAuth() {
   const router = useRouter()
-  const [isReady, setIsReady] = useState(false)
+  const [user, setUser] = useState(null)
 
   useEffect(() => {
     let cancelled = false
 
-    verifySession().then((user) => {
+    verifySession().then((me) => {
       if (cancelled) return
-      if (user) {
-        setIsReady(true)
+      if (me) {
+        setUser(me)
       } else {
         router.replace('/login')
       }
@@ -91,7 +93,7 @@ export function useRequireAuth() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.pathname])
 
-  return isReady
+  return user
 }
 
 /** Redirects a visitor with a valid session away from login/signup. */

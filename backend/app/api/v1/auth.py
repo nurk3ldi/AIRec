@@ -2,14 +2,18 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, File, Query, UploadFile, status
 
 from app.api.deps import AuthServiceDep, CurrentUser
 from app.schemas.auth import (
     AuthResponse,
+    ForgotPasswordRequest,
     LoginRequest,
+    MessageResponse,
     RefreshRequest,
     RegisterRequest,
+    ResetPasswordRequest,
+    UpdateProfileRequest,
     UsernameAvailability,
     UserPublic,
 )
@@ -70,6 +74,66 @@ async def logout(payload: RefreshRequest, auth: AuthServiceDep) -> None:
     await auth.logout(payload.refresh_token)
 
 
+@router.post(
+    "/forgot-password",
+    response_model=MessageResponse,
+    summary="Email a 6-digit password reset code",
+)
+async def forgot_password(
+    payload: ForgotPasswordRequest, auth: AuthServiceDep
+) -> MessageResponse:
+    await auth.forgot_password(payload.email)
+    return MessageResponse(message="We've sent a code to your email.")
+
+
+@router.post(
+    "/reset-password",
+    response_model=MessageResponse,
+    summary="Reset a password using the emailed code",
+)
+async def reset_password(
+    payload: ResetPasswordRequest, auth: AuthServiceDep
+) -> MessageResponse:
+    await auth.reset_password(payload.email, payload.code, payload.new_password)
+    return MessageResponse(message="Password reset. You can now log in.")
+
+
 @router.get("/me", response_model=UserPublic, summary="The signed-in user")
 async def me(user: CurrentUser) -> UserPublic:
     return UserPublic.model_validate(user)
+
+
+@router.patch(
+    "/me",
+    response_model=UserPublic,
+    summary="Update the signed-in user's profile",
+)
+async def update_me(
+    payload: UpdateProfileRequest, user: CurrentUser, auth: AuthServiceDep
+) -> UserPublic:
+    updated = await auth.update_profile(user, payload)
+    return UserPublic.model_validate(updated)
+
+
+@router.post(
+    "/me/avatar",
+    response_model=UserPublic,
+    summary="Upload a new avatar (already cropped square by the client)",
+)
+async def upload_avatar(
+    user: CurrentUser,
+    auth: AuthServiceDep,
+    file: Annotated[UploadFile, File()],
+) -> UserPublic:
+    updated = await auth.set_avatar(user, await file.read())
+    return UserPublic.model_validate(updated)
+
+
+@router.delete(
+    "/me/avatar",
+    response_model=UserPublic,
+    summary="Remove the current avatar",
+)
+async def delete_avatar_route(user: CurrentUser, auth: AuthServiceDep) -> UserPublic:
+    updated = await auth.clear_avatar(user)
+    return UserPublic.model_validate(updated)

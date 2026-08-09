@@ -5,28 +5,42 @@ from datetime import UTC, datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.avatar import delete_avatar, save_avatar
 from app.core.config import settings
+from app.core.email import send_password_reset_email
 from app.core.errors import (
     EmailAlreadyRegistered,
+    EmailNotRegistered,
     InactiveAccount,
     InvalidCredentials,
     InvalidRefreshToken,
+    InvalidResetCode,
     UsernameAlreadyTaken,
 )
 from app.core.security import (
     create_access_token,
     generate_refresh_token,
+    generate_reset_code,
     hash_password,
     hash_refresh_token,
+    hash_reset_code,
     password_needs_rehash,
     refresh_token_expiry,
+    reset_code_expiry,
     verify_password,
 )
+from app.models.password_reset_code import PasswordResetCode
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
+from app.repositories.password_reset import PasswordResetRepository
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.repositories.user import UserRepository
-from app.schemas.auth import USERNAME_PATTERN, RegisterRequest, TokenPair
+from app.schemas.auth import (
+    USERNAME_PATTERN,
+    RegisterRequest,
+    TokenPair,
+    UpdateProfileRequest,
+)
 
 
 class AuthService:
@@ -41,10 +55,12 @@ class AuthService:
         session: AsyncSession,
         users: UserRepository,
         tokens: RefreshTokenRepository,
+        password_resets: PasswordResetRepository,
     ) -> None:
         self._session = session
         self._users = users
         self._tokens = tokens
+        self._password_resets = password_resets
 
     async def register(self, data: RegisterRequest) -> tuple[User, TokenPair]:
         # Checked up front so the client gets a precise message; the unique
@@ -131,6 +147,60 @@ class AuthService:
             return False
         return not await self._users.username_exists(username)
 
+    async def update_profile(self, user: User, data: UpdateProfileRequest) -> User:
+        """Apply a partial profile update.
+
+        `exclude_unset` is what separates "field omitted" from "field set to
+        null" — only keys the client actually sent are touched.
+        """
+        changes = data.model_dump(exclude_unset=True)
+
+        new_email = changes.get("email")
+        if new_email and new_email != user.email:
+            if await self._users.email_exists(new_email):
+                raise EmailAlreadyRegistered
+            user.email = new_email
+
+        new_username = changes.get("username")
+        if new_username:
+            # Case-only edits ("aruzhan" → "Aruzhan") are the user's own row,
+            # so they must not trip the uniqueness check.
+            is_different = new_username.lower() != user.username.lower()
+            if is_different and await self._users.username_exists(new_username):
+                raise UsernameAlreadyTaken
+            user.username = new_username
+
+        if "full_name" in changes:
+            user.full_name = changes["full_name"]
+        if "phone" in changes:
+            user.phone = changes["phone"]
+
+        try:
+            await self._session.flush()
+        except IntegrityError as exc:
+            await self._session.rollback()
+            raise _conflict_for(exc) from exc
+
+        await self._session.commit()
+        return user
+
+    async def set_avatar(self, user: User, raw: bytes) -> User:
+        filename = await save_avatar(raw)
+        previous = user.avatar_filename
+        user.avatar_filename = filename
+        await self._session.commit()
+        # Only after the row commits, so a failed write never orphans the
+        # user's existing avatar.
+        await delete_avatar(previous)
+        return user
+
+    async def clear_avatar(self, user: User) -> User:
+        previous = user.avatar_filename
+        user.avatar_filename = None
+        await self._session.commit()
+        await delete_avatar(previous)
+        return user
+
     async def logout(self, raw_token: str) -> None:
         """Revoke a single session. Idempotent — an unknown or already-revoked
         token is not an error, so a client can always safely log out."""
@@ -138,6 +208,61 @@ class AuthService:
         if stored is not None and stored.revoked_at is None:
             await self._tokens.revoke(stored, datetime.now(UTC))
             await self._session.commit()
+
+    async def forgot_password(self, email: str) -> None:
+        """Issue a reset code by email.
+
+        Unlike login, this deliberately reveals whether the email is
+        registered — raises `EmailNotRegistered` rather than pretending to
+        succeed — trading the enumeration risk for a clearer error message.
+        """
+        user = await self._users.get_by_email(email)
+        if user is None:
+            raise EmailNotRegistered
+
+        now = datetime.now(UTC)
+        # A stale code from an earlier request must not stay usable alongside
+        # the new one — only the most recently issued code should ever work.
+        await self._password_resets.invalidate_all_for_user(user.id, now)
+
+        raw_code, code_hash = generate_reset_code()
+        self._password_resets.add(
+            PasswordResetCode(
+                user_id=user.id,
+                code_hash=code_hash,
+                expires_at=reset_code_expiry(),
+            )
+        )
+        await self._session.commit()
+
+        await send_password_reset_email(user.email, raw_code)
+
+    async def reset_password(self, email: str, code: str, new_password: str) -> None:
+        user = await self._users.get_by_email(email)
+        if user is None:
+            raise InvalidResetCode
+
+        record = await self._password_resets.get_latest_active_for_user(user.id)
+        now = datetime.now(UTC)
+
+        if (
+            record is None
+            or record.expires_at <= now
+            or record.attempts >= settings.password_reset_max_attempts
+        ):
+            raise InvalidResetCode
+
+        if record.code_hash != hash_reset_code(code):
+            record.attempts += 1
+            await self._session.commit()
+            raise InvalidResetCode
+
+        user.password_hash = await hash_password(new_password)
+        record.used_at = now
+        # A password reset is a strong signal something was wrong — end every
+        # session, the same way replayed-refresh-token theft-response does.
+        await self._tokens.revoke_all_for_user(user.id, now)
+        await self._session.commit()
 
     async def _issue_tokens(self, user: User) -> TokenPair:
         access_token, _ = create_access_token(user.id)

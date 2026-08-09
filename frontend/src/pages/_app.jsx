@@ -7,7 +7,13 @@ import '@fontsource/poppins/600.css'
 import '@fontsource-variable/roboto/wght.css'
 import '../styles/globals.css'
 
-const PUBLIC_ROUTES = new Set(['/', '/login', '/signup'])
+const PUBLIC_ROUTES = new Set([
+  '/',
+  '/login',
+  '/signup',
+  '/forgot-password',
+  '/reset-password',
+])
 
 export default function App({ Component, pageProps }) {
   const router = useRouter()

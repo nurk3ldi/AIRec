@@ -31,6 +31,11 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(320), nullable=False, unique=True)
     username: Mapped[str] = mapped_column(String(32), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    full_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # Filename only, not a full URL — the serving prefix comes from
+    # `settings.avatar_url_prefix`, so moving storage doesn't rewrite rows.
+    avatar_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=text("true")
     )
@@ -49,6 +54,17 @@ class User(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
+    @property
+    def avatar_url(self) -> str | None:
+        """Serving URL for the stored avatar, or None.
+
+        Computed rather than stored so the serving prefix can change without
+        a data migration. `UserPublic` picks this up via `from_attributes`.
+        """
+        from app.core.avatar import avatar_url as build_avatar_url
+
+        return build_avatar_url(self.avatar_filename)
 
     def __repr__(self) -> str:
         return f"<User {self.username} ({self.email})>"

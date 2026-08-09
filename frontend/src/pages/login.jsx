@@ -20,6 +20,7 @@ export default function LoginPage() {
 
   const identifierHasSpace = /\s/.test(identifier)
   const passwordHasSpace = /\s/.test(password)
+  const resetSuccess = router.query.reset === 'success'
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -46,6 +47,12 @@ export default function LoginPage() {
           <h1 className="text-center font-display text-[26px] font-semibold tracking-[-0.02em] text-[#171215]">
             Welcome to AIRec
           </h1>
+
+          {resetSuccess && (
+            <p className="rounded-lg border border-[#16A34A]/30 bg-[#F0FDF4] px-3.5 py-2.5 text-center text-[13px] text-[#16A34A]">
+              Password reset. Please log in with your new password.
+            </p>
+          )}
 
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
@@ -90,6 +97,12 @@ export default function LoginPage() {
               {passwordHasSpace && (
                 <p className="text-[13px] text-[#DC2626]">No spaces allowed.</p>
               )}
+              <Link
+                href="/forgot-password"
+                className="self-end text-[13px] font-medium text-[#3248F2] hover:underline"
+              >
+                Forgot password?
+              </Link>
             </div>
 
             {error && <p className="text-[13px] text-[#DC2626]">{error}</p>}
@@ -106,7 +119,7 @@ export default function LoginPage() {
 
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-2 text-[14px] font-bold text-[#171215] transition-colors hover:bg-[#F6F8FA]"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-2 text-[14px] font-semibold text-[#171215] transition-colors hover:bg-[#F6F8FA]"
             >
               <img src="/google_logo.svg" alt="" className="h-[18px] w-[18px]" aria-hidden="true" />
               Continue with Google
@@ -114,7 +127,7 @@ export default function LoginPage() {
 
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-2 text-[14px] font-bold text-[#171215] transition-colors hover:bg-[#F6F8FA]"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-2 text-[14px] font-semibold text-[#171215] transition-colors hover:bg-[#F6F8FA]"
             >
               <img src="/apple_logo.svg" alt="" className="h-[18px] w-[18px]" aria-hidden="true" />
               Continue with Apple

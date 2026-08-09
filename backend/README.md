@@ -1,7 +1,8 @@
 # AIRec Backend
 
 FastAPI + SQLAlchemy 2.0 (async) + PostgreSQL 18. Currently implements authentication:
-registration, login, token refresh with rotation, logout, and the current-user endpoint.
+registration, login, token refresh with rotation, logout, the current-user endpoint,
+and a 6-digit-code email password reset.
 
 ## Setup
 
@@ -69,8 +70,15 @@ All routes are under `/api/v1`. Interactive docs at `/docs`.
 | `POST` | `/auth/login` | Sign in with **email or username** in `identifier` |
 | `POST` | `/auth/refresh` | Trade a refresh token for a fresh pair |
 | `POST` | `/auth/logout` | Revoke one refresh token (204, idempotent) |
+| `POST` | `/auth/forgot-password` | Email a 6-digit reset code (always a generic 200, no auth) |
+| `POST` | `/auth/reset-password` | `{email, code, new_password}` → resets password, revokes all sessions |
 | `GET` | `/auth/me` | Current user; needs `Authorization: Bearer <access>` |
+| `PATCH` | `/auth/me` | Partial profile update (name / username / email / phone) |
+| `POST` | `/auth/me/avatar` | Upload an avatar (`multipart/form-data`, field `file`) |
+| `DELETE` | `/auth/me/avatar` | Remove the current avatar |
 | `GET` | `/health` | Liveness probe |
+
+Uploaded avatars are served as static files from `/media/avatars/<name>.png`.
 
 Every failure comes back in one shape, so the frontend only needs one parser:
 
@@ -99,3 +107,21 @@ Every failure comes back in one shape, so the frontend only needs one parser:
 - **Concurrency** — registration pre-checks for a friendly error, but the unique
   indexes are the real guarantee: a racing duplicate surfaces as `IntegrityError`
   and is mapped back to the same 409.
+- **Avatars** — the client crops to a square before uploading, but the server
+  never trusts that: `app/core/avatar.py` re-decodes every upload with Pillow
+  (rejecting anything that isn't a real image), resizes to a fixed square, and
+  re-encodes to PNG under a random filename. Re-encoding is what strips EXIF and
+  any payload smuggled inside an otherwise-valid image. Replacing or deleting an
+  avatar removes the previous file, but only *after* the row commits, so a failed
+  write can't orphan the user's existing picture.
+- **Password reset** — unlike login, `/auth/forgot-password` deliberately reveals
+  whether an email is registered (404 `email_not_registered` if not), trading
+  that enumeration risk for a clearer error on the frontend. A 6-digit code
+  (too little entropy to trust a digest alone)
+  is protected by a per-code attempt counter instead: 5 wrong tries and even the
+  right code stops working, since there's no rate-limiting middleware to lean on.
+  Codes are single-use and scoped to one user before any hash comparison happens,
+  so two users can't collide into each other's code. A successful reset revokes
+  every refresh token for that account. With no `SMTP_HOST` configured (the
+  `.env.example` default), the code is logged to the console instead of emailed —
+  set `SMTP_HOST`/`SMTP_USER`/`SMTP_PASSWORD` in `.env` to send real email.

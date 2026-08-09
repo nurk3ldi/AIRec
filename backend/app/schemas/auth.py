@@ -10,6 +10,9 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 USERNAME_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{2,31}$")
 USERNAME_MESSAGE = "Username: only letters, numbers, underscores, dots, hyphens."
 
+RESET_CODE_PATTERN = re.compile(r"^\d{6}$")
+RESET_CODE_MESSAGE = "Code must be 6 digits."
+
 # Argon2 has no bcrypt-style truncation, but an unbounded password is a cheap
 # way to burn CPU, so cap it.
 Password = Annotated[str, Field(min_length=8, max_length=128)]
@@ -19,6 +22,15 @@ Password = Annotated[str, Field(min_length=8, max_length=128)]
 # that tend to cause encoding surprises across clients.
 PASSWORD_CHARSET_PATTERN = re.compile(r"^[A-Za-z0-9!@#$%^&*()_+\-=\[\]{}|;:,.<>?]+$")
 PASSWORD_CHARSET_MESSAGE = "Password can only use letters, numbers, and symbols."  # noqa: S105
+
+
+def validate_password_charset(value: str) -> str:
+    """Shared by registration and password-reset — both mint a *new* stored
+    password, so both need the charset check. Login never calls this: an
+    already-stored password is valid by construction."""
+    if not PASSWORD_CHARSET_PATTERN.match(value):
+        raise ValueError(PASSWORD_CHARSET_MESSAGE)
+    return value
 
 
 class RegisterRequest(BaseModel):
@@ -39,14 +51,7 @@ class RegisterRequest(BaseModel):
             raise ValueError(USERNAME_MESSAGE)
         return stripped
 
-    @field_validator("password")
-    @classmethod
-    def _validate_password_charset(cls, value: str) -> str:
-        # Scoped to registration only — an already-registered password is by
-        # definition valid, so login never needs to re-check the charset.
-        if not PASSWORD_CHARSET_PATTERN.match(value):
-            raise ValueError(PASSWORD_CHARSET_MESSAGE)
-        return value
+    _validate_password = field_validator("password")(validate_password_charset)
 
 
 class LoginRequest(BaseModel):
@@ -69,12 +74,83 @@ class UsernameAvailability(BaseModel):
     available: bool
 
 
+class MessageResponse(BaseModel):
+    message: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+    @field_validator("email")
+    @classmethod
+    def _normalise_email(cls, value: str) -> str:
+        return value.strip().lower()
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: Password
+
+    @field_validator("email")
+    @classmethod
+    def _normalise_email(cls, value: str) -> str:
+        return value.strip().lower()
+
+    @field_validator("code")
+    @classmethod
+    def _validate_code(cls, value: str) -> str:
+        stripped = value.strip()
+        if not RESET_CODE_PATTERN.match(stripped):
+            raise ValueError(RESET_CODE_MESSAGE)
+        return stripped
+
+    _validate_new_password = field_validator("new_password")(validate_password_charset)
+
+
+class UpdateProfileRequest(BaseModel):
+    """Every field optional — this is a PATCH, and an omitted field means
+    "leave it alone" while an explicit `null` clears it."""
+
+    full_name: str | None = Field(default=None, max_length=100)
+    phone: str | None = Field(default=None, max_length=32)
+    username: str | None = None
+    email: EmailStr | None = None
+
+    @field_validator("email")
+    @classmethod
+    def _normalise_email(cls, value: str | None) -> str | None:
+        return value.strip().lower() if value else value
+
+    @field_validator("username")
+    @classmethod
+    def _validate_username(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip()
+        if not USERNAME_PATTERN.match(stripped):
+            raise ValueError(USERNAME_MESSAGE)
+        return stripped
+
+    @field_validator("full_name", "phone")
+    @classmethod
+    def _blank_to_none(cls, value: str | None) -> str | None:
+        # An emptied-out optional field should clear the column, not store "".
+        if value is None:
+            return None
+        stripped = value.strip()
+        return stripped or None
+
+
 class UserPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
     username: str
     email: EmailStr
+    full_name: str | None = None
+    phone: str | None = None
+    avatar_url: str | None = None
     created_at: datetime
 
 

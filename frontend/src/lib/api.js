@@ -1,6 +1,16 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
 
+// Uploaded files are served from the backend root (/media/...), not from under
+// the versioned API prefix, so strip it to get the origin.
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/v\d+\/?$/, '')
+
+/** Turns a backend-relative path like `/media/avatars/x.png` into a full URL. */
+export function mediaUrl(path) {
+  if (!path) return null
+  return path.startsWith('http') ? path : `${API_ORIGIN}${path}`
+}
+
 export class ApiError extends Error {
   constructor({ code, message, fields, status }) {
     super(message)
@@ -10,16 +20,18 @@ export class ApiError extends Error {
   }
 }
 
-async function request(path, { method = 'GET', body, accessToken } = {}) {
+async function request(path, { method = 'GET', body, formData, accessToken } = {}) {
   let response
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers: {
         ...(body ? { 'Content-Type': 'application/json' } : {}),
+        // Never set Content-Type for FormData — the browser has to add its own
+        // multipart boundary, and setting it by hand breaks the upload.
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
-      body: body ? JSON.stringify(body) : undefined,
+      body: formData ?? (body ? JSON.stringify(body) : undefined),
     })
   } catch {
     throw new ApiError({
@@ -79,4 +91,32 @@ export function logout(refreshToken) {
 
 export function me(accessToken) {
   return request('/auth/me', { method: 'GET', accessToken })
+}
+
+export function updateProfile(accessToken, changes) {
+  return request('/auth/me', { method: 'PATCH', body: changes, accessToken })
+}
+
+export function uploadAvatar(accessToken, blob) {
+  const formData = new FormData()
+  formData.append('file', blob, 'avatar.png')
+  return request('/auth/me/avatar', { method: 'POST', formData, accessToken })
+}
+
+export function deleteAvatar(accessToken) {
+  return request('/auth/me/avatar', { method: 'DELETE', accessToken })
+}
+
+export function forgotPassword(email) {
+  return request('/auth/forgot-password', {
+    method: 'POST',
+    body: { email },
+  })
+}
+
+export function resetPassword({ email, code, newPassword }) {
+  return request('/auth/reset-password', {
+    method: 'POST',
+    body: { email, code, new_password: newPassword },
+  })
 }

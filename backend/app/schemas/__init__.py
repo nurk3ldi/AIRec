@@ -1,8 +1,11 @@
 from app.schemas.auth import (
     AuthResponse,
+    ForgotPasswordRequest,
     LoginRequest,
+    MessageResponse,
     RefreshRequest,
     RegisterRequest,
+    ResetPasswordRequest,
     TokenPair,
     UsernameAvailability,
     UserPublic,
@@ -10,9 +13,12 @@ from app.schemas.auth import (
 
 __all__ = [
     "AuthResponse",
+    "ForgotPasswordRequest",
     "LoginRequest",
+    "MessageResponse",
     "RefreshRequest",
     "RegisterRequest",
+    "ResetPasswordRequest",
     "TokenPair",
     "UserPublic",
     "UsernameAvailability",

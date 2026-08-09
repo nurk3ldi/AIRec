@@ -55,3 +55,26 @@ class NotAuthenticated(AppError):
     status_code = HTTPStatus.UNAUTHORIZED
     code = "not_authenticated"
     message = "Authentication required."
+
+
+class InvalidResetCode(AppError):
+    status_code = HTTPStatus.BAD_REQUEST
+    code = "invalid_reset_code"
+    # Deliberately generic: wrong code, expired code, and too many attempts
+    # all look identical to the caller.
+    message = "This code is invalid or has expired."
+
+
+class InvalidAvatar(AppError):
+    status_code = HTTPStatus.BAD_REQUEST
+    code = "invalid_avatar"
+    message = "That file isn't a valid image."
+
+
+class EmailNotRegistered(AppError):
+    status_code = HTTPStatus.NOT_FOUND
+    code = "email_not_registered"
+    # By design, unlike login/InvalidCredentials: forgot-password intentionally
+    # reveals whether an email is registered, trading that enumeration risk for
+    # a clearer "that email isn't in our system" message on the frontend.
+    message = "This email is not registered."

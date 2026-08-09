@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, PostgresDsn, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -37,6 +38,28 @@ class Settings(BaseSettings):
     secret_key: SecretStr
     access_token_ttl_minutes: int = 15
     refresh_token_ttl_days: int = 30
+
+    # --- Password reset ---
+    password_reset_code_ttl_minutes: int = 10
+    password_reset_max_attempts: int = 5
+
+    # --- Avatars ---
+    # Local disk storage; gitignored. Swap for object storage later by changing
+    # only `app/core/avatar.py` and this prefix.
+    avatar_dir: Path = Path("uploads/avatars")
+    avatar_url_prefix: str = "/media/avatars"
+    avatar_max_bytes: int = 5 * 1024 * 1024
+    avatar_size_px: int = 512
+
+    # --- SMTP (optional) ---
+    # Left unset in local dev on purpose: with no host configured, reset codes
+    # are logged to the console instead of emailed — see app/core/email.py.
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: SecretStr | None = None
+    smtp_from: str = "AIRec <no-reply@airec.local>"
+    smtp_use_tls: bool = True
 
     @field_validator("database_url")
     @classmethod

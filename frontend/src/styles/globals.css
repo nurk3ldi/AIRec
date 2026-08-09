@@ -47,11 +47,13 @@ h6 {
   font-family: Poppins, 'Roboto Variable', sans-serif;
 }
 
-button,
-input,
-textarea,
-select {
-  font: inherit;
+@layer base {
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
 }
 
 button,

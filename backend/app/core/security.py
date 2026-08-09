@@ -113,3 +113,22 @@ def hash_refresh_token(raw: str) -> str:
 
 def refresh_token_expiry() -> datetime:
     return datetime.now(UTC) + timedelta(days=settings.refresh_token_ttl_days)
+
+
+def generate_reset_code() -> tuple[str, str]:
+    """Return `(plaintext, digest)` for a new 6-digit password reset code.
+
+    Unlike a refresh token, a 6-digit code has far too little entropy for the
+    digest alone to resist guessing — `PasswordResetCode.attempts` is what
+    actually protects this one (see `AuthService.reset_password`).
+    """
+    raw = f"{secrets.randbelow(1_000_000):06d}"
+    return raw, hash_reset_code(raw)
+
+
+def hash_reset_code(raw: str) -> str:
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def reset_code_expiry() -> datetime:
+    return datetime.now(UTC) + timedelta(minutes=settings.password_reset_code_ttl_minutes)

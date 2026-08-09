@@ -176,7 +176,7 @@ export default function SignupPage() {
 
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-2 text-[14px] font-bold text-[#171215] transition-colors hover:bg-[#F6F8FA]"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-2 text-[14px] font-semibold text-[#171215] transition-colors hover:bg-[#F6F8FA]"
             >
               <img src="/google_logo.svg" alt="" className="h-[18px] w-[18px]" aria-hidden="true" />
               Continue with Google
@@ -184,7 +184,7 @@ export default function SignupPage() {
 
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-2 text-[14px] font-bold text-[#171215] transition-colors hover:bg-[#F6F8FA]"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-2 text-[14px] font-semibold text-[#171215] transition-colors hover:bg-[#F6F8FA]"
             >
               <img src="/apple_logo.svg" alt="" className="h-[18px] w-[18px]" aria-hidden="true" />
               Continue with Apple

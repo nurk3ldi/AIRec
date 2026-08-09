@@ -4,11 +4,13 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from http import HTTPStatus
+from pathlib import Path
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.router import api_router
 from app.core.config import settings
@@ -111,3 +113,13 @@ async def health() -> dict[str, str]:
 
 
 app.include_router(api_router, prefix=settings.api_v1_prefix)
+
+# Uploaded avatars are served straight off disk. Created at import time because
+# StaticFiles refuses to mount a directory that doesn't exist yet.
+_avatar_dir = Path(settings.avatar_dir)
+_avatar_dir.mkdir(parents=True, exist_ok=True)
+app.mount(
+    settings.avatar_url_prefix,
+    StaticFiles(directory=_avatar_dir),
+    name="avatars",
+)
