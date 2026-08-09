@@ -1,0 +1,115 @@
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/router'
+import { me, refresh } from './api'
+
+const ACCESS_TOKEN_KEY = 'airec_access_token'
+const REFRESH_TOKEN_KEY = 'airec_refresh_token'
+
+export function saveTokens({ access_token, refresh_token }) {
+  localStorage.setItem(ACCESS_TOKEN_KEY, access_token)
+  localStorage.setItem(REFRESH_TOKEN_KEY, refresh_token)
+}
+
+export function getAccessToken() {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(ACCESS_TOKEN_KEY)
+}
+
+export function getRefreshToken() {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(REFRESH_TOKEN_KEY)
+}
+
+export function clearTokens() {
+  localStorage.removeItem(ACCESS_TOKEN_KEY)
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
+}
+
+export function isAuthenticated() {
+  return Boolean(getAccessToken())
+}
+
+/**
+ * Confirms the current session against the backend, transparently rotating
+ * an expired access token via the refresh token when needed.
+ *
+ * Returns the current user on success, or `null` (after clearing whatever
+ * tokens turned out to be dead) when there is no valid session.
+ */
+export async function verifySession() {
+  const accessToken = getAccessToken()
+  if (accessToken) {
+    try {
+      return await me(accessToken)
+    } catch {
+      // Expired, invalid, or the server is briefly unreachable — fall through
+      // and try to recover via the refresh token below rather than failing here.
+    }
+  }
+
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) {
+    clearTokens()
+    return null
+  }
+
+  try {
+    const { user, tokens } = await refresh(refreshToken)
+    saveTokens(tokens)
+    return user
+  } catch {
+    clearTokens()
+    return null
+  }
+}
+
+/**
+ * Redirects to /login when there is no valid session. Use in the dashboard shell.
+ * Returns `true` once the check has run and the caller is clear to render —
+ * before that, render nothing so protected content never flashes on screen.
+ */
+export function useRequireAuth() {
+  const router = useRouter()
+  const [isReady, setIsReady] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    verifySession().then((user) => {
+      if (cancelled) return
+      if (user) {
+        setIsReady(true)
+      } else {
+        router.replace('/login')
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+    // Only the mount/route-change matters here, not `router` identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.pathname])
+
+  return isReady
+}
+
+/** Redirects a visitor with a valid session away from login/signup. */
+export function useRedirectIfAuthed(destination = '/dashboard') {
+  const router = useRouter()
+
+  useEffect(() => {
+    let cancelled = false
+
+    verifySession().then((user) => {
+      if (!cancelled && user) {
+        router.replace(destination)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+}

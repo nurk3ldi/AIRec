@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import Head from 'next/head'
+import { useRouter } from 'next/router'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Edit02Icon } from '@hugeicons/core-free-icons'
 import ProfileAvatar from '../components/ProfileAvatar'
+import { logout as logoutRequest } from '../lib/api'
+import { clearTokens, getRefreshToken } from '../lib/auth'
 import styles from '../styles/Profile.module.css'
 
 export default function ProfilePage() {
+  const router = useRouter()
   const [profile, setProfile] = useState({
     name: 'Аружан Ахметова',
     email: 'aruzhan@example.com',
@@ -32,6 +36,16 @@ export default function ProfilePage() {
   const handlePasswordSubmit = (event) => {
     event.preventDefault()
     setPasswords({ current: '', next: '', repeat: '' })
+  }
+
+  const handleLogout = async () => {
+    const refreshToken = getRefreshToken()
+    if (refreshToken) {
+      // Best-effort: revoke the session server-side, but log out locally either way.
+      await logoutRequest(refreshToken).catch(() => {})
+    }
+    clearTokens()
+    router.push('/')
   }
 
   return (
@@ -142,6 +156,14 @@ export default function ProfilePage() {
               </button>
             </form>
           </section>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="self-center text-[14px] font-medium text-[#DC2626] transition-colors hover:underline"
+          >
+            Шығу
+          </button>
         </div>
       </div>
     </>
