@@ -3,7 +3,7 @@ import ComingSoon from '../../components/ComingSoon'
 import ProfileSection from '../../components/ProfileSection'
 import styles from '../../styles/Profile.module.css'
 
-export default function SubscriptionSettingsPage() {
+export default function GeneralSettingsPage() {
   return (
     <>
       <Head>
@@ -11,12 +11,12 @@ export default function SubscriptionSettingsPage() {
       </Head>
       <div className={styles.page}>
         <ProfileSection
-          title="Subscription"
-          description="Your plan, usage limits, and billing history"
+          title="Settings"
+          description="App preferences, notifications, and integrations"
         >
           <ComingSoon>
-            Your current plan, usage limits, payment method, and invoices will
-            live here.
+            Language, notification preferences, connected channels, and other
+            app-wide options will live here.
           </ComingSoon>
         </ProfileSection>
       </div>

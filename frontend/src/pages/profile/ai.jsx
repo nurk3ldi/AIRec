@@ -1,6 +1,6 @@
 import Head from 'next/head'
 import ComingSoon from '../../components/ComingSoon'
-import ProfileLayout from '../../components/ProfileLayout'
+import ProfileSection from '../../components/ProfileSection'
 import styles from '../../styles/Profile.module.css'
 
 export default function AiSettingsPage() {
@@ -10,7 +10,7 @@ export default function AiSettingsPage() {
         <title>AIRec</title>
       </Head>
       <div className={styles.page}>
-        <ProfileLayout
+        <ProfileSection
           title="AI Assistant"
           description="How your assistant speaks, and what it knows"
         >
@@ -18,7 +18,7 @@ export default function AiSettingsPage() {
             Set the assistant&apos;s tone and language, build its answer base,
             and choose when a conversation hands off to a person.
           </ComingSoon>
-        </ProfileLayout>
+        </ProfileSection>
       </div>
     </>
   )

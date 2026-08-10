@@ -5,14 +5,13 @@ const pageTitles = {
   '/inbox': 'Диалоги',
   '/appointments': 'Записи',
   '/analytics': 'Аналитика',
-  // English by explicit request — the whole /profile section is in English,
-  // so a Russian chrome title on top of it would read as a bug.
+  // English by explicit request, unlike the rest of the dashboard chrome.
   '/profile': 'Profile',
 }
 
 function titleFor(pathname) {
-  // /profile/* are sections of one page — the section's own name is rendered
-  // by ProfileLayout, so the chrome keeps showing the parent title.
+  // Every /profile/* section renders its own heading; the chrome keeps showing
+  // the parent title so the two don't repeat each other.
   if (pathname.startsWith('/profile')) return pageTitles['/profile']
   return pageTitles[pathname] ?? 'AIRec'
 }

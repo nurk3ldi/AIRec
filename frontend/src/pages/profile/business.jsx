@@ -1,6 +1,6 @@
 import Head from 'next/head'
 import ComingSoon from '../../components/ComingSoon'
-import ProfileLayout from '../../components/ProfileLayout'
+import ProfileSection from '../../components/ProfileSection'
 import styles from '../../styles/Profile.module.css'
 
 export default function BusinessSettingsPage() {
@@ -10,7 +10,7 @@ export default function BusinessSettingsPage() {
         <title>AIRec</title>
       </Head>
       <div className={styles.page}>
-        <ProfileLayout
+        <ProfileSection
           title="Business"
           description="Company details, locations, and opening hours"
         >
@@ -18,7 +18,7 @@ export default function BusinessSettingsPage() {
             Company name, industry, locations, opening hours, services, and team
             members will be managed here.
           </ComingSoon>
-        </ProfileLayout>
+        </ProfileSection>
       </div>
     </>
   )

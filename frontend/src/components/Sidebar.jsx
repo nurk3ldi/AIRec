@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { HugeiconsIcon } from '@hugeicons/react'
@@ -7,8 +8,10 @@ import {
   NoteIcon,
   Activity02Icon,
 } from '@hugeicons/core-free-icons'
+import { mediaUrl } from '../lib/api'
 import BrandMark from './BrandMark'
 import ProfileAvatar from './ProfileAvatar'
+import ProfileMenu from './ProfileMenu'
 
 const navigation = [
   { label: 'Главная', href: '/dashboard', icon: Home01Icon },
@@ -17,8 +20,14 @@ const navigation = [
   { label: 'Аналитика', href: '/analytics', icon: Activity02Icon },
 ]
 
-export default function Sidebar({ profileImageUrl = null }) {
+export default function Sidebar({ user = null }) {
   const router = useRouter()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+
+  // Navigating from inside the menu should leave it closed behind you.
+  useEffect(() => {
+    setIsMenuOpen(false)
+  }, [router.pathname])
 
   return (
     <aside className="fixed inset-y-0 left-0 z-50 flex w-16 flex-col overflow-visible border-r border-[#999999]/45 bg-[#171215] text-white shadow-[6px_0_20px_rgba(23,18,21,0.08)]">
@@ -62,23 +71,32 @@ export default function Sidebar({ profileImageUrl = null }) {
         })}
       </nav>
 
-      {/* startsWith, not equality: every /profile/* settings section should
-          keep this rail item lit. */}
-      <Link
-        href="/profile/account"
+      <button
+        type="button"
+        data-profile-menu-toggle
+        onClick={() => setIsMenuOpen((open) => !open)}
+        aria-haspopup="menu"
+        aria-expanded={isMenuOpen}
+        aria-label="Profile"
         className={`group relative mx-auto mb-[18px] grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-white transition-all duration-200 ${
-          router.pathname.startsWith('/profile')
+          isMenuOpen || router.pathname.startsWith('/profile')
             ? 'bg-[#3248F2] shadow-[0_8px_22px_rgba(50,72,242,0.38)]'
             : 'hover:bg-[#F6F8FA]/10'
         }`}
-        aria-label="Profile"
-        aria-current={router.pathname.startsWith('/profile') ? 'page' : undefined}
       >
-        <ProfileAvatar src={profileImageUrl} />
-        <span className="pointer-events-none absolute left-[46px] z-50 whitespace-nowrap rounded-md bg-[#171215] px-2.5 py-1.5 font-sans text-[11px] font-medium text-white opacity-0 shadow-xl transition-all duration-150 group-hover:translate-x-1 group-hover:opacity-100">
-          Profile
-        </span>
-      </Link>
+        <ProfileAvatar src={mediaUrl(user?.avatar_url)} />
+        {/* Hidden while the menu is open — the panel already names everything
+            it points at, so the tooltip would just overlap it. */}
+        {!isMenuOpen && (
+          <span className="pointer-events-none absolute left-[46px] z-50 whitespace-nowrap rounded-md bg-[#171215] px-2.5 py-1.5 font-sans text-[11px] font-medium text-white opacity-0 shadow-xl transition-all duration-150 group-hover:translate-x-1 group-hover:opacity-100">
+            Profile
+          </span>
+        )}
+      </button>
+
+      {isMenuOpen && (
+        <ProfileMenu user={user} onClose={() => setIsMenuOpen(false)} />
+      )}
     </aside>
   )
 }

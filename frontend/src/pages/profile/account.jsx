@@ -1,23 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import Head from 'next/head'
-import { useRouter } from 'next/router'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Delete02Icon, ImageUpload01Icon, User02Icon } from '@hugeicons/core-free-icons'
 import AvatarCropper from '../../components/AvatarCropper'
-import ProfileLayout from '../../components/ProfileLayout'
+import ProfileSection from '../../components/ProfileSection'
 import {
   deleteAvatar,
-  logout as logoutRequest,
   mediaUrl,
   updateProfile,
   uploadAvatar,
 } from '../../lib/api'
-import {
-  clearTokens,
-  getAccessToken,
-  getRefreshToken,
-  verifySession,
-} from '../../lib/auth'
+import { getAccessToken, verifySession } from '../../lib/auth'
 import styles from '../../styles/Profile.module.css'
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
@@ -26,7 +19,7 @@ const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 function Row({ label, hint, htmlFor, children }) {
   return (
     <div className="flex flex-col gap-2 border-b border-[#999999]/20 py-5 sm:flex-row sm:items-center sm:gap-8">
-      <div className="sm:w-[220px] sm:shrink-0">
+      <div className="sm:w-[200px] sm:shrink-0">
         <label
           htmlFor={htmlFor}
           className="block text-[14px] font-medium text-[#171215]"
@@ -62,7 +55,6 @@ function TextField({ id, value, onChange, error, ...rest }) {
 }
 
 export default function AccountSettingsPage() {
-  const router = useRouter()
   const fileInputRef = useRef(null)
 
   const [user, setUser] = useState(null)
@@ -178,15 +170,6 @@ export default function AccountSettingsPage() {
     }
   }
 
-  const handleLogout = async () => {
-    const refreshToken = getRefreshToken()
-    if (refreshToken) {
-      await logoutRequest(refreshToken).catch(() => {})
-    }
-    clearTokens()
-    router.push('/')
-  }
-
   const avatarSrc = mediaUrl(user?.avatar_url)
 
   return (
@@ -195,14 +178,14 @@ export default function AccountSettingsPage() {
         <title>AIRec</title>
       </Head>
       <div className={styles.page}>
-        <ProfileLayout
+        <ProfileSection
           title="Account"
           description="Your personal details and how you sign in"
         >
-          {/* Avatar block sits above the form: it saves on its own, not with
-              the Save button, so keeping it inside the <form> would mislead. */}
+          {/* Avatar sits above the form: it saves on its own, not with the
+              Save button, so keeping it inside the <form> would mislead. */}
           <div className="flex flex-col gap-4 border-b border-[#999999]/20 py-6 sm:flex-row sm:items-center sm:gap-8">
-            <div className="sm:w-[220px] sm:shrink-0">
+            <div className="sm:w-[200px] sm:shrink-0">
               <p className="text-[14px] font-medium text-[#171215]">Photo</p>
               <p className="mt-0.5 text-[13px] text-[#999999]">
                 PNG or JPG, up to 5 MB
@@ -359,25 +342,7 @@ export default function AccountSettingsPage() {
               )}
             </div>
           </form>
-
-          <div className="flex flex-col gap-2 py-6 sm:flex-row sm:items-center sm:gap-8">
-            <div className="sm:w-[220px] sm:shrink-0">
-              <p className="text-[14px] font-medium text-[#171215]">Session</p>
-              <p className="mt-0.5 text-[13px] text-[#999999]">
-                Sign out on this device
-              </p>
-            </div>
-            <div className="flex-1">
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="rounded-lg border border-[#DC2626]/40 px-4 py-2 text-[14px] font-medium text-[#DC2626] transition-colors hover:bg-[#DC2626]/8"
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
-        </ProfileLayout>
+        </ProfileSection>
       </div>
 
       {pickedFile && (
