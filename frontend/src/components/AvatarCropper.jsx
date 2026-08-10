@@ -64,7 +64,7 @@ export default function AvatarCropper({ file, onCancel, onSave }) {
         y: (VIEWPORT - img.naturalHeight * initialScale) / 2,
       })
     }
-    img.onerror = () => setError("That file couldn't be read as an image.")
+    img.onerror = () => setError('Не удалось прочитать файл как изображение.')
     img.src = objectUrl
 
     return () => URL.revokeObjectURL(objectUrl)
@@ -169,10 +169,10 @@ export default function AvatarCropper({ file, onCancel, onSave }) {
       const blob = await new Promise((resolve) =>
         canvas.toBlob(resolve, 'image/png')
       )
-      if (!blob) throw new Error("Couldn't process the image.")
+      if (!blob) throw new Error('Не удалось обработать изображение.')
       await onSave(blob)
     } catch (err) {
-      setError(err?.message || "Couldn't save the image.")
+      setError(err?.message || 'Не удалось сохранить изображение.')
       setIsSaving(false)
     }
   }
@@ -181,8 +181,11 @@ export default function AvatarCropper({ file, onCancel, onSave }) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Crop avatar"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#171215]/60 p-4"
+      aria-label="Обрезка фото"
+      // Marks this as a nested overlay so ProfileDialog's Escape handler
+      // stands down while the cropper is up — otherwise one Escape closes both.
+      data-nested-overlay
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-[#171215]/60 p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onCancel()
       }}
@@ -190,12 +193,12 @@ export default function AvatarCropper({ file, onCancel, onSave }) {
       <div className="w-full max-w-[360px] rounded-2xl bg-white p-5 shadow-[0_24px_48px_-12px_rgba(23,18,21,0.3)]">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-[16px] font-semibold text-[#171215]">
-            Adjust your photo
+            Настройте фото
           </h2>
           <button
             type="button"
             onClick={onCancel}
-            aria-label="Close"
+            aria-label="Закрыть"
             className="grid h-8 w-8 place-items-center rounded-lg text-[#999999] transition-colors hover:bg-[#F6F8FA] hover:text-[#171215]"
           >
             <HugeiconsIcon
@@ -243,7 +246,7 @@ export default function AvatarCropper({ file, onCancel, onSave }) {
           <button
             type="button"
             onClick={() => applyZoom(zoom - 0.25)}
-            aria-label="Zoom out"
+            aria-label="Уменьшить"
             className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[#999999]/35 text-[#171215] transition-colors hover:bg-[#F6F8FA]"
           >
             <HugeiconsIcon icon={MinusSignIcon} size={15} strokeWidth={2.4} />
@@ -255,13 +258,13 @@ export default function AvatarCropper({ file, onCancel, onSave }) {
             step={0.01}
             value={zoom}
             onChange={(event) => applyZoom(Number(event.target.value))}
-            aria-label="Zoom"
+            aria-label="Масштаб"
             className="h-1 w-full cursor-pointer appearance-none rounded-full bg-[#999999]/30 accent-[#3248F2]"
           />
           <button
             type="button"
             onClick={() => applyZoom(zoom + 0.25)}
-            aria-label="Zoom in"
+            aria-label="Увеличить"
             className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[#999999]/35 text-[#171215] transition-colors hover:bg-[#F6F8FA]"
           >
             <HugeiconsIcon icon={PlusSignIcon} size={15} strokeWidth={2.4} />
@@ -269,7 +272,7 @@ export default function AvatarCropper({ file, onCancel, onSave }) {
         </div>
 
         <p className="mt-3 text-center text-[12px] text-[#999999]">
-          Drag to reposition · scroll or use the slider to zoom
+          Перетащите, чтобы сдвинуть · прокрутка или ползунок — масштаб
         </p>
 
         {error && (
@@ -284,7 +287,7 @@ export default function AvatarCropper({ file, onCancel, onSave }) {
             onClick={onCancel}
             className="flex-1 rounded-lg border border-[#999999]/35 px-4 py-2 text-[14px] font-medium text-[#171215] transition-colors hover:bg-[#F6F8FA]"
           >
-            Cancel
+            Отмена
           </button>
           <button
             type="button"
@@ -292,7 +295,7 @@ export default function AvatarCropper({ file, onCancel, onSave }) {
             disabled={!image || isSaving}
             className="flex-1 rounded-lg bg-[#3248F2] px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-[#2839c9] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSaving ? 'Saving…' : 'Save'}
+            {isSaving ? 'Сохраняем…' : 'Сохранить'}
           </button>
         </div>
       </div>

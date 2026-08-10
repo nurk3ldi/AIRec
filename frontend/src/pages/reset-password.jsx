@@ -105,11 +105,11 @@ export default function ResetPasswordPage({ email }) {
     setFieldErrors({})
 
     if (code.length !== 6) {
-      setError('Enter the 6-digit code.')
+      setError('Введите 6-значный код.')
       return
     }
     if (passwordsMismatch) {
-      setError('Passwords do not match.')
+      setError('Пароли не совпадают.')
       return
     }
 
@@ -152,16 +152,16 @@ export default function ResetPasswordPage({ email }) {
         <div className="mx-auto flex max-w-[400px] flex-col gap-6 px-4 py-16 sm:px-6">
           <div className="flex flex-col items-center gap-2 text-center">
             <h1 className="font-display text-[26px] font-semibold tracking-[-0.02em] text-[#171215]">
-              Enter your code
+              Введите код
             </h1>
             <p className="text-[14px] text-[#999999]">
-              We sent a 6-digit code to <span className="text-[#171215]">{email}</span>
+              Мы отправили 6-значный код на <span className="text-[#171215]">{email}</span>
             </p>
             <Link
               href={`/forgot-password?email=${encodeURIComponent(email)}`}
               className="text-[13px] font-medium text-[#3248F2] hover:underline"
             >
-              Wrong email? Change it
+              Не тот email? Изменить
             </Link>
           </div>
 
@@ -180,10 +180,10 @@ export default function ResetPasswordPage({ email }) {
                 className="text-[13px] font-medium text-[#3248F2] transition-colors hover:underline disabled:cursor-not-allowed disabled:text-[#999999] disabled:no-underline"
               >
                 {resendCooldown > 0
-                  ? `Resend code (${resendCooldown}s)`
+                  ? `Отправить снова (${resendCooldown} с)`
                   : justResent
-                    ? 'Code resent.'
-                    : 'Resend code'}
+                    ? 'Код отправлен.'
+                    : 'Отправить код снова'}
               </button>
             </div>
 
@@ -195,14 +195,14 @@ export default function ResetPasswordPage({ email }) {
                   type={showPassword ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(event) => setNewPassword(event.target.value)}
-                  placeholder="New password"
+                  placeholder="Новый пароль"
                   autoComplete="new-password"
                   className={`w-full rounded-lg border bg-white px-3.5 py-2 pr-11 text-[14px] text-[#171215] outline-none transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${fieldErrors.new_password || newPasswordHasSpace ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? 'Hide passwords' : 'Show passwords'}
+                  aria-label={showPassword ? 'Скрыть пароли' : 'Показать пароли'}
                   className="absolute right-3 top-1/2 grid -translate-y-1/2 place-items-center text-[#999999] transition-colors hover:text-[#171215]"
                 >
                   <HugeiconsIcon
@@ -218,7 +218,7 @@ export default function ResetPasswordPage({ email }) {
                 <p className="text-[13px] text-[#DC2626]">{fieldErrors.new_password}</p>
               ) : (
                 newPasswordHasSpace && (
-                  <p className="text-[13px] text-[#DC2626]">No spaces allowed.</p>
+                  <p className="text-[13px] text-[#DC2626]">Пробелы недопустимы.</p>
                 )
               )}
             </div>
@@ -229,14 +229,14 @@ export default function ResetPasswordPage({ email }) {
                   type={showPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
-                  placeholder="Confirm new password"
+                  placeholder="Повторите пароль"
                   autoComplete="new-password"
                   className={`w-full rounded-lg border bg-white px-3.5 py-2 pr-11 text-[14px] text-[#171215] outline-none transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${passwordsMismatch ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? 'Hide passwords' : 'Show passwords'}
+                  aria-label={showPassword ? 'Скрыть пароли' : 'Показать пароли'}
                   className="absolute right-3 top-1/2 grid -translate-y-1/2 place-items-center text-[#999999] transition-colors hover:text-[#171215]"
                 >
                   <HugeiconsIcon
@@ -249,7 +249,7 @@ export default function ResetPasswordPage({ email }) {
                 </button>
               </div>
               {passwordsMismatch && (
-                <p className="text-[13px] text-[#DC2626]">Passwords do not match.</p>
+                <p className="text-[13px] text-[#DC2626]">Пароли не совпадают.</p>
               )}
             </div>
 
@@ -260,14 +260,14 @@ export default function ResetPasswordPage({ email }) {
               disabled={isSubmitting}
               className="rounded-lg bg-[#171215] px-5 py-2 text-[14px] font-medium text-white transition-colors hover:bg-[#171215]/85 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? 'Resetting…' : 'Reset Password'}
+              {isSubmitting ? 'Сохраняем…' : 'Сменить пароль'}
             </button>
           </form>
 
           <p className="text-center text-[15px] text-[#999999]">
-            Remembered it?{' '}
+            Вспомнили пароль?{' '}
             <Link href="/login" className="font-medium text-[#3248F2] hover:underline">
-              Log In
+              Войти
             </Link>
           </p>
         </div>

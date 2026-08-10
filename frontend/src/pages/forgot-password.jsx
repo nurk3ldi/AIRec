@@ -48,10 +48,10 @@ export default function ForgotPasswordPage() {
         <div className="mx-auto flex max-w-[400px] flex-col gap-6 px-4 py-16 sm:px-6">
           <div className="flex flex-col items-center gap-2 text-center">
             <h1 className="font-display text-[26px] font-semibold tracking-[-0.02em] text-[#171215]">
-              Reset your password
+              Восстановление пароля
             </h1>
             <p className="text-[14px] text-[#999999]">
-              Enter your email and we&apos;ll send you a 6-digit code.
+              Введите email — мы отправим 6-значный код.
             </p>
           </div>
 
@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
                 className={`rounded-lg border bg-white px-3.5 py-2 text-[14px] text-[#171215] outline-none transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${emailHasSpace ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
               />
               {emailHasSpace && (
-                <p className="text-[13px] text-[#DC2626]">No spaces allowed.</p>
+                <p className="text-[13px] text-[#DC2626]">Пробелы недопустимы.</p>
               )}
             </div>
 
@@ -78,14 +78,14 @@ export default function ForgotPasswordPage() {
               disabled={isSubmitting}
               className="rounded-lg bg-[#171215] px-5 py-2 text-[14px] font-medium text-white transition-colors hover:bg-[#171215]/85 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? 'Sending…' : 'Send Code'}
+              {isSubmitting ? 'Отправляем…' : 'Отправить код'}
             </button>
           </form>
 
           <p className="text-center text-[15px] text-[#999999]">
-            Remembered it?{' '}
+            Вспомнили пароль?{' '}
             <Link href="/login" className="font-medium text-[#3248F2] hover:underline">
-              Log In
+              Войти
             </Link>
           </p>
         </div>

@@ -17,7 +17,12 @@ select = [
     "RUF",
 ]
 ignore = [
-    "B008",  # FastAPI's Depends() in defaults is the documented pattern
+    "B008",   # FastAPI's Depends() in defaults is the documented pattern
+    # RUF001-003 flag Cyrillic that resembles Latin. Every user-facing string in
+    # this app is Russian on purpose, so the "ambiguity" is the intent.
+    "RUF001",
+    "RUF002",
+    "RUF003",
 ]
 
 [tool.ruff.lint.per-file-ignores]

@@ -1,15 +1,23 @@
+import { useEffect, useState } from 'react'
 import { useRequireAuth } from '../lib/auth'
 import Sidebar from './Sidebar'
 import Header from './Header'
 
 export default function DashboardLayout({ children }) {
-  const user = useRequireAuth()
+  const verifiedUser = useRequireAuth()
+  // Mirrored into state so edits made in the profile dialog (name, avatar)
+  // show up in the sidebar without another `/auth/me` round trip.
+  const [user, setUser] = useState(null)
+
+  useEffect(() => {
+    if (verifiedUser) setUser(verifiedUser)
+  }, [verifiedUser])
 
   if (!user) return null
 
   return (
     <div className="min-h-screen bg-[#F6F8FA] text-[#171215]">
-      <Sidebar user={user} />
+      <Sidebar user={user} onUserChange={setUser} />
       <main className="min-h-screen bg-[#F6F8FA] pl-16">
         <Header />
         {children}

@@ -83,7 +83,7 @@ async def forgot_password(
     payload: ForgotPasswordRequest, auth: AuthServiceDep
 ) -> MessageResponse:
     await auth.forgot_password(payload.email)
-    return MessageResponse(message="We've sent a code to your email.")
+    return MessageResponse(message="Код отправлен на вашу почту.")
 
 
 @router.post(
@@ -95,7 +95,7 @@ async def reset_password(
     payload: ResetPasswordRequest, auth: AuthServiceDep
 ) -> MessageResponse:
     await auth.reset_password(payload.email, payload.code, payload.new_password)
-    return MessageResponse(message="Password reset. You can now log in.")
+    return MessageResponse(message="Пароль изменён. Теперь вы можете войти.")
 
 
 @router.get("/me", response_model=UserPublic, summary="The signed-in user")

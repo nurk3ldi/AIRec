@@ -60,12 +60,12 @@ def _reset_code_html(code: str, ttl_minutes: int) -> str:
             </tr>
             <tr>
               <td style="padding:20px 32px 4px 32px;text-align:center;">
-                <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;color:{_BRAND_BLACK};">Your password reset code</p>
+                <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;color:{_BRAND_BLACK};">Код для восстановления пароля</p>
               </td>
             </tr>
             <tr>
               <td style="padding:8px 32px 0 32px;text-align:center;">
-                <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:{_BRAND_GRAY};">Enter this code to reset your AIRec password.</p>
+                <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:{_BRAND_GRAY};">Введите этот код, чтобы задать новый пароль в AIRec.</p>
               </td>
             </tr>
             <tr>
@@ -78,7 +78,7 @@ def _reset_code_html(code: str, ttl_minutes: int) -> str:
             <tr>
               <td style="padding:0 32px 36px 32px;text-align:center;">
                 <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:{_BRAND_GRAY};">
-                  This code expires in {ttl_minutes} minutes. If you didn't request this, you can safely ignore this email.
+                  Код действует {ttl_minutes} минут. Если вы не запрашивали восстановление, просто проигнорируйте это письмо.
                 </p>
               </td>
             </tr>
@@ -98,11 +98,11 @@ def _reset_code_html(code: str, ttl_minutes: int) -> str:
 
 async def send_password_reset_email(to_email: str, code: str) -> None:
     ttl_minutes = settings.password_reset_code_ttl_minutes
-    subject = "Your AIRec password reset code"
+    subject = "Код для восстановления пароля AIRec"
     text_body = (
-        f"Your password reset code is: {code}\n\n"
-        f"This code expires in {ttl_minutes} minutes. "
-        "If you didn't request this, you can safely ignore this email."
+        f"Ваш код для восстановления пароля: {code}\n\n"
+        f"Код действует {ttl_minutes} минут. "
+        "Если вы не запрашивали восстановление, просто проигнорируйте это письмо."
     )
 
     if not settings.smtp_host:

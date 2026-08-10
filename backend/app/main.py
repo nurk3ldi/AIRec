@@ -66,15 +66,35 @@ async def handle_app_error(_: Request, exc: AppError) -> JSONResponse:
 
 _PYDANTIC_VALUE_ERROR_PREFIX = "Value error, "
 
+# Pydantic's own messages are English and can't be localised in place, so the
+# handful a client can actually trigger are mapped here. Anything validated by
+# our own `field_validator` already raises Russian and never reaches this map.
+_PYDANTIC_MESSAGES_RU = {
+    "missing": "Обязательное поле.",
+    "string_type": "Ожидается текст.",
+    "string_too_short": "Слишком короткое значение.",
+    "string_too_long": "Слишком длинное значение.",
+    "json_invalid": "Некорректный формат запроса.",
+}
+_EMAIL_ERROR_PREFIX = "value is not a valid email address"
+
 
 def _field_message(err: dict[str, object]) -> str:
+    message = str(err["msg"])
+    error_type = str(err["type"])
+
+    # EmailStr reports through "value_error" like our own validators do, so it
+    # has to be matched on text rather than type.
+    if message.startswith(_EMAIL_ERROR_PREFIX):
+        return "Некорректный email."
+
     # A `raise ValueError(...)` inside a field_validator comes back as a
     # "value_error" with that prefix glued on — strip it so custom messages
     # (e.g. the password charset rule) read the way they were written.
-    message = str(err["msg"])
-    if err["type"] == "value_error" and message.startswith(_PYDANTIC_VALUE_ERROR_PREFIX):
+    if error_type == "value_error" and message.startswith(_PYDANTIC_VALUE_ERROR_PREFIX):
         return message[len(_PYDANTIC_VALUE_ERROR_PREFIX) :]
-    return message
+
+    return _PYDANTIC_MESSAGES_RU.get(error_type, message)
 
 
 @app.exception_handler(RequestValidationError)
@@ -85,7 +105,7 @@ async def handle_validation_error(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=_error_body(
             "validation_error",
-            "Some fields are invalid.",
+            "Некоторые поля заполнены неверно.",
             fields=[
                 {
                     "field": ".".join(str(part) for part in err["loc"][1:]),
@@ -103,7 +123,7 @@ async def handle_unexpected_error(_: Request, exc: Exception) -> JSONResponse:
     logger.exception("Unhandled error", exc_info=exc)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content=_error_body("internal_error", "Something went wrong."),
+        content=_error_body("internal_error", "Что-то пошло не так."),
     )
 
 

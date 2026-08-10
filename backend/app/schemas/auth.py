@@ -8,26 +8,43 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 USERNAME_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{2,31}$")
-USERNAME_MESSAGE = "Username: only letters, numbers, underscores, dots, hyphens."
+USERNAME_MESSAGE = "Логин: только латинские буквы, цифры, _ . и -"
 
 RESET_CODE_PATTERN = re.compile(r"^\d{6}$")
-RESET_CODE_MESSAGE = "Code must be 6 digits."
+RESET_CODE_MESSAGE = "Код состоит из 6 цифр."
 
 # Argon2 has no bcrypt-style truncation, but an unbounded password is a cheap
 # way to burn CPU, so cap it.
-Password = Annotated[str, Field(min_length=8, max_length=128)]
+PASSWORD_MIN_LENGTH = 8
+PASSWORD_MAX_LENGTH = 128
+PASSWORD_LENGTH_MESSAGE = (
+    f"Пароль должен быть от {PASSWORD_MIN_LENGTH} до {PASSWORD_MAX_LENGTH} символов."
+)
 
 # Latin letters, digits, and common keyboard symbols — no whitespace, no
 # non-Latin scripts. Keeps passwords copy-pasteable and free of characters
 # that tend to cause encoding surprises across clients.
 PASSWORD_CHARSET_PATTERN = re.compile(r"^[A-Za-z0-9!@#$%^&*()_+\-=\[\]{}|;:,.<>?]+$")
-PASSWORD_CHARSET_MESSAGE = "Password can only use letters, numbers, and symbols."  # noqa: S105
+PASSWORD_CHARSET_MESSAGE = (
+    "Пароль может содержать только латинские буквы, цифры и символы."  # noqa: S105
+)
+
+# Length is checked in a validator rather than via `Field(min_length=...)` so
+# the message is ours — Pydantic's built-in one is English and can't be swapped.
+Password = str
 
 
-def validate_password_charset(value: str) -> str:
-    """Shared by registration and password-reset — both mint a *new* stored
-    password, so both need the charset check. Login never calls this: an
-    already-stored password is valid by construction."""
+def validate_password_length(value: str) -> str:
+    if not PASSWORD_MIN_LENGTH <= len(value) <= PASSWORD_MAX_LENGTH:
+        raise ValueError(PASSWORD_LENGTH_MESSAGE)
+    return value
+
+
+def validate_new_password(value: str) -> str:
+    """For endpoints that store a *new* password (register, reset): length plus
+    charset. Login only checks length — an already-stored password was valid by
+    construction, so re-checking its charset could lock someone out."""
+    validate_password_length(value)
     if not PASSWORD_CHARSET_PATTERN.match(value):
         raise ValueError(PASSWORD_CHARSET_MESSAGE)
     return value
@@ -51,19 +68,24 @@ class RegisterRequest(BaseModel):
             raise ValueError(USERNAME_MESSAGE)
         return stripped
 
-    _validate_password = field_validator("password")(validate_password_charset)
+    _validate_password = field_validator("password")(validate_new_password)
 
 
 class LoginRequest(BaseModel):
     """The login form accepts either an email or a username in one field."""
 
-    identifier: Annotated[str, Field(min_length=3, max_length=320)]
+    identifier: str
     password: Password
+
+    _check_password = field_validator("password")(validate_password_length)
 
     @field_validator("identifier")
     @classmethod
     def _normalise_identifier(cls, value: str) -> str:
-        return value.strip()
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("Введите логин или email.")
+        return stripped
 
 
 class RefreshRequest(BaseModel):
@@ -105,7 +127,7 @@ class ResetPasswordRequest(BaseModel):
             raise ValueError(RESET_CODE_MESSAGE)
         return stripped
 
-    _validate_new_password = field_validator("new_password")(validate_password_charset)
+    _validate_new_password = field_validator("new_password")(validate_new_password)
 
 
 class UpdateProfileRequest(BaseModel):

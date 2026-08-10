@@ -11,6 +11,7 @@ import {
 import { mediaUrl } from '../lib/api'
 import BrandMark from './BrandMark'
 import ProfileAvatar from './ProfileAvatar'
+import ProfileDialog from './ProfileDialog'
 import ProfileMenu from './ProfileMenu'
 
 const navigation = [
@@ -20,19 +21,26 @@ const navigation = [
   { label: 'Аналитика', href: '/analytics', icon: Activity02Icon },
 ]
 
-export default function Sidebar({ user = null }) {
+export default function Sidebar({ user = null, onUserChange }) {
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  // null = dialog closed; otherwise the section id it's showing.
+  const [dialogSection, setDialogSection] = useState(null)
 
-  // Navigating from inside the menu should leave it closed behind you.
+  // Navigating elsewhere should leave the menu closed behind you.
   useEffect(() => {
     setIsMenuOpen(false)
   }, [router.pathname])
 
+  const openSection = (sectionId) => {
+    setIsMenuOpen(false)
+    setDialogSection(sectionId)
+  }
+
   return (
     <aside className="fixed inset-y-0 left-0 z-50 flex w-16 flex-col overflow-visible border-r border-[#999999]/45 bg-[#171215] text-white shadow-[6px_0_20px_rgba(23,18,21,0.08)]">
       <div className="flex h-[68px] shrink-0 items-center justify-center border-b border-[#999999]/30">
-        <Link href="/dashboard" aria-label="Главная страница AIReca">
+        <Link href="/dashboard" aria-label="Главная страница AIRec">
           <BrandMark />
         </Link>
       </div>
@@ -77,9 +85,9 @@ export default function Sidebar({ user = null }) {
         onClick={() => setIsMenuOpen((open) => !open)}
         aria-haspopup="menu"
         aria-expanded={isMenuOpen}
-        aria-label="Profile"
+        aria-label="Профиль"
         className={`group relative mx-auto mb-[18px] grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-white transition-all duration-200 ${
-          isMenuOpen || router.pathname.startsWith('/profile')
+          isMenuOpen || dialogSection
             ? 'bg-[#3248F2] shadow-[0_8px_22px_rgba(50,72,242,0.38)]'
             : 'hover:bg-[#F6F8FA]/10'
         }`}
@@ -89,13 +97,25 @@ export default function Sidebar({ user = null }) {
             it points at, so the tooltip would just overlap it. */}
         {!isMenuOpen && (
           <span className="pointer-events-none absolute left-[46px] z-50 whitespace-nowrap rounded-md bg-[#171215] px-2.5 py-1.5 font-sans text-[11px] font-medium text-white opacity-0 shadow-xl transition-all duration-150 group-hover:translate-x-1 group-hover:opacity-100">
-            Profile
+            Профиль
           </span>
         )}
       </button>
 
       {isMenuOpen && (
-        <ProfileMenu user={user} onClose={() => setIsMenuOpen(false)} />
+        <ProfileMenu
+          user={user}
+          onOpenSection={openSection}
+          onClose={() => setIsMenuOpen(false)}
+        />
+      )}
+
+      {dialogSection && (
+        <ProfileDialog
+          section={dialogSection}
+          onClose={() => setDialogSection(null)}
+          onUserChange={onUserChange}
+        />
       )}
     </aside>
   )
