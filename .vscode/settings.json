@@ -1,0 +1,10 @@
+{
+  // Stops the Python extensions from *typing* an activation command into every
+  // new terminal, which collides with whatever you're already typing. Both keys
+  // are needed: the newer python-envs extension defaults to "command" and does
+  // the typing, and the older ms-python.python setting does the same thing
+  // independently. Activate the venv yourself when you need it:
+  //   backend\.venv\Scripts\activate
+  "python.terminal.activateEnvironment": false,
+  "python-envs.terminal.autoActivationType": "off"
+}

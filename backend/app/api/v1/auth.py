@@ -7,9 +7,12 @@ from fastapi import APIRouter, File, Query, UploadFile, status
 from app.api.deps import AuthServiceDep, CurrentUser
 from app.schemas.auth import (
     AuthResponse,
+    ConfirmEmailChangeRequest,
+    EmailChangeRequest,
     ForgotPasswordRequest,
     LoginRequest,
     MessageResponse,
+    PendingEmailChange,
     RefreshRequest,
     RegisterRequest,
     ResetPasswordRequest,
@@ -112,6 +115,41 @@ async def update_me(
     payload: UpdateProfileRequest, user: CurrentUser, auth: AuthServiceDep
 ) -> UserPublic:
     updated = await auth.update_profile(user, payload)
+    return UserPublic.model_validate(updated)
+
+
+@router.get(
+    "/me/email-change",
+    response_model=PendingEmailChange,
+    summary="The address awaiting confirmation, if any",
+)
+async def pending_email_change(
+    user: CurrentUser, auth: AuthServiceDep
+) -> PendingEmailChange:
+    return PendingEmailChange(pending_email=await auth.get_pending_email_change(user))
+
+
+@router.post(
+    "/me/email-change",
+    response_model=MessageResponse,
+    summary="Email a 6-digit code to a new address to confirm a change",
+)
+async def request_email_change(
+    payload: EmailChangeRequest, user: CurrentUser, auth: AuthServiceDep
+) -> MessageResponse:
+    await auth.request_email_change(user, payload.new_email)
+    return MessageResponse(message="Код отправлен на новый адрес.")
+
+
+@router.post(
+    "/me/email-change/confirm",
+    response_model=UserPublic,
+    summary="Apply the pending email change using the emailed code",
+)
+async def confirm_email_change(
+    payload: ConfirmEmailChangeRequest, user: CurrentUser, auth: AuthServiceDep
+) -> UserPublic:
+    updated = await auth.confirm_email_change(user, payload.code)
     return UserPublic.model_validate(updated)
 
 

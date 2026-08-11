@@ -65,6 +65,26 @@ class InvalidResetCode(AppError):
     message = "Код неверный или истёк."
 
 
+class InvalidEmailCode(AppError):
+    status_code = HTTPStatus.BAD_REQUEST
+    code = "invalid_email_code"
+    # Generic on purpose, like InvalidResetCode: wrong, expired, and
+    # out-of-attempts all look the same to the caller.
+    message = "Код неверный или истёк."
+
+
+class NoPendingEmailChange(AppError):
+    status_code = HTTPStatus.BAD_REQUEST
+    code = "no_pending_email_change"
+    message = "Нет запроса на смену email."
+
+
+class SameEmail(AppError):
+    status_code = HTTPStatus.BAD_REQUEST
+    code = "same_email"
+    message = "Это ваш текущий email."
+
+
 class InvalidAvatar(AppError):
     status_code = HTTPStatus.BAD_REQUEST
     code = "invalid_avatar"

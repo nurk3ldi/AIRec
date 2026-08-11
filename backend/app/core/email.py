@@ -34,7 +34,7 @@ def _send_sync(to_email: str, subject: str, text_body: str, html_body: str) -> N
         smtp.send_message(message)
 
 
-def _reset_code_html(code: str, ttl_minutes: int) -> str:
+def _code_email_html(code: str, ttl_minutes: int, heading: str, lead: str) -> str:
     # Table layout + inline styles throughout, on purpose: email clients (esp.
     # Outlook) strip <style> blocks and ignore flexbox/grid, so this can't be
     # written like the rest of the app's Tailwind markup.
@@ -60,12 +60,12 @@ def _reset_code_html(code: str, ttl_minutes: int) -> str:
             </tr>
             <tr>
               <td style="padding:20px 32px 4px 32px;text-align:center;">
-                <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;color:{_BRAND_BLACK};">Код для восстановления пароля</p>
+                <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;color:{_BRAND_BLACK};">{heading}</p>
               </td>
             </tr>
             <tr>
               <td style="padding:8px 32px 0 32px;text-align:center;">
-                <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:{_BRAND_GRAY};">Введите этот код, чтобы задать новый пароль в AIRec.</p>
+                <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:{_BRAND_GRAY};">{lead}</p>
               </td>
             </tr>
             <tr>
@@ -78,7 +78,7 @@ def _reset_code_html(code: str, ttl_minutes: int) -> str:
             <tr>
               <td style="padding:0 32px 36px 32px;text-align:center;">
                 <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:{_BRAND_GRAY};">
-                  Код действует {ttl_minutes} минут. Если вы не запрашивали восстановление, просто проигнорируйте это письмо.
+                  Код действует {ttl_minutes} минут. Если вы этого не запрашивали, просто проигнорируйте это письмо.
                 </p>
               </td>
             </tr>
@@ -96,25 +96,55 @@ def _reset_code_html(code: str, ttl_minutes: int) -> str:
 """
 
 
-async def send_password_reset_email(to_email: str, code: str) -> None:
-    ttl_minutes = settings.password_reset_code_ttl_minutes
-    subject = "Код для восстановления пароля AIRec"
+async def _send_code_email(
+    to_email: str,
+    code: str,
+    ttl_minutes: int,
+    subject: str,
+    heading: str,
+    lead: str,
+    log_label: str,
+) -> None:
     text_body = (
-        f"Ваш код для восстановления пароля: {code}\n\n"
+        f"{lead}\n\n"
+        f"Код: {code}\n\n"
         f"Код действует {ttl_minutes} минут. "
-        "Если вы не запрашивали восстановление, просто проигнорируйте это письмо."
+        "Если вы этого не запрашивали, просто проигнорируйте это письмо."
     )
 
     if not settings.smtp_host:
         # No SMTP configured — this is the expected local-dev state. Logging the
         # code is what makes the flow testable without setting up a mail server.
-        logger.warning(
-            "SMTP not configured — password reset code for %s: %s", to_email, code
-        )
+        logger.warning("SMTP not configured — %s for %s: %s", log_label, to_email, code)
         return
 
-    html_body = _reset_code_html(code, ttl_minutes)
+    html_body = _code_email_html(code, ttl_minutes, heading, lead)
 
     # smtplib is blocking; running it inline would stall the event loop for
     # every concurrent request, same reasoning as Argon2 in core/security.py.
     await to_thread.run_sync(_send_sync, to_email, subject, text_body, html_body)
+
+
+async def send_password_reset_email(to_email: str, code: str) -> None:
+    await _send_code_email(
+        to_email,
+        code,
+        settings.password_reset_code_ttl_minutes,
+        subject="Код для восстановления пароля AIRec",
+        heading="Код для восстановления пароля",
+        lead="Введите этот код, чтобы задать новый пароль в AIRec.",
+        log_label="password reset code",
+    )
+
+
+async def send_email_change_email(to_email: str, code: str) -> None:
+    """Sent to the *new* address — receiving it is the proof of ownership."""
+    await _send_code_email(
+        to_email,
+        code,
+        settings.email_change_code_ttl_minutes,
+        subject="Код для подтверждения email AIRec",
+        heading="Подтверждение нового email",
+        lead="Введите этот код, чтобы привязать этот адрес к аккаунту AIRec.",
+        log_label="email change code",
+    )

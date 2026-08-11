@@ -29,9 +29,16 @@ class User(Base):
     # Stored already lower-cased (normalised in the schema layer), so a plain
     # unique index is enough.
     email: Mapped[str] = mapped_column(String(320), nullable=False, unique=True)
+    # Null until a code sent to this address has been confirmed. Registration
+    # does not verify, so every existing account starts out unverified — the
+    # profile is where it gets proved.
+    email_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     username: Mapped[str] = mapped_column(String(32), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    full_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    first_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
     # Filename only, not a full URL — the serving prefix comes from
     # `settings.avatar_url_prefix`, so moving storage doesn't rewrite rows.
@@ -54,6 +61,21 @@ class User(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
+    @property
+    def email_verified(self) -> bool:
+        return self.email_verified_at is not None
+
+    @property
+    def full_name(self) -> str | None:
+        """Display name, joined from the stored parts.
+
+        Computed rather than stored so there is exactly one source of truth:
+        editing the first or last name can never leave a stale joined copy
+        behind. `UserPublic` picks this up via `from_attributes`.
+        """
+        joined = " ".join(part for part in (self.first_name, self.last_name) if part)
+        return joined or None
 
     @property
     def avatar_url(self) -> str | None:

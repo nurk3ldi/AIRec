@@ -6,8 +6,9 @@ and a 6-digit-code email password reset.
 
 ## Setup
 
-No Docker — PostgreSQL 18 runs natively (installed from postgresql.org), with its
-own data directory local to this project.
+No Docker — PostgreSQL 18 runs natively (installed from postgresql.org) as the
+Windows service its installer registers, so it starts with the machine and needs
+no manual `pg_ctl` step.
 
 ```bash
 cd backend
@@ -20,27 +21,26 @@ copy .env.example .env            # then set SECRET_KEY
 python -c "import secrets; print(secrets.token_urlsafe(64))"
 ```
 
-One-time database setup (PowerShell; adjust the PostgreSQL path to your install):
+One-time database setup, in **pgAdmin**: right-click *Databases* → *Create* →
+*Database…*, name it `airec`, owner `postgres`, Save. Then fill in the `DB_*`
+values in `.env` (`DB_PASSWORD` is the postgres password from the installer) and
+create the schema:
 
 ```powershell
-$PGBIN = "C:\Program Files\PostgreSQL\18\bin"
-& "$PGBIN\initdb.exe" -D .pgdata -U postgres -A trust -E UTF8 --locale=C
-& "$PGBIN\pg_ctl.exe" -D .pgdata -l .pglog start
-& "$PGBIN\psql.exe" -U postgres -h localhost -p 5432 -c "CREATE ROLE airec LOGIN PASSWORD 'airec';"
-& "$PGBIN\psql.exe" -U postgres -h localhost -p 5432 -c "CREATE DATABASE airec OWNER airec;"
+alembic upgrade head
 ```
 
-Then every time you work on the backend:
+Then every time you work on the backend — the database is already running as a
+Windows service, so there is nothing to start:
 
 ```powershell
-$PGBIN = "C:\Program Files\PostgreSQL\18\bin"
-& "$PGBIN\pg_ctl.exe" -D .pgdata -l .pglog start   # if not already running
-alembic upgrade head                                # only needed after a fresh initdb
-uvicorn app.main:app --reload                        # http://127.0.0.1:8000/docs
+uvicorn app.main:app --reload   # http://127.0.0.1:8000/docs
 ```
 
-`pg_ctl ... stop` shuts the database back down. It isn't a Windows service, so it
-does not survive a reboot — start it again with the command above.
+The connection is configured as separate `DB_HOST` / `DB_PORT` / `DB_NAME` /
+`DB_USER` / `DB_PASSWORD` values rather than one URL; `Settings.database_url`
+assembles the DSN and URL-quotes the password, so special characters in it can't
+corrupt the connection string.
 
 In VS Code, select `backend/.venv` as the interpreter, otherwise the editor reports
 the dependencies as missing even though they are installed.
@@ -55,7 +55,7 @@ the dependencies as missing even though they are installed.
 | `alembic revision --autogenerate -m "..."` | New migration from model changes |
 | `alembic check` | Fail if models and migrations have drifted |
 | `ruff check .` / `ruff format .` | Lint / format |
-| `pg_ctl -D .pgdata start` / `stop` | Start / stop the local PostgreSQL process |
+| `Get-Service postgresql-x64-18` | Check the database service (starts with Windows) |
 
 No test suite yet.
 
@@ -73,7 +73,10 @@ All routes are under `/api/v1`. Interactive docs at `/docs`.
 | `POST` | `/auth/forgot-password` | Email a 6-digit reset code (always a generic 200, no auth) |
 | `POST` | `/auth/reset-password` | `{email, code, new_password}` → resets password, revokes all sessions |
 | `GET` | `/auth/me` | Current user; needs `Authorization: Bearer <access>` |
-| `PATCH` | `/auth/me` | Partial profile update (name / username / email / phone) |
+| `PATCH` | `/auth/me` | Partial profile update (first/last name, username, phone) — **not email** |
+| `GET` | `/auth/me/email-change` | `{pending_email}` — the address awaiting confirmation, or null |
+| `POST` | `/auth/me/email-change` | `{new_email}` → emails a 6-digit code to that address |
+| `POST` | `/auth/me/email-change/confirm` | `{code}` → applies the pending change |
 | `POST` | `/auth/me/avatar` | Upload an avatar (`multipart/form-data`, field `file`) |
 | `DELETE` | `/auth/me/avatar` | Remove the current avatar |
 | `GET` | `/health` | Liveness probe |

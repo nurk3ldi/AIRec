@@ -11,6 +11,7 @@ from app.core.errors import InactiveAccount, NotAuthenticated
 from app.core.security import decode_access_token
 from app.db.session import get_session
 from app.models.user import User
+from app.repositories.email_change import EmailChangeRepository
 from app.repositories.password_reset import PasswordResetRepository
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.repositories.user import UserRepository
@@ -31,6 +32,7 @@ def get_auth_service(session: SessionDep) -> AuthService:
         users=UserRepository(session),
         tokens=RefreshTokenRepository(session),
         password_resets=PasswordResetRepository(session),
+        email_changes=EmailChangeRepository(session),
     )
 
 

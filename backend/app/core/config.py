@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import quote_plus
 
-from pydantic import Field, PostgresDsn, SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,11 +29,30 @@ class Settings(BaseSettings):
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
 
     # --- Database ---
-    database_url: PostgresDsn
+    # Given as separate parts rather than one URL so `.env` stays readable and
+    # a password with URL-special characters can't silently corrupt the DSN —
+    # `database_url` below quotes it.
+    db_host: str = "localhost"
+    db_port: int = 5432
+    db_name: str = "airec"
+    db_user: str = "postgres"
+    db_password: SecretStr
+
     db_pool_size: int = 10
     db_max_overflow: int = 20
     db_pool_recycle_seconds: int = 1800
     db_echo: bool = False
+
+    @property
+    def database_url(self) -> str:
+        """SQLAlchemy DSN. asyncpg is not optional — a sync driver here would
+        block the event loop on every query."""
+        password = quote_plus(self.db_password.get_secret_value())
+        user = quote_plus(self.db_user)
+        return (
+            f"postgresql+asyncpg://{user}:{password}"
+            f"@{self.db_host}:{self.db_port}/{self.db_name}"
+        )
 
     # --- Security ---
     secret_key: SecretStr
@@ -42,6 +62,12 @@ class Settings(BaseSettings):
     # --- Password reset ---
     password_reset_code_ttl_minutes: int = 10
     password_reset_max_attempts: int = 5
+
+    # --- Email change confirmation ---
+    # Separate from the reset settings on purpose: the two flows protect
+    # different things and their limits should be tunable apart.
+    email_change_code_ttl_minutes: int = 10
+    email_change_max_attempts: int = 5
 
     # --- Avatars ---
     # Local disk storage; gitignored. Swap for object storage later by changing
@@ -60,17 +86,6 @@ class Settings(BaseSettings):
     smtp_password: SecretStr | None = None
     smtp_from: str = "AIRec <no-reply@airec.local>"
     smtp_use_tls: bool = True
-
-    @field_validator("database_url")
-    @classmethod
-    def _require_async_driver(cls, value: PostgresDsn) -> PostgresDsn:
-        # A sync driver here would block the event loop on every query.
-        if value.scheme != "postgresql+asyncpg":
-            raise ValueError(
-                "DATABASE_URL must use the asyncpg driver, "
-                f"e.g. postgresql+asyncpg://... (got {value.scheme!r})"
-            )
-        return value
 
     @field_validator("secret_key")
     @classmethod

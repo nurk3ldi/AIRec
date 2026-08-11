@@ -271,10 +271,6 @@ export default function AvatarCropper({ file, onCancel, onSave }) {
           </button>
         </div>
 
-        <p className="mt-3 text-center text-[12px] text-[#999999]">
-          Перетащите, чтобы сдвинуть · прокрутка или ползунок — масштаб
-        </p>
-
         {error && (
           <p role="alert" className="mt-3 text-center text-[13px] text-[#DC2626]">
             {error}

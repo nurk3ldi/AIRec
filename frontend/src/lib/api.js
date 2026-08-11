@@ -97,6 +97,33 @@ export function updateProfile(accessToken, changes) {
   return request('/auth/me', { method: 'PATCH', body: changes, accessToken })
 }
 
+/**
+ * Starts an email change: sends a 6-digit code to `newEmail`.
+ * The account keeps its current address until `confirmEmailChange` succeeds —
+ * `updateProfile` deliberately cannot change the email at all.
+ */
+export function requestEmailChange(accessToken, newEmail) {
+  return request('/auth/me/email-change', {
+    method: 'POST',
+    body: { new_email: newEmail },
+    accessToken,
+  })
+}
+
+/** `{pending_email}` — null once there is nothing left to confirm. */
+export function getPendingEmailChange(accessToken) {
+  return request('/auth/me/email-change', { method: 'GET', accessToken })
+}
+
+/** Applies the pending change; resolves to the updated user. */
+export function confirmEmailChange(accessToken, code) {
+  return request('/auth/me/email-change/confirm', {
+    method: 'POST',
+    body: { code },
+    accessToken,
+  })
+}
+
 export function uploadAvatar(accessToken, blob) {
   const formData = new FormData()
   formData.append('file', blob, 'avatar.png')

@@ -9,38 +9,22 @@ import {
 /**
  * The profile area's sections, shared by `ProfileMenu` (which picks one) and
  * `ProfileDialog` (which renders it). Add a section here and both pick it up.
+ *
+ * `label` is the menu entry; optional `dialogLabel` is the dialog's heading
+ * when it should read differently — the menu names the place, the heading names
+ * the action.
  */
 export const PROFILE_SECTIONS = [
   {
     id: 'account',
-    label: 'Аккаунт',
+    label: 'Профиль',
+    dialogLabel: 'Редактировать профиль',
     icon: UserCircleIcon,
-    description: 'Личные данные и вход в систему',
   },
-  {
-    id: 'subscription',
-    label: 'Подписка',
-    icon: CreditCardIcon,
-    description: 'Тариф, лимиты и история платежей',
-  },
-  {
-    id: 'ai',
-    label: 'ИИ-ассистент',
-    icon: AiBrain01Icon,
-    description: 'Как ассистент общается и что он знает',
-  },
-  {
-    id: 'business',
-    label: 'Бизнес',
-    icon: Building03Icon,
-    description: 'Данные компании, филиалы и график работы',
-  },
-  {
-    id: 'settings',
-    label: 'Настройки',
-    icon: Settings02Icon,
-    description: 'Параметры приложения, уведомления и интеграции',
-  },
+  { id: 'subscription', label: 'Подписка', icon: CreditCardIcon },
+  { id: 'ai', label: 'ИИ-ассистент', icon: AiBrain01Icon },
+  { id: 'business', label: 'Бизнес', icon: Building03Icon },
+  { id: 'settings', label: 'Настройки', icon: Settings02Icon },
 ]
 
 /** Placeholder copy for the sections that have no backend behind them yet. */

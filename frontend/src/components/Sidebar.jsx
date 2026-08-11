@@ -86,11 +86,10 @@ export default function Sidebar({ user = null, onUserChange }) {
         aria-haspopup="menu"
         aria-expanded={isMenuOpen}
         aria-label="Профиль"
-        className={`group relative mx-auto mb-[18px] grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-white transition-all duration-200 ${
-          isMenuOpen || dialogSection
-            ? 'bg-[#3248F2] shadow-[0_8px_22px_rgba(50,72,242,0.38)]'
-            : 'hover:bg-[#F6F8FA]/10'
-        }`}
+        // No blue active state here, unlike the nav items above: the avatar is
+        // already a picture, and a coloured frame around it reads as a stray
+        // border rather than "this is selected".
+        className="group relative mx-auto mb-[18px] grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-white outline-none transition-colors duration-200 hover:bg-[#F6F8FA]/10 focus-visible:bg-[#F6F8FA]/10"
       >
         <ProfileAvatar src={mediaUrl(user?.avatar_url)} />
         {/* Hidden while the menu is open — the panel already names everything

@@ -130,19 +130,50 @@ class ResetPasswordRequest(BaseModel):
     _validate_new_password = field_validator("new_password")(validate_new_password)
 
 
+class EmailChangeRequest(BaseModel):
+    """Start a move to a new address. Nothing is written to `users` here — the
+    address is only stored as a pending record until the code confirms it."""
+
+    new_email: EmailStr
+
+    @field_validator("new_email")
+    @classmethod
+    def _normalise_email(cls, value: str) -> str:
+        return value.strip().lower()
+
+
+class PendingEmailChange(BaseModel):
+    """None once there is nothing left to confirm — including a code that
+    expired or ran out of attempts."""
+
+    pending_email: str | None = None
+
+
+class ConfirmEmailChangeRequest(BaseModel):
+    code: str
+
+    @field_validator("code")
+    @classmethod
+    def _validate_code(cls, value: str) -> str:
+        stripped = value.strip()
+        if not RESET_CODE_PATTERN.match(stripped):
+            raise ValueError(RESET_CODE_MESSAGE)
+        return stripped
+
+
 class UpdateProfileRequest(BaseModel):
     """Every field optional — this is a PATCH, and an omitted field means
-    "leave it alone" while an explicit `null` clears it."""
+    "leave it alone" while an explicit `null` clears it.
 
-    full_name: str | None = Field(default=None, max_length=100)
+    **No `email` field, deliberately.** Changing the address goes through the
+    confirmation flow (`/auth/me/email-change`); accepting it here would let a
+    client set an address it doesn't own and skip that entirely.
+    """
+
+    first_name: str | None = Field(default=None, max_length=50)
+    last_name: str | None = Field(default=None, max_length=50)
     phone: str | None = Field(default=None, max_length=32)
     username: str | None = None
-    email: EmailStr | None = None
-
-    @field_validator("email")
-    @classmethod
-    def _normalise_email(cls, value: str | None) -> str | None:
-        return value.strip().lower() if value else value
 
     @field_validator("username")
     @classmethod
@@ -154,7 +185,7 @@ class UpdateProfileRequest(BaseModel):
             raise ValueError(USERNAME_MESSAGE)
         return stripped
 
-    @field_validator("full_name", "phone")
+    @field_validator("first_name", "last_name", "phone")
     @classmethod
     def _blank_to_none(cls, value: str | None) -> str | None:
         # An emptied-out optional field should clear the column, not store "".
@@ -170,6 +201,13 @@ class UserPublic(BaseModel):
     id: uuid.UUID
     username: str
     email: EmailStr
+    # Computed on the model: false until a code sent to this address is
+    # confirmed, which registration never does.
+    email_verified: bool = False
+    first_name: str | None = None
+    last_name: str | None = None
+    # Computed on the model from the two parts above — kept in the response so
+    # clients that only want a display name don't have to join it themselves.
     full_name: str | None = None
     phone: str | None = None
     avatar_url: str | None = None

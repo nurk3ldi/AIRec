@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -6,66 +6,10 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { EyeIcon, EyeOffIcon } from '@hugeicons/core-free-icons'
 import { forgotPassword, resetPassword } from '../lib/api'
 import { useRedirectIfAuthed } from '../lib/auth'
+import OtpInput from '../components/OtpInput'
 import styles from '../styles/ResetPassword.module.css'
 
 const RESEND_COOLDOWN_SECONDS = 30
-
-function OtpInput({ value, onChange, hasError, autoFocus }) {
-  const inputRefs = useRef([])
-  const digits = Array.from({ length: 6 }, (_, i) => value[i] || '')
-
-  const handleChange = (index) => (event) => {
-    const raw = event.target.value.replace(/\D/g, '')
-    const next = value.split('')
-    while (next.length < 6) next.push('')
-
-    if (!raw) {
-      next[index] = ''
-      onChange(next.join(''))
-      return
-    }
-
-    next[index] = raw.slice(-1)
-    onChange(next.join(''))
-    if (index < 5) inputRefs.current[index + 1]?.focus()
-  }
-
-  const handleKeyDown = (index) => (event) => {
-    if (event.key === 'Backspace' && !digits[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus()
-    }
-  }
-
-  const handlePaste = (event) => {
-    const pasted = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
-    if (!pasted) return
-    event.preventDefault()
-    onChange(pasted)
-    inputRefs.current[Math.min(pasted.length, 5)]?.focus()
-  }
-
-  return (
-    <div className="flex justify-center gap-2" onPaste={handlePaste}>
-      {digits.map((digit, index) => (
-        <input
-          key={index}
-          ref={(el) => {
-            inputRefs.current[index] = el
-          }}
-          type="text"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          maxLength={1}
-          autoFocus={autoFocus && index === 0}
-          value={digit}
-          onChange={handleChange(index)}
-          onKeyDown={handleKeyDown(index)}
-          className={`h-14 w-11 rounded-lg border bg-white text-center text-[20px] font-semibold text-[#171215] outline-none transition-colors focus:border-[#3248F2] ${hasError ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
-        />
-      ))}
-    </div>
-  )
-}
 
 export async function getServerSideProps(context) {
   const { email } = context.query

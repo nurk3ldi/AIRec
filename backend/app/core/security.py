@@ -132,3 +132,7 @@ def hash_reset_code(raw: str) -> str:
 
 def reset_code_expiry() -> datetime:
     return datetime.now(UTC) + timedelta(minutes=settings.password_reset_code_ttl_minutes)
+
+
+def email_change_code_expiry() -> datetime:
+    return datetime.now(UTC) + timedelta(minutes=settings.email_change_code_ttl_minutes)

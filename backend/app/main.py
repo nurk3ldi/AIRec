@@ -11,6 +11,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 
 from app.api.v1.router import api_router
 from app.core.config import settings
@@ -19,9 +20,30 @@ from app.db.session import engine
 
 logger = logging.getLogger(__name__)
 
+# Uvicorn configures this logger (it's the one printing "Application startup
+# complete"), so startup lines land in the terminal in the same format. A plain
+# module logger would be swallowed — the root logger defaults to WARNING.
+startup_logger = logging.getLogger("uvicorn.error")
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    startup_logger.info("Server started — %s", settings.app_name)
+
+    # Reported rather than raised: a dead database shouldn't turn startup into a
+    # traceback, and saying "connected" without checking would be a lie.
+    target = (
+        f"{settings.db_user}@{settings.db_host}:"
+        f"{settings.db_port}/{settings.db_name}"
+    )
+    try:
+        async with engine.connect() as connection:
+            await connection.execute(text("SELECT 1"))
+    except Exception as exc:  # any driver error is worth showing, not raising
+        startup_logger.error("Database connection FAILED — %s: %s", target, exc)
+    else:
+        startup_logger.info("Database connected — %s", target)
+
     yield
     # Close pooled connections so shutdown doesn't leave sockets behind.
     await engine.dispose()
