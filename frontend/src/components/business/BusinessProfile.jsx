@@ -1,17 +1,17 @@
-import { HugeiconsIcon } from '@hugeicons/react'
-import { Store01Icon } from '@hugeicons/core-free-icons'
 import Card, { CardAction } from './Card'
 import WorkingHoursCalendar from './WorkingHoursCalendar'
 
 // Placeholder content for the layout pass — replaced by the API once the
 // Business model exists. Kept as numbers rather than pre-formatted strings so
 // the summary above can be derived instead of typed in by hand and drifting.
-const BUSINESS = {
-  name: 'Barber House',
-  industry: 'Барбершоп',
-  city: 'Алматы',
-  timezone: 'UTC+5',
-}
+const BUSINESS = [
+  { label: 'Название', value: 'Barber House' },
+  { label: 'Сфера', value: 'Барбершоп' },
+  { label: 'Телефон', value: '+7 707 123 45 67' },
+  { label: 'Город', value: 'Алматы' },
+  { label: 'Адрес', value: 'ул. Достык, 132' },
+  { label: 'Часовой пояс', value: 'UTC+5, Алматы' },
+]
 
 const SERVICES = [
   { name: 'Мужская стрижка', minutes: 45, price: 6000, active: true },
@@ -63,6 +63,11 @@ const SUMMARY = [
   { label: 'Часов в неделю', value: `${weeklyHours} ч` },
 ]
 
+// Parked, not deleted: the summary, the price list and the schedule are drawn
+// and working, but they're on placeholder data. Flip this to `true` to bring
+// them back when the Business API lands.
+const SHOW_DRAFT_SECTIONS = false
+
 /** Table column header: tiny, uppercase, muted — the row's frame is air. */
 function ColumnLabel({ children, className = '' }) {
   return (
@@ -91,29 +96,36 @@ function StatusPill({ active }) {
 export default function BusinessProfile() {
   return (
     <div className="flex flex-col gap-6">
-      <Card className="flex flex-wrap items-center gap-4">
-        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[#3248F2] text-white">
-          <HugeiconsIcon
-            icon={Store01Icon}
-            size={24}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.9}
-          />
-        </span>
-
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-[22px] font-semibold tracking-[-0.02em] text-[#171215]">
-            {BUSINESS.name}
-          </p>
-          <p className="mt-0.5 truncate text-[14px] text-[#999999]">
-            {BUSINESS.industry} · {BUSINESS.city} · {BUSINESS.timezone}
-          </p>
+      <Card className="overflow-hidden !p-0">
+        <div className="flex items-center justify-between gap-4 px-6 pt-6 pb-5">
+          <h2 className="text-[15px] font-semibold text-[#171215]">
+            Профиль бизнеса
+          </h2>
+          <CardAction>Изменить</CardAction>
         </div>
 
-        <CardAction>Изменить</CardAction>
+        {/* The cells carry their own borders and the grid is pulled 1px past
+            the clipping wrapper, so the outermost lines fall outside and the
+            divider pattern comes out right at any column count. */}
+        <div className="overflow-hidden border-t border-[#999999]/15">
+          <div className="-mr-px -mb-px grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {BUSINESS.map((field) => (
+              <div
+                key={field.label}
+                className="border-r border-b border-[#999999]/15 px-6 py-5"
+              >
+                <p className="text-[13px] text-[#999999]">{field.label}</p>
+                <p className="mt-1.5 text-[16px] font-semibold text-[#171215]">
+                  {field.value}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       </Card>
 
+      {SHOW_DRAFT_SECTIONS && (
+        <>
       {/* The signature move of this style: related numbers in ONE card split by
           hairlines, not one card each. */}
       <Card className="!p-0">
@@ -167,6 +179,8 @@ export default function BusinessProfile() {
       <Card title="График работы" action={<CardAction>Изменить</CardAction>}>
         <WorkingHoursCalendar schedule={SCHEDULE} />
       </Card>
+        </>
+      )}
     </div>
   )
 }
