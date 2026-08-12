@@ -10,6 +10,7 @@ const BUSINESS = [
   { label: 'Телефон', value: '+7 707 123 45 67' },
   { label: 'Город', value: 'Алматы' },
   { label: 'Адрес', value: 'ул. Достык, 132' },
+  { label: 'Способы оплаты', value: 'Kaspi, наличные, карта' },
   { label: 'Часовой пояс', value: 'UTC+5, Алматы' },
 ]
 
