@@ -27,7 +27,10 @@ export default function BusinessPage() {
         <title>AIRec</title>
       </Head>
       <div className={styles.page} aria-label="Страница бизнеса">
-        <div className="mx-auto max-w-[980px] px-6 py-6 sm:px-8">
+        {/* Full-bleed: the content stretches to both edges of the shell rather
+            than sitting in a centred column, so wide screens aren't mostly
+            empty grey. */}
+        <div className="px-6 py-6 sm:px-8">
           <div role="tablist" aria-label="Разделы бизнеса" className="flex items-center gap-1">
             {TABS.map((tab) => {
               const isActive = tab.id === activeId

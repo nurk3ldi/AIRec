@@ -50,14 +50,19 @@ export default function BusinessProfile() {
       {/* The signature move of this style: four related facts in ONE card,
           split by hairlines into a 2×2 — not four separate cards. */}
       <Card title="Профиль бизнеса" action={<CardAction>Изменить</CardAction>}>
-        <div className="grid grid-cols-1 sm:grid-cols-2">
+        {/* The negative margin cancels the outer cells' padding, so the first
+            and last columns still line up with the card's own edges however
+            many columns the breakpoint gives us. */}
+        <div className="grid grid-cols-1 border-[#999999]/15 sm:-mx-6 sm:grid-cols-2 xl:grid-cols-4">
           {PROFILE.map((item, index) => (
             <div
               key={item.label}
-              className={`py-4 sm:py-5 ${
-                index % 2 === 1 ? 'sm:pl-6' : 'sm:pr-6'
-              } ${index % 2 === 0 ? 'sm:border-r sm:border-[#999999]/15' : ''} ${
-                index < 2 ? 'border-b border-[#999999]/15' : ''
+              className={`border-[#999999]/15 py-4 sm:px-6 sm:py-1 ${
+                index < 3 ? 'border-b' : ''
+              } ${index === 2 ? 'sm:border-b-0' : ''} ${
+                index < 2 ? 'xl:border-b-0' : ''
+              } ${index === 0 || index === 2 ? 'sm:border-r' : ''} ${
+                index === 1 ? 'xl:border-r' : ''
               }`}
             >
               <p className="text-[14px] text-[#999999]">{item.label}</p>
