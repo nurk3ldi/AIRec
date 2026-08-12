@@ -33,6 +33,21 @@ class RefreshToken(Base):
         index=True,
     )
     token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    # One signed-in device, surviving rotation: every replacement token carries
+    # the same family forward, so a session keeps its identity (and its original
+    # sign-in time) even though the row behind it is replaced on every refresh.
+    family_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False, index=True
+    )
+    # Captured at sign-in and copied across rotations — purely so the sessions
+    # list has something a person can recognise.
+    user_agent: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    # When the *session* began, as opposed to `created_at`, which is when this
+    # particular token was minted — i.e. the last refresh.
+    first_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
     )

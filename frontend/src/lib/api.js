@@ -110,6 +110,11 @@ export function requestEmailChange(accessToken, newEmail) {
   })
 }
 
+/** Drops a pending change. Idempotent — safe to call with nothing pending. */
+export function cancelEmailChange(accessToken) {
+  return request('/auth/me/email-change', { method: 'DELETE', accessToken })
+}
+
 /** `{pending_email}` — null once there is nothing left to confirm. */
 export function getPendingEmailChange(accessToken) {
   return request('/auth/me/email-change', { method: 'GET', accessToken })
@@ -122,6 +127,64 @@ export function confirmEmailChange(accessToken, code) {
     body: { code },
     accessToken,
   })
+}
+
+/** Emails a 6-digit code authorising a password change for the signed-in user. */
+export function requestPasswordChange(accessToken) {
+  return request('/auth/me/password-change', { method: 'POST', accessToken })
+}
+
+/**
+ * Sets the new password, proved by *either* `currentPassword` or `code` — the
+ * backend rejects both together. Resolves to `{user, tokens}`: every session is
+ * revoked, so the caller must save the returned tokens or it logs itself out.
+ */
+export function confirmPasswordChange(
+  accessToken,
+  { code, currentPassword, newPassword }
+) {
+  return request('/auth/me/password-change/confirm', {
+    method: 'POST',
+    body: {
+      new_password: newPassword,
+      ...(code ? { code } : { current_password: currentPassword }),
+    },
+    accessToken,
+  })
+}
+
+/**
+ * Schedules the account for deletion. The row survives the grace period, so
+ * `restoreAccount` can bring it back until then. Signs out every device.
+ */
+export function deleteAccount(accessToken, { currentPassword, confirmation }) {
+  return request('/auth/me/delete', {
+    method: 'POST',
+    body: { current_password: currentPassword, confirmation },
+    accessToken,
+  })
+}
+
+/** Undoes a deletion still inside its grace period and signs the user back in. */
+export function restoreAccount({ identifier, password }) {
+  return request('/auth/restore', {
+    method: 'POST',
+    body: { identifier, password },
+  })
+}
+
+/** Devices currently signed in: `[{id, device, ip_address, …, is_current}]`. */
+export function listSessions(accessToken) {
+  return request('/auth/me/sessions', { method: 'GET', accessToken })
+}
+
+export function revokeSession(accessToken, sessionId) {
+  return request(`/auth/me/sessions/${sessionId}`, { method: 'DELETE', accessToken })
+}
+
+/** Signs out every device except the one making the call. */
+export function revokeOtherSessions(accessToken) {
+  return request('/auth/me/sessions', { method: 'DELETE', accessToken })
 }
 
 export function uploadAvatar(accessToken, blob) {

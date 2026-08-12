@@ -1,8 +1,7 @@
 import {
-  AiBrain01Icon,
-  Building03Icon,
   CreditCardIcon,
   Settings02Icon,
+  Shield01Icon,
   UserCircleIcon,
 } from '@hugeicons/core-free-icons'
 
@@ -13,6 +12,10 @@ import {
  * `label` is the menu entry; optional `dialogLabel` is the dialog's heading
  * when it should read differently — the menu names the place, the heading names
  * the action.
+ *
+ * Scope: this is the *person's* account. What the business offers and how the
+ * assistant behaves live on `/management`, a real route — putting them here too
+ * would mean the same thing existed in two places.
  */
 export const PROFILE_SECTIONS = [
   {
@@ -21,9 +24,8 @@ export const PROFILE_SECTIONS = [
     dialogLabel: 'Редактировать профиль',
     icon: UserCircleIcon,
   },
+  { id: 'security', label: 'Безопасность', icon: Shield01Icon },
   { id: 'subscription', label: 'Подписка', icon: CreditCardIcon },
-  { id: 'ai', label: 'ИИ-ассистент', icon: AiBrain01Icon },
-  { id: 'business', label: 'Бизнес', icon: Building03Icon },
   { id: 'settings', label: 'Настройки', icon: Settings02Icon },
 ]
 
@@ -31,9 +33,6 @@ export const PROFILE_SECTIONS = [
 export const SECTION_PLACEHOLDERS = {
   subscription:
     'Здесь будут ваш тариф, лимиты использования, способ оплаты и история счетов.',
-  ai: 'Здесь настраиваются тон и язык ассистента, база ответов и правила передачи диалога человеку.',
-  business:
-    'Здесь настраиваются название компании, сфера, филиалы, график работы, услуги и сотрудники.',
   settings:
-    'Здесь будут язык интерфейса, уведомления, подключённые каналы и общие параметры приложения.',
+    'Здесь будут язык интерфейса, часовой пояс, уведомления и общие параметры приложения.',
 }

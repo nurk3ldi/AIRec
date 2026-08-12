@@ -63,6 +63,11 @@ class Settings(BaseSettings):
     password_reset_code_ttl_minutes: int = 10
     password_reset_max_attempts: int = 5
 
+    # --- Account deletion ---
+    # A deleted account is kept this long before it is actually removed, so a
+    # change of mind (or a misclick) is recoverable.
+    account_deletion_grace_days: int = 30
+
     # --- Email change confirmation ---
     # Separate from the reset settings on purpose: the two flows protect
     # different things and their limits should be tunable apart.

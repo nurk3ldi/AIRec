@@ -73,10 +73,18 @@ All routes are under `/api/v1`. Interactive docs at `/docs`.
 | `POST` | `/auth/forgot-password` | Email a 6-digit reset code (always a generic 200, no auth) |
 | `POST` | `/auth/reset-password` | `{email, code, new_password}` → resets password, revokes all sessions |
 | `GET` | `/auth/me` | Current user; needs `Authorization: Bearer <access>` |
-| `PATCH` | `/auth/me` | Partial profile update (first/last name, username, phone) — **not email** |
+| `PATCH` | `/auth/me` | Partial profile update (first/last name, username) — **not email** |
+| `POST` | `/auth/me/password-change` | Emails a 6-digit code to the account's own address |
+| `POST` | `/auth/me/password-change/confirm` | `{new_password}` plus **either** `current_password` **or** `code` → sets it, revokes every session, returns a fresh pair |
 | `GET` | `/auth/me/email-change` | `{pending_email}` — the address awaiting confirmation, or null |
+| `DELETE` | `/auth/me/email-change` | Abandon a pending change (idempotent) |
 | `POST` | `/auth/me/email-change` | `{new_email}` → emails a 6-digit code to that address |
 | `POST` | `/auth/me/email-change/confirm` | `{code}` → applies the pending change |
+| `POST` | `/auth/restore` | `{identifier, password}` → undoes a deletion still inside its grace period |
+| `POST` | `/auth/me/delete` | `{current_password, confirmation}` → schedules deletion, signs out everywhere |
+| `GET` | `/auth/me/sessions` | Devices currently signed in, with `is_current` |
+| `DELETE` | `/auth/me/sessions` | Sign out every device except this one |
+| `DELETE` | `/auth/me/sessions/{id}` | Sign out one device |
 | `POST` | `/auth/me/avatar` | Upload an avatar (`multipart/form-data`, field `file`) |
 | `DELETE` | `/auth/me/avatar` | Remove the current avatar |
 | `GET` | `/health` | Liveness probe |

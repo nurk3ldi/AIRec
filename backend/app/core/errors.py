@@ -51,6 +51,19 @@ class InactiveAccount(AppError):
     message = "Аккаунт отключён."
 
 
+class AccountDeleted(AppError):
+    """Signed in with an account that is inside its deletion grace period.
+
+    Distinct from `InactiveAccount`: this one is the user's own doing and is
+    reversible, so the message carries the deadline and the frontend offers to
+    restore instead of just refusing.
+    """
+
+    status_code = HTTPStatus.FORBIDDEN
+    code = "account_deleted"
+    message = "Аккаунт удалён."
+
+
 class NotAuthenticated(AppError):
     status_code = HTTPStatus.UNAUTHORIZED
     code = "not_authenticated"
@@ -63,6 +76,12 @@ class InvalidResetCode(AppError):
     # Deliberately generic: wrong code, expired code, and too many attempts
     # all look identical to the caller.
     message = "Код неверный или истёк."
+
+
+class InvalidCurrentPassword(AppError):
+    status_code = HTTPStatus.BAD_REQUEST
+    code = "invalid_current_password"
+    message = "Неверный текущий пароль."
 
 
 class InvalidEmailCode(AppError):
@@ -83,6 +102,18 @@ class SameEmail(AppError):
     status_code = HTTPStatus.BAD_REQUEST
     code = "same_email"
     message = "Это ваш текущий email."
+
+
+class DeleteConfirmationMismatch(AppError):
+    status_code = HTTPStatus.BAD_REQUEST
+    code = "delete_confirmation_mismatch"
+    message = "Введите ваше имя пользователя, чтобы подтвердить удаление."
+
+
+class SessionNotFound(AppError):
+    status_code = HTTPStatus.NOT_FOUND
+    code = "session_not_found"
+    message = "Сеанс не найден или уже завершён."
 
 
 class InvalidAvatar(AppError):

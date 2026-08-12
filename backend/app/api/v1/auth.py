@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, File, Query, UploadFile, status
 
-from app.api.deps import AuthServiceDep, CurrentUser
+from app.api.deps import AuthServiceDep, ClientInfoDep, CurrentUser, TokenClaims
 from app.schemas.auth import (
     AuthResponse,
+    ChangePasswordRequest,
     ConfirmEmailChangeRequest,
+    DeleteAccountRequest,
     EmailChangeRequest,
     ForgotPasswordRequest,
     LoginRequest,
@@ -16,6 +19,7 @@ from app.schemas.auth import (
     RefreshRequest,
     RegisterRequest,
     ResetPasswordRequest,
+    SessionPublic,
     UpdateProfileRequest,
     UsernameAvailability,
     UserPublic,
@@ -30,8 +34,10 @@ router = APIRouter(prefix="/auth", tags=["auth"])
     status_code=status.HTTP_201_CREATED,
     summary="Create an account and sign in",
 )
-async def register(payload: RegisterRequest, auth: AuthServiceDep) -> AuthResponse:
-    user, tokens = await auth.register(payload)
+async def register(
+    payload: RegisterRequest, auth: AuthServiceDep, client: ClientInfoDep
+) -> AuthResponse:
+    user, tokens = await auth.register(payload, client=client)
     return AuthResponse(user=UserPublic.model_validate(user), tokens=tokens)
 
 
@@ -53,8 +59,12 @@ async def username_availability(
     response_model=AuthResponse,
     summary="Sign in with an email or a username",
 )
-async def login(payload: LoginRequest, auth: AuthServiceDep) -> AuthResponse:
-    user, tokens = await auth.authenticate(payload.identifier, payload.password)
+async def login(
+    payload: LoginRequest, auth: AuthServiceDep, client: ClientInfoDep
+) -> AuthResponse:
+    user, tokens = await auth.authenticate(
+        payload.identifier, payload.password, client=client
+    )
     return AuthResponse(user=UserPublic.model_validate(user), tokens=tokens)
 
 
@@ -101,6 +111,20 @@ async def reset_password(
     return MessageResponse(message="Пароль изменён. Теперь вы можете войти.")
 
 
+@router.post(
+    "/restore",
+    response_model=AuthResponse,
+    summary="Undo a deletion that is still inside its grace period",
+)
+async def restore_account(
+    payload: LoginRequest, auth: AuthServiceDep, client: ClientInfoDep
+) -> AuthResponse:
+    user, tokens = await auth.restore_account(
+        payload.identifier, payload.password, client=client
+    )
+    return AuthResponse(user=UserPublic.model_validate(user), tokens=tokens)
+
+
 @router.get("/me", response_model=UserPublic, summary="The signed-in user")
 async def me(user: CurrentUser) -> UserPublic:
     return UserPublic.model_validate(user)
@@ -129,6 +153,15 @@ async def pending_email_change(
     return PendingEmailChange(pending_email=await auth.get_pending_email_change(user))
 
 
+@router.delete(
+    "/me/email-change",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Abandon a pending email change",
+)
+async def cancel_email_change(user: CurrentUser, auth: AuthServiceDep) -> None:
+    await auth.cancel_email_change(user)
+
+
 @router.post(
     "/me/email-change",
     response_model=MessageResponse,
@@ -151,6 +184,82 @@ async def confirm_email_change(
 ) -> UserPublic:
     updated = await auth.confirm_email_change(user, payload.code)
     return UserPublic.model_validate(updated)
+
+
+@router.post(
+    "/me/password-change",
+    response_model=MessageResponse,
+    summary="Email a 6-digit code to authorise a password change",
+)
+async def request_password_change(
+    user: CurrentUser, auth: AuthServiceDep
+) -> MessageResponse:
+    await auth.request_password_change(user)
+    return MessageResponse(message="Код отправлен на вашу почту.")
+
+
+@router.post(
+    "/me/password-change/confirm",
+    response_model=AuthResponse,
+    summary=(
+        "Set a new password, proved by the current one or a mailed code; "
+        "revokes every session and re-issues this one"
+    ),
+)
+async def confirm_password_change(
+    payload: ChangePasswordRequest, user: CurrentUser, auth: AuthServiceDep
+) -> AuthResponse:
+    updated, tokens = await auth.change_password(
+        user,
+        payload.new_password,
+        current_password=payload.current_password,
+        code=payload.code,
+    )
+    return AuthResponse(user=UserPublic.model_validate(updated), tokens=tokens)
+
+
+@router.post(
+    "/me/delete",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Schedule the account for deletion and sign out everywhere",
+)
+async def delete_account(
+    payload: DeleteAccountRequest, user: CurrentUser, auth: AuthServiceDep
+) -> None:
+    await auth.delete_account(user, payload.current_password, payload.confirmation)
+
+
+@router.get(
+    "/me/sessions",
+    response_model=list[SessionPublic],
+    summary="Devices currently signed in to this account",
+)
+async def list_sessions(
+    user: CurrentUser, claims: TokenClaims, auth: AuthServiceDep
+) -> list[SessionPublic]:
+    return await auth.list_sessions(user, claims.session_id)
+
+
+@router.delete(
+    "/me/sessions",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Sign out every device except this one",
+)
+async def revoke_other_sessions(
+    user: CurrentUser, claims: TokenClaims, auth: AuthServiceDep
+) -> None:
+    await auth.revoke_other_sessions(user, claims.session_id)
+
+
+@router.delete(
+    "/me/sessions/{session_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Sign out one device",
+)
+async def revoke_session(
+    session_id: uuid.UUID, user: CurrentUser, auth: AuthServiceDep
+) -> None:
+    await auth.revoke_session(user, session_id)
 
 
 @router.post(

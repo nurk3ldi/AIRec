@@ -26,6 +26,30 @@ logger = logging.getLogger(__name__)
 startup_logger = logging.getLogger("uvicorn.error")
 
 
+async def _purge_deleted_accounts() -> None:
+    """Remove accounts whose grace period has expired.
+
+    Run at startup because this project has no scheduler. That makes the 30 days
+    real without extra infrastructure, but it also means the purge only happens
+    when the server restarts — point a cron at `AuthService.purge_deleted_accounts`
+    when there is somewhere to run one.
+    """
+    from app.api.deps import build_auth_service
+    from app.db.session import session_factory
+
+    try:
+        async with session_factory() as session:
+            removed = await build_auth_service(session).purge_deleted_accounts()
+    except Exception as exc:  # never let housekeeping stop the server booting
+        startup_logger.error("Purge of deleted accounts FAILED — %s", exc)
+        return
+
+    if removed:
+        startup_logger.info(
+            "Purged %d account(s) past the deletion grace period", removed
+        )
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     startup_logger.info("Server started — %s", settings.app_name)
@@ -43,6 +67,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         startup_logger.error("Database connection FAILED — %s: %s", target, exc)
     else:
         startup_logger.info("Database connected — %s", target)
+        await _purge_deleted_accounts()
 
     yield
     # Close pooled connections so shutdown doesn't leave sockets behind.

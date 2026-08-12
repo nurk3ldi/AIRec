@@ -6,7 +6,7 @@ const pageTitles = {
   '/dashboard': 'Главная',
   '/inbox': 'Диалоги',
   '/appointments': 'Записи',
-  '/analytics': 'Аналитика',
+  '/business': 'Бизнес',
 }
 
 export default function Header() {

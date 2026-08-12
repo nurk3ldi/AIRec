@@ -4,7 +4,7 @@ import hashlib
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
-from typing import Any, Final
+from typing import Any, Final, NamedTuple
 
 import jwt
 from anyio import to_thread
@@ -60,12 +60,24 @@ def password_needs_rehash(password_hash: str) -> bool:
         return True
 
 
-def create_access_token(subject: uuid.UUID) -> tuple[str, datetime]:
+class AccessTokenClaims(NamedTuple):
+    user_id: uuid.UUID
+    # The refresh-token family this access token belongs to — i.e. which signed-in
+    # device it came from. None for tokens issued before sessions existed.
+    session_id: uuid.UUID | None
+
+
+def create_access_token(
+    subject: uuid.UUID, session_id: uuid.UUID
+) -> tuple[str, datetime]:
     """Return a signed, short-lived access token and its expiry."""
     now = datetime.now(UTC)
     expires_at = now + timedelta(minutes=settings.access_token_ttl_minutes)
     payload: dict[str, Any] = {
         "sub": str(subject),
+        # Lets `/auth/me/sessions` mark which row is the caller's own without
+        # the client ever having to send its refresh token to a listing.
+        "sid": str(session_id),
         "type": ACCESS_TOKEN_TYPE,
         "iat": int(now.timestamp()),
         "exp": int(expires_at.timestamp()),
@@ -77,10 +89,12 @@ def create_access_token(subject: uuid.UUID) -> tuple[str, datetime]:
     return token, expires_at
 
 
-def decode_access_token(token: str) -> uuid.UUID:
-    """Return the subject of a valid access token.
+def decode_access_token(token: str) -> AccessTokenClaims:
+    """Return the claims of a valid access token.
 
     Raises `jwt.PyJWTError` for anything malformed, expired, or of the wrong type.
+    `sid` is not required: tokens issued before sessions existed simply have no
+    session, which costs them nothing but the "this device" marker.
     """
     payload = jwt.decode(
         token,
@@ -91,9 +105,17 @@ def decode_access_token(token: str) -> uuid.UUID:
     if payload.get("type") != ACCESS_TOKEN_TYPE:
         raise jwt.InvalidTokenError("not an access token")
     try:
-        return uuid.UUID(payload["sub"])
+        user_id = uuid.UUID(payload["sub"])
     except (TypeError, ValueError) as exc:
         raise jwt.InvalidTokenError("subject is not a user id") from exc
+
+    raw_session = payload.get("sid")
+    try:
+        session_id = uuid.UUID(raw_session) if raw_session else None
+    except (TypeError, ValueError):
+        session_id = None
+
+    return AccessTokenClaims(user_id=user_id, session_id=session_id)
 
 
 def generate_refresh_token() -> tuple[str, str]:

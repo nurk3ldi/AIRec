@@ -137,6 +137,20 @@ async def send_password_reset_email(to_email: str, code: str) -> None:
     )
 
 
+async def send_password_change_email(to_email: str, code: str) -> None:
+    """For a signed-in user changing their password, as opposed to recovering a
+    forgotten one — same code table, different wording."""
+    await _send_code_email(
+        to_email,
+        code,
+        settings.password_reset_code_ttl_minutes,
+        subject="Код для смены пароля AIRec",
+        heading="Код для смены пароля",
+        lead="Введите этот код, чтобы задать новый пароль в AIRec.",
+        log_label="password change code",
+    )
+
+
 async def send_email_change_email(to_email: str, code: str) -> None:
     """Sent to the *new* address — receiving it is the proof of ownership."""
     await _send_code_email(

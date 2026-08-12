@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
+from datetime import datetime, timedelta
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.user import User
 
 
@@ -43,5 +46,22 @@ class UserRepository:
         )
         return await self._session.scalar(stmt) is not None
 
+    async def list_purgeable(self, now: datetime) -> Sequence[User]:
+        """Accounts whose deletion grace period has run out.
+
+        The cutoff is computed here rather than stored, so changing
+        `account_deletion_grace_days` applies to everything already waiting.
+        """
+        cutoff = now - timedelta(days=settings.account_deletion_grace_days)
+        stmt = select(User).where(
+            User.deleted_at.is_not(None), User.deleted_at <= cutoff
+        )
+        return (await self._session.scalars(stmt)).all()
+
     def add(self, user: User) -> None:
         self._session.add(user)
+
+    async def delete(self, user: User) -> None:
+        """Hard delete. Refresh tokens and code rows go with it via
+        `ON DELETE CASCADE`."""
+        await self._session.delete(user)

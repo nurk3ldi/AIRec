@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
@@ -7,17 +9,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.avatar import delete_avatar, save_avatar
 from app.core.config import settings
-from app.core.email import send_email_change_email, send_password_reset_email
+from app.core.email import (
+    send_email_change_email,
+    send_password_change_email,
+    send_password_reset_email,
+)
 from app.core.errors import (
+    AccountDeleted,
+    DeleteConfirmationMismatch,
     EmailAlreadyRegistered,
     EmailNotRegistered,
     InactiveAccount,
     InvalidCredentials,
+    InvalidCurrentPassword,
     InvalidEmailCode,
     InvalidRefreshToken,
     InvalidResetCode,
     NoPendingEmailChange,
     SameEmail,
+    SessionNotFound,
     UsernameAlreadyTaken,
 )
 from app.core.security import (
@@ -33,6 +43,7 @@ from app.core.security import (
     reset_code_expiry,
     verify_password,
 )
+from app.core.useragent import describe_device
 from app.models.email_change_code import EmailChangeCode
 from app.models.password_reset_code import PasswordResetCode
 from app.models.refresh_token import RefreshToken
@@ -44,9 +55,22 @@ from app.repositories.user import UserRepository
 from app.schemas.auth import (
     USERNAME_PATTERN,
     RegisterRequest,
+    SessionPublic,
     TokenPair,
     UpdateProfileRequest,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class ClientInfo:
+    """What the transport knows about the caller's device.
+
+    Passed in as plain strings so the service layer still has no idea FastAPI
+    exists — the route is what reads the headers.
+    """
+
+    user_agent: str | None = None
+    ip_address: str | None = None
 
 
 class AuthService:
@@ -70,7 +94,9 @@ class AuthService:
         self._password_resets = password_resets
         self._email_changes = email_changes
 
-    async def register(self, data: RegisterRequest) -> tuple[User, TokenPair]:
+    async def register(
+        self, data: RegisterRequest, *, client: ClientInfo | None = None
+    ) -> tuple[User, TokenPair]:
         # Checked up front so the client gets a precise message; the unique
         # indexes below are what actually guarantee it under concurrency.
         if await self._users.email_exists(data.email):
@@ -92,12 +118,16 @@ class AuthService:
             await self._session.rollback()
             raise _conflict_for(exc) from exc
 
-        tokens = await self._issue_tokens(user)
+        tokens = await self._issue_tokens(
+            user,
+            user_agent=client.user_agent if client else None,
+            ip_address=client.ip_address if client else None,
+        )
         await self._session.commit()
         return user, tokens
 
     async def authenticate(
-        self, identifier: str, password: str
+        self, identifier: str, password: str, *, client: ClientInfo | None = None
     ) -> tuple[User, TokenPair]:
         user = await self._users.get_by_identifier(identifier)
 
@@ -109,6 +139,8 @@ class AuthService:
         if user is None or not password_ok:
             raise InvalidCredentials
 
+        if user.deleted_at is not None:
+            raise _account_deleted_error(user)
         if not user.is_active:
             raise InactiveAccount
 
@@ -116,9 +148,79 @@ class AuthService:
         if password_needs_rehash(user.password_hash):
             user.password_hash = await hash_password(password)
 
-        tokens = await self._issue_tokens(user)
+        tokens = await self._issue_tokens(
+            user,
+            user_agent=client.user_agent if client else None,
+            ip_address=client.ip_address if client else None,
+        )
         await self._session.commit()
         return user, tokens
+
+    async def delete_account(
+        self, user: User, current_password: str, confirmation: str
+    ) -> None:
+        """Start the deletion grace period.
+
+        The row is kept and only marked — nothing is actually removed until
+        `purge_deleted_accounts` runs past the deadline, which is what makes
+        `restore_account` possible.
+        """
+        if not await verify_password(current_password, user.password_hash):
+            raise InvalidCurrentPassword
+        if confirmation.strip().lower() != user.username.lower():
+            raise DeleteConfirmationMismatch
+
+        now = datetime.now(UTC)
+        user.deleted_at = now
+        # Signed out everywhere immediately: the account is gone as far as the
+        # user is concerned, even though the row lingers.
+        await self._tokens.revoke_all_for_user(user.id, now)
+        await self._session.commit()
+
+    async def restore_account(
+        self, identifier: str, password: str, *, client: ClientInfo | None = None
+    ) -> tuple[User, TokenPair]:
+        """Undo a deletion that hasn't been purged yet, and sign the user in."""
+        user = await self._users.get_by_identifier(identifier)
+        password_ok = await verify_password(
+            password, user.password_hash if user else None
+        )
+        if user is None or not password_ok:
+            raise InvalidCredentials
+        if user.deleted_at is None:
+            # Nothing to restore — but they did just prove who they are, so this
+            # is a plain sign-in rather than an error.
+            return await self.authenticate(identifier, password, client=client)
+        if not user.is_active:
+            raise InactiveAccount
+
+        user.deleted_at = None
+        tokens = await self._issue_tokens(
+            user,
+            user_agent=client.user_agent if client else None,
+            ip_address=client.ip_address if client else None,
+        )
+        await self._session.commit()
+        return user, tokens
+
+    async def purge_deleted_accounts(self) -> int:
+        """Remove accounts whose grace period has run out. Returns the count.
+
+        Avatar files are deleted here rather than at soft-delete time — until
+        the deadline the account can come back, and it should come back with its
+        picture.
+        """
+        users = await self._users.list_purgeable(datetime.now(UTC))
+        filenames = [u.avatar_filename for u in users]
+
+        for user in users:
+            await self._users.delete(user)
+        await self._session.commit()
+
+        # After the rows are gone, so a failed commit never orphans a file.
+        for filename in filenames:
+            await delete_avatar(filename)
+        return len(users)
 
     async def refresh(self, raw_token: str) -> tuple[User, TokenPair]:
         now = datetime.now(UTC)
@@ -138,14 +240,58 @@ class AuthService:
             raise InvalidRefreshToken
 
         user = stored.user
+        if user.deleted_at is not None:
+            raise _account_deleted_error(user)
         if not user.is_active:
             raise InactiveAccount
 
-        # Rotation: one refresh token is good for exactly one use.
+        # Rotation: one refresh token is good for exactly one use. The
+        # replacement inherits the session — same family, same sign-in time,
+        # same device label — so refreshing doesn't look like a new login.
         await self._tokens.revoke(stored, now)
-        tokens = await self._issue_tokens(user)
+        tokens = await self._issue_tokens(
+            user,
+            family_id=stored.family_id,
+            user_agent=stored.user_agent,
+            ip_address=stored.ip_address,
+            first_seen_at=stored.first_seen_at,
+        )
         await self._session.commit()
         return user, tokens
+
+    async def list_sessions(
+        self, user: User, current_session_id: uuid.UUID | None
+    ) -> list[SessionPublic]:
+        rows = await self._tokens.list_active_for_user(user.id, datetime.now(UTC))
+        return [
+            SessionPublic(
+                id=row.id,
+                device=describe_device(row.user_agent),
+                ip_address=row.ip_address,
+                signed_in_at=row.first_seen_at,
+                # This token was minted by the most recent refresh, so its
+                # creation time is the closest thing to "last seen".
+                last_active_at=row.created_at,
+                is_current=row.family_id == current_session_id,
+            )
+            for row in rows
+        ]
+
+    async def revoke_session(self, user: User, session_id: uuid.UUID) -> None:
+        now = datetime.now(UTC)
+        stored = await self._tokens.get_active_by_id_for_user(session_id, user.id, now)
+        if stored is None:
+            raise SessionNotFound
+        await self._tokens.revoke(stored, now)
+        await self._session.commit()
+
+    async def revoke_other_sessions(
+        self, user: User, current_session_id: uuid.UUID | None
+    ) -> None:
+        await self._tokens.revoke_other_families_for_user(
+            user.id, current_session_id, datetime.now(UTC)
+        )
+        await self._session.commit()
 
     async def check_username_available(self, username: str) -> bool:
         # A malformed username could never be registered, so it can never be
@@ -176,8 +322,6 @@ class AuthService:
             user.first_name = changes["first_name"]
         if "last_name" in changes:
             user.last_name = changes["last_name"]
-        if "phone" in changes:
-            user.phone = changes["phone"]
 
         try:
             await self._session.flush()
@@ -239,6 +383,12 @@ class AuthService:
         ):
             return None
         return record.new_email
+
+    async def cancel_email_change(self, user: User) -> None:
+        """Abandon a pending change. Idempotent — nothing pending is not an
+        error, so the client can always safely clear the banner."""
+        await self._email_changes.invalidate_all_for_user(user.id, datetime.now(UTC))
+        await self._session.commit()
 
     async def confirm_email_change(self, user: User, code: str) -> User:
         record = await self._email_changes.get_latest_active_for_user(user.id)
@@ -336,11 +486,72 @@ class AuthService:
 
         await send_password_reset_email(user.email, raw_code)
 
-    async def reset_password(self, email: str, code: str, new_password: str) -> None:
-        user = await self._users.get_by_email(email)
-        if user is None:
-            raise InvalidResetCode
+    async def request_password_change(self, user: User) -> None:
+        """Issue a code for a signed-in user to set a new password.
 
+        Deliberately reuses `password_reset_codes` rather than adding a third
+        near-identical table: both flows authorise exactly the same thing — "set
+        a new password for this user" — so the latest code winning across both
+        is the behaviour you want anyway.
+        """
+        now = datetime.now(UTC)
+        await self._password_resets.invalidate_all_for_user(user.id, now)
+
+        raw_code, code_hash = generate_reset_code()
+        self._password_resets.add(
+            PasswordResetCode(
+                user_id=user.id,
+                code_hash=code_hash,
+                expires_at=reset_code_expiry(),
+            )
+        )
+        await self._session.commit()
+
+        await send_password_change_email(user.email, raw_code)
+
+    async def change_password(
+        self,
+        user: User,
+        new_password: str,
+        *,
+        current_password: str | None = None,
+        code: str | None = None,
+    ) -> tuple[User, TokenPair]:
+        """Apply a password change and re-issue this client's session.
+
+        Takes either proof — the current password or a mailed code — since
+        neither dominates the other: the password path survives losing access to
+        the mailbox, the code path survives the password having leaked. The
+        schema guarantees exactly one arrives.
+
+        Every existing refresh token is revoked, including the caller's own —
+        changing a password must not leave another device signed in. The fresh
+        pair returned here is what keeps the *current* client from being kicked
+        out by its own action.
+        """
+        record: PasswordResetCode | None = None
+        if current_password is not None:
+            if not await verify_password(current_password, user.password_hash):
+                raise InvalidCurrentPassword
+        else:
+            record = await self._consume_reset_code(user, code or "")
+
+        now = datetime.now(UTC)
+        user.password_hash = await hash_password(new_password)
+        if record is not None:
+            record.used_at = now
+        await self._tokens.revoke_all_for_user(user.id, now)
+
+        tokens = await self._issue_tokens(user)
+        await self._session.commit()
+        return user, tokens
+
+    async def _consume_reset_code(self, user: User, code: str) -> PasswordResetCode:
+        """Validate the user's latest password code, or raise.
+
+        Returns the record without marking it used — the caller decides that,
+        since it should only burn once the new password is actually applied.
+        """
         record = await self._password_resets.get_latest_active_for_user(user.id)
         now = datetime.now(UTC)
 
@@ -352,9 +563,20 @@ class AuthService:
             raise InvalidResetCode
 
         if record.code_hash != hash_reset_code(code):
+            # The counter, not the digest, is what protects a 6-digit code.
             record.attempts += 1
             await self._session.commit()
             raise InvalidResetCode
+
+        return record
+
+    async def reset_password(self, email: str, code: str, new_password: str) -> None:
+        user = await self._users.get_by_email(email)
+        if user is None:
+            raise InvalidResetCode
+
+        record = await self._consume_reset_code(user, code)
+        now = datetime.now(UTC)
 
         user.password_hash = await hash_password(new_password)
         record.used_at = now
@@ -363,14 +585,31 @@ class AuthService:
         await self._tokens.revoke_all_for_user(user.id, now)
         await self._session.commit()
 
-    async def _issue_tokens(self, user: User) -> TokenPair:
-        access_token, _ = create_access_token(user.id)
+    async def _issue_tokens(
+        self,
+        user: User,
+        *,
+        family_id: uuid.UUID | None = None,
+        user_agent: str | None = None,
+        ip_address: str | None = None,
+        first_seen_at: datetime | None = None,
+    ) -> TokenPair:
+        """Mint a pair. Passing an existing `family_id` continues that session
+        instead of starting a new one — that's what a refresh does, and it's why
+        rotation doesn't make a device look like a new sign-in every 15 minutes.
+        """
+        session_id = family_id or uuid.uuid4()
+        access_token, _ = create_access_token(user.id, session_id)
         raw_refresh, refresh_hash = generate_refresh_token()
 
         self._tokens.add(
             RefreshToken(
                 user_id=user.id,
                 token_hash=refresh_hash,
+                family_id=session_id,
+                user_agent=user_agent,
+                ip_address=ip_address,
+                first_seen_at=first_seen_at or datetime.now(UTC),
                 expires_at=refresh_token_expiry(),
             )
         )
@@ -381,6 +620,17 @@ class AuthService:
             refresh_token=raw_refresh,
             expires_in=settings.access_token_ttl_minutes * 60,
         )
+
+
+def _account_deleted_error(user: User) -> AccountDeleted:
+    """Carries the deadline in the message — "аккаунт удалён" on its own gives
+    the user no way to know they can still get it back."""
+    due = user.purge_due_at
+    if due is None:
+        return AccountDeleted()
+    return AccountDeleted(
+        f"Аккаунт удалён. Восстановить можно до {due.strftime('%d.%m.%Y')}."
+    )
 
 
 def _conflict_for(exc: IntegrityError) -> Exception:

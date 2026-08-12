@@ -5,13 +5,24 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 USERNAME_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{2,31}$")
 USERNAME_MESSAGE = "Логин: только латинские буквы, цифры, _ . и -"
 
 RESET_CODE_PATTERN = re.compile(r"^\d{6}$")
 RESET_CODE_MESSAGE = "Код состоит из 6 цифр."
+
+CHANGE_PASSWORD_PROOF_MESSAGE = (
+    "Укажите текущий пароль или код из письма — что-то одно."  # noqa: S105
+)
 
 # Argon2 has no bcrypt-style truncation, but an unbounded password is a cheap
 # way to burn CPU, so cap it.
@@ -142,6 +153,56 @@ class EmailChangeRequest(BaseModel):
         return value.strip().lower()
 
 
+class ChangePasswordRequest(BaseModel):
+    """Set a new password from inside a signed-in session.
+
+    Authorised **either** by the current password or by a code mailed to the
+    account's own address — exactly one, never both and never neither. A live
+    session on its own is deliberately not enough: whoever changes the password
+    has to prove something the session alone doesn't carry.
+    """
+
+    new_password: Password
+    current_password: str | None = None
+    code: str | None = None
+
+    @field_validator("code")
+    @classmethod
+    def _validate_code(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip()
+        if not RESET_CODE_PATTERN.match(stripped):
+            raise ValueError(RESET_CODE_MESSAGE)
+        return stripped
+
+    _validate_new_password = field_validator("new_password")(validate_new_password)
+
+    @model_validator(mode="after")
+    def _exactly_one_proof(self) -> ChangePasswordRequest:
+        # Guarded here rather than in the service so a malformed request never
+        # reaches the branch that decides which proof to check.
+        if bool(self.current_password) == bool(self.code):
+            raise ValueError(CHANGE_PASSWORD_PROOF_MESSAGE)
+        return self
+
+
+class DeleteAccountRequest(BaseModel):
+    """Proved by the current password only — no emailed-code alternative.
+
+    Deletion is the one irreversible-ish action here, and the password is the
+    proof the account owner always has. Reusing the password-reset code table
+    for it would mean a code issued to change a password could also delete the
+    account, which is not a trade worth making.
+
+    `confirmation` must be the username, typed out: it costs a moment and it is
+    what stops an accidental click from ending an account.
+    """
+
+    current_password: str
+    confirmation: str
+
+
 class PendingEmailChange(BaseModel):
     """None once there is nothing left to confirm — including a code that
     expired or ran out of attempts."""
@@ -172,7 +233,6 @@ class UpdateProfileRequest(BaseModel):
 
     first_name: str | None = Field(default=None, max_length=50)
     last_name: str | None = Field(default=None, max_length=50)
-    phone: str | None = Field(default=None, max_length=32)
     username: str | None = None
 
     @field_validator("username")
@@ -185,7 +245,7 @@ class UpdateProfileRequest(BaseModel):
             raise ValueError(USERNAME_MESSAGE)
         return stripped
 
-    @field_validator("first_name", "last_name", "phone")
+    @field_validator("first_name", "last_name")
     @classmethod
     def _blank_to_none(cls, value: str | None) -> str | None:
         # An emptied-out optional field should clear the column, not store "".
@@ -209,9 +269,23 @@ class UserPublic(BaseModel):
     # Computed on the model from the two parts above — kept in the response so
     # clients that only want a display name don't have to join it themselves.
     full_name: str | None = None
-    phone: str | None = None
     avatar_url: str | None = None
     created_at: datetime
+
+
+class SessionPublic(BaseModel):
+    """One signed-in device.
+
+    `signed_in_at` comes from the token family's first token and `last_active_at`
+    from its newest, so rotation shows up as activity rather than as a new login.
+    """
+
+    id: uuid.UUID
+    device: str
+    ip_address: str | None = None
+    signed_in_at: datetime
+    last_active_at: datetime
+    is_current: bool = False
 
 
 class TokenPair(BaseModel):

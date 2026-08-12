@@ -6,7 +6,7 @@ import {
   Home01Icon,
   Chat01Icon,
   NoteIcon,
-  Activity02Icon,
+  Building03Icon,
 } from '@hugeicons/core-free-icons'
 import { mediaUrl } from '../lib/api'
 import BrandMark from './BrandMark'
@@ -18,7 +18,7 @@ const navigation = [
   { label: 'Главная', href: '/dashboard', icon: Home01Icon },
   { label: 'Диалоги', href: '/inbox', icon: Chat01Icon },
   { label: 'Записи', href: '/appointments', icon: NoteIcon },
-  { label: 'Аналитика', href: '/analytics', icon: Activity02Icon },
+  { label: 'Бизнес', href: '/business', icon: Building03Icon },
 ]
 
 export default function Sidebar({ user = null, onUserChange }) {
@@ -112,6 +112,7 @@ export default function Sidebar({ user = null, onUserChange }) {
       {dialogSection && (
         <ProfileDialog
           section={dialogSection}
+          user={user}
           onClose={() => setDialogSection(null)}
           onUserChange={onUserChange}
         />

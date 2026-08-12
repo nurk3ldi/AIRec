@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { EyeIcon, EyeOffIcon } from '@hugeicons/core-free-icons'
-import { login } from '../lib/api'
+import { login, restoreAccount } from '../lib/api'
 import { saveTokens, useRedirectIfAuthed } from '../lib/auth'
 import styles from '../styles/Login.module.css'
 
@@ -17,18 +17,37 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // Set when the sign-in failed only because the account is inside its deletion
+  // grace period — the credentials were right, so we can offer to undo it.
+  const [canRestore, setCanRestore] = useState(false)
 
   const identifierHasSpace = /\s/.test(identifier)
   const passwordHasSpace = /\s/.test(password)
   const resetSuccess = router.query.reset === 'success'
+  const justDeleted = router.query.deleted === '1'
 
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
+    setCanRestore(false)
     setIsSubmitting(true)
 
     try {
       const { tokens } = await login({ identifier, password })
+      saveTokens(tokens)
+      router.push('/dashboard')
+    } catch (err) {
+      setError(err.message)
+      setCanRestore(err.code === 'account_deleted')
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleRestore = async () => {
+    setError('')
+    setIsSubmitting(true)
+    try {
+      const { tokens } = await restoreAccount({ identifier, password })
       saveTokens(tokens)
       router.push('/dashboard')
     } catch (err) {
@@ -51,6 +70,13 @@ export default function LoginPage() {
           {resetSuccess && (
             <p className="rounded-lg border border-[#16A34A]/30 bg-[#F0FDF4] px-3.5 py-2.5 text-center text-[13px] text-[#16A34A]">
               Пароль изменён. Войдите с новым паролем.
+            </p>
+          )}
+
+          {justDeleted && (
+            <p className="rounded-lg border border-[#999999]/30 bg-[#F6F8FA] px-3.5 py-2.5 text-center text-[13px] text-[#171215]/70">
+              Аккаунт удалён. В течение 30 дней его можно восстановить — просто
+              войдите снова.
             </p>
           )}
 
@@ -86,7 +112,7 @@ export default function LoginPage() {
                   className="absolute right-3 top-1/2 grid -translate-y-1/2 place-items-center text-[#999999] transition-colors hover:text-[#171215]"
                 >
                   <HugeiconsIcon
-                    icon={showPassword ? EyeOffIcon : EyeIcon}
+                    icon={showPassword ? EyeIcon : EyeOffIcon}
                     size={18}
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -106,6 +132,19 @@ export default function LoginPage() {
             </div>
 
             {error && <p className="text-[13px] text-[#DC2626]">{error}</p>}
+
+            {/* The password was already accepted — the only thing standing in
+                the way is the pending deletion, so undoing it is one click. */}
+            {canRestore && (
+              <button
+                type="button"
+                onClick={handleRestore}
+                disabled={isSubmitting}
+                className="rounded-lg border border-[#3248F2]/40 px-5 py-2 text-[14px] font-medium text-[#3248F2] transition-colors hover:bg-[#3248F2]/6 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Восстановить аккаунт и войти
+              </button>
+            )}
 
             <button
               type="submit"

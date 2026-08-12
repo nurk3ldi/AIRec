@@ -39,12 +39,17 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     first_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
     # Filename only, not a full URL — the serving prefix comes from
     # `settings.avatar_url_prefix`, so moving storage doesn't rewrite rows.
     avatar_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=text("true")
+    )
+    # Set when the user asks to delete the account; the row survives until the
+    # grace period runs out. Kept separate from `is_active`, which means "an
+    # administrator switched this off" and has to say something different.
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -65,6 +70,18 @@ class User(Base):
     @property
     def email_verified(self) -> bool:
         return self.email_verified_at is not None
+
+    @property
+    def purge_due_at(self) -> datetime | None:
+        """When this account stops being recoverable, or None if it isn't
+        scheduled for deletion."""
+        from datetime import timedelta
+
+        from app.core.config import settings
+
+        if self.deleted_at is None:
+            return None
+        return self.deleted_at + timedelta(days=settings.account_deletion_grace_days)
 
     @property
     def full_name(self) -> str | None:

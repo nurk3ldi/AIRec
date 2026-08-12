@@ -145,7 +145,7 @@ export default function SignupPage() {
                   className="absolute right-3 top-1/2 grid -translate-y-1/2 place-items-center text-[#999999] transition-colors hover:text-[#171215]"
                 >
                   <HugeiconsIcon
-                    icon={showPassword ? EyeOffIcon : EyeIcon}
+                    icon={showPassword ? EyeIcon : EyeOffIcon}
                     size={18}
                     strokeLinecap="round"
                     strokeLinejoin="round"

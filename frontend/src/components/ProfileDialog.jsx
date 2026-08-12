@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Cancel01Icon } from '@hugeicons/core-free-icons'
 import AccountSettings from './profile/AccountSettings'
+import SessionsSettings from './profile/SessionsSettings'
 import { PROFILE_SECTIONS, SECTION_PLACEHOLDERS } from './profile/sections'
 import ComingSoon from './ComingSoon'
 
@@ -23,7 +24,7 @@ import ComingSoon from './ComingSoon'
  * Nothing here is a route — the whole profile area lives in this overlay, so
  * there are no `/profile/*` pages to keep in sync.
  */
-export default function ProfileDialog({ section, onClose, onUserChange }) {
+export default function ProfileDialog({ section, user, onClose, onUserChange }) {
   const active = PROFILE_SECTIONS.find((s) => s.id === section) ?? PROFILE_SECTIONS[0]
   const isAccount = active.id === 'account'
 
@@ -81,6 +82,8 @@ export default function ProfileDialog({ section, onClose, onUserChange }) {
         <div className="flex min-h-0 flex-1 flex-col">
           {isAccount ? (
             <AccountSettings onUserChange={onUserChange} onClose={onClose} />
+          ) : active.id === 'security' ? (
+            <SessionsSettings user={user} />
           ) : (
             <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
               <ComingSoon>{SECTION_PLACEHOLDERS[active.id]}</ComingSoon>
