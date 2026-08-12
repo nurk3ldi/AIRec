@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import Head from 'next/head'
+import BusinessProfile from '../components/business/BusinessProfile'
+import Card from '../components/business/Card'
 import ComingSoon from '../components/ComingSoon'
 import styles from '../styles/Business.module.css'
 
@@ -12,23 +14,12 @@ import styles from '../styles/Business.module.css'
  * and a staff roster don't fit in a 520px dialog.
  */
 const TABS = [
-  {
-    id: 'profile',
-    label: 'О бизнесе',
-    placeholder:
-      'Здесь будут услуги и цены, график работы, филиалы и сотрудники — всё, из чего ассистент собирает ответ клиенту.',
-  },
-  {
-    id: 'ai',
-    label: 'ИИ-ассистент',
-    placeholder:
-      'Здесь настраиваются тон и язык ассистента, база ответов и правила передачи диалога человеку.',
-  },
+  { id: 'profile', label: 'О бизнесе' },
+  { id: 'ai', label: 'ИИ-ассистент' },
 ]
 
 export default function BusinessPage() {
   const [activeId, setActiveId] = useState(TABS[0].id)
-  const active = TABS.find((tab) => tab.id === activeId) ?? TABS[0]
 
   return (
     <>
@@ -36,12 +27,8 @@ export default function BusinessPage() {
         <title>AIRec</title>
       </Head>
       <div className={styles.page} aria-label="Страница бизнеса">
-        <div className="mx-auto max-w-[880px] px-6 py-8">
-          <div
-            role="tablist"
-            aria-label="Разделы бизнеса"
-            className="flex items-center gap-1 border-b border-[#999999]/25"
-          >
+        <div className="mx-auto max-w-[980px] px-6 py-6 sm:px-8">
+          <div role="tablist" aria-label="Разделы бизнеса" className="flex items-center gap-1">
             {TABS.map((tab) => {
               const isActive = tab.id === activeId
               return (
@@ -51,12 +38,12 @@ export default function BusinessPage() {
                   role="tab"
                   aria-selected={isActive}
                   onClick={() => setActiveId(tab.id)}
-                  // The underline sits on the button and overlaps the container's
-                  // border, so the active tab reads as connected to its panel.
-                  className={`-mb-px border-b-2 px-4 py-2.5 text-[14px] font-medium outline-none transition-colors ${
+                  // A filled pill rather than an underline: there's no card
+                  // border for an underline to sit against on this ground.
+                  className={`rounded-lg px-3.5 py-2 text-[14px] font-medium outline-none transition-colors ${
                     isActive
-                      ? 'border-[#3248F2] text-[#171215]'
-                      : 'border-transparent text-[#999999] hover:text-[#171215]'
+                      ? 'bg-white text-[#171215]'
+                      : 'text-[#999999] hover:text-[#171215]'
                   }`}
                 >
                   {tab.label}
@@ -65,8 +52,17 @@ export default function BusinessPage() {
             })}
           </div>
 
-          <div role="tabpanel" className="mt-6 rounded-2xl bg-white p-6">
-            <ComingSoon>{active.placeholder}</ComingSoon>
+          <div role="tabpanel" className="mt-6">
+            {activeId === 'profile' ? (
+              <BusinessProfile />
+            ) : (
+              <Card>
+                <ComingSoon>
+                  Здесь настраиваются тон и язык ассистента, база ответов и
+                  правила передачи диалога человеку.
+                </ComingSoon>
+              </Card>
+            )}
           </div>
         </div>
       </div>

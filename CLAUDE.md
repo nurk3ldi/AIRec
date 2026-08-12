@@ -70,7 +70,8 @@ The profile area is **entirely overlay-based**; there are no `/profile/*` pages,
 Two layering details that are easy to break: the avatar cropper is a modal *inside* a modal, so it sits at `z-[70]` above the dialog's `z-[60]`, and it tags itself `data-nested-overlay` — `ProfileDialog`'s Escape handler checks for that and stands down, otherwise one Escape press closes both. And `AccountSettings` calls `onUserChange` after every save so `DashboardLayout` can refresh the avatar in the sidebar without another `/auth/me` round trip. **Photo changes are staged, not applied immediately** — a crop is held as `{blob, url}` (the object URL being the preview the avatar circle shows) and a removal as an `avatarRemoved` flag; both count toward `isDirty` and only reach `POST`/`DELETE /auth/me/avatar` when Save runs, ahead of the profile PATCH. The staging effect revokes the previous object URL when the crop is replaced.
 
 **Email and password are not inline fields** — each is an `ActionRow` (read-only value + "Изменить") that opens its own step, because neither can be changed by simply saving the form. The email step has two phases (`emailStep`: `'address'` → `'code'`); the password step has two proofs (`pwMode`: `'password'` | `'code'`). Only first/last name and username are part of `FORM_ID` and `isDirty`.
-- `Header.jsx` — sticky 68px top bar; page title comes from a `pageTitles` map keyed by route — update this map when adding a new dashboard route.
+- `Header.jsx` — sticky 68px top bar; page title comes from a `pageTitles` map keyed by route — update this map when adding a new dashboard route. On the right sits the notifications bell, a link to `/notifications` that highlights when you're on it. It lives here rather than in the sidebar rail because notifications are about *right now*, not about somewhere to navigate to; it carries no unread badge yet, since there's no backend to count.
+- `/notifications` — reachable only from that bell. Renders a real empty state ("Пока нет уведомлений") rather than a `ComingSoon` placeholder: a new account genuinely has nothing there, so this is what the finished page looks like too.
 - Leftovers from the AIReca → AIRec rename still sit in `Sidebar.jsx` (link `aria-label`) and `Header.jsx` (fallback title). Use "AIRec" in anything new, and fix those strings if you touch the surrounding code.
 
 ### Public shell
@@ -87,6 +88,37 @@ Two layering details that are easy to break: the avatar cropper is a modal *insi
 - Each page pairs with a CSS Module in `src/styles/` for its root container — the convention is `min-height: calc(100vh - Npx)` plus a background color, and nothing else. `N` must match the actual current height of that layout's header component (`Header.jsx` or `LandingHeader.jsx`) — check the header's `h-*` class rather than assuming a fixed number, since header heights get tuned independently. All other styling is inline Tailwind utility classes.
 - Icons: `@hugeicons/react` + `@hugeicons/core-free-icons` via the `HugeiconsIcon` component — not emoji, not another icon set.
 - No UI component library (no shadcn/ui, MUI, Ant Design, etc.). Components are hand-built with Tailwind.
+
+### Dashboard visual language
+**This is the settled design direction for the product** — every dashboard screen still to be built (Главная, Диалоги, Записи, Бизнес, Уведомления) follows it, and existing screens are brought in line as they're touched rather than in a separate pass. It is not a mood: the numbers below are the spec, and new screens copy them rather than approximating.
+
+An earlier iteration of the profile area deliberately avoided cards; that decision is superseded by this section. Where the two disagree, this section wins.
+
+**Cards.** Page content lives in cards on the `#F6F8FA` page ground:
+
+```
+bg-white  rounded-2xl  p-6  →  gap-6 between siblings
+```
+
+**No border and no shadow.** White against the grey page is the whole separation mechanism; a hairline on top of that contrast is redundant, and a shadow makes a static block pretend to float. Cards sit *in* the page, they don't hover over it.
+
+**Shadows are reserved for what genuinely floats**: `ProfileDialog`, `ProfileMenu`, `AvatarCropper`, tooltips. Spending shadow on a static card destroys the one cue that separates "a block on the page" from "a layer over the page".
+
+**Never nest a card inside a card.** Internal grouping is done with a `1px` divider (`border-[#999999]/15`) and a small muted label. Four related KPIs are **one card split by hairlines into a 2×2**, not four cards — that is the single most characteristic move of this style.
+
+**Card header.** Title at `text-[15px] font-semibold`, optional control on the far right: either a small pill (`rounded-lg border border-[#999999]/25 px-3 py-1.5 text-[13px] text-[#999999]`, e.g. «За неделю ⌄») or a `•••` menu button. Nothing else competes at the top of a card.
+
+**Numbers are the loudest thing on screen.** A metric is three stacked lines: label `text-[14px] text-[#999999]`, value `text-[32px] font-bold tracking-[-0.02em] text-[#171215]`, then a delta line — coloured percentage (`#16A34A` up / `#DC2626` down) followed by muted context («+12% за 28 дней»). Nothing between those lines but tight spacing.
+
+**Charts carry no chrome.** No gridlines, no axis lines, no borders, no legends boxed off. Axis labels are `text-[11px] text-[#999999]`. Sparklines are a bare 2px stroke, green or red, no fill, no dots. Bars are fully rounded pills (radius = half the bar width), `#3248F2` for the one bar being highlighted and `#3248F2` at ~12% for all the rest. An area chart is a soft accent-tinted gradient that bleeds to the card's bottom edge, clipped by the card radius.
+
+**Tables have no frame.** Column headers are `text-[11px] uppercase tracking-wide text-[#999999]`; rows are separated by air and, at most, a `#999999/15` line — never vertical dividers, never zebra striping, never an outer border. Status is a tinted pill: `bg-[#16A34A]/10 text-[#16A34A]` / `bg-[#DC2626]/10 text-[#DC2626]`, `rounded-md px-2.5 py-1 text-[12px] font-medium`. Amounts right-align.
+
+**Spend the accent about four times per screen.** In the reference, `#3248F2` appears on the active nav item, one highlighted bar, one donut segment and one icon badge — nothing else. Everything that is data-but-not-the-point uses the accent at 10–15% opacity (the lavender tint), and everything else is neutral. That scarcity is what makes the screen feel calm; using blue for every chart series throws it away.
+
+**Icon badges**, where a metric needs one, are `h-7 w-7 rounded-lg` with a solid fill and a white glyph — and this is the one place a second hue is allowed (orange, red, green alongside blue), because they label distinct categories rather than decorate.
+
+The shell keeps its existing dimensions (64px rail, 68px header) — the reference is a mock at a different scale, and only its content language is adopted.
 
 ### UI language — Russian, everywhere
 **Every user-facing string is Russian**: the public flow, the dashboard chrome, the profile overlay, all `aria-label`s and `placeholder`s, and — this part is easy to forget — **every message the backend can return**. `_document.jsx` sets `<Html lang="ru">`. Write new copy in Russian; don't reintroduce English strings, and translate the backend side of any new endpoint at the same time as its UI.
