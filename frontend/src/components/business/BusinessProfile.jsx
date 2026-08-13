@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import * as Switch from '@radix-ui/react-switch'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Add01Icon,
   Camera01Icon,
   Cancel01Icon,
-  PencilEdit02Icon,
 } from '@hugeicons/core-free-icons'
 import AvatarCropper from '../AvatarCropper'
 import {
@@ -104,21 +104,33 @@ function ColumnLabel({ children, className = '' }) {
   )
 }
 
+// One template, used by the header row and every service row, so the columns
+// line up without either side knowing the widths.
+const SERVICE_COLUMNS = 'grid grid-cols-[1fr_140px_130px_150px] gap-x-8'
+
 /**
- * A dot rather than a tinted pill, deliberately: almost every row in a price
- * list says the same thing, and five identical pills shout. The dot carries the
- * state and lets the exception — a hidden service — be the thing you notice.
+ * Status as a switch rather than a label: hiding a service from the assistant
+ * is a thing the owner *does*, several times a week — a seasonal service, a
+ * master on holiday — so it belongs under one click, in the row itself.
  */
-function StatusDot({ active }) {
+function ServiceStatusToggle({ active, name, onToggle }) {
   return (
-    <span className="inline-flex items-center gap-2 text-[14px] text-[#999999]">
+    <div className="flex items-center gap-2.5">
+      <Switch.Root
+        checked={active}
+        onCheckedChange={onToggle}
+        aria-label={`${name}: ${active ? 'скрыть' : 'показать'}`}
+        className="relative h-5 w-9 shrink-0 cursor-pointer rounded-full bg-[#999999]/35 outline-none transition-colors data-[state=checked]:bg-[#3248F2]"
+      >
+        <Switch.Thumb className="block h-4 w-4 translate-x-0.5 rounded-full bg-white shadow-[0_1px_3px_rgba(23,18,21,0.25)] transition-transform will-change-transform data-[state=checked]:translate-x-[18px]" />
+      </Switch.Root>
+
       <span
-        className={`h-1.5 w-1.5 rounded-full ${
-          active ? 'bg-[#16A34A]' : 'bg-[#999999]'
-        }`}
-      />
-      {active ? 'Активна' : 'Скрыта'}
-    </span>
+        className={`text-[14px] ${active ? 'text-[#171215]' : 'text-[#999999]'}`}
+      >
+        {active ? 'Активна' : 'Скрыта'}
+      </span>
+    </div>
   )
 }
 
@@ -150,6 +162,9 @@ function Field({
   const [draft, setDraft] = useState('')
   const [error, setError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  // Escape has to tell the blur that follows it not to save. Declared with the
+  // other hooks, above the early return the pickers take.
+  const skipSave = useRef(false)
 
   // A closed set of values needs no text box and no Save button: the pick is
   // the confirmation, so it commits straight away.
@@ -191,16 +206,27 @@ function Field({
     setIsEditing(true)
   }
 
-  const handleSubmit = async (event) => {
-    event.preventDefault()
+  const commit = async () => {
+    if (skipSave.current) {
+      skipSave.current = false
+      return
+    }
+
+    // Empty clears the field rather than storing "" — `null` is what the
+    // backend reads as "this is not set".
+    const next = draft.trim() || null
+    if (next === (value ?? null)) {
+      setIsEditing(false)
+      return
+    }
+
     setIsSaving(true)
     setError('')
     try {
-      // Empty clears the field rather than storing "" — `null` is what the
-      // backend reads as "this is not set".
-      await onSave(fieldKey, draft.trim() || null)
+      await onSave(fieldKey, next)
       setIsEditing(false)
     } catch (err) {
+      // Stays open on failure: closing would throw away what was typed.
       setError(err.fields?.[0]?.message || err.message)
     } finally {
       setIsSaving(false)
@@ -209,13 +235,7 @@ function Field({
 
   if (isEditing) {
     return (
-      <form
-        onSubmit={handleSubmit}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') setIsEditing(false)
-        }}
-        className="border-r border-b border-[#999999]/15 px-6 py-5"
-      >
+      <div className="border-r border-b border-[#999999]/15 px-6 py-5">
         <label
           htmlFor={`business-${fieldKey}`}
           className="text-[13px] text-[#999999]"
@@ -227,12 +247,28 @@ function Field({
           id={`business-${fieldKey}`}
           type="text"
           value={draft}
+          disabled={isSaving}
           onChange={(event) => {
             setDraft(event.target.value)
             setError('')
           }}
+          // Leaving the field is the save. Enter just leaves it early, which
+          // is why it only has to blur.
+          onBlur={commit}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              event.currentTarget.blur()
+            }
+            if (event.key === 'Escape') {
+              // Set before the input goes away, so the blur that follows knows
+              // this was a cancel and not a save.
+              skipSave.current = true
+              setIsEditing(false)
+            }
+          }}
           autoFocus
-          className={`mt-1.5 w-full rounded-lg border bg-white px-3 py-1.5 text-[15px] text-[#171215] outline-none transition-colors focus:border-[#3248F2] ${
+          className={`mt-1.5 -mx-2 w-[calc(100%+1rem)] rounded-lg border bg-white px-2 py-1 text-[16px] font-semibold text-[#171215] outline-none transition-colors focus:border-[#3248F2] disabled:opacity-60 ${
             error ? 'border-[#DC2626]' : 'border-[#999999]/35'
           }`}
         />
@@ -242,54 +278,40 @@ function Field({
             {error}
           </p>
         )}
-
-        <div className="mt-2 flex items-center gap-2">
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="rounded-lg bg-[#3248F2] px-3 py-1.5 text-[13px] font-medium text-white outline-none transition-colors hover:bg-[#2839c9] disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            {isSaving ? 'Сохраняем…' : 'Сохранить'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsEditing(false)}
-            className="rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-[#999999] outline-none transition-colors hover:text-[#171215]"
-          >
-            Отменить
-          </button>
-        </div>
-      </form>
+      </div>
     )
   }
 
   return (
-    <div className="group relative border-r border-b border-[#999999]/15 px-6 py-5">
+    <div className="border-r border-b border-[#999999]/15 px-6 py-5">
       <p className="text-[13px] text-[#999999]">{label}</p>
 
-      {value ? (
-        <p className="mt-1.5 pr-8 text-[16px] font-semibold text-[#171215]">
-          {format ? format(value) : value}
-        </p>
-      ) : (
-        <p className="mt-1.5 pr-8 text-[16px] font-medium text-[#999999]">Не указано</p>
-      )}
-
-      {editable && (
+      {editable ? (
+        // The value itself is the control. No pencil: an icon that appears on
+        // hover is a second target for the same job, and the tinted hover on
+        // the text already says it can be clicked.
+        // Wraps rather than truncates: this is the page where you come to read
+        // what the assistant knows, so a value that doesn't fit on one line
+        // should take two. The grid stretches every cell in a row to match, so
+        // the dividers stay aligned.
         <button
           type="button"
           onClick={startEditing}
           aria-label={`Изменить: ${label}`}
-          className="absolute top-4 right-4 grid h-7 w-7 place-items-center rounded-lg text-[#999999] opacity-0 transition-all hover:bg-[#3248F2]/8 hover:text-[#3248F2] focus-visible:opacity-100 group-hover:opacity-100"
+          className={`mt-1.5 -mx-2 block w-[calc(100%+1rem)] rounded-lg px-2 py-1 text-left text-[16px] break-words hyphens-auto outline-none transition-colors hover:bg-[#F6F8FA] focus-visible:bg-[#F6F8FA] ${
+            value ? 'font-semibold text-[#171215]' : 'font-medium text-[#999999]'
+          }`}
         >
-          <HugeiconsIcon
-            icon={PencilEdit02Icon}
-            size={15}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-          />
+          {value || 'Не указано'}
         </button>
+      ) : (
+        <p
+          className={`mt-1.5 text-[16px] break-words ${
+            value ? 'font-semibold text-[#171215]' : 'font-medium text-[#999999]'
+          }`}
+        >
+          {(value && (format ? format(value) : value)) || 'Не указано'}
+        </p>
       )}
     </div>
   )
@@ -301,6 +323,16 @@ export default function BusinessProfile() {
   const [pickedFile, setPickedFile] = useState(null)
   const [logoError, setLogoError] = useState('')
   const [logoBusy, setLogoBusy] = useState(false)
+  // Local for now — the price list has no API behind it yet, so the switch
+  // moves but nothing is persisted.
+  const [services, setServices] = useState(SERVICES)
+
+  const toggleService = (name) =>
+    setServices((current) =>
+      current.map((service) =>
+        service.name === name ? { ...service, active: !service.active } : service
+      )
+    )
 
   useEffect(() => {
     let cancelled = false
@@ -373,7 +405,6 @@ export default function BusinessProfile() {
   }))
   const missing = fields.filter((field) => !field.value)
   const percent = Math.round(((fields.length - missing.length) / fields.length) * 100)
-  const activeCount = SERVICES.filter((service) => service.active).length
   const logoUrl = mediaUrl(business?.logo_url)
   const displayName = business?.name || 'Без названия'
   // No time zone here: it's the same for every business in the country, so it
@@ -516,48 +547,49 @@ export default function BusinessProfile() {
       <Card
         title="Услуги"
         action={
-          <span className="flex items-center gap-4">
-            <span className="text-[13px] text-[#999999]">
-              {activeCount} активных
+          <CardAction>
+            <span className="inline-flex items-center gap-1.5">
+              <HugeiconsIcon
+                icon={Add01Icon}
+                size={15}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2.2}
+              />
+              Добавить услугу
             </span>
-            <CardAction>
-              <span className="inline-flex items-center gap-1.5">
-                <HugeiconsIcon
-                  icon={Add01Icon}
-                  size={15}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.2}
-                />
-                Добавить услугу
-              </span>
-            </CardAction>
-          </span>
+          </CardAction>
         }
       >
-        <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-8">
+        {/* Fixed columns rather than `auto`, so duration and price start on the
+            left of their own space instead of being pushed against the next
+            column — the row reads left to right with air between the parts. */}
+        <div className={`${SERVICE_COLUMNS} pb-3`}>
           <ColumnLabel>Услуга</ColumnLabel>
-          <ColumnLabel className="text-right">Длительность</ColumnLabel>
-          <ColumnLabel className="text-right">Цена</ColumnLabel>
-          <ColumnLabel className="text-right">Статус</ColumnLabel>
-
-          {SERVICES.map((service) => (
-            <div key={service.name} className="contents">
-              <p className="mt-4 truncate text-[14px] text-[#171215]">
-                {service.name}
-              </p>
-              <p className="mt-4 text-right text-[14px] text-[#999999]">
-                {formatDuration(service.minutes)}
-              </p>
-              <p className="mt-4 text-right text-[14px] font-semibold text-[#171215]">
-                {formatPrice(service.price)}
-              </p>
-              <p className="mt-4 text-right">
-                <StatusDot active={service.active} />
-              </p>
-            </div>
-          ))}
+          <ColumnLabel>Длительность</ColumnLabel>
+          <ColumnLabel>Цена</ColumnLabel>
+          <ColumnLabel>Статус</ColumnLabel>
         </div>
+
+        {services.map((service) => (
+          <div
+            key={service.name}
+            className={`${SERVICE_COLUMNS} items-center border-t border-[#999999]/15 py-3.5`}
+          >
+            <p className="text-[14px] break-words text-[#171215]">{service.name}</p>
+            <p className="text-[14px] text-[#999999]">
+              {formatDuration(service.minutes)}
+            </p>
+            <p className="text-[14px] font-semibold text-[#171215]">
+              {formatPrice(service.price)}
+            </p>
+            <ServiceStatusToggle
+              active={service.active}
+              name={service.name}
+              onToggle={() => toggleService(service.name)}
+            />
+          </div>
+        ))}
       </Card>
 
       <Card title="График работы" action={<CardAction>Изменить</CardAction>}>

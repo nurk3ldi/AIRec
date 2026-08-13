@@ -64,19 +64,36 @@ export default function OptionPicker({
       <Popover.Trigger
         disabled={disabled}
         aria-label={label}
-        className="group mt-1.5 flex w-full items-center justify-between gap-2 rounded-lg text-left outline-none disabled:cursor-not-allowed disabled:opacity-60"
+        // `items-start` so a value that wraps to several lines keeps the
+        // chevron pinned to the first one.
+        className="group mt-1.5 flex w-full items-start justify-between gap-2 rounded-lg text-left outline-none disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <span
-          className={`truncate text-[16px] ${
-            value ? 'font-semibold text-[#171215]' : 'font-medium text-[#999999]'
-          }`}
-        >
-          {value || 'Не указано'}
-        </span>
+        {/* Several values read as several things, not as one long sentence
+            with commas in it — so each gets its own chip and the row wraps. */}
+        {multiple && selected.length > 0 ? (
+          <span className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+            {selected.map((item) => (
+              <span
+                key={item}
+                className="rounded-md bg-[#F6F8FA] px-2.5 py-1 text-[13px] font-medium text-[#171215]"
+              >
+                {item}
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span
+            className={`min-w-0 flex-1 text-[16px] break-words ${
+              value ? 'font-semibold text-[#171215]' : 'font-medium text-[#999999]'
+            }`}
+          >
+            {value || 'Не указано'}
+          </span>
+        )}
 
-        {/* Mirrors the pencil on the neighbouring cells: hidden until the row
-            is hovered or focused, so nine permanent affordances don't compete. */}
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[#999999] opacity-0 transition-all group-hover:opacity-100 group-focus-visible:opacity-100 group-data-[state=open]:opacity-100">
+        {/* Hidden until the row is hovered or focused, so nine permanent
+            affordances don't compete for attention. */}
+        <span className="-mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[#999999] opacity-0 transition-all group-hover:opacity-100 group-focus-visible:opacity-100 group-data-[state=open]:opacity-100">
           <HugeiconsIcon
             icon={ArrowDown01Icon}
             size={16}
