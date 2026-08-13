@@ -35,6 +35,12 @@ export default function OptionPicker({
   label,
   multiple = false,
   searchable = false,
+  // The trigger sits in two different contexts — a profile cell and a table
+  // row — so its type comes from the caller. Size and weight are separate
+  // props rather than one class string: both would otherwise collide with the
+  // empty-state classes below, and which one wins is up to CSS order.
+  size = 'text-[16px]',
+  weight = 'font-semibold',
 }) {
   const [open, setOpen] = useState(false)
   const selected = multiple ? parse(value) : []
@@ -66,7 +72,7 @@ export default function OptionPicker({
         aria-label={label}
         // `items-start` so a value that wraps to several lines keeps the
         // chevron pinned to the first one.
-        className="group mt-1.5 flex w-full items-start justify-between gap-2 rounded-lg text-left outline-none disabled:cursor-not-allowed disabled:opacity-60"
+        className="group flex w-full items-start justify-between gap-2 rounded-lg text-left outline-none disabled:cursor-not-allowed disabled:opacity-60"
       >
         {/* Several values read as several things, not as one long sentence
             with commas in it — so each gets its own chip and the row wraps. */}
@@ -83,8 +89,8 @@ export default function OptionPicker({
           </span>
         ) : (
           <span
-            className={`min-w-0 flex-1 text-[16px] break-words ${
-              value ? 'font-semibold text-[#171215]' : 'font-medium text-[#999999]'
+            className={`min-w-0 flex-1 break-words ${size} ${
+              value ? `${weight} text-[#171215]` : 'font-medium text-[#999999]'
             }`}
           >
             {value || 'Не указано'}

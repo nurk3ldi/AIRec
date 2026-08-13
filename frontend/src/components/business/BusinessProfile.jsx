@@ -112,6 +112,18 @@ const formatDuration = (minutes) => {
 const MAX_SERVICE_MINUTES = 24 * 60
 
 /**
+ * Durations offered in the picker: 15 minutes to 4 hours, in 15-minute steps.
+ *
+ * A closed list rather than a free number, because the calendar will slot
+ * appointments on a fixed step — a 37-minute service would leave a gap that no
+ * other booking can ever fill. The labels are what `formatDuration` produces,
+ * so `parseDuration` reads them straight back and the two never disagree.
+ */
+const DURATION_OPTIONS = Array.from({ length: 16 }, (_, index) =>
+  formatDuration((index + 1) * 15)
+)
+
+/**
  * Reads the shapes a person actually types: "45", "45 мин", "1 ч 15 мин",
  * "1ч", "1:15". Crucially it also reads back exactly what `formatDuration`
  * writes — a field that rejects the value it just displayed is the fastest way
@@ -223,7 +235,7 @@ function Field({
   if (options) {
     return (
       <div className="group border-r border-b border-[#999999]/15 px-6 py-5">
-        <p className="text-[13px] text-[#999999]">{label}</p>
+        <p className="mb-1.5 text-[13px] text-[#999999]">{label}</p>
         <OptionPicker
           value={value}
           options={options}
@@ -570,13 +582,16 @@ export default function BusinessProfile() {
               className="text-[14px] text-[#171215]"
               onSave={(next) => updateService(service.id, { name: next })}
             />
-            <InlineText
-              value={service.minutes}
-              format={formatDuration}
-              parse={parseDuration}
-              ariaLabel={`Изменить длительность: ${service.name}`}
-              className="text-[14px] text-[#999999]"
-              onSave={(next) => updateService(service.id, { minutes: next })}
+            {/* The picker speaks in the formatted labels; `parseDuration` turns
+                the chosen one back into minutes for storage. */}
+            <OptionPicker
+              value={formatDuration(service.minutes)}
+              options={DURATION_OPTIONS}
+              label="Длительность"
+              valueClassName="text-[14px]"
+              onChange={(next) =>
+                updateService(service.id, { minutes: parseDuration(next) })
+              }
             />
             <InlineText
               value={service.price}
