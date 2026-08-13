@@ -588,7 +588,10 @@ export default function BusinessProfile() {
               value={formatDuration(service.minutes)}
               options={DURATION_OPTIONS}
               label="Длительность"
-              valueClassName="text-[14px]"
+              size="text-[14px]"
+              // Lighter than the name and the price: the duration is the least
+              // load-bearing number in the row.
+              weight="font-normal"
               onChange={(next) =>
                 updateService(service.id, { minutes: parseDuration(next) })
               }
