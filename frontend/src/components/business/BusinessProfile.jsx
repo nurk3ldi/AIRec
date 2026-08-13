@@ -296,9 +296,17 @@ export default function BusinessProfile() {
   const [pickedFile, setPickedFile] = useState(null)
   const [logoError, setLogoError] = useState('')
   const [logoBusy, setLogoBusy] = useState(false)
-  // Local for now — the price list has no API behind it yet, so the switch
-  // moves but nothing is persisted.
+  // Two copies: `savedServices` is what's committed, `services` is what's on
+  // screen. The price list is edited as a whole — rename a service, move a
+  // price, hide another — and only then saved, so a half-finished edit never
+  // becomes the price the assistant quotes.
+  const [savedServices, setSavedServices] = useState(SERVICES)
   const [services, setServices] = useState(SERVICES)
+
+  // Structural compare: covers edits, additions, removals and reordering alike
+  // without listing the fields, which would go stale the moment one is added.
+  const servicesDirty =
+    JSON.stringify(services) !== JSON.stringify(savedServices)
 
   // Deleting takes two clicks: the row has no undo, and a trash icon that fires
   // on the first press is how a price list loses a service by accident.
@@ -327,6 +335,18 @@ export default function BusinessProfile() {
 
   const removeService = (id) => {
     setServices((current) => current.filter((service) => service.id !== id))
+    setConfirmDeleteId(null)
+  }
+
+  const cancelServiceEdits = () => {
+    setServices(savedServices)
+    setConfirmDeleteId(null)
+  }
+
+  // Nothing leaves the browser yet — there is no Service API. When there is,
+  // this is the one place that has to start calling it.
+  const saveServices = () => {
+    setSavedServices(services)
     setConfirmDeleteId(null)
   }
 
@@ -651,6 +671,27 @@ export default function BusinessProfile() {
             )}
           </div>
         ))}
+
+        {/* Only while there is something to save: a footer that is always there
+            reads as "you have unsaved work" even when you don't. */}
+        {servicesDirty && (
+          <div className="mt-5 flex items-center justify-end gap-2 border-t border-[#999999]/15 pt-4">
+            <button
+              type="button"
+              onClick={cancelServiceEdits}
+              className="rounded-xl border border-[#999999]/30 px-4 py-2 text-[13px] font-medium text-[#171215] outline-none transition-colors hover:bg-[#171215]/5 focus-visible:bg-[#171215]/5"
+            >
+              Отменить
+            </button>
+            <button
+              type="button"
+              onClick={saveServices}
+              className="rounded-xl bg-[#3248F2] px-4 py-2 text-[13px] font-medium text-white outline-none transition-colors hover:bg-[#2839c9] focus-visible:bg-[#2839c9]"
+            >
+              Сохранить
+            </button>
+          </div>
+        )}
       </Card>
 
       <Card title="График работы" action={<CardAction>Изменить</CardAction>}>
