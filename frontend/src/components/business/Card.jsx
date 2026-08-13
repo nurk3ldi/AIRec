@@ -20,12 +20,13 @@ export default function Card({ title, action, children, className = '' }) {
 }
 
 /** Small accent-text control for a card header — "Изменить", "Добавить…". */
-export function CardAction({ onClick, children }) {
+export function CardAction({ onClick, children, disabled }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="shrink-0 text-[13px] font-medium text-[#3248F2] outline-none transition-colors hover:underline"
+      disabled={disabled}
+      className="shrink-0 text-[13px] font-medium text-[#3248F2] outline-none transition-colors hover:underline disabled:text-[#999999] disabled:no-underline"
     >
       {children}
     </button>

@@ -5,6 +5,8 @@ import {
   Add01Icon,
   Camera01Icon,
   Cancel01Icon,
+  MinusSignIcon,
+  Tick02Icon,
 } from '@hugeicons/core-free-icons'
 import AvatarCropper from '../AvatarCropper'
 import {
@@ -22,6 +24,7 @@ import {
   timeZoneLabel,
 } from '../../lib/businessOptions'
 import Card, { CardAction } from './Card'
+import InlineText from './InlineText'
 import OptionPicker from './OptionPicker'
 import WorkingHoursCalendar from './WorkingHoursCalendar'
 
@@ -58,12 +61,20 @@ const FIELDS = [
   { key: 'timezone', label: 'Часовой пояс', format: timeZoneLabel },
 ]
 
+// Ids rather than names as the key: the name is editable, and a list keyed by
+// something the user can change loses its place the moment they change it.
 const SERVICES = [
-  { name: 'Мужская стрижка', minutes: 45, price: 6000, active: true },
-  { name: 'Стрижка бороды', minutes: 30, price: 4000, active: true },
-  { name: 'Стрижка + борода', minutes: 75, price: 9000, active: true },
-  { name: 'Детская стрижка', minutes: 30, price: 4500, active: true },
-  { name: 'Бритьё опасной бритвой', minutes: 40, price: 5500, active: false },
+  { id: 's1', name: 'Мужская стрижка', minutes: 45, price: 6000, active: true },
+  { id: 's2', name: 'Стрижка бороды', minutes: 30, price: 4000, active: true },
+  { id: 's3', name: 'Стрижка + борода', minutes: 75, price: 9000, active: true },
+  { id: 's4', name: 'Детская стрижка', minutes: 30, price: 4500, active: true },
+  {
+    id: 's5',
+    name: 'Бритьё опасной бритвой',
+    minutes: 40,
+    price: 5500,
+    active: false,
+  },
 ]
 
 const SCHEDULE = [
@@ -78,11 +89,56 @@ const SCHEDULE = [
 
 const formatPrice = (value) => `${value.toLocaleString('ru-RU')} ₸`
 
+/**
+ * Everything that isn't a digit is dropped, so "6 000 ₸" pasted back in, or a
+ * price typed with spaces, both come out as 6000 instead of being rejected for
+ * looking like the value we just showed them.
+ */
+const parsePrice = (raw) => {
+  const digits = raw.replace(/\D/g, '')
+  if (!digits) throw new Error('Укажите цену.')
+  const price = Number(digits)
+  if (price > 100_000_000) throw new Error('Слишком большая цена.')
+  return price
+}
+
 const formatDuration = (minutes) => {
   const hours = Math.floor(minutes / 60)
   const rest = minutes % 60
   if (!hours) return `${rest} мин`
   return rest ? `${hours} ч ${rest} мин` : `${hours} ч`
+}
+
+const MAX_SERVICE_MINUTES = 24 * 60
+
+/**
+ * Reads the shapes a person actually types: "45", "45 мин", "1 ч 15 мин",
+ * "1ч", "1:15". Crucially it also reads back exactly what `formatDuration`
+ * writes — a field that rejects the value it just displayed is the fastest way
+ * to make an edit feel broken.
+ */
+const parseDuration = (raw) => {
+  const text = raw.toLowerCase().trim()
+
+  const clock = text.match(/^(\d+)\s*:\s*(\d+)$/)
+  const hours = text.match(/(\d+)\s*(?:ч|h)/)
+  // "мин" before the bare "м", or the alternation would match the м in мин and
+  // leave "ин" behind.
+  const mins = text.match(/(\d+)\s*(?:мин|мин\.|m|м)/)
+
+  let minutes
+  if (clock) {
+    minutes = Number(clock[1]) * 60 + Number(clock[2])
+  } else if (hours || mins) {
+    minutes = (hours ? Number(hours[1]) * 60 : 0) + (mins ? Number(mins[1]) : 0)
+  } else {
+    const digits = text.replace(/\D/g, '')
+    minutes = digits ? Number(digits) : NaN
+  }
+
+  if (!minutes || Number.isNaN(minutes)) throw new Error('Укажите длительность.')
+  if (minutes > MAX_SERVICE_MINUTES) throw new Error('Не больше 24 часов.')
+  return minutes
 }
 
 const initialsOf = (name) =>
@@ -105,8 +161,9 @@ function ColumnLabel({ children, className = '' }) {
 }
 
 // One template, used by the header row and every service row, so the columns
-// line up without either side knowing the widths.
-const SERVICE_COLUMNS = 'grid grid-cols-[1fr_140px_130px_150px] gap-x-8'
+// line up without either side knowing the widths. The last, narrow column is
+// the row's delete control.
+const SERVICE_COLUMNS = 'grid grid-cols-[1fr_140px_130px_150px_44px] gap-x-8'
 
 /**
  * Status as a switch rather than a label: hiding a service from the assistant
@@ -158,13 +215,8 @@ function Field({
   format,
   onSave,
 }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState('')
   const [error, setError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
-  // Escape has to tell the blur that follows it not to save. Declared with the
-  // other hooks, above the early return the pickers take.
-  const skipSave = useRef(false)
 
   // A closed set of values needs no text box and no Save button: the pick is
   // the confirmation, so it commits straight away.
@@ -200,110 +252,19 @@ function Field({
     )
   }
 
-  const startEditing = () => {
-    setDraft(value ?? '')
-    setError('')
-    setIsEditing(true)
-  }
-
-  const commit = async () => {
-    if (skipSave.current) {
-      skipSave.current = false
-      return
-    }
-
-    // Empty clears the field rather than storing "" — `null` is what the
-    // backend reads as "this is not set".
-    const next = draft.trim() || null
-    if (next === (value ?? null)) {
-      setIsEditing(false)
-      return
-    }
-
-    setIsSaving(true)
-    setError('')
-    try {
-      await onSave(fieldKey, next)
-      setIsEditing(false)
-    } catch (err) {
-      // Stays open on failure: closing would throw away what was typed.
-      setError(err.fields?.[0]?.message || err.message)
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  if (isEditing) {
-    return (
-      <div className="border-r border-b border-[#999999]/15 px-6 py-5">
-        <label
-          htmlFor={`business-${fieldKey}`}
-          className="text-[13px] text-[#999999]"
-        >
-          {label}
-        </label>
-
-        <input
-          id={`business-${fieldKey}`}
-          type="text"
-          value={draft}
-          disabled={isSaving}
-          onChange={(event) => {
-            setDraft(event.target.value)
-            setError('')
-          }}
-          // Leaving the field is the save. Enter just leaves it early, which
-          // is why it only has to blur.
-          onBlur={commit}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault()
-              event.currentTarget.blur()
-            }
-            if (event.key === 'Escape') {
-              // Set before the input goes away, so the blur that follows knows
-              // this was a cancel and not a save.
-              skipSave.current = true
-              setIsEditing(false)
-            }
-          }}
-          autoFocus
-          className={`mt-1.5 -mx-2 w-[calc(100%+1rem)] rounded-lg border bg-white px-2 py-1 text-[16px] font-semibold text-[#171215] outline-none transition-colors focus:border-[#3248F2] disabled:opacity-60 ${
-            error ? 'border-[#DC2626]' : 'border-[#999999]/35'
-          }`}
-        />
-
-        {error && (
-          <p role="alert" className="mt-1.5 text-[13px] text-[#DC2626]">
-            {error}
-          </p>
-        )}
-      </div>
-    )
-  }
-
   return (
     <div className="border-r border-b border-[#999999]/15 px-6 py-5">
       <p className="text-[13px] text-[#999999]">{label}</p>
 
       {editable ? (
-        // The value itself is the control. No pencil: an icon that appears on
-        // hover is a second target for the same job, and the tinted hover on
-        // the text already says it can be clicked.
-        // Wraps rather than truncates: this is the page where you come to read
-        // what the assistant knows, so a value that doesn't fit on one line
-        // should take two. The grid stretches every cell in a row to match, so
-        // the dividers stay aligned.
-        <button
-          type="button"
-          onClick={startEditing}
-          aria-label={`Изменить: ${label}`}
-          className={`mt-1.5 -mx-2 block w-[calc(100%+1rem)] rounded-lg px-2 py-1 text-left text-[16px] break-words hyphens-auto outline-none transition-colors hover:bg-[#F6F8FA] focus-visible:bg-[#F6F8FA] ${
-            value ? 'font-semibold text-[#171215]' : 'font-medium text-[#999999]'
-          }`}
-        >
-          {value || 'Не указано'}
-        </button>
+        <span className="mt-1.5 block">
+          <InlineText
+            value={value}
+            ariaLabel={`Изменить: ${label}`}
+            className="text-[16px] font-semibold text-[#171215]"
+            onSave={(next) => onSave(fieldKey, next)}
+          />
+        </span>
       ) : (
         <p
           className={`mt-1.5 text-[16px] break-words ${
@@ -327,12 +288,35 @@ export default function BusinessProfile() {
   // moves but nothing is persisted.
   const [services, setServices] = useState(SERVICES)
 
-  const toggleService = (name) =>
+  // Deleting takes two clicks: the row has no undo, and a trash icon that fires
+  // on the first press is how a price list loses a service by accident.
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+
+  const updateService = (id, changes) =>
     setServices((current) =>
       current.map((service) =>
-        service.name === name ? { ...service, active: !service.active } : service
+        service.id === id ? { ...service, ...changes } : service
       )
     )
+
+  const addService = () =>
+    setServices((current) => [
+      ...current,
+      {
+        // Time-based rather than length-based: deleting a row must not let the
+        // next id collide with one that's still on screen.
+        id: `s${Date.now()}`,
+        name: 'Новая услуга',
+        minutes: 30,
+        price: 0,
+        active: true,
+      },
+    ])
+
+  const removeService = (id) => {
+    setServices((current) => current.filter((service) => service.id !== id))
+    setConfirmDeleteId(null)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -547,7 +531,7 @@ export default function BusinessProfile() {
       <Card
         title="Услуги"
         action={
-          <CardAction>
+          <CardAction onClick={addService}>
             <span className="inline-flex items-center gap-1.5">
               <HugeiconsIcon
                 icon={Add01Icon}
@@ -569,25 +553,84 @@ export default function BusinessProfile() {
           <ColumnLabel>Длительность</ColumnLabel>
           <ColumnLabel>Цена</ColumnLabel>
           <ColumnLabel>Статус</ColumnLabel>
+          <span />
         </div>
 
         {services.map((service) => (
           <div
-            key={service.name}
-            className={`${SERVICE_COLUMNS} items-center border-t border-[#999999]/15 py-3.5`}
+            key={service.id}
+            className={`${SERVICE_COLUMNS} group items-center border-t border-[#999999]/15 py-3.5`}
           >
-            <p className="text-[14px] break-words text-[#171215]">{service.name}</p>
-            <p className="text-[14px] text-[#999999]">
-              {formatDuration(service.minutes)}
-            </p>
-            <p className="text-[14px] font-semibold text-[#171215]">
-              {formatPrice(service.price)}
-            </p>
+            <InlineText
+              value={service.name}
+              // A service without a name is not a service, so an empty box
+              // holds the edit open instead of clearing the row.
+              required
+              ariaLabel={`Изменить название: ${service.name}`}
+              className="text-[14px] text-[#171215]"
+              onSave={(next) => updateService(service.id, { name: next })}
+            />
+            <InlineText
+              value={service.minutes}
+              format={formatDuration}
+              parse={parseDuration}
+              ariaLabel={`Изменить длительность: ${service.name}`}
+              className="text-[14px] text-[#999999]"
+              onSave={(next) => updateService(service.id, { minutes: next })}
+            />
+            <InlineText
+              value={service.price}
+              format={formatPrice}
+              parse={parsePrice}
+              inputMode="numeric"
+              ariaLabel={`Изменить цену: ${service.name}`}
+              className="text-[14px] font-semibold text-[#171215]"
+              onSave={(next) => updateService(service.id, { price: next })}
+            />
             <ServiceStatusToggle
               active={service.active}
               name={service.name}
-              onToggle={() => toggleService(service.name)}
+              onToggle={() => updateService(service.id, { active: !service.active })}
             />
+
+            {confirmDeleteId === service.id ? (
+              // The minus becomes a red tick — same size, so the row doesn't
+              // shift, and the tick already means "yes" everywhere else on this
+              // page. The label is what carries the full meaning to a reader.
+              <button
+                type="button"
+                autoFocus
+                onClick={() => removeService(service.id)}
+                aria-label={`Подтвердить удаление: ${service.name}`}
+                // Leaving the button is a cancel, so the confirmation can't be
+                // left armed on a row you've walked away from.
+                onBlur={() => setConfirmDeleteId(null)}
+                className="grid h-8 w-8 place-items-center rounded-lg bg-[#DC2626]/8 text-[#DC2626] outline-none transition-colors hover:bg-[#DC2626]/15"
+              >
+                <HugeiconsIcon
+                  icon={Tick02Icon}
+                  size={16}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.6}
+                />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteId(service.id)}
+                aria-label={`Удалить услугу: ${service.name}`}
+                className="grid h-8 w-8 place-items-center rounded-lg text-[#999999] opacity-0 transition-all hover:bg-[#DC2626]/8 hover:text-[#DC2626] focus-visible:opacity-100 group-hover:opacity-100"
+              >
+                <HugeiconsIcon
+                  icon={MinusSignIcon}
+                  size={16}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.4}
+                />
+              </button>
+            )}
           </div>
         ))}
       </Card>
