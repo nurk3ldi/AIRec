@@ -197,6 +197,28 @@ export function deleteAvatar(accessToken) {
   return request('/auth/me/avatar', { method: 'DELETE', accessToken })
 }
 
+/**
+ * The account's business. Created empty on the server the first time it's
+ * asked for, so this never 404s and callers need no "not set up yet" branch.
+ */
+export function getBusiness(accessToken) {
+  return request('/business', { method: 'GET', accessToken })
+}
+
+export function updateBusiness(accessToken, changes) {
+  return request('/business', { method: 'PATCH', body: changes, accessToken })
+}
+
+export function uploadBusinessLogo(accessToken, blob) {
+  const formData = new FormData()
+  formData.append('file', blob, 'logo.png')
+  return request('/business/logo', { method: 'POST', formData, accessToken })
+}
+
+export function deleteBusinessLogo(accessToken) {
+  return request('/business/logo', { method: 'DELETE', accessToken })
+}
+
 export function forgotPassword(email) {
   return request('/auth/forgot-password', {
     method: 'POST',

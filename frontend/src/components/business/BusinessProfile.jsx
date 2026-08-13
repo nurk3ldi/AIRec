@@ -1,30 +1,37 @@
+import { useEffect, useRef, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Add01Icon, PencilEdit02Icon } from '@hugeicons/core-free-icons'
+import {
+  Add01Icon,
+  Camera01Icon,
+  Cancel01Icon,
+  PencilEdit02Icon,
+} from '@hugeicons/core-free-icons'
+import AvatarCropper from '../AvatarCropper'
+import {
+  deleteBusinessLogo,
+  getBusiness,
+  mediaUrl,
+  uploadBusinessLogo,
+} from '../../lib/api'
+import { getAccessToken } from '../../lib/auth'
 import Card, { CardAction } from './Card'
 import WorkingHoursCalendar from './WorkingHoursCalendar'
 
-// Placeholder content for the layout pass — replaced by the API once the
-// Business model exists. Kept as numbers rather than pre-formatted strings so
-// the counts above can be derived instead of typed in by hand and drifting.
-const IDENTITY = {
-  name: 'Barber House',
-  meta: 'Барбершоп · Алматы · UTC+5',
-}
+const MAX_LOGO_BYTES = 5 * 1024 * 1024
 
 // Nine, not seven: three columns divide evenly, so the last row isn't a stub
-// with two empty cells and half-drawn dividers.
+// with two empty cells and half-drawn dividers. Order is reading order, not
+// model order — identity first, then location, then how the assistant talks.
 const FIELDS = [
-  { label: 'Название', value: 'Barber House' },
-  { label: 'Сфера', value: 'Барбершоп' },
-  { label: 'Телефон', value: '+7 707 123 45 67' },
-  { label: 'Город', value: 'Алматы' },
-  { label: 'Адрес', value: 'ул. Достык, 132' },
-  // Left empty on purpose: shows the unfilled state and gives the completion
-  // bar above something real to report.
-  { label: 'Ориентир', value: null },
-  { label: 'Способы оплаты', value: 'Kaspi, наличные, карта' },
-  { label: 'Языки обслуживания', value: 'Қазақша, Русский' },
-  { label: 'Часовой пояс', value: 'UTC+5, Алматы' },
+  { key: 'name', label: 'Название' },
+  { key: 'industry', label: 'Сфера' },
+  { key: 'phone', label: 'Телефон' },
+  { key: 'city', label: 'Город' },
+  { key: 'address', label: 'Адрес' },
+  { key: 'landmark', label: 'Ориентир' },
+  { key: 'payment_methods', label: 'Способы оплаты' },
+  { key: 'languages', label: 'Языки обслуживания' },
+  { key: 'timezone', label: 'Часовой пояс' },
 ]
 
 const SERVICES = [
@@ -127,9 +134,84 @@ function Field({ label, value }) {
 }
 
 export default function BusinessProfile() {
-  const missing = FIELDS.filter((field) => !field.value)
-  const percent = Math.round(((FIELDS.length - missing.length) / FIELDS.length) * 100)
+  const fileInputRef = useRef(null)
+  const [business, setBusiness] = useState(null)
+  const [pickedFile, setPickedFile] = useState(null)
+  const [logoError, setLogoError] = useState('')
+  const [logoBusy, setLogoBusy] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    getBusiness(getAccessToken())
+      .then((data) => {
+        if (!cancelled) setBusiness(data)
+      })
+      .catch((err) => {
+        if (!cancelled) setLogoError(err.message)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const handleFilePicked = (event) => {
+    const file = event.target.files?.[0]
+    // Reset immediately so re-picking the same file still fires onChange.
+    event.target.value = ''
+    if (!file) return
+
+    setLogoError('')
+    if (!file.type.startsWith('image/')) {
+      setLogoError('Выберите файл изображения.')
+      return
+    }
+    if (file.size > MAX_LOGO_BYTES) {
+      setLogoError('Изображение должно быть меньше 5 МБ.')
+      return
+    }
+    setPickedFile(file)
+  }
+
+  const handleCropSave = async (blob) => {
+    setLogoBusy(true)
+    try {
+      setBusiness(await uploadBusinessLogo(getAccessToken(), blob))
+      setPickedFile(null)
+    } catch (err) {
+      setLogoError(err.message)
+      // Rethrown so the cropper stays open on failure rather than closing over
+      // an upload that never happened.
+      throw err
+    } finally {
+      setLogoBusy(false)
+    }
+  }
+
+  const handleRemoveLogo = async () => {
+    setLogoBusy(true)
+    setLogoError('')
+    try {
+      setBusiness(await deleteBusinessLogo(getAccessToken()))
+    } catch (err) {
+      setLogoError(err.message)
+    } finally {
+      setLogoBusy(false)
+    }
+  }
+
+  const fields = FIELDS.map((field) => ({
+    ...field,
+    value: business?.[field.key] ?? null,
+  }))
+  const missing = fields.filter((field) => !field.value)
+  const percent = Math.round(((fields.length - missing.length) / fields.length) * 100)
   const activeCount = SERVICES.filter((service) => service.active).length
+  const logoUrl = mediaUrl(business?.logo_url)
+  const displayName = business?.name || 'Без названия'
+  const meta =
+    [business?.industry, business?.city, business?.timezone]
+      .filter(Boolean)
+      .join(' · ') || 'Заполните профиль, чтобы ассистент знал, что отвечать'
 
   return (
     <div className="flex flex-col gap-6">
@@ -138,17 +220,71 @@ export default function BusinessProfile() {
           of it the assistant actually knows. */}
       <Card className="!p-0">
         <div className="flex flex-wrap items-center gap-4 px-6 py-5">
-          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-[#3248F2] font-display text-[18px] font-semibold text-white">
-            {initialsOf(IDENTITY.name)}
-          </span>
+          {/* The whole square is the upload target — at 56px a corner badge
+              would be a 20px hit area, well under the 44px minimum. */}
+          <div className="group relative shrink-0">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={logoBusy}
+              aria-label={logoUrl ? 'Заменить логотип' : 'Загрузить логотип'}
+              className="grid h-14 w-14 place-items-center overflow-hidden rounded-2xl bg-[#3248F2] font-display text-[18px] font-semibold text-white outline-none disabled:opacity-70"
+            >
+              {logoUrl ? (
+                <img src={logoUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                initialsOf(displayName)
+              )}
+
+              <span className="absolute inset-0 grid place-items-center rounded-2xl bg-[#171215]/55 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                <HugeiconsIcon
+                  icon={Camera01Icon}
+                  size={18}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.9}
+                />
+              </span>
+            </button>
+
+            {logoUrl && (
+              <button
+                type="button"
+                onClick={handleRemoveLogo}
+                disabled={logoBusy}
+                aria-label="Удалить логотип"
+                className="absolute -top-1.5 -right-1.5 grid h-6 w-6 place-items-center rounded-full border border-[#999999]/25 bg-white text-[#171215] opacity-0 shadow-[0_2px_8px_rgba(23,18,21,0.16)] transition-opacity hover:text-[#DC2626] focus-visible:opacity-100 group-hover:opacity-100"
+              >
+                <HugeiconsIcon
+                  icon={Cancel01Icon}
+                  size={13}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.4}
+                />
+              </button>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFilePicked}
+              className="hidden"
+            />
+          </div>
 
           <div className="min-w-0 flex-1">
             <p className="truncate font-display text-[20px] font-semibold tracking-[-0.02em] text-[#171215]">
-              {IDENTITY.name}
+              {displayName}
             </p>
-            <p className="mt-0.5 truncate text-[14px] text-[#999999]">
-              {IDENTITY.meta}
-            </p>
+            {logoError ? (
+              <p role="alert" className="mt-0.5 truncate text-[14px] text-[#DC2626]">
+                {logoError}
+              </p>
+            ) : (
+              <p className="mt-0.5 truncate text-[14px] text-[#999999]">{meta}</p>
+            )}
           </div>
 
           <span className="inline-flex shrink-0 items-center gap-2 text-[13px] text-[#171215]">
@@ -196,8 +332,8 @@ export default function BusinessProfile() {
             divider pattern comes out right at any column count. */}
         <div className="overflow-hidden border-t border-[#999999]/15">
           <div className="-mr-px -mb-px grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {FIELDS.map((field) => (
-              <Field key={field.label} label={field.label} value={field.value} />
+            {fields.map((field) => (
+              <Field key={field.key} label={field.label} value={field.value} />
             ))}
           </div>
         </div>
@@ -253,6 +389,18 @@ export default function BusinessProfile() {
       <Card title="График работы" action={<CardAction>Изменить</CardAction>}>
         <WorkingHoursCalendar schedule={SCHEDULE} />
       </Card>
+
+      {pickedFile && (
+        <AvatarCropper
+          file={pickedFile}
+          // Square mask: the logo is shown in a rounded square, so the crop the
+          // user frames should be the crop they get.
+          shape="square"
+          title="Настройте логотип"
+          onCancel={() => setPickedFile(null)}
+          onSave={handleCropSave}
+        />
+      )}
     </div>
   )
 }

@@ -16,7 +16,15 @@ const MAX_ZOOM = 4
  * drag and zoom. Saving maps the viewport rect back into source pixels and
  * redraws it into a fixed-size canvas.
  */
-export default function AvatarCropper({ file, onCancel, onSave }) {
+export default function AvatarCropper({
+  file,
+  onCancel,
+  onSave,
+  // The output is square either way — `shape` only changes the mask, so the
+  // crop you frame matches the corner radius the picture will actually get.
+  shape = 'circle',
+  title = 'Настройте фото',
+}) {
   const [image, setImage] = useState(null)
   const [zoom, setZoom] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
@@ -193,7 +201,7 @@ export default function AvatarCropper({ file, onCancel, onSave }) {
       <div className="w-full max-w-[360px] rounded-2xl bg-white p-5 shadow-[0_24px_48px_-12px_rgba(23,18,21,0.3)]">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-[16px] font-semibold text-[#171215]">
-            Настройте фото
+            {title}
           </h2>
           <button
             type="button"
@@ -233,11 +241,13 @@ export default function AvatarCropper({ file, onCancel, onSave }) {
               }}
             />
           )}
-          {/* Circular mask: a huge box-shadow dims everything outside the
-              circle without needing a second overlay element. */}
+          {/* The mask: a huge box-shadow dims everything outside the crop
+              without needing a second overlay element. */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 rounded-full border-2 border-white/90"
+            className={`pointer-events-none absolute inset-0 border-2 border-white/90 ${
+              shape === 'square' ? 'rounded-2xl' : 'rounded-full'
+            }`}
             style={{ boxShadow: '0 0 0 9999px rgba(23, 18, 21, 0.45)' }}
           />
         </div>

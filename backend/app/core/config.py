@@ -74,13 +74,16 @@ class Settings(BaseSettings):
     email_change_code_ttl_minutes: int = 10
     email_change_max_attempts: int = 5
 
-    # --- Avatars ---
+    # --- Uploaded images ---
     # Local disk storage; gitignored. Swap for object storage later by changing
-    # only `app/core/avatar.py` and this prefix.
+    # only `app/core/images.py` and these prefixes. Avatars and logos are kept
+    # apart so a cleanup pass over one can never touch the other.
     avatar_dir: Path = Path("uploads/avatars")
     avatar_url_prefix: str = "/media/avatars"
-    avatar_max_bytes: int = 5 * 1024 * 1024
-    avatar_size_px: int = 512
+    logo_dir: Path = Path("uploads/logos")
+    logo_url_prefix: str = "/media/logos"
+    image_max_bytes: int = 5 * 1024 * 1024
+    image_size_px: int = 512
 
     # --- SMTP (optional) ---
     # Left unset in local dev on purpose: with no host configured, reset codes

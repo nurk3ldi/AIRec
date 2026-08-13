@@ -89,7 +89,17 @@ All routes are under `/api/v1`. Interactive docs at `/docs`.
 | `DELETE` | `/auth/me/avatar` | Remove the current avatar |
 | `GET` | `/health` | Liveness probe |
 
-Uploaded avatars are served as static files from `/media/avatars/<name>.png`.
+### Business
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/business` | The caller's business, created empty on first access |
+| `PATCH` | `/business` | Partial update of the business profile |
+| `POST` | `/business/logo` | Upload a logo (`multipart/form-data`, field `file`) |
+| `DELETE` | `/business/logo` | Remove the current logo |
+
+Uploaded images are served as static files from `/media/avatars/<name>.png` and
+`/media/logos/<name>.png`.
 
 Every failure comes back in one shape, so the frontend only needs one parser:
 

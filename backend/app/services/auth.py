@@ -7,7 +7,6 @@ from datetime import UTC, datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.avatar import delete_avatar, save_avatar
 from app.core.config import settings
 from app.core.email import (
     send_email_change_email,
@@ -30,6 +29,7 @@ from app.core.errors import (
     SessionNotFound,
     UsernameAlreadyTaken,
 )
+from app.core.images import AVATAR_STORE, delete_image, save_image
 from app.core.security import (
     create_access_token,
     email_change_code_expiry,
@@ -219,7 +219,7 @@ class AuthService:
 
         # After the rows are gone, so a failed commit never orphans a file.
         for filename in filenames:
-            await delete_avatar(filename)
+            await delete_image(AVATAR_STORE, filename)
         return len(users)
 
     async def refresh(self, raw_token: str) -> tuple[User, TokenPair]:
@@ -434,20 +434,20 @@ class AuthService:
         return user
 
     async def set_avatar(self, user: User, raw: bytes) -> User:
-        filename = await save_avatar(raw)
+        filename = await save_image(AVATAR_STORE, raw)
         previous = user.avatar_filename
         user.avatar_filename = filename
         await self._session.commit()
         # Only after the row commits, so a failed write never orphans the
         # user's existing avatar.
-        await delete_avatar(previous)
+        await delete_image(AVATAR_STORE, previous)
         return user
 
     async def clear_avatar(self, user: User) -> User:
         previous = user.avatar_filename
         user.avatar_filename = None
         await self._session.commit()
-        await delete_avatar(previous)
+        await delete_image(AVATAR_STORE, previous)
         return user
 
     async def logout(self, raw_token: str) -> None:

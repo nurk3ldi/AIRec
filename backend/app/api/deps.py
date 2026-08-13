@@ -11,11 +11,13 @@ from app.core.errors import InactiveAccount, NotAuthenticated
 from app.core.security import AccessTokenClaims, decode_access_token
 from app.db.session import get_session
 from app.models.user import User
+from app.repositories.business import BusinessRepository
 from app.repositories.email_change import EmailChangeRepository
 from app.repositories.password_reset import PasswordResetRepository
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.repositories.user import UserRepository
 from app.services.auth import AuthService, ClientInfo
+from app.services.business import BusinessService
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -43,6 +45,13 @@ def get_auth_service(session: SessionDep) -> AuthService:
 
 
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
+
+
+def get_business_service(session: SessionDep) -> BusinessService:
+    return BusinessService(session=session, businesses=BusinessRepository(session))
+
+
+BusinessServiceDep = Annotated[BusinessService, Depends(get_business_service)]
 
 
 def get_token_claims(credentials: CredentialsDep) -> AccessTokenClaims:

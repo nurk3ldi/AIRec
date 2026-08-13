@@ -181,12 +181,12 @@ async def health() -> dict[str, str]:
 
 app.include_router(api_router, prefix=settings.api_v1_prefix)
 
-# Uploaded avatars are served straight off disk. Created at import time because
-# StaticFiles refuses to mount a directory that doesn't exist yet.
-_avatar_dir = Path(settings.avatar_dir)
-_avatar_dir.mkdir(parents=True, exist_ok=True)
-app.mount(
-    settings.avatar_url_prefix,
-    StaticFiles(directory=_avatar_dir),
-    name="avatars",
-)
+# Uploaded images are served straight off disk. The directories are created at
+# import time because StaticFiles refuses to mount one that doesn't exist yet.
+for _prefix, _directory, _name in (
+    (settings.avatar_url_prefix, settings.avatar_dir, "avatars"),
+    (settings.logo_url_prefix, settings.logo_dir, "logos"),
+):
+    _path = Path(_directory)
+    _path.mkdir(parents=True, exist_ok=True)
+    app.mount(_prefix, StaticFiles(directory=_path), name=_name)

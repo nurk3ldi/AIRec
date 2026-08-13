@@ -101,9 +101,9 @@ class User(Base):
         Computed rather than stored so the serving prefix can change without
         a data migration. `UserPublic` picks this up via `from_attributes`.
         """
-        from app.core.avatar import avatar_url as build_avatar_url
+        from app.core.images import AVATAR_STORE, image_url
 
-        return build_avatar_url(self.avatar_filename)
+        return image_url(AVATAR_STORE, self.avatar_filename)
 
     def __repr__(self) -> str:
         return f"<User {self.username} ({self.email})>"

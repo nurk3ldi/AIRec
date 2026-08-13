@@ -116,9 +116,9 @@ class SessionNotFound(AppError):
     message = "Сеанс не найден или уже завершён."
 
 
-class InvalidAvatar(AppError):
+class InvalidImage(AppError):
     status_code = HTTPStatus.BAD_REQUEST
-    code = "invalid_avatar"
+    code = "invalid_image"
     message = "Файл не является изображением."
 
 
