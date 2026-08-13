@@ -26,7 +26,7 @@ import {
 import Card, { CardAction } from './Card'
 import InlineText from './InlineText'
 import OptionPicker from './OptionPicker'
-import WorkingHoursCalendar from './WorkingHoursCalendar'
+import WorkingHours from './WorkingHours'
 
 const MAX_LOGO_BYTES = 5 * 1024 * 1024
 
@@ -77,14 +77,16 @@ const SERVICES = [
   },
 ]
 
+// Times as "HH:MM" strings rather than hour numbers: half-hour opening and a
+// lunch break are both normal, and neither fits in a whole-hour integer.
 const SCHEDULE = [
-  { day: 'Понедельник', from: 10, to: 21 },
-  { day: 'Вторник', from: 10, to: 21 },
-  { day: 'Среда', from: 10, to: 21 },
-  { day: 'Четверг', from: 10, to: 21 },
-  { day: 'Пятница', from: 10, to: 22 },
-  { day: 'Суббота', from: 11, to: 22 },
-  { day: 'Воскресенье', from: null, to: null },
+  { day: 'Понедельник', from: '10:00', to: '21:00', breakFrom: '13:00', breakTo: '14:00' },
+  { day: 'Вторник', from: '10:00', to: '21:00', breakFrom: null, breakTo: null },
+  { day: 'Среда', from: '10:00', to: '21:00', breakFrom: null, breakTo: null },
+  { day: 'Четверг', from: '10:00', to: '21:00', breakFrom: null, breakTo: null },
+  { day: 'Пятница', from: '10:00', to: '22:00', breakFrom: null, breakTo: null },
+  { day: 'Суббота', from: '11:00', to: '22:00', breakFrom: null, breakTo: null },
+  { day: 'Воскресенье', from: null, to: null, breakFrom: null, breakTo: null },
 ]
 
 const formatPrice = (value) => `${value.toLocaleString('ru-RU')} ₸`
@@ -307,6 +309,12 @@ export default function BusinessProfile() {
   // without listing the fields, which would go stale the moment one is added.
   const servicesDirty =
     JSON.stringify(services) !== JSON.stringify(savedServices)
+
+  // Same draft-then-save shape as the price list, so the two cards on this page
+  // don't behave differently from each other.
+  const [savedSchedule, setSavedSchedule] = useState(SCHEDULE)
+  const [schedule, setSchedule] = useState(SCHEDULE)
+  const scheduleDirty = JSON.stringify(schedule) !== JSON.stringify(savedSchedule)
 
   // Deleting takes two clicks: the row has no undo, and a trash icon that fires
   // on the first press is how a price list loses a service by accident.
@@ -694,8 +702,27 @@ export default function BusinessProfile() {
         )}
       </Card>
 
-      <Card title="График работы" action={<CardAction>Изменить</CardAction>}>
-        <WorkingHoursCalendar schedule={SCHEDULE} />
+      <Card title="График работы">
+        <WorkingHours schedule={schedule} onChange={setSchedule} />
+
+        {scheduleDirty && (
+          <div className="mt-5 flex items-center justify-end gap-2 border-t border-[#999999]/15 pt-4">
+            <button
+              type="button"
+              onClick={() => setSchedule(savedSchedule)}
+              className="rounded-xl border border-[#999999]/30 px-4 py-2 text-[13px] font-medium text-[#171215] outline-none transition-colors hover:bg-[#171215]/5 focus-visible:bg-[#171215]/5"
+            >
+              Отменить
+            </button>
+            <button
+              type="button"
+              onClick={() => setSavedSchedule(schedule)}
+              className="rounded-xl bg-[#3248F2] px-4 py-2 text-[13px] font-medium text-white outline-none transition-colors hover:bg-[#2839c9] focus-visible:bg-[#2839c9]"
+            >
+              Сохранить
+            </button>
+          </div>
+        )}
       </Card>
 
       {pickedFile && (

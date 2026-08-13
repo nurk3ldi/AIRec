@@ -41,6 +41,10 @@ export default function OptionPicker({
   // empty-state classes below, and which one wins is up to CSS order.
   size = 'text-[16px]',
   weight = 'font-semibold',
+  // For short values sitting inline — a time, say. The chevron would eat half
+  // the width of a 46px field, so it goes away and a hover tint takes over as
+  // the thing that says "this is clickable".
+  compact = false,
 }) {
   const [open, setOpen] = useState(false)
   const selected = multiple ? parse(value) : []
@@ -72,7 +76,11 @@ export default function OptionPicker({
         aria-label={label}
         // `items-start` so a value that wraps to several lines keeps the
         // chevron pinned to the first one.
-        className="group flex w-full items-start justify-between gap-2 rounded-lg text-left outline-none disabled:cursor-not-allowed disabled:opacity-60"
+        className={`group flex w-full items-start justify-between gap-2 rounded-lg text-left outline-none disabled:cursor-not-allowed disabled:opacity-60 ${
+          compact
+            ? '-mx-1.5 w-auto px-1.5 py-0.5 transition-colors hover:bg-[#F6F8FA] focus-visible:bg-[#F6F8FA]'
+            : ''
+        }`}
       >
         {/* Several values read as several things, not as one long sentence
             with commas in it — so each gets its own chip and the row wraps. */}
@@ -89,7 +97,7 @@ export default function OptionPicker({
           </span>
         ) : (
           <span
-            className={`min-w-0 flex-1 break-words ${size} ${
+            className={`min-w-0 flex-1 ${compact ? 'whitespace-nowrap' : 'break-words'} ${size} ${
               value ? `${weight} text-[#171215]` : 'font-medium text-[#999999]'
             }`}
           >
@@ -99,15 +107,17 @@ export default function OptionPicker({
 
         {/* Hidden until the row is hovered or focused, so nine permanent
             affordances don't compete for attention. */}
-        <span className="-mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[#999999] opacity-0 transition-all group-hover:opacity-100 group-focus-visible:opacity-100 group-data-[state=open]:opacity-100">
-          <HugeiconsIcon
-            icon={ArrowDown01Icon}
-            size={16}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2.2}
-          />
-        </span>
+        {!compact && (
+          <span className="-mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[#999999] opacity-0 transition-all group-hover:opacity-100 group-focus-visible:opacity-100 group-data-[state=open]:opacity-100">
+            <HugeiconsIcon
+              icon={ArrowDown01Icon}
+              size={16}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2.2}
+            />
+          </span>
+        )}
       </Popover.Trigger>
 
       <Popover.Portal>
