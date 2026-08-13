@@ -11,27 +11,51 @@ import {
   deleteBusinessLogo,
   getBusiness,
   mediaUrl,
+  updateBusiness,
   uploadBusinessLogo,
 } from '../../lib/api'
 import { getAccessToken } from '../../lib/auth'
+import { KAZAKHSTAN_CITIES } from '../../lib/cities'
+import {
+  PAYMENT_METHODS,
+  SERVICE_LANGUAGES,
+  timeZoneLabel,
+} from '../../lib/businessOptions'
 import Card, { CardAction } from './Card'
+import OptionPicker from './OptionPicker'
 import WorkingHoursCalendar from './WorkingHoursCalendar'
 
 const MAX_LOGO_BYTES = 5 * 1024 * 1024
+
+// Parked, not deleted: the completion bar works and reads from the same fields
+// below it. Flip to `true` to bring it back.
+const SHOW_COMPLETION = false
 
 // Nine, not seven: three columns divide evenly, so the last row isn't a stub
 // with two empty cells and half-drawn dividers. Order is reading order, not
 // model order — identity first, then location, then how the assistant talks.
 const FIELDS = [
-  { key: 'name', label: 'Название' },
-  { key: 'industry', label: 'Сфера' },
-  { key: 'phone', label: 'Телефон' },
-  { key: 'city', label: 'Город' },
-  { key: 'address', label: 'Адрес' },
-  { key: 'landmark', label: 'Ориентир' },
-  { key: 'payment_methods', label: 'Способы оплаты' },
-  { key: 'languages', label: 'Языки обслуживания' },
-  { key: 'timezone', label: 'Часовой пояс' },
+  { key: 'name', label: 'Название', editable: true },
+  { key: 'industry', label: 'Сфера', editable: true },
+  { key: 'phone', label: 'Телефон', editable: true },
+  { key: 'city', label: 'Город', options: KAZAKHSTAN_CITIES, searchable: true },
+  { key: 'address', label: 'Адрес', editable: true },
+  { key: 'landmark', label: 'Ориентир', editable: true },
+  {
+    key: 'payment_methods',
+    label: 'Способы оплаты',
+    options: PAYMENT_METHODS,
+    multiple: true,
+  },
+  {
+    key: 'languages',
+    label: 'Языки обслуживания',
+    options: SERVICE_LANGUAGES,
+    multiple: true,
+  },
+  // Read-only: all of Kazakhstan has been UTC+5 since March 2024, so there is
+  // exactly one right answer and nothing to choose between.
+  { key: 'timezone', label: 'Часовой пояс', format: timeZoneLabel },
 ]
 
 const SERVICES = [
@@ -99,36 +123,174 @@ function StatusDot({ active }) {
 }
 
 /**
- * One fact about the business, editable in place.
+ * One fact about the business, edited in place.
  *
  * The pencil is hidden until the cell is hovered — nine permanent icons would
  * be nine competing targets — but it stays a real button, so it also appears on
- * keyboard focus and is reachable by Tab.
+ * keyboard focus and is reachable by Tab. Cells without a backing edit yet show
+ * no pencil at all: a control that does nothing is worse than no control.
+ *
+ * Editing swaps the value for an input inside the same cell rather than opening
+ * a dialog. The change is one short string; a modal would be more ceremony than
+ * the edit deserves, and it would hide the neighbouring values you're often
+ * copying the format from.
  */
-function Field({ label, value }) {
+function Field({
+  fieldKey,
+  label,
+  value,
+  editable,
+  options,
+  multiple,
+  searchable,
+  format,
+  onSave,
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [error, setError] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+
+  // A closed set of values needs no text box and no Save button: the pick is
+  // the confirmation, so it commits straight away.
+  if (options) {
+    return (
+      <div className="group border-r border-b border-[#999999]/15 px-6 py-5">
+        <p className="text-[13px] text-[#999999]">{label}</p>
+        <OptionPicker
+          value={value}
+          options={options}
+          label={label}
+          multiple={multiple}
+          searchable={searchable}
+          disabled={isSaving}
+          onChange={async (next) => {
+            setIsSaving(true)
+            setError('')
+            try {
+              await onSave(fieldKey, next)
+            } catch (err) {
+              setError(err.fields?.[0]?.message || err.message)
+            } finally {
+              setIsSaving(false)
+            }
+          }}
+        />
+        {error && (
+          <p role="alert" className="mt-1.5 text-[13px] text-[#DC2626]">
+            {error}
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  const startEditing = () => {
+    setDraft(value ?? '')
+    setError('')
+    setIsEditing(true)
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    setIsSaving(true)
+    setError('')
+    try {
+      // Empty clears the field rather than storing "" — `null` is what the
+      // backend reads as "this is not set".
+      await onSave(fieldKey, draft.trim() || null)
+      setIsEditing(false)
+    } catch (err) {
+      setError(err.fields?.[0]?.message || err.message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  if (isEditing) {
+    return (
+      <form
+        onSubmit={handleSubmit}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') setIsEditing(false)
+        }}
+        className="border-r border-b border-[#999999]/15 px-6 py-5"
+      >
+        <label
+          htmlFor={`business-${fieldKey}`}
+          className="text-[13px] text-[#999999]"
+        >
+          {label}
+        </label>
+
+        <input
+          id={`business-${fieldKey}`}
+          type="text"
+          value={draft}
+          onChange={(event) => {
+            setDraft(event.target.value)
+            setError('')
+          }}
+          autoFocus
+          className={`mt-1.5 w-full rounded-lg border bg-white px-3 py-1.5 text-[15px] text-[#171215] outline-none transition-colors focus:border-[#3248F2] ${
+            error ? 'border-[#DC2626]' : 'border-[#999999]/35'
+          }`}
+        />
+
+        {error && (
+          <p role="alert" className="mt-1.5 text-[13px] text-[#DC2626]">
+            {error}
+          </p>
+        )}
+
+        <div className="mt-2 flex items-center gap-2">
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="rounded-lg bg-[#3248F2] px-3 py-1.5 text-[13px] font-medium text-white outline-none transition-colors hover:bg-[#2839c9] disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {isSaving ? 'Сохраняем…' : 'Сохранить'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsEditing(false)}
+            className="rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-[#999999] outline-none transition-colors hover:text-[#171215]"
+          >
+            Отменить
+          </button>
+        </div>
+      </form>
+    )
+  }
+
   return (
     <div className="group relative border-r border-b border-[#999999]/15 px-6 py-5">
       <p className="text-[13px] text-[#999999]">{label}</p>
 
       {value ? (
-        <p className="mt-1.5 pr-8 text-[16px] font-semibold text-[#171215]">{value}</p>
+        <p className="mt-1.5 pr-8 text-[16px] font-semibold text-[#171215]">
+          {format ? format(value) : value}
+        </p>
       ) : (
         <p className="mt-1.5 pr-8 text-[16px] font-medium text-[#999999]">Не указано</p>
       )}
 
-      <button
-        type="button"
-        aria-label={`Изменить: ${label}`}
-        className="absolute top-4 right-4 grid h-7 w-7 place-items-center rounded-lg text-[#999999] opacity-0 transition-all hover:bg-[#3248F2]/8 hover:text-[#3248F2] focus-visible:opacity-100 group-hover:opacity-100"
-      >
-        <HugeiconsIcon
-          icon={PencilEdit02Icon}
-          size={15}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-        />
-      </button>
+      {editable && (
+        <button
+          type="button"
+          onClick={startEditing}
+          aria-label={`Изменить: ${label}`}
+          className="absolute top-4 right-4 grid h-7 w-7 place-items-center rounded-lg text-[#999999] opacity-0 transition-all hover:bg-[#3248F2]/8 hover:text-[#3248F2] focus-visible:opacity-100 group-hover:opacity-100"
+        >
+          <HugeiconsIcon
+            icon={PencilEdit02Icon}
+            size={15}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+          />
+        </button>
+      )}
     </div>
   )
 }
@@ -199,6 +361,12 @@ export default function BusinessProfile() {
     }
   }
 
+  // One field per request: the change is already saved by the time the input
+  // closes, so there's no page-level dirty state to reconcile.
+  const handleFieldSave = async (key, value) => {
+    setBusiness(await updateBusiness(getAccessToken(), { [key]: value }))
+  }
+
   const fields = FIELDS.map((field) => ({
     ...field,
     value: business?.[field.key] ?? null,
@@ -208,17 +376,18 @@ export default function BusinessProfile() {
   const activeCount = SERVICES.filter((service) => service.active).length
   const logoUrl = mediaUrl(business?.logo_url)
   const displayName = business?.name || 'Без названия'
+  // No time zone here: it's the same for every business in the country, so it
+  // would be a constant taking up the one line that identifies this one.
   const meta =
-    [business?.industry, business?.city, business?.timezone]
-      .filter(Boolean)
-      .join(' · ') || 'Заполните профиль, чтобы ассистент знал, что отвечать'
+    [business?.industry, business?.city].filter(Boolean).join(' · ') ||
+    'Заполните профиль, чтобы ассистент знал, что отвечать'
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Identity and completion in one card, split by a hairline: they answer
-          two halves of the same question — who this business is, and how much
-          of it the assistant actually knows. */}
-      <Card className="!p-0">
+      {/* One card for the whole profile: the identity strip on top, then the
+          facts, split by a hairline. Two cards would imply two subjects — they
+          are the same one, seen at two zoom levels. */}
+      <Card className="overflow-hidden !p-0">
         <div className="flex flex-wrap items-center gap-4 px-6 py-5">
           {/* The whole square is the upload target — at 56px a corner badge
               would be a 20px hit area, well under the 44px minimum. */}
@@ -293,39 +462,33 @@ export default function BusinessProfile() {
           </span>
         </div>
 
-        <div className="border-t border-[#999999]/15 px-6 py-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-[14px] text-[#171215]">
-              Профиль заполнен на{' '}
-              <span className="font-semibold">{percent}%</span>
-            </p>
-            {missing.length > 0 && <CardAction>Заполнить</CardAction>}
+        {SHOW_COMPLETION && (
+          <div className="border-t border-[#999999]/15 px-6 py-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[14px] text-[#171215]">
+                Профиль заполнен на{' '}
+                <span className="font-semibold">{percent}%</span>
+              </p>
+              {missing.length > 0 && <CardAction>Заполнить</CardAction>}
+            </div>
+
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#3248F2]/10">
+              <div
+                className="h-full rounded-full bg-[#3248F2] transition-[width] duration-300"
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+
+            {missing.length > 0 && (
+              <p className="mt-2.5 text-[13px] text-[#999999]">
+                Ассистент пока не знает:{' '}
+                <span className="text-[#171215]">
+                  {missing.map((field) => field.label.toLowerCase()).join(', ')}
+                </span>
+              </p>
+            )}
           </div>
-
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#3248F2]/10">
-            <div
-              className="h-full rounded-full bg-[#3248F2] transition-[width] duration-300"
-              style={{ width: `${percent}%` }}
-            />
-          </div>
-
-          {missing.length > 0 && (
-            <p className="mt-2.5 text-[13px] text-[#999999]">
-              Ассистент пока не знает:{' '}
-              <span className="text-[#171215]">
-                {missing.map((field) => field.label.toLowerCase()).join(', ')}
-              </span>
-            </p>
-          )}
-        </div>
-      </Card>
-
-      <Card className="overflow-hidden !p-0">
-        <div className="px-6 pt-6 pb-5">
-          <h2 className="text-[15px] font-semibold text-[#171215]">
-            Профиль бизнеса
-          </h2>
-        </div>
+        )}
 
         {/* The cells carry their own borders and the grid is pulled 1px past
             the clipping wrapper, so the outermost lines fall outside and the
@@ -333,7 +496,18 @@ export default function BusinessProfile() {
         <div className="overflow-hidden border-t border-[#999999]/15">
           <div className="-mr-px -mb-px grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {fields.map((field) => (
-              <Field key={field.key} label={field.label} value={field.value} />
+              <Field
+                key={field.key}
+                fieldKey={field.key}
+                label={field.label}
+                value={field.value}
+                editable={field.editable}
+                options={field.options}
+                multiple={field.multiple}
+                searchable={field.searchable}
+                format={field.format}
+                onSave={handleFieldSave}
+              />
             ))}
           </div>
         </div>
