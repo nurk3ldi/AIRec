@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import * as Dialog from '@radix-ui/react-dialog'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Cancel01Icon } from '@hugeicons/core-free-icons'
 import AccountSettings from './profile/AccountSettings'
@@ -10,6 +10,12 @@ import ComingSoon from './ComingSoon'
  * Settings dialog opened from `ProfileMenu`, showing exactly the section the
  * menu picked — switching sections means going back to the menu, so there is
  * no navigation inside.
+ *
+ * Built on Radix's dialog primitive rather than a bare `<div role="dialog">`.
+ * What that buys is the part that was missing when this was hand-rolled: focus
+ * moves into the panel on open, Tab is trapped inside it, and focus returns to
+ * the trigger on close. Escape, the scroll lock and the outside-click dismissal
+ * come with it. The styling is entirely ours — Radix ships behaviour, not looks.
  *
  * Every section shares one fixed panel size, so the window never jumps as you
  * move between them. The account section is the exception: it's a single narrow
@@ -28,69 +34,70 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
   const active = PROFILE_SECTIONS.find((s) => s.id === section) ?? PROFILE_SECTIONS[0]
   const isAccount = active.id === 'account'
 
-  useEffect(() => {
-    const onKeyDown = (event) => {
-      if (event.key !== 'Escape') return
-      // A nested overlay (the avatar cropper) owns Escape while it's open.
-      if (document.querySelector('[data-nested-overlay]')) return
-      onClose()
-    }
-    document.addEventListener('keydown', onKeyDown)
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.removeEventListener('keydown', onKeyDown)
-      document.body.style.overflow = previousOverflow
-    }
-  }, [onClose])
+  // The avatar cropper is a modal *inside* this one. It lives in the dialog's
+  // own subtree, so the focus trap already covers it and a click on its backdrop
+  // never counts as "outside" — but Escape is global, and without this guard one
+  // press would close both.
+  const nestedOverlayOpen = () =>
+    typeof document !== 'undefined' &&
+    document.querySelector('[data-nested-overlay]') !== null
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Настройки профиля"
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-[#171215]/50 p-4"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose()
+    <Dialog.Root
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
       }}
     >
-      <div
-        className={`flex max-h-[calc(100vh-2rem)] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_-12px_rgba(23,18,21,0.35)] ${
-          isAccount ? 'w-[520px]' : 'h-[580px] w-[728px]'
-        }`}
-      >
-        <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-3">
-          <h2 className="font-display text-[19px] font-semibold tracking-[-0.02em] text-[#171215]">
-            {active.dialogLabel ?? active.label}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Закрыть"
-            className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#999999] outline-none transition-colors hover:bg-[#171215]/6 hover:text-[#171215] focus-visible:bg-[#171215]/6 focus-visible:text-[#171215]"
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-[60] grid place-items-center bg-[#171215]/50 p-4">
+          <Dialog.Content
+            // No description element, and none is wanted — telling Radix so
+            // keeps it from warning about a missing one.
+            aria-describedby={undefined}
+            onEscapeKeyDown={(event) => {
+              if (nestedOverlayOpen()) event.preventDefault()
+            }}
+            className={`flex max-h-[calc(100vh-2rem)] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_-12px_rgba(23,18,21,0.35)] outline-none ${
+              isAccount ? 'w-[520px]' : 'h-[580px] w-[728px]'
+            }`}
           >
-            <HugeiconsIcon
-              icon={Cancel01Icon}
-              size={18}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-            />
-          </button>
-        </div>
+            <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-3">
+              <Dialog.Title className="font-display text-[19px] font-semibold tracking-[-0.02em] text-[#171215]">
+                {active.dialogLabel ?? active.label}
+              </Dialog.Title>
 
-        <div className="flex min-h-0 flex-1 flex-col">
-          {isAccount ? (
-            <AccountSettings onUserChange={onUserChange} onClose={onClose} />
-          ) : active.id === 'security' ? (
-            <SessionsSettings user={user} />
-          ) : (
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
-              <ComingSoon>{SECTION_PLACEHOLDERS[active.id]}</ComingSoon>
+              <Dialog.Close asChild>
+                <button
+                  type="button"
+                  aria-label="Закрыть"
+                  className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#999999] outline-none transition-colors hover:bg-[#171215]/6 hover:text-[#171215] focus-visible:bg-[#171215]/6 focus-visible:text-[#171215]"
+                >
+                  <HugeiconsIcon
+                    icon={Cancel01Icon}
+                    size={18}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                  />
+                </button>
+              </Dialog.Close>
             </div>
-          )}
-        </div>
-      </div>
-    </div>
+
+            <div className="flex min-h-0 flex-1 flex-col">
+              {isAccount ? (
+                <AccountSettings onUserChange={onUserChange} onClose={onClose} />
+              ) : active.id === 'security' ? (
+                <SessionsSettings user={user} />
+              ) : (
+                <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+                  <ComingSoon>{SECTION_PLACEHOLDERS[active.id]}</ComingSoon>
+                </div>
+              )}
+            </div>
+          </Dialog.Content>
+        </Dialog.Overlay>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }
