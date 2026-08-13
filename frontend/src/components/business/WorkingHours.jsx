@@ -38,7 +38,7 @@ export default function WorkingHours({ schedule, onChange }) {
           // of chasing them across seven ragged rows.
           <div
             key={item.day}
-            className={`grid grid-cols-[36px_120px_150px_1fr] items-center gap-4 py-2 ${
+            className={`grid grid-cols-[40px_180px_220px_1fr] items-center gap-6 py-2.5 ${
               index > 0 ? 'border-t border-[#999999]/15' : ''
             }`}
           >
@@ -65,13 +65,12 @@ export default function WorkingHours({ schedule, onChange }) {
             </span>
 
             {isOpen ? (
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-3">
                 <TimeField
                   value={item.from}
                   label={`${item.day}: начало`}
                   onChange={(from) => update(item.day, { from })}
                 />
-                <span className="text-[14px] text-[#999999]">—</span>
                 <TimeField
                   value={item.to}
                   label={`${item.day}: конец`}
@@ -82,9 +81,12 @@ export default function WorkingHours({ schedule, onChange }) {
               <span className="text-[14px] text-[#999999]">Выходной</span>
             )}
 
+            {/* Pushed to the right edge: with the times on the left, the row
+                then reads from edge to edge instead of trailing off into empty
+                space on a full-width card. */}
             {isOpen &&
               (hasBreak ? (
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 justify-self-end">
                   <span className="mr-1 text-[13px] text-[#999999]">Перерыв</span>
                   <TimeField
                     value={item.breakFrom}
@@ -118,7 +120,7 @@ export default function WorkingHours({ schedule, onChange }) {
                 <button
                   type="button"
                   onClick={() => update(item.day, DEFAULT_BREAK)}
-                  className="inline-flex w-fit items-center gap-1 rounded-lg px-1.5 py-1 text-[13px] font-medium text-[#3248F2] outline-none transition-colors hover:bg-[#3248F2]/8"
+                  className="inline-flex w-fit items-center gap-1 justify-self-end rounded-lg px-1.5 py-1 text-[13px] font-medium text-[#3248F2] outline-none transition-colors hover:bg-[#3248F2]/8"
                 >
                   <HugeiconsIcon
                     icon={Add01Icon}
