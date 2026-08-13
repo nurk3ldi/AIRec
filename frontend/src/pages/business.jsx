@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import Head from 'next/head'
+import { useRouter } from 'next/router'
 import BusinessProfile from '../components/business/BusinessProfile'
 import Card from '../components/business/Card'
 import ComingSoon from '../components/ComingSoon'
@@ -19,7 +19,19 @@ const TABS = [
 ]
 
 export default function BusinessPage() {
-  const [activeId, setActiveId] = useState(TABS[0].id)
+  const router = useRouter()
+
+  // The tab lives in the URL, not in component state: reloading keeps you where
+  // you were, and «настрой ассистента» is a link someone can actually send.
+  const requested = router.query.tab
+  const activeId = TABS.some((tab) => tab.id === requested) ? requested : TABS[0].id
+
+  const selectTab = (id) => {
+    // Shallow: only the query changes, so there's no data fetching to redo.
+    router.push({ query: id === TABS[0].id ? {} : { tab: id } }, undefined, {
+      shallow: true,
+    })
+  }
 
   return (
     <>
@@ -40,7 +52,7 @@ export default function BusinessPage() {
                   type="button"
                   role="tab"
                   aria-selected={isActive}
-                  onClick={() => setActiveId(tab.id)}
+                  onClick={() => selectTab(tab.id)}
                   // A filled pill rather than an underline: there's no card
                   // border for an underline to sit against on this ground.
                   className={`rounded-lg px-3.5 py-2 text-[14px] font-medium outline-none transition-colors ${
