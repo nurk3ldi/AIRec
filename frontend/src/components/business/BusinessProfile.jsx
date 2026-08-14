@@ -350,34 +350,6 @@ export default function BusinessProfile() {
   const [schedule, setSchedule] = useState([])
   const scheduleDirty = JSON.stringify(schedule) !== JSON.stringify(savedSchedule)
 
-  // Derived, not stored: "24/7" is simply every day being round the clock, and
-  // a second flag saying so could disagree with the days it summarises.
-  const alwaysOpen = schedule.length > 0 && schedule.every((item) => item.is24h)
-  // What the week looked like before 24/7 was switched on, so switching it back
-  // off returns the schedule instead of flattening it to a default.
-  const weekBefore24h = useRef(null)
-
-  const toggleAlwaysOpen = () => {
-    if (alwaysOpen) {
-      setSchedule(
-        weekBefore24h.current ??
-          schedule.map((item) => ({ ...item, is24h: false, from: '10:00', to: '21:00' }))
-      )
-      return
-    }
-    weekBefore24h.current = schedule
-    setSchedule(
-      schedule.map((item) => ({
-        ...item,
-        is24h: true,
-        from: null,
-        to: null,
-        breakFrom: null,
-        breakTo: null,
-      }))
-    )
-  }
-
   const [servicesError, setServicesError] = useState('')
   const [scheduleError, setScheduleError] = useState('')
   const [savingServices, setSavingServices] = useState(false)
@@ -831,27 +803,7 @@ export default function BusinessProfile() {
         )}
       </Card>
 
-      <Card
-        title="График работы"
-        action={
-          // The header pill from the card language, carrying a state rather
-          // than opening something: it's the one control that speaks about the
-          // whole week, so it belongs above the week and not inside a row.
-          <button
-            type="button"
-            onClick={toggleAlwaysOpen}
-            aria-pressed={alwaysOpen}
-            disabled={schedule.length === 0}
-            className={`shrink-0 rounded-lg border px-3 py-1.5 text-[13px] font-medium outline-none transition-colors disabled:opacity-45 ${
-              alwaysOpen
-                ? 'border-[#3248F2]/30 bg-[#3248F2]/10 text-[#3248F2]'
-                : 'border-[#999999]/25 text-[#999999] hover:border-[#999999]/45 hover:text-[#171215]'
-            }`}
-          >
-            Работаем 24/7
-          </button>
-        }
-      >
+      <Card title="График работы">
         <WorkingHours schedule={schedule} onChange={setSchedule} />
 
         {(scheduleDirty || scheduleError) && (
