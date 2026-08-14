@@ -219,6 +219,34 @@ export function deleteBusinessLogo(accessToken) {
   return request('/business/logo', { method: 'DELETE', accessToken })
 }
 
+export function getServices(accessToken) {
+  return request('/business/services', { method: 'GET', accessToken })
+}
+
+/**
+ * Sends the price list whole. Rows keep their `id` so the server updates them
+ * in place; a row without one is new, and anything left out is deleted.
+ */
+export function saveServices(accessToken, services) {
+  return request('/business/services', {
+    method: 'PUT',
+    body: { services },
+    accessToken,
+  })
+}
+
+export function getWorkingHours(accessToken) {
+  return request('/business/working-hours', { method: 'GET', accessToken })
+}
+
+export function saveWorkingHours(accessToken, days) {
+  return request('/business/working-hours', {
+    method: 'PUT',
+    body: { days },
+    accessToken,
+  })
+}
+
 export function forgotPassword(email) {
   return request('/auth/forgot-password', {
     method: 'POST',

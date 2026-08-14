@@ -15,6 +15,7 @@ from app.repositories.business import BusinessRepository
 from app.repositories.email_change import EmailChangeRepository
 from app.repositories.password_reset import PasswordResetRepository
 from app.repositories.refresh_token import RefreshTokenRepository
+from app.repositories.service import ServiceRepository, WorkingHoursRepository
 from app.repositories.user import UserRepository
 from app.services.auth import AuthService, ClientInfo
 from app.services.business import BusinessService
@@ -48,7 +49,12 @@ AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 
 
 def get_business_service(session: SessionDep) -> BusinessService:
-    return BusinessService(session=session, businesses=BusinessRepository(session))
+    return BusinessService(
+        session=session,
+        businesses=BusinessRepository(session),
+        services=ServiceRepository(session),
+        working_hours=WorkingHoursRepository(session),
+    )
 
 
 BusinessServiceDep = Annotated[BusinessService, Depends(get_business_service)]

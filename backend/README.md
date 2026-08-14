@@ -97,6 +97,10 @@ All routes are under `/api/v1`. Interactive docs at `/docs`.
 | `PATCH` | `/business` | Partial update of the business profile |
 | `POST` | `/business/logo` | Upload a logo (`multipart/form-data`, field `file`) |
 | `DELETE` | `/business/logo` | Remove the current logo |
+| `GET` | `/business/services` | The price list, in the owner's order |
+| `PUT` | `/business/services` | Replace the whole price list in one transaction |
+| `GET` | `/business/working-hours` | The week; seven rows, created with defaults on first access |
+| `PUT` | `/business/working-hours` | Replace the week's opening hours |
 
 Uploaded images are served as static files from `/media/avatars/<name>.png` and
 `/media/logos/<name>.png`.

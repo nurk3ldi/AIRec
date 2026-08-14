@@ -12,7 +12,11 @@ import AvatarCropper from '../AvatarCropper'
 import {
   deleteBusinessLogo,
   getBusiness,
+  getServices,
+  getWorkingHours,
   mediaUrl,
+  saveServices,
+  saveWorkingHours,
   updateBusiness,
   uploadBusinessLogo,
 } from '../../lib/api'
@@ -61,33 +65,61 @@ const FIELDS = [
   { key: 'timezone', label: 'Часовой пояс', format: timeZoneLabel },
 ]
 
-// Ids rather than names as the key: the name is editable, and a list keyed by
-// something the user can change loses its place the moment they change it.
-const SERVICES = [
-  { id: 's1', name: 'Мужская стрижка', minutes: 45, price: 6000, active: true },
-  { id: 's2', name: 'Стрижка бороды', minutes: 30, price: 4000, active: true },
-  { id: 's3', name: 'Стрижка + борода', minutes: 75, price: 9000, active: true },
-  { id: 's4', name: 'Детская стрижка', minutes: 30, price: 4500, active: true },
-  {
-    id: 's5',
-    name: 'Бритьё опасной бритвой',
-    minutes: 40,
-    price: 5500,
-    active: false,
-  },
+// Index matches `weekday` on the backend, which in turn matches Python's
+// `datetime.weekday()` — 0 is Monday. Keeping the same numbering everywhere
+// means no translation table, and no chance of an off-by-one that only shows
+// up on Sundays.
+const WEEKDAYS = [
+  'Понедельник',
+  'Вторник',
+  'Среда',
+  'Четверг',
+  'Пятница',
+  'Суббота',
+  'Воскресенье',
 ]
 
-// Times as "HH:MM" strings rather than hour numbers: half-hour opening and a
-// lunch break are both normal, and neither fits in a whole-hour integer.
-const SCHEDULE = [
-  { day: 'Понедельник', from: '10:00', to: '21:00', breakFrom: '13:00', breakTo: '14:00' },
-  { day: 'Вторник', from: '10:00', to: '21:00', breakFrom: null, breakTo: null },
-  { day: 'Среда', from: '10:00', to: '21:00', breakFrom: null, breakTo: null },
-  { day: 'Четверг', from: '10:00', to: '21:00', breakFrom: null, breakTo: null },
-  { day: 'Пятница', from: '10:00', to: '22:00', breakFrom: null, breakTo: null },
-  { day: 'Суббота', from: '11:00', to: '22:00', breakFrom: null, breakTo: null },
-  { day: 'Воскресенье', from: null, to: null, breakFrom: null, breakTo: null },
-]
+// The API speaks in `duration_minutes` / `is_active` / `weekday`; the UI speaks
+// in `minutes` / `active` / `day`. These four functions are the only place the
+// two vocabularies meet.
+const serviceFromApi = (row) => ({
+  id: row.id,
+  name: row.name,
+  minutes: row.duration_minutes,
+  price: row.price,
+  active: row.is_active,
+})
+
+const serviceToApi = (service) => ({
+  // A locally added row has a `new-…` id the server has never seen; sending it
+  // would look like an edit to a row that doesn't exist.
+  id: String(service.id).startsWith('new-') ? null : service.id,
+  name: service.name,
+  duration_minutes: service.minutes,
+  price: service.price,
+  is_active: service.active,
+})
+
+const scheduleFromApi = (rows) =>
+  WEEKDAYS.map((day, weekday) => {
+    const row = rows.find((item) => item.weekday === weekday)
+    return {
+      day,
+      from: row?.opens_at ?? null,
+      to: row?.closes_at ?? null,
+      breakFrom: row?.break_starts_at ?? null,
+      breakTo: row?.break_ends_at ?? null,
+    }
+  })
+
+const scheduleToApi = (schedule) =>
+  schedule.map((item) => ({
+    weekday: WEEKDAYS.indexOf(item.day),
+    opens_at: item.from,
+    closes_at: item.to,
+    break_starts_at: item.breakFrom,
+    break_ends_at: item.breakTo,
+  }))
 
 const formatPrice = (value) => `${value.toLocaleString('ru-RU')} ₸`
 
@@ -298,12 +330,12 @@ export default function BusinessProfile() {
   const [pickedFile, setPickedFile] = useState(null)
   const [logoError, setLogoError] = useState('')
   const [logoBusy, setLogoBusy] = useState(false)
-  // Two copies: `savedServices` is what's committed, `services` is what's on
+  // Two copies: `savedServices` is what the server has, `services` is what's on
   // screen. The price list is edited as a whole — rename a service, move a
   // price, hide another — and only then saved, so a half-finished edit never
   // becomes the price the assistant quotes.
-  const [savedServices, setSavedServices] = useState(SERVICES)
-  const [services, setServices] = useState(SERVICES)
+  const [savedServices, setSavedServices] = useState([])
+  const [services, setServices] = useState([])
 
   // Structural compare: covers edits, additions, removals and reordering alike
   // without listing the fields, which would go stale the moment one is added.
@@ -312,9 +344,14 @@ export default function BusinessProfile() {
 
   // Same draft-then-save shape as the price list, so the two cards on this page
   // don't behave differently from each other.
-  const [savedSchedule, setSavedSchedule] = useState(SCHEDULE)
-  const [schedule, setSchedule] = useState(SCHEDULE)
+  const [savedSchedule, setSavedSchedule] = useState([])
+  const [schedule, setSchedule] = useState([])
   const scheduleDirty = JSON.stringify(schedule) !== JSON.stringify(savedSchedule)
+
+  const [servicesError, setServicesError] = useState('')
+  const [scheduleError, setScheduleError] = useState('')
+  const [savingServices, setSavingServices] = useState(false)
+  const [savingSchedule, setSavingSchedule] = useState(false)
 
   // Deleting takes two clicks: the row has no undo, and a trash icon that fires
   // on the first press is how a price list loses a service by accident.
@@ -331,9 +368,11 @@ export default function BusinessProfile() {
     setServices((current) => [
       ...current,
       {
-        // Time-based rather than length-based: deleting a row must not let the
-        // next id collide with one that's still on screen.
-        id: `s${Date.now()}`,
+        // The `new-` prefix is what `serviceToApi` looks for: this row has no
+        // server id yet, and sending this one would address nothing. Time-based
+        // rather than length-based so deleting a row can't let the next id
+        // collide with one still on screen.
+        id: `new-${Date.now()}`,
         name: 'Новая услуга',
         minutes: 30,
         price: 0,
@@ -351,22 +390,75 @@ export default function BusinessProfile() {
     setConfirmDeleteId(null)
   }
 
-  // Nothing leaves the browser yet — there is no Service API. When there is,
-  // this is the one place that has to start calling it.
-  const saveServices = () => {
-    setSavedServices(services)
-    setConfirmDeleteId(null)
+  const handleSaveServices = async () => {
+    setSavingServices(true)
+    setServicesError('')
+    try {
+      // The response is the authority: it carries the real ids for rows that
+      // were just created, so the next edit updates them instead of creating
+      // duplicates.
+      const rows = (await saveServices(getAccessToken(), services.map(serviceToApi)))
+        .map(serviceFromApi)
+      setServices(rows)
+      setSavedServices(rows)
+      setConfirmDeleteId(null)
+    } catch (err) {
+      setServicesError(err.fields?.[0]?.message || err.message)
+    } finally {
+      setSavingServices(false)
+    }
+  }
+
+  const handleSaveSchedule = async () => {
+    setSavingSchedule(true)
+    setScheduleError('')
+    try {
+      const rows = scheduleFromApi(
+        await saveWorkingHours(getAccessToken(), scheduleToApi(schedule))
+      )
+      setSchedule(rows)
+      setSavedSchedule(rows)
+    } catch (err) {
+      setScheduleError(err.fields?.[0]?.message || err.message)
+    } finally {
+      setSavingSchedule(false)
+    }
   }
 
   useEffect(() => {
     let cancelled = false
-    getBusiness(getAccessToken())
+    const token = getAccessToken()
+
+    getBusiness(token)
       .then((data) => {
         if (!cancelled) setBusiness(data)
       })
       .catch((err) => {
         if (!cancelled) setLogoError(err.message)
       })
+
+    getServices(token)
+      .then((rows) => {
+        if (cancelled) return
+        const mapped = rows.map(serviceFromApi)
+        setServices(mapped)
+        setSavedServices(mapped)
+      })
+      .catch((err) => {
+        if (!cancelled) setServicesError(err.message)
+      })
+
+    getWorkingHours(token)
+      .then((rows) => {
+        if (cancelled) return
+        const mapped = scheduleFromApi(rows)
+        setSchedule(mapped)
+        setSavedSchedule(mapped)
+      })
+      .catch((err) => {
+        if (!cancelled) setScheduleError(err.message)
+      })
+
     return () => {
       cancelled = true
     }
@@ -682,21 +774,28 @@ export default function BusinessProfile() {
 
         {/* Only while there is something to save: a footer that is always there
             reads as "you have unsaved work" even when you don't. */}
-        {servicesDirty && (
-          <div className="mt-5 flex items-center justify-end gap-2 border-t border-[#999999]/15 pt-4">
+        {(servicesDirty || servicesError) && (
+          <div className="mt-5 flex flex-wrap items-center justify-end gap-3 border-t border-[#999999]/15 pt-4">
+            {servicesError && (
+              <p role="alert" className="mr-auto text-[13px] text-[#DC2626]">
+                {servicesError}
+              </p>
+            )}
             <button
               type="button"
               onClick={cancelServiceEdits}
-              className="rounded-xl border border-[#999999]/30 px-4 py-2 text-[13px] font-medium text-[#171215] outline-none transition-colors hover:bg-[#171215]/5 focus-visible:bg-[#171215]/5"
+              disabled={savingServices}
+              className="rounded-xl border border-[#999999]/30 px-4 py-2 text-[13px] font-medium text-[#171215] outline-none transition-colors hover:bg-[#171215]/5 focus-visible:bg-[#171215]/5 disabled:opacity-60"
             >
               Отменить
             </button>
             <button
               type="button"
-              onClick={saveServices}
-              className="rounded-xl bg-[#3248F2] px-4 py-2 text-[13px] font-medium text-white outline-none transition-colors hover:bg-[#2839c9] focus-visible:bg-[#2839c9]"
+              onClick={handleSaveServices}
+              disabled={savingServices || !servicesDirty}
+              className="rounded-xl bg-[#3248F2] px-4 py-2 text-[13px] font-medium text-white outline-none transition-colors hover:bg-[#2839c9] focus-visible:bg-[#2839c9] disabled:cursor-not-allowed disabled:opacity-45"
             >
-              Сохранить
+              {savingServices ? 'Сохраняем…' : 'Сохранить'}
             </button>
           </div>
         )}
@@ -705,21 +804,28 @@ export default function BusinessProfile() {
       <Card title="График работы">
         <WorkingHours schedule={schedule} onChange={setSchedule} />
 
-        {scheduleDirty && (
-          <div className="mt-5 flex items-center justify-end gap-2 border-t border-[#999999]/15 pt-4">
+        {(scheduleDirty || scheduleError) && (
+          <div className="mt-5 flex flex-wrap items-center justify-end gap-3 border-t border-[#999999]/15 pt-4">
+            {scheduleError && (
+              <p role="alert" className="mr-auto text-[13px] text-[#DC2626]">
+                {scheduleError}
+              </p>
+            )}
             <button
               type="button"
               onClick={() => setSchedule(savedSchedule)}
-              className="rounded-xl border border-[#999999]/30 px-4 py-2 text-[13px] font-medium text-[#171215] outline-none transition-colors hover:bg-[#171215]/5 focus-visible:bg-[#171215]/5"
+              disabled={savingSchedule}
+              className="rounded-xl border border-[#999999]/30 px-4 py-2 text-[13px] font-medium text-[#171215] outline-none transition-colors hover:bg-[#171215]/5 focus-visible:bg-[#171215]/5 disabled:opacity-60"
             >
               Отменить
             </button>
             <button
               type="button"
-              onClick={() => setSavedSchedule(schedule)}
-              className="rounded-xl bg-[#3248F2] px-4 py-2 text-[13px] font-medium text-white outline-none transition-colors hover:bg-[#2839c9] focus-visible:bg-[#2839c9]"
+              onClick={handleSaveSchedule}
+              disabled={savingSchedule || !scheduleDirty}
+              className="rounded-xl bg-[#3248F2] px-4 py-2 text-[13px] font-medium text-white outline-none transition-colors hover:bg-[#2839c9] focus-visible:bg-[#2839c9] disabled:cursor-not-allowed disabled:opacity-45"
             >
-              Сохранить
+              {savingSchedule ? 'Сохраняем…' : 'Сохранить'}
             </button>
           </div>
         )}
