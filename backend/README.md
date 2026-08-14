@@ -106,7 +106,7 @@ All routes are under `/api/v1`. Interactive docs at `/docs`.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/appointments?from=&to=&status=` | Bookings overlapping a span of **local** days |
+| `GET` | `/appointments?from=&to=&status=&query=` | Bookings overlapping a span of **local** days; `query` matches client name or phone (punctuation ignored) and, alone, searches all history |
 | `GET` | `/appointments/slots?service_id=&day=` | Start times that service still fits into |
 | `POST` | `/appointments` | Book a time (201) |
 | `GET` | `/appointments/{id}` | One booking |

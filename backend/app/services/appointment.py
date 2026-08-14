@@ -16,7 +16,11 @@ from app.core.errors import (
     ServiceNotFound,
     SlotUnavailable,
 )
-from app.models.appointment import Appointment, AppointmentStatus
+from app.models.appointment import (
+    Appointment,
+    AppointmentSource,
+    AppointmentStatus,
+)
 from app.models.business import Business
 from app.models.service import Service
 from app.models.user import User
@@ -63,16 +67,26 @@ class AppointmentService:
         start_day: date | None,
         end_day: date | None,
         statuses: Sequence[str] | None = None,
+        query: str | None = None,
     ) -> Sequence[Appointment]:
         """Everything overlapping a span of local days, ends included.
 
         The caller thinks in dates the owner would name — "с 1 по 7 марта" — and
         those are local days, so the conversion to an absolute range happens
         here, where the business's zone is known.
+
+        A search with no dates on it deliberately drops the range entirely:
+        looking for a client means looking for *their* bookings, and defaulting
+        that to the next thirty days would hide every visit they ever made.
         """
         business = await self._businesses.get_or_create(user)
         tz = _zone(business)
         today = datetime.now(UTC).astimezone(tz).date()
+
+        if query and start_day is None and end_day is None:
+            return await self._appointments.list_in_range(
+                business.id, None, None, statuses, query
+            )
 
         first = start_day or today
         last = end_day or first + timedelta(days=30)
@@ -84,7 +98,7 @@ class AppointmentService:
         # the final day is included whole without any 23:59:59 arithmetic.
         end = _local(last + timedelta(days=1), time(0, 0), tz)
         return await self._appointments.list_in_range(
-            business.id, start, end, statuses
+            business.id, start, end, statuses, query
         )
 
     async def get(self, user: User, appointment_id: uuid.UUID) -> Appointment:
@@ -157,7 +171,17 @@ class AppointmentService:
         service = await self._find_service(user, data.service_id)
         starts_at = data.starts_at.astimezone(UTC)
         ends_at = starts_at + timedelta(minutes=service.duration_minutes)
-        await self._ensure_within_rules(user, business, starts_at, ends_at)
+        # Notice and horizon constrain *clients*, not the business. The owner
+        # writing down someone who walked in twenty minutes ago is recording
+        # something that already happened, and refusing it would be refusing
+        # reality. `source` is what tells the two apart.
+        await self._ensure_within_rules(
+            user,
+            business,
+            starts_at,
+            ends_at,
+            enforce_notice=data.source is not AppointmentSource.MANUAL,
+        )
         await self._ensure_room(business, starts_at, ends_at)
 
         appointment = Appointment(
@@ -218,8 +242,15 @@ class AppointmentService:
         # chosen again. Marking an old booking as completed must not fail
         # because its time is long past the notice period.
         if moved:
+            # Every edit here comes from the panel, so the owner is the one
+            # moving it — the same reasoning as a manual booking above. When the
+            # assistant gets its own way in, it will have to say so.
             await self._ensure_within_rules(
-                user, business, appointment.starts_at, appointment.ends_at
+                user,
+                business,
+                appointment.starts_at,
+                appointment.ends_at,
+                enforce_notice=False,
             )
 
         # Room, though, is re-checked whenever this booking starts occupying
@@ -274,16 +305,27 @@ class AppointmentService:
         business: Business,
         starts_at: datetime,
         ends_at: datetime,
+        enforce_notice: bool,
     ) -> None:
-        now = datetime.now(UTC)
-        if starts_at < now + timedelta(minutes=business.min_lead_minutes):
-            raise BookingTooSoon
+        """Whether this time may be booked at all.
+
+        `enforce_notice` covers the two rules that exist to protect the business
+        from clients — how much warning it needs and how far ahead it accepts
+        work. Opening hours are *not* under that flag: they catch a mistyped
+        date just as well for the owner as for anyone else, and unlike the other
+        two there is no version of "book me while you're closed" that is the
+        right thing to record.
+        """
         tz = _zone(business)
-        horizon = now.astimezone(tz).date() + timedelta(
-            days=business.booking_horizon_days
-        )
-        if starts_at.astimezone(tz).date() > horizon:
-            raise BookingTooFar
+        if enforce_notice:
+            now = datetime.now(UTC)
+            if starts_at < now + timedelta(minutes=business.min_lead_minutes):
+                raise BookingTooSoon
+            horizon = now.astimezone(tz).date() + timedelta(
+                days=business.booking_horizon_days
+            )
+            if starts_at.astimezone(tz).date() > horizon:
+                raise BookingTooFar
 
         windows = await self._windows_around(
             user, business, starts_at.astimezone(tz).date()

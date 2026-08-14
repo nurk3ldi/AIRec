@@ -38,12 +38,23 @@ async def list_appointments(
         list[AppointmentStatus] | None,
         Query(description="Repeat to filter on several at once."),
     ] = None,
+    query: Annotated[
+        str | None,
+        Query(
+            max_length=64,
+            description=(
+                "Client name or phone. Punctuation in a number is ignored. "
+                "On its own, with no from/to, it searches the whole history."
+            ),
+        ),
+    ] = None,
 ) -> list[AppointmentPublic]:
     rows = await appointments.list_range(
         user,
         date_from,
         date_to,
         [item.value for item in status] if status else None,
+        query,
     )
     return [AppointmentPublic.model_validate(row) for row in rows]
 
