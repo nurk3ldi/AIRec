@@ -12,6 +12,56 @@ const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
 const DEFAULT_WORKDAY = { from: '10:00', to: '21:00' }
 const DEFAULT_BREAK = { breakFrom: '13:00', breakTo: '14:00' }
 
+// One template for the header and every row, so the labels sit over the values
+// they name. The first column is the switch and needs no heading.
+//
+// The day name takes the slack rather than the break column, which pushes the
+// times, the hours and the break together against the right edge — a left-
+// anchored name and a right-anchored block of numbers, with the gap between
+// them instead of inside them.
+const COLUMNS = 'grid grid-cols-[40px_1fr_100px_100px_90px_auto] gap-6'
+
+const toMinutes = (time) => {
+  const [hours, minutes] = time.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+const formatSpan = (minutes) => {
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  if (!hours) return `${rest} мин`
+  return rest ? `${hours} ч ${rest} мин` : `${hours} ч`
+}
+
+/**
+ * Hours the business is actually open that day — the working span minus the
+ * break. Derived rather than entered, so it can't disagree with the times next
+ * to it, and it turns a row of settings into a row that also answers "how long
+ * is this day?".
+ */
+const openMinutes = (item) => {
+  if (!item.from || !item.to) return null
+  const span = toMinutes(item.to) - toMinutes(item.from)
+  const rest =
+    item.breakFrom && item.breakTo
+      ? toMinutes(item.breakTo) - toMinutes(item.breakFrom)
+      : 0
+  const total = span - Math.max(rest, 0)
+  // A closing time before the opening one is a mistake, not a negative day.
+  return total > 0 ? total : null
+}
+
+/** Table column header: tiny, uppercase, muted — the row's frame is air. */
+function ColumnLabel({ children, className = '' }) {
+  return (
+    <span
+      className={`text-[11px] font-medium uppercase tracking-wide text-[#999999] ${className}`}
+    >
+      {children}
+    </span>
+  )
+}
+
 /**
  * The week as seven compact rows rather than a calendar grid.
  *
@@ -26,11 +76,22 @@ export default function WorkingHours({ schedule, onChange }) {
       schedule.map((item) => (item.day === day ? { ...item, ...changes } : item))
     )
 
+
   return (
     <div className="flex flex-col">
-      {schedule.map((item, index) => {
+      <div className={`${COLUMNS} pb-3`}>
+        <span />
+        <ColumnLabel>День</ColumnLabel>
+        <ColumnLabel>Начало</ColumnLabel>
+        <ColumnLabel>Конец</ColumnLabel>
+        <ColumnLabel>Часов</ColumnLabel>
+        <ColumnLabel className="justify-self-end">Перерыв</ColumnLabel>
+      </div>
+
+      {schedule.map((item) => {
         const isOpen = Boolean(item.from)
         const hasBreak = Boolean(item.breakFrom)
+        const open = openMinutes(item)
 
         return (
           // A grid, not a wrapping flex row: the columns then line up down the
@@ -38,9 +99,7 @@ export default function WorkingHours({ schedule, onChange }) {
           // of chasing them across seven ragged rows.
           <div
             key={item.day}
-            className={`grid grid-cols-[40px_180px_220px_1fr] items-center gap-6 py-2.5 ${
-              index > 0 ? 'border-t border-[#999999]/15' : ''
-            }`}
+            className={`${COLUMNS} group items-center border-t border-[#999999]/15 py-2.5`}
           >
             <Switch.Root
               checked={isOpen}
@@ -65,7 +124,7 @@ export default function WorkingHours({ schedule, onChange }) {
             </span>
 
             {isOpen ? (
-              <span className="flex items-center gap-3">
+              <>
                 <TimeField
                   value={item.from}
                   label={`${item.day}: начало`}
@@ -76,9 +135,18 @@ export default function WorkingHours({ schedule, onChange }) {
                   label={`${item.day}: конец`}
                   onChange={(to) => update(item.day, { to })}
                 />
-              </span>
+              </>
             ) : (
-              <span className="text-[14px] text-[#999999]">Выходной</span>
+              // Spans the time and hours columns: a closed day has none of
+              // them, and empty cells under the headings would read as values
+              // that went missing.
+              <span className="col-span-3 text-[14px] text-[#999999]">Выходной</span>
+            )}
+
+            {isOpen && (
+              <span className="text-[14px] text-[#999999]">
+                {open ? formatSpan(open) : '—'}
+              </span>
             )}
 
             {/* Pushed to the right edge: with the times on the left, the row
@@ -86,14 +154,12 @@ export default function WorkingHours({ schedule, onChange }) {
                 space on a full-width card. */}
             {isOpen &&
               (hasBreak ? (
-                <span className="flex items-center gap-1 justify-self-end">
-                  <span className="mr-1 text-[13px] text-[#999999]">Перерыв</span>
+                <span className="flex items-center gap-3 justify-self-end">
                   <TimeField
                     value={item.breakFrom}
                     label={`${item.day}: перерыв с`}
                     onChange={(breakFrom) => update(item.day, { breakFrom })}
                   />
-                  <span className="text-[14px] text-[#999999]">—</span>
                   <TimeField
                     value={item.breakTo}
                     label={`${item.day}: перерыв до`}
