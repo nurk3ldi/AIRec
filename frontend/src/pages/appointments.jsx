@@ -1,8 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Head from 'next/head'
 import MiniMonth from '../components/appointments/MiniMonth'
+import NewAppointmentDialog from '../components/appointments/NewAppointmentDialog'
 import TimeGrid from '../components/appointments/TimeGrid'
 import Toolbar from '../components/appointments/Toolbar'
+import { listAppointments } from '../lib/api'
+import { getAccessToken } from '../lib/auth'
+import { toBlock } from '../lib/appointments'
+import { dayKey, weekDays } from '../lib/dates'
 import styles from '../styles/Appointments.module.css'
 
 export default function AppointmentsPage() {
@@ -11,6 +16,38 @@ export default function AppointmentsPage() {
   const [date, setDate] = useState(() => new Date())
   const [view, setView] = useState('day')
   const [query, setQuery] = useState('')
+
+  const [appointments, setAppointments] = useState([])
+  const [error, setError] = useState('')
+  const [creating, setCreating] = useState(false)
+  // Bumped after a booking is made, purely to make the load effect run again.
+  const [reloads, setReloads] = useState(0)
+
+  // Whichever days are on screen, as `YYYY-MM-DD` — the shape the endpoint
+  // takes, and stable strings rather than `Date` objects, so this effect runs
+  // when the range really changes and not on every render that made a new one.
+  const days = view === 'week' ? weekDays(date) : [date]
+  const from = dayKey(days[0])
+  const to = dayKey(days[days.length - 1])
+
+  useEffect(() => {
+    let cancelled = false
+
+    listAppointments(getAccessToken(), { from, to })
+      .then((rows) => {
+        if (!cancelled) {
+          setAppointments(rows.map(toBlock))
+          setError('')
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [from, to, reloads])
 
   return (
     <>
@@ -33,8 +70,13 @@ export default function AppointmentsPage() {
                 onViewChange={setView}
                 query={query}
                 onQueryChange={setQuery}
-                onCreate={() => {}}
+                onCreate={() => setCreating(true)}
               />
+              {error && (
+                <p role="alert" className="mt-3 text-[13px] text-[#DC2626]">
+                  {error}
+                </p>
+              )}
             </div>
 
             <div className="flex items-stretch border-t border-[#999999]/15">
@@ -44,11 +86,27 @@ export default function AppointmentsPage() {
                   through all twenty-four hours, and it can only do that if
                   something above it says where the viewport ends. */}
               <div className="flex h-[640px] min-w-0 flex-1 flex-col border-l border-[#999999]/15">
-                <TimeGrid date={date} view={view} onDateChange={setDate} />
+                <TimeGrid
+                  date={date}
+                  view={view}
+                  onDateChange={setDate}
+                  appointments={appointments}
+                />
               </div>
             </div>
           </div>
         </div>
+
+        {creating && (
+          <NewAppointmentDialog
+            date={date}
+            onClose={() => setCreating(false)}
+            onCreated={() => {
+              setCreating(false)
+              setReloads((count) => count + 1)
+            }}
+          />
+        )}
       </div>
     </>
   )

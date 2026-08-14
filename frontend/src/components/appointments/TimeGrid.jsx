@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import AppointmentBlock from './AppointmentBlock'
 import DaysHeader from './DaysHeader'
-import { sameDay, weekDays } from '../../lib/dates'
+import { layoutDay } from '../../lib/appointments'
+import { dayKey, sameDay, weekDays } from '../../lib/dates'
 
 // 96px an hour — 24px per quarter, which is the smallest a 15-minute booking
 // can be and still hold a line of text. The whole day is 2304px, so the grid
@@ -36,7 +38,11 @@ const minutesToday = (moment) => moment.getHours() * 60 + moment.getMinutes()
  * boundary would miss its heading by that much. Sharing one scrolling box makes
  * them share one content width, so they cannot drift apart.
  */
-export default function TimeGrid({ date, view, onDateChange }) {
+// A hair of space either side, so two neighbouring bookings don't share an edge
+// and read as one block.
+const COLUMN_INSET = 4
+
+export default function TimeGrid({ date, view, onDateChange, appointments, onSelect }) {
   const days = view === 'week' ? weekDays(date) : [date]
   const scroller = useRef(null)
 
@@ -94,20 +100,47 @@ export default function TimeGrid({ date, view, onDateChange }) {
           className="grid flex-1"
           style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
         >
-          {days.map((day, index) => (
-            <div
-              key={day.toISOString()}
-              className={index === 0 ? '' : 'border-l border-[#999999]/15'}
-            >
-              {HOURS.map((hour) => (
-                <div
-                  key={hour}
-                  className="border-t border-[#999999]/15 first:border-t-0"
-                  style={{ height: HOUR_HEIGHT }}
-                />
-              ))}
-            </div>
-          ))}
+          {days.map((day, index) => {
+            const key = dayKey(day)
+            const blocks = layoutDay(
+              (appointments ?? []).filter((block) => block.day === key)
+            )
+
+            return (
+              <div
+                key={key}
+                className={`relative ${index === 0 ? '' : 'border-l border-[#999999]/15'}`}
+              >
+                {HOURS.map((hour) => (
+                  <div
+                    key={hour}
+                    className="border-t border-[#999999]/15 first:border-t-0"
+                    style={{ height: HOUR_HEIGHT }}
+                  />
+                ))}
+
+                {blocks.map((block) => (
+                  <AppointmentBlock
+                    key={block.id}
+                    onSelect={onSelect}
+                    block={{
+                      ...block,
+                      top: (block.start / 60) * HOUR_HEIGHT,
+                      // A minimum, so a fifteen-minute booking is still a
+                      // thing you can see and click rather than a line.
+                      height: Math.max(
+                        ((block.end - block.start) / 60) * HOUR_HEIGHT,
+                        24
+                      ),
+                      // Overlapping bookings split the column between them.
+                      left: `calc(${(block.lane / block.lanes) * 100}% + ${COLUMN_INSET}px)`,
+                      width: `calc(${100 / block.lanes}% - ${COLUMN_INSET * 2}px)`,
+                    }}
+                  />
+                ))}
+              </div>
+            )
+          })}
         </div>
 
         {/* Mirrors the header's right-hand arrow cell, for the same reason the

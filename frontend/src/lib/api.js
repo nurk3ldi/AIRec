@@ -247,6 +247,41 @@ export function saveWorkingHours(accessToken, days) {
   })
 }
 
+/**
+ * Bookings overlapping a span of local days, `from`/`to` as `YYYY-MM-DD`.
+ *
+ * `query` searches the client's name and phone; sent on its own, without dates,
+ * the server drops the range and looks through the whole history.
+ */
+export function listAppointments(accessToken, { from, to, status, query } = {}) {
+  const params = new URLSearchParams()
+  if (from) params.set('from', from)
+  if (to) params.set('to', to)
+  if (query) params.set('query', query)
+  // Repeated rather than comma-joined — the endpoint takes one per status.
+  for (const item of status ?? []) params.append('status', item)
+
+  return request(`/appointments?${params}`, { method: 'GET', accessToken })
+}
+
+/**
+ * Start times a service still fits into on a local day, already filtered by
+ * opening hours, breaks, bookings taken, notice and horizon — so the client
+ * never has to re-derive any of those rules to know what it may offer.
+ */
+export function getSlots(accessToken, { serviceId, day }) {
+  const params = new URLSearchParams({ service_id: serviceId, day })
+  return request(`/appointments/slots?${params}`, { method: 'GET', accessToken })
+}
+
+export function createAppointment(accessToken, booking) {
+  return request('/appointments', {
+    method: 'POST',
+    body: booking,
+    accessToken,
+  })
+}
+
 export function forgotPassword(email) {
   return request('/auth/forgot-password', {
     method: 'POST',

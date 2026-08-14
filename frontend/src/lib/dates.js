@@ -87,6 +87,19 @@ export function weekDays(date) {
  */
 export const monthIndex = (date) => date.getFullYear() * 12 + date.getMonth()
 
+/**
+ * `YYYY-MM-DD` in local time.
+ *
+ * `toISOString` would be one line shorter and wrong: it converts to UTC first,
+ * which shifts the date by a day for any evening in a zone east of Greenwich —
+ * which is every zone this product runs in.
+ */
+export function dayKey(day) {
+  const month = String(day.getMonth() + 1).padStart(2, '0')
+  const date = String(day.getDate()).padStart(2, '0')
+  return `${day.getFullYear()}-${month}-${date}`
+}
+
 export const sameDay = (a, b) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&

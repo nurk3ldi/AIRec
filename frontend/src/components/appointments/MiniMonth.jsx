@@ -4,6 +4,7 @@ import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons'
 import {
   DAY_LETTERS,
   MONTHS,
+  dayKey,
   monthIndex,
   sameDay,
 } from '../../lib/dates'
@@ -123,14 +124,6 @@ export default function MiniMonth({ date, onDateChange, marked }) {
       </div>
     </div>
   )
-}
-
-/** `YYYY-MM-DD` in local time — `toISOString` would shift the day in any zone
- *  east of UTC, which is every zone this product runs in. */
-function dayKey(day) {
-  const month = String(day.getMonth() + 1).padStart(2, '0')
-  const date = String(day.getDate()).padStart(2, '0')
-  return `${day.getFullYear()}-${month}-${date}`
 }
 
 function ArrowButton({ icon, label, onClick }) {
