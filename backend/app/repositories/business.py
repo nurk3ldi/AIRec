@@ -19,5 +19,17 @@ class BusinessRepository:
         stmt = select(Business).where(Business.owner_id == owner_id)
         return await self._session.scalar(stmt)
 
+    async def lock(self, business_id: uuid.UUID) -> None:
+        """Take a row lock on the business for the rest of the transaction.
+
+        Booking is read-then-write: count what occupies a time, then insert if
+        there is room. Two requests for the last place would both read "room for
+        one" and both insert. Serialising on the business row is the smallest
+        thing that makes that impossible, and it costs nothing while bookings
+        for one business arrive seconds apart rather than microseconds.
+        """
+        stmt = select(Business.id).where(Business.id == business_id).with_for_update()
+        await self._session.execute(stmt)
+
     def add(self, business: Business) -> None:
         self._session.add(business)

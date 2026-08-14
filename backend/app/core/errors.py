@@ -122,6 +122,57 @@ class InvalidImage(AppError):
     message = "Файл не является изображением."
 
 
+class ServiceNotFound(AppError):
+    status_code = HTTPStatus.NOT_FOUND
+    code = "service_not_found"
+    message = "Услуга не найдена."
+
+
+class ServiceInactive(AppError):
+    status_code = HTTPStatus.BAD_REQUEST
+    code = "service_inactive"
+    # Distinct from "not found": the owner hid it on purpose, and the fix is to
+    # switch it back on rather than to recreate it.
+    message = "Услуга отключена и недоступна для записи."
+
+
+class AppointmentNotFound(AppError):
+    status_code = HTTPStatus.NOT_FOUND
+    code = "appointment_not_found"
+    message = "Запись не найдена."
+
+
+class OutsideWorkingHours(AppError):
+    status_code = HTTPStatus.BAD_REQUEST
+    code = "outside_working_hours"
+    message = "В это время бизнес не работает."
+
+
+class SlotUnavailable(AppError):
+    """Every place is taken for the requested time.
+
+    A conflict rather than a bad request: nothing about the request is wrong,
+    it simply lost the race — and the caller's next move is to pick another
+    time, not to fix a field.
+    """
+
+    status_code = HTTPStatus.CONFLICT
+    code = "slot_unavailable"
+    message = "Это время уже занято."
+
+
+class BookingTooSoon(AppError):
+    status_code = HTTPStatus.BAD_REQUEST
+    code = "booking_too_soon"
+    message = "Слишком мало времени до начала записи."
+
+
+class BookingTooFar(AppError):
+    status_code = HTTPStatus.BAD_REQUEST
+    code = "booking_too_far"
+    message = "Так далеко записаться нельзя."
+
+
 class EmailNotRegistered(AppError):
     status_code = HTTPStatus.NOT_FOUND
     code = "email_not_registered"

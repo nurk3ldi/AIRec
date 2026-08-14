@@ -49,6 +49,11 @@ class BusinessService:
         await self._session.commit()
         return business
 
+    async def lock(self, business: Business) -> None:
+        """Serialise the rest of this transaction against other writers for the
+        same business. Booking needs it — see `BusinessRepository.lock`."""
+        await self._businesses.lock(business.id)
+
     async def update(self, user: User, data: UpdateBusinessRequest) -> Business:
         business = await self.get_or_create(user)
 

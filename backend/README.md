@@ -102,6 +102,17 @@ All routes are under `/api/v1`. Interactive docs at `/docs`.
 | `GET` | `/business/working-hours` | The week; seven rows, created with defaults on first access |
 | `PUT` | `/business/working-hours` | Replace the week's opening hours |
 
+### Appointments
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/appointments?from=&to=&status=` | Bookings overlapping a span of **local** days |
+| `GET` | `/appointments/slots?service_id=&day=` | Start times that service still fits into |
+| `POST` | `/appointments` | Book a time (201) |
+| `GET` | `/appointments/{id}` | One booking |
+| `PATCH` | `/appointments/{id}` | Edit, reschedule, or change status |
+| `DELETE` | `/appointments/{id}` | Cancel — sets the status, never deletes the row |
+
 Uploaded images are served as static files from `/media/avatars/<name>.png` and
 `/media/logos/<name>.png`.
 

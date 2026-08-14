@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -53,6 +53,24 @@ class Business(Base):
     # knowing the zone it belongs to can't be repaired afterwards.
     timezone: Mapped[str] = mapped_column(
         String(64), nullable=False, default="Asia/Almaty"
+    )
+
+    # --- booking rules ---------------------------------------------------
+    # How many bookings may overlap: one chair or three. Without it the
+    # assistant cannot tell a full hour from an empty one, so it defaults to the
+    # safe answer rather than to "unlimited".
+    capacity: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default=text("1")
+    )
+    # How far ahead a client may book. An open-ended calendar invites bookings
+    # for a date the business has no idea about yet.
+    booking_horizon_days: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=60, server_default=text("60")
+    )
+    # How much warning the business needs. Without it the assistant will happily
+    # book someone in four minutes' time.
+    min_lead_minutes: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=60, server_default=text("60")
     )
 
     # Filename only, not a full URL — the serving prefix comes from
