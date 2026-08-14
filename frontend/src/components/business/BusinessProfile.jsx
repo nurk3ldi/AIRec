@@ -34,10 +34,6 @@ import WorkingHours from './WorkingHours'
 
 const MAX_LOGO_BYTES = 5 * 1024 * 1024
 
-// Parked, not deleted: the completion bar works and reads from the same fields
-// below it. Flip to `true` to bring it back.
-const SHOW_COMPLETION = false
-
 // Nine, not seven: three columns divide evenly, so the last row isn't a stub
 // with two empty cells and half-drawn dividers. Order is reading order, not
 // model order — identity first, then location, then how the assistant talks.
@@ -521,8 +517,6 @@ export default function BusinessProfile() {
     ...field,
     value: business?.[field.key] ?? null,
   }))
-  const missing = fields.filter((field) => !field.value)
-  const percent = Math.round(((fields.length - missing.length) / fields.length) * 100)
   const logoUrl = mediaUrl(business?.logo_url)
   const displayName = business?.name || 'Без названия'
   // No time zone here: it's the same for every business in the country, so it
@@ -605,39 +599,7 @@ export default function BusinessProfile() {
             )}
           </div>
 
-          <span className="inline-flex shrink-0 items-center gap-2 text-[13px] text-[#171215]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" />
-            Ассистент активен
-          </span>
         </div>
-
-        {SHOW_COMPLETION && (
-          <div className="border-t border-[#999999]/15 px-6 py-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-[14px] text-[#171215]">
-                Профиль заполнен на{' '}
-                <span className="font-semibold">{percent}%</span>
-              </p>
-              {missing.length > 0 && <CardAction>Заполнить</CardAction>}
-            </div>
-
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#3248F2]/10">
-              <div
-                className="h-full rounded-full bg-[#3248F2] transition-[width] duration-300"
-                style={{ width: `${percent}%` }}
-              />
-            </div>
-
-            {missing.length > 0 && (
-              <p className="mt-2.5 text-[13px] text-[#999999]">
-                Ассистент пока не знает:{' '}
-                <span className="text-[#171215]">
-                  {missing.map((field) => field.label.toLowerCase()).join(', ')}
-                </span>
-              </p>
-            )}
-          </div>
-        )}
 
         {/* The cells carry their own borders and the grid is pulled 1px past
             the clipping wrapper, so the outermost lines fall outside and the
