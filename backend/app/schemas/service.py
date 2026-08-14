@@ -3,7 +3,14 @@ from __future__ import annotations
 import uuid
 from datetime import time
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 
 MAX_SERVICE_MINUTES = 24 * 60
 MAX_SERVICE_PRICE = 100_000_000
@@ -122,6 +129,50 @@ class WorkingHoursInput(BaseModel):
         if value.minute % SLOT_MINUTES:
             raise ValueError("Время должно быть кратно 15 минутам.")
         return value.replace(second=0, microsecond=0)
+
+    @model_validator(mode="after")
+    def _coherent_day(self) -> WorkingHoursInput:
+        """A day has to be readable as opening hours before anything is booked
+        against it.
+
+        Checked here, on the day, rather than in the service: every rule is a
+        comparison between fields of this one row, and the service layer has no
+        business knowing what makes a day sane.
+
+        A closing time at or before the opening one is rejected rather than read
+        as running past midnight. The two columns cannot express "the next day",
+        so interpreting it would turn a typo into a twenty-two-hour day — and an
+        all-night business has `is_24h` to say so outright.
+        """
+        # Round the clock owns no times; `replace_working_hours` clears whatever
+        # arrived alongside the flag, so there is nothing here to be wrong.
+        if self.is_24h:
+            return self
+
+        if (self.opens_at is None) != (self.closes_at is None):
+            raise ValueError("Укажите начало и конец рабочего дня.")
+
+        # A closed day: a break sent with it is dropped, not refused.
+        if self.opens_at is None or self.closes_at is None:
+            return self
+
+        if self.closes_at <= self.opens_at:
+            raise ValueError("Конец рабочего дня должен быть позже начала.")
+
+        if (self.break_starts_at is None) != (self.break_ends_at is None):
+            raise ValueError("Укажите начало и конец перерыва.")
+
+        if self.break_starts_at is not None and self.break_ends_at is not None:
+            if self.break_ends_at <= self.break_starts_at:
+                raise ValueError("Конец перерыва должен быть позже начала.")
+            outside = (
+                self.break_starts_at < self.opens_at
+                or self.break_ends_at > self.closes_at
+            )
+            if outside:
+                raise ValueError("Перерыв должен быть внутри рабочего дня.")
+
+        return self
 
 
 class WorkingHoursListInput(BaseModel):

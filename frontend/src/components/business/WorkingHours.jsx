@@ -2,6 +2,7 @@ import * as Switch from '@radix-ui/react-switch'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Add01Icon, MinusSignIcon } from '@hugeicons/core-free-icons'
 import OptionPicker from './OptionPicker'
+import { dayProblem, formatSpan, openMinutes } from '../../lib/schedule'
 
 /**
  * Quarter-hour steps — the same grid service durations are offered on, so a
@@ -38,36 +39,6 @@ const DEFAULT_BREAK = { breakFrom: '13:00', breakTo: '14:00' }
 // leftover width is what keeps the pair off the opening time without needing a
 // margin that only one of the two would carry.
 const COLUMNS = 'grid grid-cols-[40px_1fr_72px_100px_100px_90px_170px] gap-8'
-
-const toMinutes = (time) => {
-  const [hours, minutes] = time.split(':').map(Number)
-  return hours * 60 + minutes
-}
-
-const formatSpan = (minutes) => {
-  const hours = Math.floor(minutes / 60)
-  const rest = minutes % 60
-  if (!hours) return `${rest} мин`
-  return rest ? `${hours} ч ${rest} мин` : `${hours} ч`
-}
-
-/**
- * Hours the business is actually open that day — the working span minus the
- * break. Derived rather than entered, so it can't disagree with the times next
- * to it, and it turns a row of settings into a row that also answers "how long
- * is this day?".
- */
-const openMinutes = (item) => {
-  if (!item.from || !item.to) return null
-  const span = toMinutes(item.to) - toMinutes(item.from)
-  const rest =
-    item.breakFrom && item.breakTo
-      ? toMinutes(item.breakTo) - toMinutes(item.breakFrom)
-      : 0
-  const total = span - Math.max(rest, 0)
-  // A closing time before the opening one is a mistake, not a negative day.
-  return total > 0 ? total : null
-}
 
 /** Table column header: tiny, uppercase, muted — the row's frame is air. */
 function ColumnLabel({ children, className = '' }) {
@@ -119,15 +90,17 @@ export default function WorkingHours({ schedule, onChange }) {
         const isOpen = always || Boolean(item.from)
         const hasBreak = Boolean(item.breakFrom)
         const open = openMinutes(item)
+        const problem = dayProblem(item)
 
         return (
-          // A grid, not a wrapping flex row: the columns then line up down the
-          // whole week, so the eye can read a column of opening times instead
-          // of chasing them across seven ragged rows.
-          <div
-            key={item.day}
-            className={`${COLUMNS} group items-center border-t border-[#999999]/15 py-2.5`}
-          >
+          // The border belongs to the wrapper rather than the grid, so a day
+          // with something wrong keeps its message inside its own band instead
+          // of pushing a line between the row and its explanation.
+          <div key={item.day} className="border-t border-[#999999]/15">
+            {/* A grid, not a wrapping flex row: the columns then line up down
+                the whole week, so the eye can read a column of opening times
+                instead of chasing them across seven ragged rows. */}
+            <div className={`${COLUMNS} group items-center py-2.5`}>
             <Switch.Root
               checked={isOpen}
               onCheckedChange={(open) =>
@@ -270,6 +243,19 @@ export default function WorkingHours({ schedule, onChange }) {
                   Перерыв
                 </button>
               ))}
+            </div>
+
+            {/* Indented to start under the day name — the message is about
+                this day, and lining it up with the switch would make it read
+                as belonging to the table. */}
+            {problem && (
+              <p
+                role="alert"
+                className="pb-2.5 pl-[72px] text-[13px] text-[#DC2626]"
+              >
+                {problem}
+              </p>
+            )}
           </div>
         )
       })}

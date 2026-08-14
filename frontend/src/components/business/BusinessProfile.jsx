@@ -21,6 +21,7 @@ import {
   uploadBusinessLogo,
 } from '../../lib/api'
 import { getAccessToken } from '../../lib/auth'
+import { dayProblem } from '../../lib/schedule'
 import { KAZAKHSTAN_CITIES } from '../../lib/cities'
 import {
   PAYMENT_METHODS,
@@ -345,6 +346,10 @@ export default function BusinessProfile() {
   const [savedSchedule, setSavedSchedule] = useState([])
   const [schedule, setSchedule] = useState([])
   const scheduleDirty = JSON.stringify(schedule) !== JSON.stringify(savedSchedule)
+  // The same rule the card prints under the offending row, asked here as a
+  // yes/no: a week that can't be read as opening hours must not become the one
+  // the assistant books against.
+  const scheduleBroken = schedule.some((item) => dayProblem(item))
 
   const [servicesError, setServicesError] = useState('')
   const [scheduleError, setScheduleError] = useState('')
@@ -770,10 +775,18 @@ export default function BusinessProfile() {
 
         {(scheduleDirty || scheduleError) && (
           <div className="mt-5 flex flex-wrap items-center justify-end gap-3 border-t border-[#999999]/15 pt-4">
-            {scheduleError && (
+            {/* A disabled Save with nothing next to it looks broken. The rows
+                carry the actual reasons, so this only says where to look. */}
+            {scheduleError ? (
               <p role="alert" className="mr-auto text-[13px] text-[#DC2626]">
                 {scheduleError}
               </p>
+            ) : (
+              scheduleBroken && (
+                <p className="mr-auto text-[13px] text-[#999999]">
+                  Исправьте отмеченные дни, чтобы сохранить график.
+                </p>
+              )
             )}
             <button
               type="button"
@@ -786,7 +799,7 @@ export default function BusinessProfile() {
             <button
               type="button"
               onClick={handleSaveSchedule}
-              disabled={savingSchedule || !scheduleDirty}
+              disabled={savingSchedule || !scheduleDirty || scheduleBroken}
               className="rounded-xl bg-[#3248F2] px-4 py-2 text-[13px] font-medium text-white outline-none transition-colors hover:bg-[#2839c9] focus-visible:bg-[#2839c9] disabled:cursor-not-allowed disabled:opacity-45"
             >
               {savingSchedule ? 'Сохраняем…' : 'Сохранить'}
