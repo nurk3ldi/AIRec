@@ -37,7 +37,7 @@ const DEFAULT_BREAK = { breakFrom: '13:00', breakTo: '14:00' }
 // purpose: both the chip and its heading sit at the column's left edge, and the
 // leftover width is what keeps the pair off the opening time without needing a
 // margin that only one of the two would carry.
-const COLUMNS = 'grid grid-cols-[40px_1fr_72px_100px_100px_90px_170px] gap-6'
+const COLUMNS = 'grid grid-cols-[40px_1fr_72px_100px_100px_90px_170px] gap-8'
 
 const toMinutes = (time) => {
   const [hours, minutes] = time.split(':').map(Number)
@@ -158,10 +158,10 @@ export default function WorkingHours({ schedule, onChange }) {
 
             {/* Always visible: it is the only place in the product that offers
                 a round-the-clock day, so hiding it until hover would leave the
-                feature undiscoverable. 12px in a column of its own is small
-                enough not to compete with the times even in full black;
-                switched on it takes the accent, because it is the reason the
-                columns after it are gone. */}
+                feature undiscoverable. Muted while off so it doesn't compete
+                with the times it would override, and darkening on hover to
+                answer the pointer; switched on it takes the accent, because it
+                is the reason the columns after it are gone. */}
             <button
               type="button"
               onClick={() =>
@@ -186,7 +186,7 @@ export default function WorkingHours({ schedule, onChange }) {
               className={`h-7 w-fit justify-self-start rounded-lg px-2 text-[12px] font-medium outline-none transition-colors ${
                 always
                   ? 'bg-[#3248F2]/10 text-[#3248F2]'
-                  : 'text-[#171215] hover:bg-[#F6F8FA]'
+                  : 'text-[#999999] hover:bg-[#F6F8FA] hover:text-[#171215]'
               }`}
             >
               24 ч
