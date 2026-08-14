@@ -19,7 +19,12 @@ const DEFAULT_BREAK = { breakFrom: '13:00', breakTo: '14:00' }
 // times, the hours and the break together against the right edge — a left-
 // anchored name and a right-anchored block of numbers, with the gap between
 // them instead of inside them.
-const COLUMNS = 'grid grid-cols-[40px_1fr_100px_100px_90px_auto] gap-6'
+//
+// Every width here is fixed except that one `1fr`, and the break column in
+// particular must NOT be `auto`: the header and each row are separate grids,
+// so a content-sized column resolves to the width of "ПЕРЕРЫВ" in one and to
+// two time fields in the other, and the whole table drifts out of alignment.
+const COLUMNS = 'grid grid-cols-[40px_1fr_100px_100px_90px_170px] gap-6'
 
 const toMinutes = (time) => {
   const [hours, minutes] = time.split(':').map(Number)
@@ -85,7 +90,12 @@ export default function WorkingHours({ schedule, onChange }) {
         <ColumnLabel>Начало</ColumnLabel>
         <ColumnLabel>Конец</ColumnLabel>
         <ColumnLabel>Часов</ColumnLabel>
-        <ColumnLabel className="justify-self-end">Перерыв</ColumnLabel>
+        {/* Centred over the pair of times rather than the whole column — the
+            right padding discounts the remove button, which has no header and
+            would otherwise pull the label off the values it names. */}
+        <ColumnLabel className="block w-full pr-[56px] text-center">
+          Перерыв
+        </ColumnLabel>
       </div>
 
       {schedule.map((item) => {
@@ -154,7 +164,7 @@ export default function WorkingHours({ schedule, onChange }) {
                 space on a full-width card. */}
             {isOpen &&
               (hasBreak ? (
-                <span className="flex items-center gap-3 justify-self-end">
+                <span className="flex items-center gap-3">
                   <TimeField
                     value={item.breakFrom}
                     label={`${item.day}: перерыв с`}
@@ -186,7 +196,7 @@ export default function WorkingHours({ schedule, onChange }) {
                 <button
                   type="button"
                   onClick={() => update(item.day, DEFAULT_BREAK)}
-                  className="inline-flex w-fit items-center gap-1 justify-self-end rounded-lg px-1.5 py-1 text-[13px] font-medium text-[#3248F2] outline-none transition-colors hover:bg-[#3248F2]/8"
+                  className="inline-flex w-fit items-center gap-1 rounded-lg px-1.5 py-1 text-[13px] font-medium text-[#3248F2] outline-none transition-colors hover:bg-[#3248F2]/8"
                 >
                   <HugeiconsIcon
                     icon={Add01Icon}
