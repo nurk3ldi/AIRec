@@ -65,7 +65,12 @@ export default function TimeGrid({ date, view, onDateChange }) {
   }, [showsToday, date, view])
 
   return (
-    <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto">
+    // Same accent scrollbar the option pickers use — one scrollbar treatment
+    // across the app rather than a second one invented here.
+    <div
+      ref={scroller}
+      className="min-h-0 flex-1 overflow-y-auto [scrollbar-color:#3248F2_#F6F8FA] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#3248F2] [&::-webkit-scrollbar-track]:bg-[#F6F8FA] [&::-webkit-scrollbar]:w-2"
+    >
       <div className="sticky top-0 z-10 bg-white">
         <DaysHeader date={date} view={view} onDateChange={onDateChange} />
       </div>
