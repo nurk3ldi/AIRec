@@ -3,10 +3,16 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { Add01Icon, MinusSignIcon } from '@hugeicons/core-free-icons'
 import OptionPicker from './OptionPicker'
 
-/** Half-hour steps: the grid a barbershop actually books on. */
-const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
-  const hour = String(Math.floor(index / 2)).padStart(2, '0')
-  return `${hour}:${index % 2 ? '30' : '00'}`
+/**
+ * Quarter-hour steps — the same grid service durations are offered on, so a
+ * 45-minute service divides into a day evenly instead of leaving offcuts no
+ * other booking can fill. The backend enforces the same 15-minute multiple, so
+ * this list can't drift away from what the API will accept.
+ */
+const TIME_OPTIONS = Array.from({ length: 96 }, (_, index) => {
+  const hour = String(Math.floor(index / 4)).padStart(2, '0')
+  const minute = String((index % 4) * 15).padStart(2, '0')
+  return `${hour}:${minute}`
 })
 
 const DEFAULT_WORKDAY = { from: '10:00', to: '21:00' }
@@ -24,7 +30,11 @@ const DEFAULT_BREAK = { breakFrom: '13:00', breakTo: '14:00' }
 // particular must NOT be `auto`: the header and each row are separate grids,
 // so a content-sized column resolves to the width of "ПЕРЕРЫВ" in one and to
 // two time fields in the other, and the whole table drifts out of alignment.
-const COLUMNS = 'grid grid-cols-[40px_1fr_100px_100px_90px_170px] gap-6'
+// The last column is the round-the-clock mark. It sits past the break rather
+// than beside the times because it isn't a value in the row — it's the mode the
+// rest of the row is in, and the row reads left to right as the day, its hours,
+// its break, and then the exception to all three.
+const COLUMNS = 'grid grid-cols-[40px_1fr_100px_100px_90px_170px_52px] gap-6'
 
 const toMinutes = (time) => {
   const [hours, minutes] = time.split(':').map(Number)
@@ -96,10 +106,12 @@ export default function WorkingHours({ schedule, onChange }) {
         <ColumnLabel className="block w-full pr-[56px] text-center">
           Перерыв
         </ColumnLabel>
+        <span />
       </div>
 
       {schedule.map((item) => {
-        const isOpen = Boolean(item.from)
+        const always = Boolean(item.is24h)
+        const isOpen = always || Boolean(item.from)
         const hasBreak = Boolean(item.breakFrom)
         const open = openMinutes(item)
 
@@ -117,8 +129,14 @@ export default function WorkingHours({ schedule, onChange }) {
                 update(
                   item.day,
                   open
-                    ? DEFAULT_WORKDAY
-                    : { from: null, to: null, breakFrom: null, breakTo: null }
+                    ? { ...DEFAULT_WORKDAY, is24h: false }
+                    : {
+                        from: null,
+                        to: null,
+                        breakFrom: null,
+                        breakTo: null,
+                        is24h: false,
+                      }
                 )
               }
               aria-label={`${item.day}: ${isOpen ? 'сделать выходным' : 'сделать рабочим'}`}
@@ -133,7 +151,10 @@ export default function WorkingHours({ schedule, onChange }) {
               {item.day}
             </span>
 
-            {isOpen ? (
+            {/* A day that is closed, and a day that never closes, both replace
+                the three value columns with one statement — empty cells under
+                the headings would read as values that went missing. */}
+            {isOpen && !always ? (
               <>
                 <TimeField
                   value={item.from}
@@ -145,69 +166,104 @@ export default function WorkingHours({ schedule, onChange }) {
                   label={`${item.day}: конец`}
                   onChange={(to) => update(item.day, { to })}
                 />
+                <span className="text-[14px] text-[#999999]">
+                  {open ? formatSpan(open) : '—'}
+                </span>
               </>
             ) : (
-              // Spans the time and hours columns: a closed day has none of
-              // them, and empty cells under the headings would read as values
-              // that went missing.
-              <span className="col-span-3 text-[14px] text-[#999999]">Выходной</span>
-            )}
-
-            {isOpen && (
-              <span className="text-[14px] text-[#999999]">
-                {open ? formatSpan(open) : '—'}
+              <span
+                className={`col-span-3 text-[14px] ${always ? 'text-[#171215]' : 'text-[#999999]'}`}
+              >
+                {always ? 'Круглосуточно' : 'Выходной'}
               </span>
             )}
 
-            {/* Pushed to the right edge: with the times on the left, the row
-                then reads from edge to edge instead of trailing off into empty
-                space on a full-width card. */}
-            {isOpen &&
-              (hasBreak ? (
-                <span className="flex items-center gap-3">
-                  <TimeField
-                    value={item.breakFrom}
-                    label={`${item.day}: перерыв с`}
-                    onChange={(breakFrom) => update(item.day, { breakFrom })}
-                  />
-                  <TimeField
-                    value={item.breakTo}
-                    label={`${item.day}: перерыв до`}
-                    onChange={(breakTo) => update(item.day, { breakTo })}
-                  />
+            {/* Always a grid child, even when empty, so the mark in the last
+                column stays in its own track instead of sliding left into the
+                break's on a closed day. Pushed to the right edge: with the
+                times on the left, the row then reads from edge to edge instead
+                of trailing off into empty space on a full-width card. */}
+            <span>
+              {isOpen &&
+                !always &&
+                (hasBreak ? (
+                  <span className="flex items-center gap-3">
+                    <TimeField
+                      value={item.breakFrom}
+                      label={`${item.day}: перерыв с`}
+                      onChange={(breakFrom) => update(item.day, { breakFrom })}
+                    />
+                    <TimeField
+                      value={item.breakTo}
+                      label={`${item.day}: перерыв до`}
+                      onChange={(breakTo) => update(item.day, { breakTo })}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        update(item.day, { breakFrom: null, breakTo: null })
+                      }
+                      aria-label={`${item.day}: убрать перерыв`}
+                      className="ml-1 grid h-7 w-7 place-items-center rounded-lg text-[#999999] outline-none transition-colors hover:bg-[#DC2626]/8 hover:text-[#DC2626]"
+                    >
+                      <HugeiconsIcon
+                        icon={MinusSignIcon}
+                        size={14}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.4}
+                      />
+                    </button>
+                  </span>
+                ) : (
                   <button
                     type="button"
-                    onClick={() =>
-                      update(item.day, { breakFrom: null, breakTo: null })
-                    }
-                    aria-label={`${item.day}: убрать перерыв`}
-                    className="ml-1 grid h-7 w-7 place-items-center rounded-lg text-[#999999] outline-none transition-colors hover:bg-[#DC2626]/8 hover:text-[#DC2626]"
+                    onClick={() => update(item.day, DEFAULT_BREAK)}
+                    className="inline-flex w-fit items-center gap-1 rounded-lg px-1.5 py-1 text-[13px] font-medium text-[#3248F2] outline-none transition-colors hover:bg-[#3248F2]/8"
                   >
                     <HugeiconsIcon
-                      icon={MinusSignIcon}
-                      size={14}
+                      icon={Add01Icon}
+                      size={13}
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2.4}
                     />
+                    Перерыв
                   </button>
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => update(item.day, DEFAULT_BREAK)}
-                  className="inline-flex w-fit items-center gap-1 rounded-lg px-1.5 py-1 text-[13px] font-medium text-[#3248F2] outline-none transition-colors hover:bg-[#3248F2]/8"
-                >
-                  <HugeiconsIcon
-                    icon={Add01Icon}
-                    size={13}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.4}
-                  />
-                  Перерыв
-                </button>
-              ))}
+                ))}
+            </span>
+
+            {/* Muted and only on hover or keyboard focus while off, so seven
+                permanent chips don't compete with the times they'd override;
+                once on, it is the row's loudest thing, because it is the reason
+                the other columns are gone. The header pill is what makes the
+                idea discoverable without the row having to shout it. */}
+            <button
+              type="button"
+              onClick={() =>
+                update(
+                  item.day,
+                  always
+                    ? { is24h: false, ...DEFAULT_WORKDAY }
+                    : {
+                        is24h: true,
+                        from: null,
+                        to: null,
+                        breakFrom: null,
+                        breakTo: null,
+                      }
+                )
+              }
+              aria-pressed={always}
+              aria-label={`${item.day}: круглосуточно`}
+              className={`h-7 rounded-lg px-2 text-[12px] font-medium outline-none transition-colors ${
+                always
+                  ? 'bg-[#3248F2]/10 text-[#3248F2]'
+                  : 'text-[#999999] opacity-0 hover:bg-[#F6F8FA] hover:text-[#171215] group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100'
+              }`}
+            >
+              24 ч
+            </button>
           </div>
         )
       })}
@@ -215,7 +271,14 @@ export default function WorkingHours({ schedule, onChange }) {
   )
 }
 
-/** A time as a picker, sized to sit inline in a sentence of times. */
+/**
+ * A time as a picker, sized to sit inline in a sentence of times.
+ *
+ * Searchable because the quarter-hour grid is ninety-six entries long: typing
+ * "18" is one keystroke pair away from the answer, where scrolling to it is a
+ * dozen. The box also makes the filtering visible — cmdk narrows the list on
+ * any keypress whether or not there is somewhere to see it happen.
+ */
 function TimeField({ value, label, onChange }) {
   return (
     <OptionPicker
@@ -225,6 +288,7 @@ function TimeField({ value, label, onChange }) {
       onChange={onChange}
       size="text-[14px]"
       weight="font-medium"
+      searchable
       compact
     />
   )

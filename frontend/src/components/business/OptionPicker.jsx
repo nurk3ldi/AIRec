@@ -49,6 +49,18 @@ export default function OptionPicker({
   const [open, setOpen] = useState(false)
   const selected = multiple ? parse(value) : []
 
+  // Which option the list has highlighted. cmdk highlights its first item by
+  // default, which on a ninety-six-entry list of times means opening the picker
+  // at 00:00 with the current value somewhere far below the fold. Seeding it
+  // with the current value on open makes cmdk scroll that row into view, so the
+  // menu opens *at* the value it is about to change.
+  const [highlighted, setHighlighted] = useState('')
+
+  const handleOpenChange = (next) => {
+    setOpen(next)
+    if (next) setHighlighted((multiple ? parse(value)[0] : value) ?? '')
+  }
+
   const isChecked = (option) =>
     multiple ? selected.includes(option) : option === value
 
@@ -70,7 +82,7 @@ export default function OptionPicker({
   }
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
+    <Popover.Root open={open} onOpenChange={handleOpenChange}>
       <Popover.Trigger
         disabled={disabled}
         aria-label={label}
@@ -128,6 +140,8 @@ export default function OptionPicker({
           className="z-[60] w-[300px] overflow-hidden rounded-xl border border-[#999999]/25 bg-white shadow-[0_16px_40px_-8px_rgba(23,18,21,0.28)]"
         >
           <Command
+            value={highlighted}
+            onValueChange={setHighlighted}
             // Substring, not fuzzy scoring: on place names a fuzzy match
             // produces results nobody asked for.
             filter={(option, search) =>

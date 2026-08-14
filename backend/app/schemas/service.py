@@ -8,6 +8,14 @@ from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_valid
 MAX_SERVICE_MINUTES = 24 * 60
 MAX_SERVICE_PRICE = 100_000_000
 
+# Everything the assistant will ever have to line up — a service, an opening
+# time, a break — sits on the same 15-minute grid. Booking is fitting durations
+# into gaps between hours, and that arithmetic only stays exact while both sides
+# share one unit; a 40-minute service against a 10:05 opening leaves offcuts no
+# other booking can fill. Enforced here rather than trusted to the pickers,
+# since the pickers are not the only possible client.
+SLOT_MINUTES = 15
+
 
 class ServicePublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -48,6 +56,8 @@ class ServiceInput(BaseModel):
             raise ValueError("Укажите длительность.")
         if value > MAX_SERVICE_MINUTES:
             raise ValueError("Не больше 24 часов.")
+        if value % SLOT_MINUTES:
+            raise ValueError("Длительность должна быть кратна 15 минутам.")
         return value
 
     @field_validator("price")
@@ -84,6 +94,7 @@ class WorkingHoursPublic(BaseModel):
     closes_at: time | None = None
     break_starts_at: time | None = None
     break_ends_at: time | None = None
+    is_24h: bool = False
 
     # "10:00", not "10:00:00" — seconds are noise the client would strip anyway.
     @field_serializer("opens_at", "closes_at", "break_starts_at", "break_ends_at")
@@ -97,6 +108,20 @@ class WorkingHoursInput(BaseModel):
     closes_at: time | None = None
     break_starts_at: time | None = None
     break_ends_at: time | None = None
+    is_24h: bool = False
+
+    @field_validator(
+        "opens_at", "closes_at", "break_starts_at", "break_ends_at"
+    )
+    @classmethod
+    def _on_the_grid(cls, value: time | None) -> time | None:
+        # Seconds are dropped rather than rejected: a client sending "10:00:00"
+        # means ten o'clock, and refusing it would only punish the format.
+        if value is None:
+            return None
+        if value.minute % SLOT_MINUTES:
+            raise ValueError("Время должно быть кратно 15 минутам.")
+        return value.replace(second=0, microsecond=0)
 
 
 class WorkingHoursListInput(BaseModel):

@@ -4,7 +4,7 @@ import uuid
 from datetime import time
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Integer, Time, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, Integer, Time, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -45,18 +45,27 @@ class WorkingHours(Base):
     # is needed when a booking date is checked against the schedule.
     weekday: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    # Null on both means the day is closed.
+    # Null on both means the day is closed — unless `is_24h` is set.
     opens_at: Mapped[time | None] = mapped_column(Time, nullable=True)
     closes_at: Mapped[time | None] = mapped_column(Time, nullable=True)
 
     break_starts_at: Mapped[time | None] = mapped_column(Time, nullable=True)
     break_ends_at: Mapped[time | None] = mapped_column(Time, nullable=True)
 
+    # Round the clock, as its own flag rather than 00:00–00:00 or 00:00–23:59.
+    # Both of those encodings are guesses a reader has to decode, and the second
+    # one silently loses a minute every day — which a slot generator would then
+    # have to know to forgive. A boolean says it outright, and leaves the two
+    # time columns null so nothing can disagree with it.
+    is_24h: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
+
     business: Mapped[Business] = relationship()
 
     @property
     def is_open(self) -> bool:
-        return self.opens_at is not None and self.closes_at is not None
+        return self.is_24h or (self.opens_at is not None and self.closes_at is not None)
 
     def __repr__(self) -> str:
         return f"<WorkingHours day={self.weekday} open={self.is_open}>"

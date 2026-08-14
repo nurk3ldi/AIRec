@@ -156,11 +156,16 @@ class BusinessService:
             row = rows.get(item.weekday)
             if row is None:
                 continue
-            row.opens_at = item.opens_at
-            row.closes_at = item.closes_at
+            # A round-the-clock day owns no times at all: opening and closing
+            # would have nothing to say, and a break can't interrupt a day that
+            # never closes. Clearing them here means the flag can never be read
+            # alongside hours that contradict it.
+            row.is_24h = item.is_24h
+            row.opens_at = None if item.is_24h else item.opens_at
+            row.closes_at = None if item.is_24h else item.closes_at
             # A break only means anything inside a working day; carrying one on
             # a closed day would resurface the moment the day is reopened.
-            open_day = item.opens_at is not None and item.closes_at is not None
+            open_day = row.opens_at is not None and row.closes_at is not None
             row.break_starts_at = item.break_starts_at if open_day else None
             row.break_ends_at = item.break_ends_at if open_day else None
 
