@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import Head from 'next/head'
-import DaysHeader from '../components/appointments/DaysHeader'
 import MiniMonth from '../components/appointments/MiniMonth'
 import TimeGrid from '../components/appointments/TimeGrid'
 import Toolbar from '../components/appointments/Toolbar'
@@ -45,8 +44,7 @@ export default function AppointmentsPage() {
                   through all twenty-four hours, and it can only do that if
                   something above it says where the viewport ends. */}
               <div className="flex h-[640px] min-w-0 flex-1 flex-col border-l border-[#999999]/15">
-                <DaysHeader date={date} view={view} onDateChange={setDate} />
-                <TimeGrid date={date} view={view} />
+                <TimeGrid date={date} view={view} onDateChange={setDate} />
               </div>
             </div>
           </div>

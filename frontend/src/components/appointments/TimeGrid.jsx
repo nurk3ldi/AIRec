@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import DaysHeader from './DaysHeader'
 import { sameDay, weekDays } from '../../lib/dates'
 
 // 96px an hour — 24px per quarter, which is the smallest a 15-minute booking
@@ -21,15 +22,21 @@ const TOP_PADDING = 8
 const minutesToday = (moment) => moment.getHours() * 60 + moment.getMinutes()
 
 /**
- * The hours themselves: a gutter of times on the left and one column per day,
- * ruled off at every hour.
+ * The calendar body: the strip of day names, and under it a gutter of times
+ * with one column per day, ruled off at every hour.
  *
- * All twenty-four are rendered rather than only the working ones. A business
- * can open at 06:00 or run past midnight, and a grid that quietly omitted those
- * hours would make a booking in them impossible to see — worse, impossible to
- * notice was missing.
+ * All twenty-four hours are rendered rather than only the working ones. A
+ * business can open at 06:00 or run past midnight, and a grid that quietly
+ * omitted those hours would make a booking in them impossible to see — worse,
+ * impossible to notice was missing.
+ *
+ * The day header is rendered *inside* this scroll box, pinned with `sticky`,
+ * rather than sitting above it. Outside, it would be laid out across the full
+ * width while the grid below lost ~15px to the scrollbar, and every column
+ * boundary would miss its heading by that much. Sharing one scrolling box makes
+ * them share one content width, so they cannot drift apart.
  */
-export default function TimeGrid({ date, view }) {
+export default function TimeGrid({ date, view, onDateChange }) {
   const days = view === 'week' ? weekDays(date) : [date]
   const scroller = useRef(null)
 
@@ -51,7 +58,7 @@ export default function TimeGrid({ date, view }) {
     // of the past above it for context; on any other day, the morning.
     scroller.current.scrollTop = showsToday
       ? Math.max(nowOffset - HOUR_HEIGHT, 0)
-      : OPENS_AT_HOUR * HOUR_HEIGHT
+      : TOP_PADDING + OPENS_AT_HOUR * HOUR_HEIGHT
     // Deliberately only on mount and when the shown range changes — re-running
     // it every tick would yank the grid back under anyone who scrolled away.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -59,6 +66,10 @@ export default function TimeGrid({ date, view }) {
 
   return (
     <div ref={scroller} className="min-h-0 flex-1 overflow-y-auto">
+      <div className="sticky top-0 z-10 bg-white">
+        <DaysHeader date={date} view={view} onDateChange={onDateChange} />
+      </div>
+
       <div className="relative flex" style={{ paddingTop: TOP_PADDING }}>
         {/* Same width as the header's arrow cells, so the day columns below
             line up with the day names above them. */}
