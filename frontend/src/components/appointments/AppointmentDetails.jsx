@@ -23,7 +23,7 @@ import {
   sameInstant,
   startOfDay,
 } from '../../lib/appointments'
-import { DAY_NAMES, MONTHS_OF, dayKey } from '../../lib/dates'
+import { DAY_NAMES, MONTHS_ABBR, MONTHS_OF, dayKey } from '../../lib/dates'
 
 /**
  * `2026-08-17` → "Понедельник, 17 августа".
@@ -37,10 +37,19 @@ const parseDayKey = (key) => {
   return new Date(year, month - 1, date)
 }
 
+/** "Понедельник, 17 августа" — the row in the table, where it stands alone. */
 const formatDay = (key) => {
   const day = parseDayKey(key)
   return `${DAY_NAMES[day.getDay()]}, ${day.getDate()} ${MONTHS_OF[day.getMonth()]}`
 }
+
+/** "17 авг" — the same date inside a line that carries three other facts. */
+const dayLabel = (key) => {
+  const day = parseDayKey(key)
+  return `${day.getDate()} ${MONTHS_ABBR[day.getMonth()]}`
+}
+
+const SOURCE = { whatsapp: 'WhatsApp', manual: 'Вручную' }
 
 /**
  * The four states a booking can be put into, as one switch.
@@ -59,8 +68,6 @@ const STATES = [
 
 const stateOf = (status) =>
   STATES.find((state) => state.covers.includes(status))?.id ?? 'completed'
-
-const SOURCE = { whatsapp: 'WhatsApp', manual: 'Вручную' }
 
 /**
  * One booking, opened from the grid.
@@ -251,6 +258,20 @@ function ReadView({ block, state, error, busy, onStatusChange, onEdit }) {
             </p>
           </div>
         )}
+
+        {/* The same booking again, as one sentence — the line the creation
+            dialog shows before you press Записать. It is not a summary of the
+            table above it but the thing you say out loud when the client rings
+            back: reading six labelled rows down the phone is not something
+            anyone does, and reassembling them by eye every time is the work
+            this line saves.
+            On its own tinted strip so it reads as a quotation rather than a
+            seventh fact, and selectable as one run of text so it can be copied
+            into a message whole. */}
+        <p className="mt-5 rounded-xl bg-[#F6F8FA] px-3.5 py-3 text-[14px] break-words text-[#171215]">
+          {block.service} · {dayLabel(block.day)} · {block.from}–{block.to} ·{' '}
+          {formatPrice(block.price)}
+        </p>
       </div>
 
       <div className="flex shrink-0 items-center justify-between gap-3 border-t border-[#999999]/15 px-6 py-4">
