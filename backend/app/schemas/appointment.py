@@ -86,8 +86,14 @@ class UpdateAppointmentRequest(BaseModel):
     `starts_at` is here rather than on a separate reschedule endpoint because
     moving a booking is the same act as editing it — and it goes through exactly
     the same availability checks either way.
+
+    `service_id` likewise: a client who asks for a different haircut on arrival
+    has changed the same booking, not made another one. It re-snapshots the
+    name, the length and the price, which is why it can change how long the
+    booking runs and so has to be re-checked exactly like a new start time.
     """
 
+    service_id: uuid.UUID | None = None
     client_name: str | None = Field(default=None, max_length=120)
     client_phone: str | None = Field(default=None, max_length=32)
     starts_at: datetime | None = None

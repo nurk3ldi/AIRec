@@ -25,6 +25,12 @@ export function toBlock(row) {
   return {
     id: row.id,
     day: dayKey(start),
+    // The raw instant and the service it was booked from, kept alongside the
+    // display forms below: editing a booking has to hand both straight back to
+    // the API, and re-parsing "12:15" into a date would need the day, the zone
+    // and a guess about which of the two it came from.
+    startsAt: row.starts_at,
+    serviceId: row.service_id,
     start: minutesInto(start),
     // A booking running past midnight would otherwise end "before" it started.
     end: dayKey(end) === dayKey(start) ? minutesInto(end) : 24 * 60,
@@ -42,6 +48,63 @@ export function toBlock(row) {
     source: row.source,
     note: row.note,
   }
+}
+
+/* --- reading and writing the same booking elsewhere ---------------------- */
+
+/**
+ * Whether two ISO strings name the same moment.
+ *
+ * Compared as instants rather than as text, deliberately: `/appointments/slots`
+ * returns times in the business's offset and a booking returns its start in
+ * UTC, so the very same 12:15 arrives spelled two different ways. Matching the
+ * strings is what made an edit form fail to highlight the time it was already
+ * booked for.
+ */
+export const sameInstant = (a, b) =>
+  Boolean(a) && Boolean(b) && new Date(a).getTime() === new Date(b).getTime()
+
+/** "12:15" — read in the browser's zone, like everything else here. */
+export const clockOf = (iso) => clock(new Date(iso))
+
+/** Where an instant falls in its own day, in minutes — for grouping slots. */
+export const minutesOf = (iso) => minutesInto(new Date(iso))
+
+/** The clock time a service of `minutes` starting at `iso` would finish at. */
+export const endClock = (iso, minutes) =>
+  clock(new Date(new Date(iso).getTime() + minutes * 60000))
+
+export const formatPrice = (value) => `${value.toLocaleString('ru-RU')} ₸`
+
+export function formatDuration(minutes) {
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  if (!hours) return `${rest} мин`
+  return rest ? `${hours} ч ${rest} мин` : `${hours} ч`
+}
+
+/** "13:00" → 780. Null for a day that has no break. */
+export function parseClock(text) {
+  if (!text) return null
+  const [hours, minutes] = text.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+export const fromMinutes = (minutes) =>
+  `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(
+    minutes % 60
+  ).padStart(2, '0')}`
+
+export function startOfDay(date) {
+  const copy = new Date(date)
+  copy.setHours(0, 0, 0, 0)
+  return copy
+}
+
+export function addDays(date, count) {
+  const copy = new Date(date)
+  copy.setDate(copy.getDate() + count)
+  return copy
 }
 
 /**

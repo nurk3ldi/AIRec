@@ -282,7 +282,8 @@ export function createAppointment(accessToken, booking) {
   })
 }
 
-/** Partial update — status, note, client, or a new `starts_at` to reschedule. */
+/** Partial update — status, note, client, a new `service_id`, or a new
+ *  `starts_at` to reschedule. Anything omitted is left as it was. */
 export function updateAppointment(accessToken, id, changes) {
   return request(`/appointments/${id}`, {
     method: 'PATCH',

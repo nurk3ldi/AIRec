@@ -110,7 +110,7 @@ All routes are under `/api/v1`. Interactive docs at `/docs`.
 | `GET` | `/appointments/slots?service_id=&day=&source=` | Start times that service still fits into. `source=manual` (default, the owner) ignores notice and horizon; `source=whatsapp` applies both |
 | `POST` | `/appointments` | Book a time (201) |
 | `GET` | `/appointments/{id}` | One booking |
-| `PATCH` | `/appointments/{id}` | Edit, reschedule, or change status |
+| `PATCH` | `/appointments/{id}` | Edit, reschedule, swap the service, or change status |
 | `DELETE` | `/appointments/{id}` | Cancel — sets the status, never deletes the row |
 
 Uploaded images are served as static files from `/media/avatars/<name>.png` and

@@ -232,15 +232,32 @@ class AppointmentService:
 
         changes = data.model_dump(exclude_unset=True)
         was_blocking = appointment.blocks_slot
+        # True once this booking occupies a different stretch of time than it
+        # did: a new start, a new length, or both.
         moved = False
 
-        if "starts_at" in changes and changes["starts_at"] is not None:
+        service_id = changes.get("service_id")
+        if service_id is not None and service_id != appointment.service_id:
+            service = await self._find_service(user, service_id)
+            # Re-snapshotted, not merely re-pointed. The name, the length and
+            # the price are what this booking *is*; leaving yesterday's copy
+            # beside a new `service_id` would make the row disagree with itself.
+            appointment.service_id = service.id
+            appointment.service_name = service.name
+            appointment.duration_minutes = service.duration_minutes
+            appointment.price = service.price
+            moved = True
+
+        if changes.get("starts_at") is not None:
             starts_at = changes["starts_at"].astimezone(UTC)
-            moved = starts_at != appointment.starts_at
+            moved = moved or starts_at != appointment.starts_at
             appointment.starts_at = starts_at
-            # The duration is the one this booking was made with, not whatever
-            # the price list says today.
-            appointment.ends_at = starts_at + timedelta(
+
+        if moved:
+            # Derived from whichever of the two just changed, and from the
+            # duration this booking now carries rather than whatever the price
+            # list says today.
+            appointment.ends_at = appointment.starts_at + timedelta(
                 minutes=appointment.duration_minutes
             )
 
@@ -252,7 +269,8 @@ class AppointmentService:
             appointment.status = changes["status"].value
 
         # Where the booking sits is only re-checked when it has actually been
-        # chosen again. Marking an old booking as completed must not fail
+        # chosen again — a new time, or a service long enough to push the end
+        # of it somewhere new. Marking an old booking as completed must not fail
         # because its time is long past the notice period.
         if moved:
             # Every edit here comes from the panel, so the owner is the one
