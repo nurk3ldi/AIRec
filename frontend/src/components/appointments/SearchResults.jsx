@@ -2,13 +2,12 @@ import BookingRow from './BookingRow'
 import { MONTHS_ABBR } from '../../lib/dates'
 
 /**
- * Every visit by whoever was searched for.
+ * Every visit by whoever was searched for, hanging under the search field.
  *
- * It takes the side column's place while a query is being typed, rather than
- * dropping out of the search field as a menu: a popover would cover the
- * calendar, which is the thing you are searching in order to look at. The
- * column is also tall, so the answer is a list you can read rather than eight
- * rows and a scrollbar.
+ * Attached to the field rather than shown in the side column: the results are
+ * the field's answer, and an answer that appears in the far corner of the
+ * screen from the question has to be *found* before it can be read. It floats,
+ * so unlike a card it carries a shadow.
  *
  * The results are split in two and sorted away from now in both directions.
  * "Когда придёт Айгуль" and "когда она была в прошлый раз" are the two
@@ -41,62 +40,63 @@ export default function SearchResults({ query, results, loading, onSelect }) {
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto border-t border-[#999999]/15 px-6 py-5">
-      <p className="text-[11px] font-medium tracking-wide text-[#999999] uppercase">
-        Поиск
-      </p>
-
+    <div
+      role="listbox"
+      aria-label="Результаты поиска"
+      // Capped at roughly six rows: past that it is a list to scroll rather
+      // than a menu to pick from, and it would cover the calendar it is
+      // supposed to be pointing into.
+      className="absolute top-full left-0 z-30 mt-2 max-h-[360px] w-[340px] overflow-y-auto rounded-xl border border-[#999999]/25 bg-white p-2 shadow-[0_16px_40px_-8px_rgba(23,18,21,0.28)]"
+    >
       {loading ? (
-        <p className="mt-2 text-[14px] text-[#999999]">Ищем…</p>
+        <p className="px-2 py-2 text-[14px] text-[#999999]">Ищем…</p>
       ) : results.length === 0 ? (
-        <p className="mt-2 text-[14px] break-words text-[#999999]">
+        <p className="px-2 py-2 text-[14px] break-words text-[#999999]">
           По запросу «{query}» ничего не найдено.
         </p>
       ) : (
         <>
-          <p className="mt-2 text-[14px] text-[#171215]">
-            Найдено {results.length}
-          </p>
-
           {upcoming.length > 0 && (
             <>
-              <p className="mt-4 mb-1 text-[12px] font-medium text-[#171215]">
-                Предстоящие
-              </p>
-              <ul>
-                {upcoming.map((block) => (
-                  <li key={block.id}>
-                    <BookingRow
-                      block={block}
-                      date={label(block)}
-                      onSelect={onSelect}
-                    />
-                  </li>
-                ))}
-              </ul>
+              <Group>Предстоящие</Group>
+              {upcoming.map((block) => (
+                <BookingRow
+                  key={block.id}
+                  block={block}
+                  date={label(block)}
+                  onSelect={onSelect}
+                />
+              ))}
             </>
           )}
 
           {past.length > 0 && (
             <>
-              <p className="mt-4 mb-1 text-[12px] font-medium text-[#171215]">
+              <Group className={upcoming.length > 0 ? 'mt-2' : ''}>
                 Прошедшие
-              </p>
-              <ul>
-                {past.map((block) => (
-                  <li key={block.id}>
-                    <BookingRow
-                      block={block}
-                      date={label(block)}
-                      onSelect={onSelect}
-                    />
-                  </li>
-                ))}
-              </ul>
+              </Group>
+              {past.map((block) => (
+                <BookingRow
+                  key={block.id}
+                  block={block}
+                  date={label(block)}
+                  onSelect={onSelect}
+                />
+              ))}
             </>
           )}
         </>
       )}
     </div>
+  )
+}
+
+function Group({ children, className = '' }) {
+  return (
+    <p
+      className={`px-2 pt-1 pb-1.5 text-[11px] font-medium tracking-wide text-[#999999] uppercase ${className}`}
+    >
+      {children}
+    </p>
   )
 }

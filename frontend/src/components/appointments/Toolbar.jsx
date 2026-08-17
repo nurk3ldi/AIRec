@@ -7,6 +7,7 @@ import {
   Cancel01Icon,
   Search01Icon,
 } from '@hugeicons/core-free-icons'
+import SearchResults from './SearchResults'
 import {
   DAY_NAMES,
   MONTHS_OF,
@@ -58,10 +59,15 @@ export default function Toolbar({
   onViewChange,
   query,
   onQueryChange,
+  results,
+  searchLoading,
+  onResultSelect,
+  overlayOpen,
   onCreate,
 }) {
   const [searching, setSearching] = useState(false)
   const searchRef = useRef(null)
+  const searchBox = useRef(null)
 
   const shift = (direction) => onDateChange(shiftDate(date, view, direction))
 
@@ -73,6 +79,26 @@ export default function Toolbar({
     setSearching(false)
     onQueryChange('')
   }
+
+  // A press anywhere else puts the toolbar back the way it was. Without it the
+  // results would hang over the calendar until the ✕ was found, and the ✕ is
+  // the last place anyone looks once they have what they came for.
+  //
+  // Suspended while a dialog is open, and that is the whole point of the flag:
+  // a booking opened from these results renders in a portal outside this box,
+  // so every click inside it — including its own Close button — would read as
+  // "outside" and take the results away underneath it. Looking at one result is
+  // usually the prelude to looking at the next.
+  useEffect(() => {
+    if (!searching || overlayOpen) return
+
+    const dismiss = (event) => {
+      if (!searchBox.current?.contains(event.target)) closeSearch()
+    }
+    document.addEventListener('mousedown', dismiss)
+    return () => document.removeEventListener('mousedown', dismiss)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searching, overlayOpen])
 
   return (
     <div className="flex flex-wrap items-center gap-4">
@@ -103,28 +129,47 @@ export default function Toolbar({
             a search box that pushes three controls sideways every time it opens
             makes the whole bar move under the pointer. */}
         {searching ? (
-          <div className="flex h-10 items-center gap-2 rounded-xl border border-[#999999]/25 bg-white pr-2 pl-3">
-            {/* No placeholder and no icon inside: the field only ever appears
-                straight after its own magnifier was pressed, so what it is for
-                is already established — repeating it would be labelling the
-                answer to a question just asked. `aria-label` still carries it
-                for anyone who arrives without having seen that. */}
-            <input
-              ref={searchRef}
-              value={query}
-              onChange={(event) => onQueryChange(event.target.value)}
-              onKeyDown={(event) => event.key === 'Escape' && closeSearch()}
-              aria-label="Поиск по клиенту"
-              className="w-56 bg-transparent text-[14px] text-[#171215] outline-none"
-            />
-            <button
-              type="button"
-              onClick={closeSearch}
-              aria-label="Закрыть поиск"
-              className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[#999999] outline-none transition-colors hover:bg-[#F6F8FA] hover:text-[#171215]"
-            >
-              <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={2.4} />
-            </button>
+          // `relative`, because the results hang off this box rather than off
+          // the toolbar: they are the field's own answer and have to move with
+          // it if the bar ever wraps.
+          <div ref={searchBox} className="relative">
+            <div className="flex h-10 items-center gap-2 rounded-xl border border-[#999999]/25 bg-white pr-2 pl-3">
+              {/* No placeholder and no icon inside: the field only ever appears
+                  straight after its own magnifier was pressed, so what it is for
+                  is already established — repeating it would be labelling the
+                  answer to a question just asked. `aria-label` still carries it
+                  for anyone who arrives without having seen that. */}
+              <input
+                ref={searchRef}
+                value={query}
+                onChange={(event) => onQueryChange(event.target.value)}
+                onKeyDown={(event) => event.key === 'Escape' && closeSearch()}
+                aria-label="Поиск по клиенту"
+                className="w-56 bg-transparent text-[14px] text-[#171215] outline-none"
+              />
+              <button
+                type="button"
+                onClick={closeSearch}
+                aria-label="Закрыть поиск"
+                className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[#999999] outline-none transition-colors hover:bg-[#F6F8FA] hover:text-[#171215]"
+              >
+                <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={2.4} />
+              </button>
+            </div>
+
+            {query.trim() && (
+              <SearchResults
+                query={query.trim()}
+                results={results ?? []}
+                loading={searchLoading}
+                // The list stays exactly as it was. Opening one result is
+                // rarely the end of a search — checking a client's next three
+                // visits means coming straight back to the row below, and
+                // closing the list would mean typing the name again for each
+                // one.
+                onSelect={onResultSelect}
+              />
+            )}
           </div>
         ) : (
           <button

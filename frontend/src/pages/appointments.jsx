@@ -4,7 +4,6 @@ import AppointmentDetails from '../components/appointments/AppointmentDetails'
 import MiniMonth from '../components/appointments/MiniMonth'
 import NewAppointmentDialog from '../components/appointments/NewAppointmentDialog'
 import NowNext from '../components/appointments/NowNext'
-import SearchResults from '../components/appointments/SearchResults'
 import TimeGrid from '../components/appointments/TimeGrid'
 import Toolbar from '../components/appointments/Toolbar'
 import { listAppointments } from '../lib/api'
@@ -115,8 +114,6 @@ export default function AppointmentsPage() {
     }
   }, [reloads])
 
-  const searching = query.trim().length > 0
-
   useEffect(() => {
     const term = query.trim()
     if (!term) {
@@ -174,6 +171,10 @@ export default function AppointmentsPage() {
                 onViewChange={setView}
                 query={query}
                 onQueryChange={setQuery}
+                results={results}
+                searchLoading={searchLoading}
+                onResultSelect={openFromPanel}
+                overlayOpen={Boolean(selected) || creating}
                 onCreate={() => setCreating(true)}
               />
               {error && (
@@ -186,20 +187,10 @@ export default function AppointmentsPage() {
             <div className="flex items-stretch border-t border-[#999999]/15">
               <div className="flex w-[300px] shrink-0 flex-col">
                 <MiniMonth date={date} onDateChange={setDate} />
-                {/* One panel, two jobs — the column shows what is happening
-                    until you ask it something, and the answer takes the same
-                    place rather than opening over the calendar you are
-                    searching in order to look at. */}
-                {searching ? (
-                  <SearchResults
-                    query={query.trim()}
-                    results={results}
-                    loading={searchLoading}
-                    onSelect={openFromPanel}
-                  />
-                ) : (
-                  <NowNext blocks={ahead} onSelect={openFromPanel} />
-                )}
+                {/* Stays put while a search is running: what is happening now
+                    is still true, and searching for a client is no reason to
+                    stop showing the one already in the chair. */}
+                <NowNext blocks={ahead} onSelect={openFromPanel} />
               </div>
 
               {/* A fixed height, not a minimum: the grid inside scrolls

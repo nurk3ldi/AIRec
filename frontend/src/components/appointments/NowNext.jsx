@@ -108,7 +108,9 @@ export default function NowNext({ blocks, onSelect }) {
       {upcoming.length === 0 ? (
         <p className="mt-2 text-[14px] text-[#999999]">Ближайших записей нет.</p>
       ) : (
-        <ul className="mt-1">
+        // Pulled out by its own padding so a row's hover bleeds to the edge of
+        // the column rather than stopping short of it.
+        <ul className="-mx-2 mt-1">
           {upcoming.map((block, index) => {
             // Named only when the day turns over — today is left unlabelled
             // and a run on the same date reads as one list rather than

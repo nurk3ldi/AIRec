@@ -17,7 +17,7 @@ export default function BookingRow({ block, date, trailing, onSelect }) {
     <button
       type="button"
       onClick={() => onSelect?.(block)}
-      className="-mx-2 flex w-[calc(100%+1rem)] items-start gap-3 rounded-lg px-2 py-2 text-left outline-none transition-colors hover:bg-[#F6F8FA]"
+      className="flex w-full items-start gap-3 rounded-lg px-2 py-2 text-left outline-none transition-colors hover:bg-[#F6F8FA]"
     >
       <span className="w-[46px] shrink-0 pt-px">
         <span className="block text-[13px] text-[#999999] tabular-nums">
