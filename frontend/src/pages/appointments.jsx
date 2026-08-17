@@ -4,6 +4,7 @@ import AppointmentDetails from '../components/appointments/AppointmentDetails'
 import MiniMonth from '../components/appointments/MiniMonth'
 import NewAppointmentDialog from '../components/appointments/NewAppointmentDialog'
 import NowNext from '../components/appointments/NowNext'
+import SearchResults from '../components/appointments/SearchResults'
 import TimeGrid from '../components/appointments/TimeGrid'
 import Toolbar from '../components/appointments/Toolbar'
 import { listAppointments } from '../lib/api'
@@ -17,6 +18,10 @@ import styles from '../styles/Appointments.module.css'
 // is still about now rather than about the calendar.
 const AHEAD_DAYS = 7
 
+// Long enough that a name typed at speed is one request rather than six, short
+// enough that the answer still feels like it arrives as you type.
+const SEARCH_DELAY = 300
+
 export default function AppointmentsPage() {
   // The page owns the three things the whole screen is a function of, so the
   // calendar below can stay a pure view of them.
@@ -29,6 +34,8 @@ export default function AppointmentsPage() {
   // point of the panel is that looking ahead at next Thursday must not stop it
   // telling you someone is in the chair right now.
   const [ahead, setAhead] = useState([])
+  const [results, setResults] = useState([])
+  const [searchLoading, setSearchLoading] = useState(false)
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
   // Bumped after a booking is made, purely to make the load effects run again.
@@ -42,15 +49,17 @@ export default function AppointmentsPage() {
   const selected =
     appointments.find((block) => block.id === selectedId) ??
     ahead.find((block) => block.id === selectedId) ??
+    results.find((block) => block.id === selectedId) ??
     null
 
-  /** Swap one booking for the version the server just returned, in both lists. */
+  /** Swap one booking for the version the server just returned, everywhere. */
   const replace = (row) => {
     const updated = toBlock(row)
     const swap = (current) =>
       current.map((block) => (block.id === updated.id ? updated : block))
     setAppointments(swap)
     setAhead(swap)
+    setResults(swap)
   }
 
   /** Open a booking that may not be on screen — take the calendar to it first. */
@@ -106,6 +115,44 @@ export default function AppointmentsPage() {
     }
   }, [reloads])
 
+  const searching = query.trim().length > 0
+
+  useEffect(() => {
+    const term = query.trim()
+    if (!term) {
+      setResults([])
+      setSearchLoading(false)
+      return
+    }
+
+    let cancelled = false
+    // Shown from the first keystroke rather than when the request goes out, so
+    // the panel says "Ищем…" for the whole wait instead of showing the previous
+    // client's results for another third of a second.
+    setSearchLoading(true)
+
+    const timer = setTimeout(() => {
+      // No `from`/`to` on purpose: the server drops the date range when a query
+      // arrives alone, and looking for a client means looking for every visit
+      // they ever made.
+      listAppointments(getAccessToken(), { query: term })
+        .then((rows) => {
+          if (!cancelled) setResults(rows.map(toBlock))
+        })
+        .catch(() => {
+          if (!cancelled) setResults([])
+        })
+        .finally(() => {
+          if (!cancelled) setSearchLoading(false)
+        })
+    }, SEARCH_DELAY)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [query, reloads])
+
   return (
     <>
       <Head><title>AIRec</title></Head>
@@ -139,7 +186,20 @@ export default function AppointmentsPage() {
             <div className="flex items-stretch border-t border-[#999999]/15">
               <div className="flex w-[300px] shrink-0 flex-col">
                 <MiniMonth date={date} onDateChange={setDate} />
-                <NowNext blocks={ahead} onSelect={openFromPanel} />
+                {/* One panel, two jobs — the column shows what is happening
+                    until you ask it something, and the answer takes the same
+                    place rather than opening over the calendar you are
+                    searching in order to look at. */}
+                {searching ? (
+                  <SearchResults
+                    query={query.trim()}
+                    results={results}
+                    loading={searchLoading}
+                    onSelect={openFromPanel}
+                  />
+                ) : (
+                  <NowNext blocks={ahead} onSelect={openFromPanel} />
+                )}
               </div>
 
               {/* A fixed height, not a minimum: the grid inside scrolls

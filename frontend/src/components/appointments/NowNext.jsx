@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import BookingRow from './BookingRow'
 import { MONTHS_ABBR } from '../../lib/dates'
 
 /**
@@ -124,36 +125,22 @@ export default function NowNext({ blocks, onSelect }) {
                   </p>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => onSelect?.(block)}
-                  className="-mx-2 flex w-[calc(100%+1rem)] items-start gap-3 rounded-lg px-2 py-2 text-left outline-none transition-colors hover:bg-[#F6F8FA]"
-                >
-                  <span className="w-[42px] shrink-0 pt-px text-[13px] text-[#999999] tabular-nums">
-                    {block.from}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[14px] font-medium text-[#171215]">
-                      {block.client}
-                    </span>
-                    <span className="block truncate text-[12px] text-[#999999]">
-                      {block.service}
-                    </span>
-                  </span>
-                  {/* Only while it is close enough to be worth watching. "через
-                      6 ч" beside a booking tomorrow afternoon is arithmetic
-                      nobody asked for. */}
-                  {new Date(block.startsAt).getTime() - now < 3 * 3600_000 && (
-                    <span className="shrink-0 pt-px text-[12px] text-[#999999]">
-                      через{' '}
-                      {humanGap(
-                        Math.round(
-                          (new Date(block.startsAt).getTime() - now) / 60000
-                        )
-                      )}
-                    </span>
-                  )}
-                </button>
+                <BookingRow
+                  block={block}
+                  onSelect={onSelect}
+                  // Only while it is close enough to be worth watching. "через
+                  // 21 ч" beside a booking tomorrow afternoon is arithmetic
+                  // nobody asked for.
+                  trailing={
+                    new Date(block.startsAt).getTime() - now < 3 * 3600_000
+                      ? `через ${humanGap(
+                          Math.round(
+                            (new Date(block.startsAt).getTime() - now) / 60000
+                          )
+                        )}`
+                      : null
+                  }
+                />
               </li>
             )
           })}
