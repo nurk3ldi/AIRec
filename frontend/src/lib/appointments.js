@@ -30,6 +30,7 @@ export function toBlock(row) {
     // the API, and re-parsing "12:15" into a date would need the day, the zone
     // and a guess about which of the two it came from.
     startsAt: row.starts_at,
+    endsAt: row.ends_at,
     serviceId: row.service_id,
     start: minutesInto(start),
     // A booking running past midnight would otherwise end "before" it started.

@@ -3,13 +3,19 @@ import Head from 'next/head'
 import AppointmentDetails from '../components/appointments/AppointmentDetails'
 import MiniMonth from '../components/appointments/MiniMonth'
 import NewAppointmentDialog from '../components/appointments/NewAppointmentDialog'
+import NowNext from '../components/appointments/NowNext'
 import TimeGrid from '../components/appointments/TimeGrid'
 import Toolbar from '../components/appointments/Toolbar'
 import { listAppointments } from '../lib/api'
 import { getAccessToken } from '../lib/auth'
-import { toBlock } from '../lib/appointments'
+import { addDays, toBlock } from '../lib/appointments'
 import { dayKey, weekDays } from '../lib/dates'
 import styles from '../styles/Appointments.module.css'
+
+// How far past today the "what's next" panel looks. A week is enough to have
+// something to show on a quiet Sunday evening, and short enough that the answer
+// is still about now rather than about the calendar.
+const AHEAD_DAYS = 7
 
 export default function AppointmentsPage() {
   // The page owns the three things the whole screen is a function of, so the
@@ -19,24 +25,39 @@ export default function AppointmentsPage() {
   const [query, setQuery] = useState('')
 
   const [appointments, setAppointments] = useState([])
+  // Anchored to today rather than to whatever the calendar is showing — the
+  // point of the panel is that looking ahead at next Thursday must not stop it
+  // telling you someone is in the chair right now.
+  const [ahead, setAhead] = useState([])
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
-  // Bumped after a booking is made, purely to make the load effect run again.
+  // Bumped after a booking is made, purely to make the load effects run again.
   const [reloads, setReloads] = useState(0)
 
   // The selection is an id, not the booking itself: an id survives the list
-  // being reloaded, and a booking that has left the visible range simply stops
+  // being reloaded, and a booking that has left both lists simply stops
   // resolving, which closes the dialog — right, since there is nothing left to
   // show it about.
   const [selectedId, setSelectedId] = useState(null)
-  const selected = appointments.find((block) => block.id === selectedId) ?? null
+  const selected =
+    appointments.find((block) => block.id === selectedId) ??
+    ahead.find((block) => block.id === selectedId) ??
+    null
 
-  /** Swap one booking for the version the server just returned. */
+  /** Swap one booking for the version the server just returned, in both lists. */
   const replace = (row) => {
     const updated = toBlock(row)
-    setAppointments((current) =>
+    const swap = (current) =>
       current.map((block) => (block.id === updated.id ? updated : block))
-    )
+    setAppointments(swap)
+    setAhead(swap)
+  }
+
+  /** Open a booking that may not be on screen — take the calendar to it first. */
+  const openFromPanel = (block) => {
+    const [year, month, day] = block.day.split('-').map(Number)
+    setDate(new Date(year, month - 1, day))
+    setSelectedId(block.id)
   }
 
   // Whichever days are on screen, as `YYYY-MM-DD` — the shape the endpoint
@@ -64,6 +85,26 @@ export default function AppointmentsPage() {
       cancelled = true
     }
   }, [from, to, reloads])
+
+  useEffect(() => {
+    let cancelled = false
+    const today = new Date()
+
+    listAppointments(getAccessToken(), {
+      from: dayKey(today),
+      to: dayKey(addDays(today, AHEAD_DAYS)),
+    })
+      // Quiet on failure: the calendar beside it carries the error, and two
+      // copies of the same message would only say the request failed twice.
+      .then((rows) => {
+        if (!cancelled) setAhead(rows.map(toBlock))
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [reloads])
 
   return (
     <>
@@ -96,8 +137,9 @@ export default function AppointmentsPage() {
             </div>
 
             <div className="flex items-stretch border-t border-[#999999]/15">
-              <div className="w-[300px] shrink-0">
+              <div className="flex w-[300px] shrink-0 flex-col">
                 <MiniMonth date={date} onDateChange={setDate} />
+                <NowNext blocks={ahead} onSelect={openFromPanel} />
               </div>
 
               {/* A fixed height, not a minimum: the grid inside scrolls
