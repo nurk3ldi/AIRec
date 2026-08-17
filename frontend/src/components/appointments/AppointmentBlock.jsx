@@ -1,54 +1,35 @@
 /**
  * One booking in the grid.
  *
- * The shape is the reference's: a rounded rectangle, a hairline border and a
- * barely-there fill in one hue, the client's name in that hue above the time.
- * What differs is what the hue *means* — the reference colours by category, and
- * a receptionist's calendar has no categories worth five colours. Here it is
- * the status, which is the one thing on this screen the owner acts on.
+ * The reference's neutral card, taken as written: white, a hairline border,
+ * the name in near-black above a muted time. Tinting every block by status was
+ * tried and dropped — a week with thirty bookings became thirty coloured
+ * rectangles, and the calendar started shouting instead of showing.
  *
- * Classes are written out per status rather than built from a variable: Tailwind
- * only ships the classes it can see spelled out in the source.
+ * The status survives as a 2px edge along the top and bottom. Those two lines
+ * are also where the booking begins and ends on the grid, so the colour marks
+ * its extent as well as its state — and it costs the card nothing at a glance.
+ *
+ * The sides are declared separately from the top and bottom (`border-x` vs
+ * `border-y`) rather than as an all-round border with overrides: that way the
+ * neutral and the coloured edges never compete over which class wins.
+ *
+ * Classes are written out per status rather than built from a variable:
+ * Tailwind only ships the classes it can see spelled out in the source.
  */
-const STATUS_STYLE = {
+const STATUS_EDGE = {
   // Booked by the assistant, not yet looked at — the one that wants attention,
   // and so the only one that gets the accent.
-  pending: {
-    box: 'border-[#3248F2]/35 bg-[#3248F2]/[0.06]',
-    title: 'text-[#3248F2]',
-    meta: 'text-[#3248F2]/70',
-    ring: 'ring-[#3248F2]/50',
-  },
-  confirmed: {
-    box: 'border-[#16A34A]/35 bg-[#16A34A]/[0.06]',
-    title: 'text-[#16A34A]',
-    meta: 'text-[#16A34A]/70',
-    ring: 'ring-[#16A34A]/50',
-  },
-  completed: {
-    box: 'border-[#999999]/30 bg-[#999999]/[0.08]',
-    title: 'text-[#171215]',
-    meta: 'text-[#999999]',
-    ring: 'ring-[#171215]/35',
-  },
-  no_show: {
-    box: 'border-[#DC2626]/35 bg-[#DC2626]/[0.06]',
-    title: 'text-[#DC2626]',
-    meta: 'text-[#DC2626]/70',
-    ring: 'ring-[#DC2626]/50',
-  },
-  // No fill at all: the time is free again, and a tinted block would keep
-  // claiming it.
-  cancelled: {
-    box: 'border-[#999999]/30 bg-transparent',
-    title: 'text-[#999999] line-through',
-    meta: 'text-[#999999]',
-    ring: 'ring-[#999999]/50',
-  },
+  pending: 'border-y-[#3248F2]',
+  confirmed: 'border-y-[#16A34A]',
+  completed: 'border-y-[#999999]',
+  no_show: 'border-y-[#DC2626]',
+  cancelled: 'border-y-[#999999]',
 }
 
 export default function AppointmentBlock({ block, selected, onSelect }) {
-  const style = STATUS_STYLE[block.status] ?? STATUS_STYLE.completed
+  const edge = STATUS_EDGE[block.status] ?? STATUS_EDGE.completed
+  const dead = block.status === 'cancelled'
 
   return (
     <button
@@ -59,10 +40,14 @@ export default function AppointmentBlock({ block, selected, onSelect }) {
       // shows as much of the three lines as its height allows and clips the
       // rest, rather than spilling over the booking below it.
       //
-      // The open one is marked by a ring in its own hue rather than by a
-      // different colour: it is the same booking, being looked at.
-      className={`absolute overflow-hidden rounded-lg border px-2 py-1.5 text-left outline-none transition-shadow hover:shadow-[0_2px_10px_rgba(23,18,21,0.10)] ${style.box} ${
-        selected ? `ring-2 ${style.ring}` : ''
+      // The open one takes an accent ring whatever its status: being looked at
+      // is a state of the app, not of the booking.
+      // `flex flex-col justify-start` on purpose: a <button> centres its own
+      // contents vertically, so in a tall block the name and the time floated
+      // to the middle instead of starting at the top edge where the booking
+      // actually begins.
+      className={`absolute flex flex-col items-stretch justify-start overflow-hidden rounded-lg border-x border-y-2 border-x-[#999999]/30 bg-white px-2.5 py-2 text-left outline-none transition-shadow hover:shadow-[0_2px_10px_rgba(23,18,21,0.10)] ${edge} ${
+        selected ? 'ring-2 ring-[#3248F2]' : ''
       }`}
       style={{
         top: block.top,
@@ -71,23 +56,28 @@ export default function AppointmentBlock({ block, selected, onSelect }) {
         width: block.width,
       }}
     >
-      <p className={`truncate text-[13px] leading-tight font-semibold ${style.title}`}>
+      {/* Two things only: who, and when. The service and the price were here
+          and are gone — at a glance the owner is looking for a person and an
+          hour, and everything else is a click away in the panel.
+
+          The name wraps to a second line rather than being cut off mid-word:
+          in a narrow column half the names would end in an ellipsis, and a
+          half-read name is no use for recognising a client. Two lines is the
+          ceiling, so it can never push the time out of the block. */}
+      <p
+        className={`line-clamp-2 shrink-0 text-[18px] leading-tight font-bold tracking-[-0.02em] break-words ${
+          dead ? 'text-[#999999] line-through' : 'text-[#171215]'
+        }`}
+      >
         {block.client}
       </p>
-      <p className={`mt-1 truncate text-[11px] leading-tight ${style.meta}`}>
-        {block.range}
+      {/* Always broken over two lines, not left to wrap when it happens to be
+          too wide: a column that wraps on Monday and not on Tuesday makes two
+          identical bookings look like different things. */}
+      <p className="mt-1.5 shrink-0 text-[15px] leading-tight text-[#999999]">
+        {block.from} –<br />
+        {block.to}
       </p>
-      {/* Service and price share a line rather than taking one each: four
-          facts still fit inside a half-hour block that way, and the price is
-          a short number that would waste a whole row of its own. */}
-      <div
-        className={`mt-0.5 flex items-baseline justify-between gap-2 text-[11px] leading-tight ${style.meta}`}
-      >
-        <span className="truncate">{block.service}</span>
-        <span className="shrink-0 tabular-nums">
-          {block.price.toLocaleString('ru-RU')} ₸
-        </span>
-      </div>
     </button>
   )
 }

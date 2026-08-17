@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 
 from app.api.deps import AppointmentServiceDep, CurrentUser
-from app.models.appointment import AppointmentStatus
+from app.models.appointment import AppointmentSource, AppointmentStatus
 from app.schemas.appointment import (
     AppointmentPublic,
     CreateAppointmentRequest,
@@ -69,8 +69,26 @@ async def list_slots(
     appointments: AppointmentServiceDep,
     service_id: Annotated[uuid.UUID, Query()],
     day: Annotated[date, Query(description="Local day.")],
+    source: Annotated[
+        AppointmentSource,
+        Query(
+            description=(
+                "Who is asking. `manual` — the owner, from the panel: notice "
+                "and horizon do not apply, so the whole day is on offer. "
+                "`whatsapp` — a client, through the assistant: both apply."
+            )
+        ),
+    ] = AppointmentSource.MANUAL,
 ) -> DaySlots:
-    slots = await appointments.available_slots(user, service_id, day)
+    # The same default as `POST /appointments`, deliberately: the two endpoints
+    # are used together, and a picker that hid times the create call would
+    # accept would be worse than useless.
+    slots = await appointments.available_slots(
+        user,
+        service_id,
+        day,
+        enforce_notice=source is not AppointmentSource.MANUAL,
+    )
     return DaySlots(day=day, slots=slots)
 
 

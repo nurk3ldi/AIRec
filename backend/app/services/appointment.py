@@ -111,7 +111,11 @@ class AppointmentService:
         return appointment
 
     async def available_slots(
-        self, user: User, service_id: uuid.UUID, day: date
+        self,
+        user: User,
+        service_id: uuid.UUID,
+        day: date,
+        enforce_notice: bool = True,
     ) -> list[datetime]:
         """Every start time this service still fits into on that local day.
 
@@ -120,17 +124,26 @@ class AppointmentService:
         taken, the notice the business needs and how far ahead it accepts work
         are all applied here. A caller that re-derived any of them would be a
         second implementation of the rules.
+
+        `enforce_notice` matches `create`'s flag and must: a picker that hides
+        times the create endpoint would happily accept is a picker that lies.
+        With it off — the owner booking from the panel — the whole day is on
+        offer, today's morning included, because writing down a client who came
+        an hour ago is recording something that already happened.
         """
         business = await self._businesses.get_or_create(user)
         service = await self._find_service(user, service_id)
         tz = _zone(business)
 
         now = datetime.now(UTC)
-        today = now.astimezone(tz).date()
-        if day < today or day > today + timedelta(days=business.booking_horizon_days):
-            return []
+        earliest = None
+        if enforce_notice:
+            today = now.astimezone(tz).date()
+            horizon = today + timedelta(days=business.booking_horizon_days)
+            if day < today or day > horizon:
+                return []
+            earliest = now + timedelta(minutes=business.min_lead_minutes)
 
-        earliest = now + timedelta(minutes=business.min_lead_minutes)
         duration = timedelta(minutes=service.duration_minutes)
         day_start = _local(day, time(0, 0), tz)
         day_end = _local(day + timedelta(days=1), time(0, 0), tz)
@@ -150,7 +163,7 @@ class AppointmentService:
             while cursor + duration <= window_end:
                 if (
                     day_start <= cursor < day_end
-                    and cursor >= earliest
+                    and (earliest is None or cursor >= earliest)
                     and _free(taken, cursor, cursor + duration, business.capacity)
                 ):
                     slots.append(cursor.astimezone(tz))

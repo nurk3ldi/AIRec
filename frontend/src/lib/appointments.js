@@ -28,7 +28,11 @@ export function toBlock(row) {
     start: minutesInto(start),
     // A booking running past midnight would otherwise end "before" it started.
     end: dayKey(end) === dayKey(start) ? minutesInto(end) : 24 * 60,
+    // Both the joined form and its two halves: the panel reads it as one
+    // phrase, the grid stacks it over two lines inside a narrow column.
     range: `${clock(start)} – ${clock(end)}`,
+    from: clock(start),
+    to: clock(end),
     client: row.client_name,
     phone: row.client_phone,
     service: row.service_name,
