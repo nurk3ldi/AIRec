@@ -6,29 +6,22 @@
  * tried and dropped — a week with thirty bookings became thirty coloured
  * rectangles, and the calendar started shouting instead of showing.
  *
- * The status survives as a 2px edge along the top and bottom. Those two lines
- * are also where the booking begins and ends on the grid, so the colour marks
- * its extent as well as its state — and it costs the card nothing at a glance.
+ * The 2px top and bottom edges are black and stay black. They were coloured by
+ * status for a while, and that put a different hue on every block for a
+ * distinction the owner reads in the panel anyway; a fixed edge lets those two
+ * lines do the one job that matters in the grid — marking exactly where the
+ * booking starts and ends.
+ *
+ * Nothing about the block changes when it is opened, either: the panel sliding
+ * in is the feedback, and re-colouring the block on top of that was a second
+ * announcement of the same thing. `selected` survives for `aria-pressed` only,
+ * so the state is still reported to a screen reader.
  *
  * The sides are declared separately from the top and bottom (`border-x` vs
  * `border-y`) rather than as an all-round border with overrides: that way the
- * neutral and the coloured edges never compete over which class wins.
- *
- * Classes are written out per status rather than built from a variable:
- * Tailwind only ships the classes it can see spelled out in the source.
+ * neutral hairline and the black edge never compete over which class wins.
  */
-const STATUS_EDGE = {
-  // Booked by the assistant, not yet looked at — the one that wants attention,
-  // and so the only one that gets the accent.
-  pending: 'border-y-[#3248F2]',
-  confirmed: 'border-y-[#16A34A]',
-  completed: 'border-y-[#999999]',
-  no_show: 'border-y-[#DC2626]',
-  cancelled: 'border-y-[#999999]',
-}
-
 export default function AppointmentBlock({ block, selected, onSelect }) {
-  const edge = STATUS_EDGE[block.status] ?? STATUS_EDGE.completed
   const dead = block.status === 'cancelled'
 
   return (
@@ -40,17 +33,13 @@ export default function AppointmentBlock({ block, selected, onSelect }) {
       // shows as much of the three lines as its height allows and clips the
       // rest, rather than spilling over the booking below it.
       //
-      // The open one takes an accent ring whatever its status: being looked at
-      // is a state of the app, not of the booking.
       // `flex flex-col justify-start` on purpose: a <button> centres its own
       // contents vertically, so in a tall block the name and the time floated
       // to the middle instead of starting at the top edge where the booking
       // actually begins.
       // `z-10` puts the block above the "now" line, so its opaque body cuts the
       // line where it crosses and lets it continue on the other side.
-      className={`absolute z-10 flex flex-col items-stretch justify-start overflow-hidden rounded-lg border-x border-y-2 border-x-[#999999]/30 bg-white px-2.5 py-2 text-left outline-none transition-shadow hover:shadow-[0_2px_10px_rgba(23,18,21,0.10)] ${edge} ${
-        selected ? 'ring-2 ring-[#3248F2]' : ''
-      }`}
+      className="absolute z-10 flex flex-col items-stretch justify-start overflow-hidden rounded-lg border-x border-y-2 border-x-[#999999]/30 border-y-[#171215] bg-white px-2.5 py-2 text-left outline-none transition-shadow hover:shadow-[0_2px_10px_rgba(23,18,21,0.10)]"
       style={{
         top: block.top,
         height: block.height,
