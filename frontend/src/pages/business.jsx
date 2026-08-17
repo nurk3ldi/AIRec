@@ -25,8 +25,10 @@ export default function BusinessPage() {
       <div className={styles.page} aria-label="Страница бизнеса">
         {/* Full-bleed: the content stretches to both edges of the shell rather
             than sitting in a centred column, so wide screens aren't mostly
-            empty grey. */}
-        <div className="flex flex-col gap-6 px-6 py-6 sm:px-8">
+            empty grey. The 16px inset matches `/appointments` — the frame a
+            card sits in is the same on every page, so it cannot be one size
+            here and another there. */}
+        <div className="flex flex-col gap-6 px-4 pt-4 pb-6">
           <BusinessProfile />
 
           {/* Titles only for now. A floor height rather than no height at all:
