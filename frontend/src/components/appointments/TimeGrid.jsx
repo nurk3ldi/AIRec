@@ -4,11 +4,15 @@ import DaysHeader from './DaysHeader'
 import { layoutDay } from '../../lib/appointments'
 import { dayKey, sameDay, weekDays } from '../../lib/dates'
 
-// 96px an hour — 24px per quarter, which is the smallest a 15-minute booking
-// can be and still hold a line of text. The whole day is 2304px, so the grid
-// scrolls; that is the trade for not deciding on the owner's behalf which
-// hours are worth showing.
-const HOUR_HEIGHT = 96
+// 256px an hour — 64px per quarter, sized so that even the shortest bookable
+// service, fifteen minutes, still shows all three of its lines: the client, the
+// time, and the service with its price. Anything tighter and the shortest
+// bookings become bars you have to click to read.
+//
+// The cost is real: a whole day is 6144px and the grid scrolls a lot. That is
+// the trade for every booking being legible where it sits, rather than only the
+// long ones.
+const HOUR_HEIGHT = 256
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour)
 
@@ -137,11 +141,12 @@ export default function TimeGrid({
                     block={{
                       ...block,
                       top: (block.start / 60) * HOUR_HEIGHT,
-                      // A minimum, so a fifteen-minute booking is still a
-                      // thing you can see and click rather than a line.
+                      // The floor never binds at the current row height; it is
+                      // here so that shrinking `HOUR_HEIGHT` can never produce
+                      // a block below the 44px minimum hit target.
                       height: Math.max(
                         ((block.end - block.start) / 60) * HOUR_HEIGHT,
-                        24
+                        44
                       ),
                       // Overlapping bookings split the column between them.
                       left: `calc(${(block.lane / block.lanes) * 100}% + ${COLUMN_INSET}px)`,
