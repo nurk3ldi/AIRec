@@ -87,7 +87,12 @@ export default function TimeGrid({
       ref={scroller}
       className="min-h-0 flex-1 overflow-y-auto [scrollbar-color:#999999_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#999999]/45 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-2"
     >
-      <div className="sticky top-0 z-10 bg-white">
+      {/* Above the bookings, which carry `z-10` of their own so they can cut
+          the "now" line. Sharing that level left the two to be separated by
+          document order alone, and the grid comes second — so a booking in the
+          first hours of the day scrolled *over* the day names instead of under
+          them. */}
+      <div className="sticky top-0 z-20 bg-white">
         <DaysHeader date={date} view={view} onDateChange={onDateChange} />
       </div>
 
