@@ -67,10 +67,15 @@ class Business(Base):
     booking_horizon_days: Mapped[int] = mapped_column(
         Integer, nullable=False, default=60, server_default=text("60")
     )
-    # How much warning the business needs. Without it the assistant will happily
-    # book someone in four minutes' time.
+    # How much warning the business needs before a booking starts.
+    #
+    # Off by default, and deliberately: "can I come now?" is an ordinary
+    # question for a barbershop, and a client who walks in before ever opening
+    # WhatsApp still has to be written down. The column stays so a business
+    # that does need notice can set it without a migration — it simply asks for
+    # none until someone says otherwise.
     min_lead_minutes: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=60, server_default=text("60")
+        Integer, nullable=False, default=0, server_default=text("0")
     )
 
     # Filename only, not a full URL — the serving prefix comes from
