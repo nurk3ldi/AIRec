@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import * as Dialog from '@radix-ui/react-dialog'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Cancel01Icon } from '@hugeicons/core-free-icons'
 import { cancelAppointment, updateAppointment } from '../../lib/api'
 import { getAccessToken } from '../../lib/auth'
+import { DAY_NAMES, MONTHS_OF } from '../../lib/dates'
 
 const formatPrice = (value) => `${value.toLocaleString('ru-RU')} ₸`
 
@@ -11,6 +13,19 @@ const formatDuration = (minutes) => {
   const rest = minutes % 60
   if (!hours) return `${rest} мин`
   return rest ? `${hours} ч ${rest} мин` : `${hours} ч`
+}
+
+/**
+ * `2026-08-17` → "Понедельник, 17 августа".
+ *
+ * Split by hand rather than fed to `new Date(key)`, which reads a bare
+ * `YYYY-MM-DD` as UTC midnight and so names the previous day everywhere east
+ * of Greenwich — which is everywhere this runs.
+ */
+const formatDay = (key) => {
+  const [year, month, date] = key.split('-').map(Number)
+  const day = new Date(year, month - 1, date)
+  return `${DAY_NAMES[day.getDay()]}, ${date} ${MONTHS_OF[month - 1]}`
 }
 
 const STATUS = {
@@ -48,9 +63,15 @@ const ACTIONS = {
 /**
  * One booking, opened from the grid.
  *
- * Sits under the month picker rather than in a column of its own: a third
- * column would take its width from the grid, which is the part of this screen
- * that actually needs it — and the space under the calendar was empty anyway.
+ * A dialog rather than a panel below the month picker. The panel meant the
+ * answer to "who is this?" appeared in the corner of the screen furthest from
+ * the block that was clicked, and it grew and shrank the left column every time
+ * a different booking was opened. A dialog puts the reply where the question
+ * was asked, and leaves the calendar exactly as it was underneath.
+ *
+ * It is the same width as a form dialog would be but holds no form: everything
+ * here is read, and the only writing is the row of buttons at the bottom, which
+ * are one press each.
  */
 export default function AppointmentDetails({ block, onClose, onUpdated }) {
   const [busy, setBusy] = useState(false)
@@ -79,91 +100,106 @@ export default function AppointmentDetails({ block, onClose, onUpdated }) {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate text-[16px] font-semibold text-[#171215]">
-              {block.client}
-            </p>
-            {block.phone && (
-              // A phone number on a calendar exists to be dialled, so it is a
-              // link rather than a string to copy out by hand.
-              <a
-                href={`tel:${block.phone.replace(/[^\d+]/g, '')}`}
-                className="mt-0.5 block truncate text-[14px] text-[#3248F2] outline-none hover:underline"
-              >
-                {block.phone}
-              </a>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Закрыть"
-            className="-mr-1 grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[#999999] outline-none transition-colors hover:bg-[#171215]/6 hover:text-[#171215]"
+    <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-[60] grid place-items-center bg-[#171215]/50 p-4">
+          <Dialog.Content
+            aria-describedby={undefined}
+            className="flex max-h-[calc(100vh-2rem)] w-[440px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_-12px_rgba(23,18,21,0.35)] outline-none"
           >
-            <HugeiconsIcon
-              icon={Cancel01Icon}
-              size={16}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-            />
-          </button>
-        </div>
+            <div className="flex shrink-0 items-start justify-between gap-4 px-6 pt-5 pb-4">
+              <div className="min-w-0">
+                <Dialog.Title className="font-display truncate text-[19px] font-semibold tracking-[-0.02em] text-[#171215]">
+                  {block.client}
+                </Dialog.Title>
+                {block.phone && (
+                  // A phone number on a calendar exists to be dialled, so it is
+                  // a link rather than a string to copy out by hand.
+                  <a
+                    href={`tel:${block.phone.replace(/[^\d+]/g, '')}`}
+                    className="mt-0.5 block truncate text-[14px] text-[#3248F2] outline-none hover:underline"
+                  >
+                    {block.phone}
+                  </a>
+                )}
+              </div>
 
-        <span
-          className={`mt-3 inline-block rounded-md px-2.5 py-1 text-[12px] font-medium ${status.pill}`}
-        >
-          {status.label}
-        </span>
+              <Dialog.Close asChild>
+                <button
+                  type="button"
+                  aria-label="Закрыть"
+                  className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#999999] outline-none transition-colors hover:bg-[#171215]/6 hover:text-[#171215]"
+                >
+                  <HugeiconsIcon
+                    icon={Cancel01Icon}
+                    size={18}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                  />
+                </button>
+              </Dialog.Close>
+            </div>
 
-        <dl className="mt-4 space-y-2.5 border-t border-[#999999]/15 pt-4">
-          <Row term="Услуга" value={block.service} />
-          <Row term="Время" value={block.range} />
-          <Row term="Длительность" value={formatDuration(block.minutes)} />
-          <Row term="Стоимость" value={formatPrice(block.price)} />
-          <Row term="Источник" value={SOURCE[block.source] ?? block.source} />
-        </dl>
+            <div className="min-h-0 flex-1 overflow-y-auto border-t border-[#999999]/15 px-6 py-5">
+              <span
+                className={`inline-block rounded-md px-2.5 py-1 text-[12px] font-medium ${status.pill}`}
+              >
+                {status.label}
+              </span>
 
-        {block.note && (
-          <div className="mt-4 border-t border-[#999999]/15 pt-4">
-            <p className="text-[13px] text-[#999999]">Комментарий</p>
-            <p className="mt-1 text-[14px] break-words text-[#171215]">
-              {block.note}
-            </p>
-          </div>
-        )}
-      </div>
+              <dl className="mt-4 space-y-2.5">
+                <Row term="Услуга" value={block.service} />
+                {/* The date is in the dialog even though the calendar behind it
+                    shows the same day: once this is a window over the whole
+                    screen, the column it came from is no longer the thing being
+                    read. */}
+                <Row term="Дата" value={formatDay(block.day)} />
+                <Row term="Время" value={block.range} />
+                <Row term="Длительность" value={formatDuration(block.minutes)} />
+                <Row term="Стоимость" value={formatPrice(block.price)} />
+                <Row term="Источник" value={SOURCE[block.source] ?? block.source} />
+              </dl>
 
-      <div className="shrink-0 border-t border-[#999999]/15 px-6 py-4">
-        {error && (
-          <p role="alert" className="mb-2.5 text-[13px] text-[#DC2626]">
-            {error}
-          </p>
-        )}
+              {block.note && (
+                <div className="mt-4 border-t border-[#999999]/15 pt-4">
+                  <p className="text-[13px] text-[#999999]">Комментарий</p>
+                  <p className="mt-1 text-[14px] break-words text-[#171215]">
+                    {block.note}
+                  </p>
+                </div>
+              )}
+            </div>
 
-        <div className="flex flex-wrap gap-2">
-          {(ACTIONS[block.status] ?? []).map((action) => (
-            <button
-              key={action.status}
-              type="button"
-              disabled={busy}
-              onClick={() => run(action.status)}
-              className={`rounded-xl px-3 py-2 text-[13px] font-medium outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
-                action.primary
-                  ? 'bg-[#3248F2] text-white hover:bg-[#2839c9]'
-                  : 'border border-[#999999]/30 text-[#171215] hover:bg-[#171215]/5'
-              }`}
-            >
-              {action.label}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
+            <div className="shrink-0 border-t border-[#999999]/15 px-6 py-4">
+              {error && (
+                <p role="alert" className="mb-2.5 text-[13px] text-[#DC2626]">
+                  {error}
+                </p>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                {(ACTIONS[block.status] ?? []).map((action) => (
+                  <button
+                    key={action.status}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => run(action.status)}
+                    className={`rounded-xl px-3 py-2 text-[13px] font-medium outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+                      action.primary
+                        ? 'bg-[#3248F2] text-white hover:bg-[#2839c9]'
+                        : 'border border-[#999999]/30 text-[#171215] hover:bg-[#171215]/5'
+                    }`}
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </Dialog.Content>
+        </Dialog.Overlay>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }
 

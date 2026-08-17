@@ -26,7 +26,8 @@ export default function AppointmentsPage() {
 
   // The selection is an id, not the booking itself: an id survives the list
   // being reloaded, and a booking that has left the visible range simply stops
-  // resolving, which is exactly when the panel should fall back to the summary.
+  // resolving, which closes the dialog — right, since there is nothing left to
+  // show it about.
   const [selectedId, setSelectedId] = useState(null)
   const selected = appointments.find((block) => block.id === selectedId) ?? null
 
@@ -95,22 +96,8 @@ export default function AppointmentsPage() {
             </div>
 
             <div className="flex items-stretch border-t border-[#999999]/15">
-              <div className="flex w-[300px] shrink-0 flex-col">
+              <div className="w-[300px] shrink-0">
                 <MiniMonth date={date} onDateChange={setDate} />
-
-                {/* Under the month rather than in a column of its own: a third
-                    column would take its width from the grid, which is the part
-                    of this screen that needs it. The divider comes with the
-                    panel — on its own it would be a line under nothing. */}
-                {selected && (
-                  <div className="min-h-0 flex-1 border-t border-[#999999]/15">
-                    <AppointmentDetails
-                      block={selected}
-                      onClose={() => setSelectedId(null)}
-                      onUpdated={replace}
-                    />
-                  </div>
-                )}
               </div>
 
               {/* A fixed height, not a minimum: the grid inside scrolls
@@ -129,6 +116,16 @@ export default function AppointmentsPage() {
             </div>
           </div>
         </div>
+
+        {/* A dialog over the whole page, not a panel inside the card: clicking
+            a block must leave the calendar underneath exactly as it was. */}
+        {selected && (
+          <AppointmentDetails
+            block={selected}
+            onClose={() => setSelectedId(null)}
+            onUpdated={replace}
+          />
+        )}
 
         {creating && (
           <NewAppointmentDialog
