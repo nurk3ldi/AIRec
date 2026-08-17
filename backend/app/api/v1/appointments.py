@@ -4,7 +4,7 @@ import uuid
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, status
 
 from app.api.deps import AppointmentServiceDep, CurrentUser
 from app.models.appointment import AppointmentSource, AppointmentStatus
@@ -141,14 +141,19 @@ async def update_appointment(
 
 @router.delete(
     "/{appointment_id}",
-    response_model=AppointmentPublic,
-    summary="Cancel a booking (a status, not a delete)",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a booking outright (cancelling is a status — use PATCH)",
 )
-async def cancel_appointment(
+async def delete_appointment(
     appointment_id: uuid.UUID,
     user: CurrentUser,
     appointments: AppointmentServiceDep,
-) -> AppointmentPublic:
-    return AppointmentPublic.model_validate(
-        await appointments.cancel(user, appointment_id)
-    )
+) -> None:
+    """Removes the row.
+
+    This used to cancel instead, which made the verb say one thing and do
+    another — and cancelling already had a home in `PATCH`, which is what the
+    panel uses. See `AppointmentService.delete` for why the two are separate
+    acts rather than one.
+    """
+    await appointments.delete(user, appointment_id)

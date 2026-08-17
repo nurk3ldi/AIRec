@@ -1,30 +1,55 @@
 /** Turning the API's bookings into something the calendar can place. */
 
-import { dayKey } from './dates'
+/**
+ * An instant, broken into the wall-clock parts of a given zone.
+ *
+ * `Intl` rather than arithmetic: it is the only thing in the browser that knows
+ * what a named zone's offset was on a particular date, daylight saving and all.
+ * `en-CA` because its numeric format is already zero-padded `YYYY-MM-DD`, and
+ * `h23` because `hour12: false` reports midnight as "24" in some engines.
+ *
+ * `timeZone: undefined` means the browser's own zone, which is the behaviour
+ * everything here had before a business zone was available — so a page that
+ * hasn't loaded the business yet still shows sensible times rather than none.
+ */
+function partsIn(iso, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date(iso))
 
-const minutesInto = (moment) => moment.getHours() * 60 + moment.getMinutes()
-
-const clock = (moment) =>
-  `${String(moment.getHours()).padStart(2, '0')}:${String(
-    moment.getMinutes()
-  ).padStart(2, '0')}`
+  const at = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  return {
+    day: `${at.year}-${at.month}-${at.day}`,
+    clock: `${at.hour}:${at.minute}`,
+    minutes: Number(at.hour) * 60 + Number(at.minute),
+  }
+}
 
 /**
- * One booking, ready to be positioned.
+ * One booking, ready to be placed — read in the **business's** zone.
  *
- * Times are read in the browser's zone rather than the business's. Kazakhstan
- * is a single zone and the panel is used from inside the country, so the two
- * agree today — but an owner opening this from abroad would see their day
- * shifted, and the fix is to convert against `business.timezone` here, in the
- * one place that reads these fields.
+ * Not the browser's. Kazakhstan is a single zone and the panel is mostly used
+ * from inside it, so the two agree on most days — but an owner opening this
+ * from abroad would have seen every booking shifted, and a booking near
+ * midnight would have landed on the wrong day of the calendar entirely.
+ *
+ * The zone is threaded in from `GET /business` rather than read here, because
+ * this file must stay a pure transform: the page fetches once and hands the
+ * same answer to every view.
  */
-export function toBlock(row) {
-  const start = new Date(row.starts_at)
-  const end = new Date(row.ends_at)
+export function toBlock(row, timeZone) {
+  const start = partsIn(row.starts_at, timeZone)
+  const end = partsIn(row.ends_at, timeZone)
 
   return {
     id: row.id,
-    day: dayKey(start),
+    day: start.day,
     // The raw instant and the service it was booked from, kept alongside the
     // display forms below: editing a booking has to hand both straight back to
     // the API, and re-parsing "12:15" into a date would need the day, the zone
@@ -32,14 +57,14 @@ export function toBlock(row) {
     startsAt: row.starts_at,
     endsAt: row.ends_at,
     serviceId: row.service_id,
-    start: minutesInto(start),
+    start: start.minutes,
     // A booking running past midnight would otherwise end "before" it started.
-    end: dayKey(end) === dayKey(start) ? minutesInto(end) : 24 * 60,
+    end: end.day === start.day ? end.minutes : 24 * 60,
     // Both the joined form and its two halves: the panel reads it as one
-    // phrase, the grid stacks it over two lines inside a narrow column.
-    range: `${clock(start)} – ${clock(end)}`,
-    from: clock(start),
-    to: clock(end),
+    // phrase, a narrow column stacks it over two lines.
+    range: `${start.clock} – ${end.clock}`,
+    from: start.clock,
+    to: end.clock,
     client: row.client_name,
     phone: row.client_phone,
     service: row.service_name,
@@ -140,15 +165,15 @@ export const byStart = (a, b) => a.start - b.start || a.id.localeCompare(b.id)
 export const sameInstant = (a, b) =>
   Boolean(a) && Boolean(b) && new Date(a).getTime() === new Date(b).getTime()
 
-/** "12:15" — read in the browser's zone, like everything else here. */
-export const clockOf = (iso) => clock(new Date(iso))
+/** "12:15", in the business's zone — the same zone `toBlock` reads. */
+export const clockOf = (iso, timeZone) => partsIn(iso, timeZone).clock
 
 /** Where an instant falls in its own day, in minutes — for grouping slots. */
-export const minutesOf = (iso) => minutesInto(new Date(iso))
+export const minutesOf = (iso, timeZone) => partsIn(iso, timeZone).minutes
 
 /** The clock time a service of `minutes` starting at `iso` would finish at. */
-export const endClock = (iso, minutes) =>
-  clock(new Date(new Date(iso).getTime() + minutes * 60000))
+export const endClock = (iso, minutes, timeZone) =>
+  partsIn(new Date(new Date(iso).getTime() + minutes * 60000), timeZone).clock
 
 export const formatPrice = (value) => `${value.toLocaleString('ru-RU')} ₸`
 

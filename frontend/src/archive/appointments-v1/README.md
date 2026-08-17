@@ -40,6 +40,15 @@ booking as one readable line, and a full edit form).
 Search hung under the toolbar's field and looked through the whole history by
 name or phone, split into «Предстоящие» and «Прошедшие».
 
+## One thing that changed underneath it
+
+`AppointmentDetails.jsx` here calls `cancelAppointment` from `lib/api.js`. That
+export is gone: `DELETE /appointments/{id}` now **deletes** the row instead of
+cancelling it, and the helper was renamed `deleteAppointment` so this file fails
+to build rather than silently deleting what its «Отменить» button meant to
+cancel. Restoring these components means pointing that action at
+`updateAppointment(token, id, { status: 'cancelled' })`.
+
 ## To restore
 
 Move the three groups back to the paths in the table above and repaint

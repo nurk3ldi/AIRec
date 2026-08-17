@@ -292,9 +292,19 @@ export function updateAppointment(accessToken, id, changes) {
   })
 }
 
-/** Cancels rather than deletes: the row is what the owner looks back on to see
- *  how often bookings fall through. Resolves to the updated booking. */
-export function cancelAppointment(accessToken, id) {
+/**
+ * Removes the booking for good. Irreversible — ask before calling it.
+ *
+ * **Not** how a booking is cancelled: that is a status, and it goes through
+ * `updateAppointment(token, id, { status: 'cancelled' })`. A cancelled booking
+ * is one that fell through and is worth looking back on; this is for a row that
+ * should never have existed.
+ *
+ * (It was named `cancelAppointment` until the endpoint stopped cancelling.
+ * Renamed rather than repointed on purpose: an old caller now fails to build
+ * instead of quietly deleting what it meant to cancel.)
+ */
+export function deleteAppointment(accessToken, id) {
   return request(`/appointments/${id}`, { method: 'DELETE', accessToken })
 }
 

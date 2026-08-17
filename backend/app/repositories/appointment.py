@@ -67,6 +67,9 @@ class AppointmentRepository:
     def add(self, appointment: Appointment) -> None:
         self._session.add(appointment)
 
+    async def remove(self, appointment: Appointment) -> None:
+        await self._session.delete(appointment)
+
 
 def _matches_client(query: str) -> ColumnElement[bool]:
     """Name or phone, however the phone happens to be punctuated.

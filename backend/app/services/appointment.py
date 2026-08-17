@@ -16,11 +16,7 @@ from app.core.errors import (
     ServiceNotFound,
     SlotUnavailable,
 )
-from app.models.appointment import (
-    Appointment,
-    AppointmentSource,
-    AppointmentStatus,
-)
+from app.models.appointment import Appointment, AppointmentSource
 from app.models.business import Business
 from app.models.service import Service
 from app.models.user import User
@@ -298,18 +294,28 @@ class AppointmentService:
         await self._session.refresh(appointment)
         return appointment
 
-    async def cancel(self, user: User, appointment_id: uuid.UUID) -> Appointment:
-        """Cancelling is a status, not a delete.
+    async def delete(self, user: User, appointment_id: uuid.UUID) -> None:
+        """Remove a booking outright — a different act from cancelling it.
 
-        The row is what the owner looks back on to see how often bookings fall
-        through, and the assistant needs to know it already spoke to this client
-        about this time.
+        **Cancelling is a status**, and it stays one: the row is what the owner
+        looks back on to see how often bookings fall through, and the assistant
+        needs to know it already spoke to this client about this time. That path
+        is `PATCH … {"status": "cancelled"}`.
+
+        This is for a row that should never have existed — a typo, a duplicate,
+        a test. Nothing fell through, so there is nothing to look back on, and
+        leaving it as a cancellation would put a client in the history who was
+        never booked. It is irreversible, which is why the panel asks first.
         """
-        return await self.update(
-            user,
-            appointment_id,
-            UpdateAppointmentRequest(status=AppointmentStatus.CANCELLED),
+        business = await self._businesses.get_or_create(user)
+        appointment = await self._appointments.get_for_business(
+            business.id, appointment_id
         )
+        if appointment is None:
+            raise AppointmentNotFound
+
+        await self._appointments.remove(appointment)
+        await self._session.commit()
 
     # --- rules -----------------------------------------------------------
 

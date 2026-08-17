@@ -67,6 +67,7 @@ import { DAY_NAMES, MONTHS_OF, dayKey } from '../../lib/dates'
 export default function BookingPanel({
   date,
   booking = null,
+  timeZone,
   className,
   modal = false,
   onClose,
@@ -340,7 +341,7 @@ export default function BookingPanel({
                     onClick={() => step(-1)}
                   />
                   <span className="min-w-[46px] text-center text-[14px] font-medium text-[#171215] tabular-nums">
-                    {clockOf(startsAt)}
+                    {clockOf(startsAt, timeZone)}
                   </span>
                   <Step
                     icon={ArrowRight01Icon}
@@ -360,7 +361,7 @@ export default function BookingPanel({
                   <>
                     <span className="text-[14px] text-[#999999]">–</span>
                     <span className="flex h-9 items-center rounded-xl bg-[#999999]/15 px-3 text-[14px] font-medium text-[#171215] tabular-nums">
-                      до {endClock(startsAt, service.duration_minutes)}
+                      до {endClock(startsAt, service.duration_minutes, timeZone)}
                     </span>
                   </>
                 )}

@@ -5,7 +5,7 @@ import DayPanel from '../components/appointments/DayPanel'
 import MonthCalendar from '../components/appointments/MonthCalendar'
 import BookingDetails from '../components/appointments/BookingDetails'
 import BookingPanel from '../components/appointments/BookingPanel'
-import { listAppointments } from '../lib/api'
+import { getBusiness, getWorkingHours, listAppointments } from '../lib/api'
 import { getAccessToken } from '../lib/auth'
 import { toBlock } from '../lib/appointments'
 import { dayKey, monthGrid, sameMonth } from '../lib/dates'
@@ -29,6 +29,15 @@ export default function AppointmentsPage() {
   })
   const [selected, setSelected] = useState(() => new Date())
   const [appointments, setAppointments] = useState([])
+  // The business's zone and its week, fetched once. Both are set on the Бизнес
+  // page, not here, so nothing on this screen can change them.
+  //
+  // `timeZone` starts undefined, which every time helper reads as "the
+  // browser's" — the behaviour before a zone was available. That is the right
+  // stand-in for the moment before it arrives, and wrong only for an owner
+  // abroad, for one render.
+  const [timeZone, setTimeZone] = useState(undefined)
+  const [week, setWeek] = useState([])
   const [error, setError] = useState('')
   // The form that's open, or null: `{ date, centred, block }`. Held apart from
   // `selected` so closing it leaves the calendar exactly where it was. `block`
@@ -56,11 +65,35 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     let cancelled = false
+    const token = getAccessToken()
+
+    // Quiet on failure for both: the calendar carries the booking error, and a
+    // missing zone or week degrades to "the browser's zone" and "no day marked
+    // closed" rather than to an empty screen.
+    getBusiness(token)
+      .then((row) => {
+        if (!cancelled) setTimeZone(row.timezone || undefined)
+      })
+      .catch(() => {})
+
+    getWorkingHours(token)
+      .then((rows) => {
+        if (!cancelled) setWeek(rows)
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
 
     listAppointments(getAccessToken(), { from, to })
       .then((rows) => {
         if (cancelled) return
-        setAppointments(rows.map(toBlock))
+        setAppointments(rows.map((row) => toBlock(row, timeZone)))
         setError('')
       })
       .catch((err) => {
@@ -70,7 +103,7 @@ export default function AppointmentsPage() {
     return () => {
       cancelled = true
     }
-  }, [from, to, reloads])
+  }, [from, to, reloads, timeZone])
 
   /** Picking a day from the panel's arrows may walk out of the month on show. */
   const pickDay = (day) => {
@@ -102,6 +135,8 @@ export default function AppointmentsPage() {
                 month={month}
                 selected={selected}
                 blocks={appointments}
+                week={week}
+                timeZone={timeZone}
                 booking={booking?.centred ? null : (booking?.date ?? null)}
                 onMonthChange={setMonth}
                 onSelect={setSelected}
@@ -153,6 +188,7 @@ export default function AppointmentsPage() {
                     modal
                     date={booking.date}
                     booking={booking.block ?? null}
+                    timeZone={timeZone}
                     className="w-full"
                     onClose={() => setBooking(null)}
                     onSaved={() => {
@@ -181,6 +217,7 @@ export default function AppointmentsPage() {
                   <BookingDetails
                     block={viewing.block}
                     color={viewing.color}
+                    timeZone={timeZone}
                     onClose={() => setViewing(null)}
                     onSaved={() => {
                       setViewing(null)

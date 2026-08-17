@@ -4,9 +4,12 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Cancel01Icon,
   Chat01Icon,
+  Delete02Icon,
   PencilEdit02Icon,
 } from '@hugeicons/core-free-icons'
 import BookingPanel from './BookingPanel'
+import { deleteAppointment } from '../../lib/api'
+import { getAccessToken } from '../../lib/auth'
 import {
   formatDuration,
   formatPrice,
@@ -36,8 +39,29 @@ const parseDay = (key) => {
   return new Date(year, month - 1, date)
 }
 
-export default function BookingDetails({ block, color, onClose, onSaved }) {
+export default function BookingDetails({
+  block,
+  color,
+  timeZone,
+  onClose,
+  onSaved,
+}) {
   const [editing, setEditing] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState('')
+
+  const remove = async () => {
+    setDeleting(true)
+    setError('')
+    try {
+      await deleteAppointment(getAccessToken(), block.id)
+      onSaved()
+    } catch (err) {
+      setError(err.message)
+      setDeleting(false)
+    }
+  }
 
   if (editing) {
     return (
@@ -45,6 +69,7 @@ export default function BookingDetails({ block, color, onClose, onSaved }) {
         modal
         booking={block}
         date={parseDay(block.day)}
+        timeZone={timeZone}
         className="w-full"
         // Back to the booking, not out to the calendar: the window was opened
         // to look at this one, and cancelling an edit hasn't changed that.
@@ -124,34 +149,92 @@ export default function BookingDetails({ block, color, onClose, onSaved }) {
         {block.note && <Row label="Заметка">{block.note}</Row>}
       </div>
 
-      <div className="flex items-center justify-between gap-3 border-t border-dashed border-[#999999]/35 px-5 pt-3.5 pb-4">
-        <Link
-          href="/inbox"
-          className="flex min-w-0 items-center gap-2 rounded-lg bg-[#999999]/15 px-3 py-2 text-[13px] font-medium text-[#171215] transition-colors outline-none hover:bg-[#999999]/25 focus-visible:ring-2 focus-visible:ring-[#3248F2]"
-        >
-          <span className="truncate">Диалог</span>
-          <HugeiconsIcon
-            icon={Chat01Icon}
-            size={15}
-            strokeWidth={2}
-            className="shrink-0 text-[#171215]"
-          />
-        </Link>
+      <div className="border-t border-dashed border-[#999999]/35 px-5 pt-3.5 pb-4">
+        {error && (
+          <p role="alert" className="mb-2.5 text-[12px] text-[#DC2626]">
+            {error}
+          </p>
+        )}
 
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          className="flex shrink-0 items-center gap-2 rounded-xl bg-[#3248F2] px-5 py-2 text-[13px] font-medium text-white transition-colors outline-none hover:bg-[#2839c9] focus-visible:ring-2 focus-visible:ring-[#171215] focus-visible:ring-offset-2"
-        >
-          <HugeiconsIcon
-            icon={PencilEdit02Icon}
-            size={15}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-          />
-          Редактировать
-        </button>
+        {/* Deleting asks first, and asks *in place* rather than in a second
+            dialog over this one: the question is about the booking already on
+            screen, and stacking a window over it would hide what is being
+            deleted. The row it replaces is the row it belongs to. */}
+        {confirming ? (
+          <div className="flex items-center justify-between gap-3">
+            <p className="min-w-0 flex-1 text-[13px] text-[#171215]">
+              Удалить запись? Это нельзя отменить.
+            </p>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                disabled={deleting}
+                className="rounded-xl bg-[#999999]/15 px-4 py-2 text-[13px] font-medium text-[#171215] transition-colors outline-none hover:bg-[#999999]/25 focus-visible:ring-2 focus-visible:ring-[#3248F2] disabled:opacity-45"
+              >
+                Нет
+              </button>
+              <button
+                type="button"
+                onClick={remove}
+                disabled={deleting}
+                className="rounded-xl bg-[#DC2626] px-4 py-2 text-[13px] font-medium text-white transition-colors outline-none hover:bg-[#b91c1c] focus-visible:ring-2 focus-visible:ring-[#171215] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {deleting ? 'Удаляем…' : 'Удалить'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <Link
+                href="/inbox"
+                className="flex min-w-0 items-center gap-2 rounded-lg bg-[#999999]/15 px-3 py-2 text-[13px] font-medium text-[#171215] transition-colors outline-none hover:bg-[#999999]/25 focus-visible:ring-2 focus-visible:ring-[#3248F2]"
+              >
+                <span className="truncate">Диалог</span>
+                <HugeiconsIcon
+                  icon={Chat01Icon}
+                  size={15}
+                  strokeWidth={2}
+                  className="shrink-0 text-[#171215]"
+                />
+              </Link>
+
+              {/* An icon on its own, and the only red on the card. It is the
+                  one action here that cannot be taken back, so it is kept
+                  small and away from the button the hand goes to. */}
+              <button
+                type="button"
+                onClick={() => setConfirming(true)}
+                aria-label="Удалить запись"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[#999999] transition-colors outline-none hover:bg-[#DC2626]/10 hover:text-[#DC2626] focus-visible:ring-2 focus-visible:ring-[#DC2626]"
+              >
+                <HugeiconsIcon
+                  icon={Delete02Icon}
+                  size={16}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="flex shrink-0 items-center gap-2 rounded-xl bg-[#3248F2] px-5 py-2 text-[13px] font-medium text-white transition-colors outline-none hover:bg-[#2839c9] focus-visible:ring-2 focus-visible:ring-[#171215] focus-visible:ring-offset-2"
+            >
+              <HugeiconsIcon
+                icon={PencilEdit02Icon}
+                size={15}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+              />
+              Редактировать
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

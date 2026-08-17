@@ -111,7 +111,7 @@ All routes are under `/api/v1`. Interactive docs at `/docs`.
 | `POST` | `/appointments` | Book a time (201) |
 | `GET` | `/appointments/{id}` | One booking |
 | `PATCH` | `/appointments/{id}` | Edit, reschedule, swap the service, or change status |
-| `DELETE` | `/appointments/{id}` | Cancel — sets the status, never deletes the row |
+| `DELETE` | `/appointments/{id}` | Delete the row for good (204). **Cancelling is a status** — `PATCH {"status": "cancelled"}` |
 
 Uploaded images are served as static files from `/media/avatars/<name>.png` and
 `/media/logos/<name>.png`.

@@ -41,6 +41,16 @@ export const openMinutes = (item) => {
 const MINUTES_IN_DAY = 24 * 60
 
 /**
+ * Whether the business is shut all day.
+ *
+ * A missing row reads as *open*, not closed: it means the week hasn't arrived
+ * yet, and marking a day the business may well be working as a day off is the
+ * worse of the two wrong answers.
+ */
+export const isDayOff = (row) =>
+  Boolean(row) && !row.is_24h && !row.opens_at
+
+/**
  * The stretches of a day the business is shut, as `[fromMinute, toMinute]`.
  *
  * The inverse of what `WorkingHours` stores, because that is what the calendar

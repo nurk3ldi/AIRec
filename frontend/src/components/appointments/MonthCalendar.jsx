@@ -3,6 +3,7 @@ import * as Popover from '@radix-ui/react-popover'
 import { HugeiconsIcon } from '@hugeicons/react'
 import BookingPanel from './BookingPanel'
 import { bookingColor, byStart } from '../../lib/appointments'
+import { isDayOff } from '../../lib/schedule'
 import {
   ArrowDown01Icon,
   ArrowLeft01Icon,
@@ -132,6 +133,8 @@ export default function MonthCalendar({
   month,
   selected,
   blocks,
+  week,
+  timeZone,
   booking,
   onMonthChange,
   onSelect,
@@ -236,6 +239,10 @@ export default function MonthCalendar({
             isToday={sameDay(day, today)}
             isSelected={sameDay(day, selected)}
             isAnchor={index === anchor}
+            // The API's weekday starts on Monday; `getDay()` starts on Sunday.
+            isClosed={isDayOff(
+              (week ?? []).find((row) => row.weekday === (day.getDay() + 6) % 7)
+            )}
             blocks={byDay.get(dayKey(day))}
             onSelect={onSelect}
             onCreate={onCreate}
@@ -259,6 +266,7 @@ export default function MonthCalendar({
           <div className="pointer-events-none absolute inset-0 grid grid-cols-7 grid-rows-6 gap-2">
             <BookingPanel
               date={booking}
+              timeZone={timeZone}
               className={`pointer-events-auto ${placePanel(anchor)}`}
               onClose={onBookingClose}
               onSaved={onBooked}
@@ -276,6 +284,7 @@ function DayCell({
   isToday,
   isSelected,
   isAnchor,
+  isClosed,
   blocks,
   onSelect,
   onCreate,
@@ -296,11 +305,18 @@ function DayCell({
   // The opacities are set so this lands at the same darkness the accent tint
   // did — 15% of `#999999` and 6% of `#3248F2` are the same distance from white
   // — so the two differ in hue and nothing else.
+  //
+  // A day the business is shut wears the faintest fill of the three, so a week
+  // reads as work and not-work before any of it is read. The calendar had no
+  // idea of opening hours at all until now: Sunday looked exactly like Monday,
+  // and the only way to find out was the server refusing a booking.
   const surface = isSelected
     ? 'bg-[#3248F2]'
-    : inMonth
-      ? 'bg-[#999999]/15 hover:bg-[#999999]/28'
-      : 'bg-[#999999]/8 hover:bg-[#999999]/16'
+    : !inMonth
+      ? 'bg-[#999999]/8 hover:bg-[#999999]/16'
+      : isClosed
+        ? 'bg-[#999999]/6 hover:bg-[#999999]/14'
+        : 'bg-[#999999]/15 hover:bg-[#999999]/28'
 
   const number = isSelected
     ? 'text-white'
@@ -369,6 +385,15 @@ function DayCell({
           `overflow-hidden` is what stops a fourth name pushing the cell taller
           than its row. */}
       <span className="mt-auto flex min-h-0 flex-col gap-1 overflow-hidden pt-2">
+        {/* Named only on a day that has nothing else to show — a closed day
+            with a booking on it is a working day the hours were changed under,
+            and the booking is the more useful thing to read. */}
+        {isClosed && !isSelected && booked.length === 0 && (
+          <span className="truncate text-[12px] leading-none text-[#999999]">
+            Выходной
+          </span>
+        )}
+
         {shown.map((block, index) => (
           <span key={block.id} className="flex items-center gap-1.5">
             {/* An inline style, not a class: the colour is chosen at runtime
