@@ -54,6 +54,19 @@ h6 {
   select {
     font: inherit;
   }
+
+  /* Tailwind's preflight resets a button's `appearance` but leaves its cursor
+     at the browser default, which is an arrow — so every button in this app
+     failed to say it was one. Disabled buttons keep the arrow: a hand on a
+     control that does nothing is a promise it can't keep.
+
+     In `@layer base` like everything else here. An unlayered rule in this file
+     would beat every Tailwind utility, so a `cursor-*` class could never
+     override it. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
 }
 
 button,

@@ -51,6 +51,81 @@ export function toBlock(row) {
   }
 }
 
+/**
+ * The four states a booking can be put into.
+ *
+ * `pending` — what the assistant leaves behind when it books on its own — sits
+ * in «Активно» rather than getting a fifth entry: from the owner's side it is
+ * an active booking, and saving the form is what marks it as seen. The five
+ * backend statuses map onto four here for that one reason and no other.
+ *
+ * In `lib` rather than beside the form, because two components read it: the
+ * form offers them, and the details window names the current one.
+ */
+export const BOOKING_STATES = [
+  { id: 'confirmed', label: 'Активно', covers: ['pending', 'confirmed'] },
+  { id: 'completed', label: 'Завершено', covers: ['completed'] },
+  { id: 'no_show', label: 'Не пришёл', covers: ['no_show'] },
+  { id: 'cancelled', label: 'Отменено', covers: ['cancelled'] },
+]
+
+export const stateOf = (status) =>
+  BOOKING_STATES.find((state) => state.covers.includes(status))?.id ??
+  'confirmed'
+
+export const statusLabel = (status) =>
+  BOOKING_STATES.find((state) => state.id === stateOf(status))?.label ?? ''
+
+/**
+ * The colours a booking wears in the calendar and in the day list.
+ *
+ * They mark *which booking* — not what became of it. Status used to pick the
+ * colour, and the result was a screen of black: almost every booking is an
+ * ordinary live one, so a status palette paints them all the same and tells you
+ * nothing you couldn't already see. Identity is the thing that actually differs
+ * from row to row, so identity is what gets the colour.
+ *
+ * Chosen as a family rather than picked apart: one saturation band, one
+ * lightness band, evenly spaced around the wheel, with the brand accent as the
+ * first of them so the product's own blue belongs to the set instead of
+ * standing outside it. `#DC2626` and `#16A34A` are deliberately *not* here —
+ * they mean "error" and "up" elsewhere in this app, and a booking that happens
+ * to be sixth would otherwise look like a warning.
+ *
+ * Eight is enough that a day repeats a colour only past eight bookings, and
+ * few enough that they stay tellable apart.
+ */
+export const BOOKING_COLORS = [
+  '#3248F2', // indigo — the brand accent
+  '#7C3AED', // violet
+  '#C026D3', // fuchsia
+  '#E11D63', // rose
+  '#EA6A1E', // orange
+  '#C99A00', // gold
+  '#2FA36B', // green
+  '#0E96C7', // cyan
+]
+
+/**
+ * The colour of the `index`-th booking of a day.
+ *
+ * By position within the day rather than hashed from the id: a hash collides,
+ * and two bookings an hour apart wearing the same colour is exactly what this
+ * is meant to prevent. Every view sorts a day the same way — see `byStart` —
+ * so the same booking comes out the same colour wherever it is drawn.
+ */
+export const bookingColor = (index) =>
+  BOOKING_COLORS[index % BOOKING_COLORS.length]
+
+/**
+ * The order a day is read in, and the order its colours are handed out in.
+ *
+ * The tiebreak on `id` is what makes it total: two bookings starting at the
+ * same minute would otherwise be left in whatever order the API returned them,
+ * and could swap colours between the month and the day list.
+ */
+export const byStart = (a, b) => a.start - b.start || a.id.localeCompare(b.id)
+
 /* --- reading and writing the same booking elsewhere ---------------------- */
 
 /**

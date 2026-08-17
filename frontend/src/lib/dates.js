@@ -77,6 +77,37 @@ export function weekDays(date) {
 }
 
 /**
+ * The block of days a month is drawn in — always **six weeks**, Monday first.
+ *
+ * Fixed rather than however many the month happens to need. Six is the most any
+ * month can take (a 31-day month starting on a Sunday runs to 37 cells), so a
+ * constant block is the only one that both fits every month and keeps a day the
+ * same size in February as in October. Sizing each month to its own row count
+ * saved a row four times a year at the price of the whole grid resizing under
+ * the pointer every time the month was stepped through.
+ */
+export function monthGrid(date) {
+  const start = weekStart(new Date(date.getFullYear(), date.getMonth(), 1))
+  return Array.from({ length: 42 }, (_, index) => {
+    const day = new Date(start)
+    day.setDate(start.getDate() + index)
+    return day
+  })
+}
+
+/**
+ * One month forward or back, landing on the 1st.
+ *
+ * Through the `Date` constructor rather than `setMonth`, which keeps the day of
+ * the month and so turns 31 March into 2 March on the way back to February.
+ */
+export const shiftMonth = (date, direction) =>
+  new Date(date.getFullYear(), date.getMonth() + direction, 1)
+
+export const sameMonth = (a, b) =>
+  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth()
+
+/**
  * A year and month as one sortable number.
  *
  * Browsing months is "one more, one less", and doing that on a `Date` means
