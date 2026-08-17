@@ -42,10 +42,6 @@ const minutesToday = (moment) => moment.getHours() * 60 + moment.getMinutes()
  * boundary would miss its heading by that much. Sharing one scrolling box makes
  * them share one content width, so they cannot drift apart.
  */
-// A hair of space either side, so two neighbouring bookings don't share an edge
-// and read as one block.
-const COLUMN_INSET = 4
-
 export default function TimeGrid({
   date,
   view,
@@ -148,9 +144,12 @@ export default function TimeGrid({
                         ((block.end - block.start) / 60) * HOUR_HEIGHT,
                         44
                       ),
-                      // Overlapping bookings split the column between them.
-                      left: `calc(${(block.lane / block.lanes) * 100}% + ${COLUMN_INSET}px)`,
-                      width: `calc(${100 / block.lanes}% - ${COLUMN_INSET * 2}px)`,
+                      // The full width of its column, flush with the dividers
+                      // either side — no inset, so the block lines up with the
+                      // day it belongs to rather than floating inside it.
+                      // Overlapping bookings split that width between them.
+                      left: `${(block.lane / block.lanes) * 100}%`,
+                      width: `${100 / block.lanes}%`,
                     }}
                   />
                 ))}
@@ -165,10 +164,15 @@ export default function TimeGrid({
 
         {/* Drawn across every column, not just today's. In week view it reads
             as a ruler — "this is where the day has got to" — which is what
-            makes a half-empty afternoon obvious at a glance. */}
+            makes a half-empty afternoon obvious at a glance.
+
+            It sits *under* the bookings (`z-0` against their `z-10`), so a
+            block's own white body interrupts it and the line picks up again
+            past the block's edge. Drawn over the top, it would cut every
+            booking it crossed in half. */}
         {showsToday && (
           <div
-            className="pointer-events-none absolute right-0 left-0 flex -translate-y-1/2 items-center"
+            className="pointer-events-none absolute right-0 left-0 z-0 flex -translate-y-1/2 items-center"
             style={{ top: nowOffset }}
           >
             <span className="shrink-0 rounded-md bg-[#171215] px-2 py-0.5 text-[11px] font-medium text-white tabular-nums">

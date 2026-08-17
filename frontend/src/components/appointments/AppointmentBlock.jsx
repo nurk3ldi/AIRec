@@ -46,7 +46,9 @@ export default function AppointmentBlock({ block, selected, onSelect }) {
       // contents vertically, so in a tall block the name and the time floated
       // to the middle instead of starting at the top edge where the booking
       // actually begins.
-      className={`absolute flex flex-col items-stretch justify-start overflow-hidden rounded-lg border-x border-y-2 border-x-[#999999]/30 bg-white px-2.5 py-2 text-left outline-none transition-shadow hover:shadow-[0_2px_10px_rgba(23,18,21,0.10)] ${edge} ${
+      // `z-10` puts the block above the "now" line, so its opaque body cuts the
+      // line where it crosses and lets it continue on the other side.
+      className={`absolute z-10 flex flex-col items-stretch justify-start overflow-hidden rounded-lg border-x border-y-2 border-x-[#999999]/30 bg-white px-2.5 py-2 text-left outline-none transition-shadow hover:shadow-[0_2px_10px_rgba(23,18,21,0.10)] ${edge} ${
         selected ? 'ring-2 ring-[#3248F2]' : ''
       }`}
       style={{
