@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import AppointmentBlock from './AppointmentBlock'
 import DaysHeader from './DaysHeader'
 import { layoutDay } from '../../lib/appointments'
+import { closedRanges } from '../../lib/schedule'
 import { dayKey, sameDay, weekDays } from '../../lib/dates'
 
 // 256px an hour — 64px per quarter, sized so that even the shortest bookable
@@ -47,6 +48,7 @@ export default function TimeGrid({
   view,
   onDateChange,
   appointments,
+  week,
   selectedId,
   onSelect,
 }) {
@@ -120,12 +122,46 @@ export default function TimeGrid({
             const blocks = layoutDay(
               (appointments ?? []).filter((block) => block.day === key)
             )
+            // The API's weekday starts on Monday; `getDay()` starts on Sunday.
+            const hours = (week ?? []).find(
+              (row) => row.weekday === (day.getDay() + 6) % 7
+            )
 
             return (
               <div
                 key={key}
                 className={`relative ${index === 0 ? '' : 'border-l border-[#999999]/15'}`}
               >
+                {/* Closed time, washed out: before opening, the lunch break and
+                    after closing — a whole day of it when the business is shut.
+                    Translucent rather than solid so the hour lines still read
+                    through it; a closed hour is still an hour, and losing the
+                    ruler inside it would make the column hard to read against
+                    the one beside it.
+
+                    A very faint tint of the accent rather than neutral grey.
+                    It is the only other hue in the palette, and at 7% it sits
+                    below the 10–15% band the product uses for real data — so it
+                    reads as a shade of the surface, not as something being
+                    pointed at. Grey worked but made closed time look like a
+                    disabled control rather than a part of the day.
+
+                    Drawn before anything else in the column and left at the
+                    default level, so bookings (`z-10`) and the "now" line sit on
+                    top of it. A booking inside closed time is not an error to
+                    hide — it is exactly what the owner needs to see. */}
+                {closedRanges(hours).map(([from, to]) => (
+                  <div
+                    key={from}
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-0 bg-[#3248F2]/[0.07]"
+                    style={{
+                      top: (from / 60) * HOUR_HEIGHT,
+                      height: ((to - from) / 60) * HOUR_HEIGHT,
+                    }}
+                  />
+                ))}
+
                 {HOURS.map((hour) => (
                   <div
                     key={hour}

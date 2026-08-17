@@ -38,6 +38,43 @@ export const openMinutes = (item) => {
   return total > 0 ? total : null
 }
 
+const MINUTES_IN_DAY = 24 * 60
+
+/**
+ * The stretches of a day the business is shut, as `[fromMinute, toMinute]`.
+ *
+ * The inverse of what `WorkingHours` stores, because that is what the calendar
+ * has to draw: a grid of twenty-four identical hours cannot say that Sunday is
+ * closed or that nobody is there at lunch, and the owner ends up learning it
+ * from the server refusing a booking.
+ *
+ * Takes the API's shape (`opens_at`, `is_24h`, …) rather than the card's edited
+ * one — the grid reads the week straight from `GET /business/working-hours`.
+ *
+ * A missing row shades nothing rather than everything: it means the week has
+ * not arrived yet, and greying out a day the business may well be open is the
+ * worse of the two wrong answers.
+ */
+export function closedRanges(row) {
+  if (!row || row.is_24h) return []
+  if (!row.opens_at || !row.closes_at) return [[0, MINUTES_IN_DAY]]
+
+  const opens = toMinutes(row.opens_at)
+  const closes = toMinutes(row.closes_at)
+
+  const ranges = []
+  if (opens > 0) ranges.push([0, opens])
+
+  if (row.break_starts_at && row.break_ends_at) {
+    const from = toMinutes(row.break_starts_at)
+    const to = toMinutes(row.break_ends_at)
+    if (to > from) ranges.push([from, to])
+  }
+
+  if (closes < MINUTES_IN_DAY) ranges.push([closes, MINUTES_IN_DAY])
+  return ranges
+}
+
 /**
  * What is wrong with this day, in Russian, or `null` if nothing is.
  *

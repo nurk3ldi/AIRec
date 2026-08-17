@@ -6,7 +6,7 @@ import NewAppointmentDialog from '../components/appointments/NewAppointmentDialo
 import NowNext from '../components/appointments/NowNext'
 import TimeGrid from '../components/appointments/TimeGrid'
 import Toolbar from '../components/appointments/Toolbar'
-import { listAppointments } from '../lib/api'
+import { getWorkingHours, listAppointments } from '../lib/api'
 import { getAccessToken } from '../lib/auth'
 import { addDays, toBlock } from '../lib/appointments'
 import { dayKey, weekDays } from '../lib/dates'
@@ -33,6 +33,9 @@ export default function AppointmentsPage() {
   // point of the panel is that looking ahead at next Thursday must not stop it
   // telling you someone is in the chair right now.
   const [ahead, setAhead] = useState([])
+  // The seven-row week, so the grid can wash out the hours the business is
+  // shut. Fetched once: opening hours change on the Бизнес page, not here.
+  const [week, setWeek] = useState([])
   const [results, setResults] = useState([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [error, setError] = useState('')
@@ -93,6 +96,23 @@ export default function AppointmentsPage() {
       cancelled = true
     }
   }, [from, to, reloads])
+
+  useEffect(() => {
+    let cancelled = false
+
+    // Quiet on failure, and the grid shades nothing until it arrives: greying
+    // out a day the business may well be open is worse than showing plain
+    // hours for a moment.
+    getWorkingHours(getAccessToken())
+      .then((rows) => {
+        if (!cancelled) setWeek(rows)
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -202,6 +222,7 @@ export default function AppointmentsPage() {
                   view={view}
                   onDateChange={setDate}
                   appointments={appointments}
+                  week={week}
                   selectedId={selectedId}
                   onSelect={(block) => setSelectedId(block.id)}
                 />
