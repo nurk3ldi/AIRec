@@ -30,9 +30,13 @@ export function toBlock(row) {
     end: dayKey(end) === dayKey(start) ? minutesInto(end) : 24 * 60,
     range: `${clock(start)} – ${clock(end)}`,
     client: row.client_name,
+    phone: row.client_phone,
     service: row.service_name,
+    minutes: row.duration_minutes,
     price: row.price,
     status: row.status,
+    source: row.source,
+    note: row.note,
   }
 }
 
@@ -47,6 +51,10 @@ export function toBlock(row) {
  * The width is decided per *cluster* of mutually overlapping bookings, not per
  * day: one busy hour in the morning must not make every booking after it half
  * as wide.
+ *
+ * Returns new objects rather than annotating the ones passed in. Those come
+ * straight out of React state, and writing a layout result onto them would make
+ * the same booking mean different things depending on when it was last drawn.
  */
 export function layoutDay(blocks) {
   const sorted = [...blocks].sort((a, b) => a.start - b.start || b.end - a.end)
@@ -58,17 +66,19 @@ export function layoutDay(blocks) {
   const flush = () => {
     // Greedy lanes: reuse the leftmost one whose last booking has finished.
     const laneEnds = []
-    for (const block of cluster) {
+    const lanes = cluster.map((block) => {
       let lane = laneEnds.findIndex((end) => end <= block.start)
       if (lane === -1) {
         lane = laneEnds.length
         laneEnds.push(0)
       }
       laneEnds[lane] = block.end
-      block.lane = lane
-    }
-    for (const block of cluster) block.lanes = laneEnds.length
-    placed.push(...cluster)
+      return lane
+    })
+
+    cluster.forEach((block, index) => {
+      placed.push({ ...block, lane: lanes[index], lanes: laneEnds.length })
+    })
     cluster = []
   }
 

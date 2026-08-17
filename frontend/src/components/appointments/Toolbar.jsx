@@ -78,7 +78,8 @@ export default function Toolbar({
     <div className="flex flex-wrap items-center gap-4">
       {/* Two stacked halves rather than a badge with text on it: the month is
           a label and the day is the value, and at 64px they need different
-          weights to be read as such. */}
+          weights to be read as such. The strip carries the accent — red was
+          tried and dropped, since `#DC2626` already means an error here. */}
       <div className="flex h-16 w-16 shrink-0 flex-col overflow-hidden rounded-2xl border border-[#999999]/20 bg-white">
         <span className="bg-[#3248F2] py-1 text-center text-[11px] font-semibold tracking-wide text-white">
           {MONTHS_SHORT[date.getMonth()]}

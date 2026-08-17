@@ -42,7 +42,14 @@ const minutesToday = (moment) => moment.getHours() * 60 + moment.getMinutes()
 // and read as one block.
 const COLUMN_INSET = 4
 
-export default function TimeGrid({ date, view, onDateChange, appointments, onSelect }) {
+export default function TimeGrid({
+  date,
+  view,
+  onDateChange,
+  appointments,
+  selectedId,
+  onSelect,
+}) {
   const days = view === 'week' ? weekDays(date) : [date]
   const scroller = useRef(null)
 
@@ -71,11 +78,14 @@ export default function TimeGrid({ date, view, onDateChange, appointments, onSel
   }, [showsToday, date, view])
 
   return (
-    // Same accent scrollbar the option pickers use — one scrollbar treatment
-    // across the app rather than a second one invented here.
+    // A neutral scrollbar, not the accent one the option pickers use. Those
+    // are short menus where the bar is the only thing on screen; here it runs
+    // beside the day itself, and the accent is needed for what is *in* the
+    // calendar — a coloured scrollbar would be the loudest thing on the page
+    // and would be saying nothing.
     <div
       ref={scroller}
-      className="min-h-0 flex-1 overflow-y-auto [scrollbar-color:#3248F2_#F6F8FA] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#3248F2] [&::-webkit-scrollbar-track]:bg-[#F6F8FA] [&::-webkit-scrollbar]:w-2"
+      className="min-h-0 flex-1 overflow-y-auto [scrollbar-color:#999999_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#999999]/45 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-2"
     >
       <div className="sticky top-0 z-10 bg-white">
         <DaysHeader date={date} view={view} onDateChange={onDateChange} />
@@ -122,6 +132,7 @@ export default function TimeGrid({ date, view, onDateChange, appointments, onSel
                 {blocks.map((block) => (
                   <AppointmentBlock
                     key={block.id}
+                    selected={block.id === selectedId}
                     onSelect={onSelect}
                     block={{
                       ...block,

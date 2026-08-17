@@ -282,6 +282,21 @@ export function createAppointment(accessToken, booking) {
   })
 }
 
+/** Partial update — status, note, client, or a new `starts_at` to reschedule. */
+export function updateAppointment(accessToken, id, changes) {
+  return request(`/appointments/${id}`, {
+    method: 'PATCH',
+    body: changes,
+    accessToken,
+  })
+}
+
+/** Cancels rather than deletes: the row is what the owner looks back on to see
+ *  how often bookings fall through. Resolves to the updated booking. */
+export function cancelAppointment(accessToken, id) {
+  return request(`/appointments/${id}`, { method: 'DELETE', accessToken })
+}
+
 export function forgotPassword(email) {
   return request('/auth/forgot-password', {
     method: 'POST',

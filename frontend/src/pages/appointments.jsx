@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Head from 'next/head'
+import AppointmentDetails from '../components/appointments/AppointmentDetails'
 import MiniMonth from '../components/appointments/MiniMonth'
 import NewAppointmentDialog from '../components/appointments/NewAppointmentDialog'
 import TimeGrid from '../components/appointments/TimeGrid'
@@ -22,6 +23,20 @@ export default function AppointmentsPage() {
   const [creating, setCreating] = useState(false)
   // Bumped after a booking is made, purely to make the load effect run again.
   const [reloads, setReloads] = useState(0)
+
+  // The selection is an id, not the booking itself: an id survives the list
+  // being reloaded, and a booking that has left the visible range simply stops
+  // resolving, which is exactly when the panel should fall back to the summary.
+  const [selectedId, setSelectedId] = useState(null)
+  const selected = appointments.find((block) => block.id === selectedId) ?? null
+
+  /** Swap one booking for the version the server just returned. */
+  const replace = (row) => {
+    const updated = toBlock(row)
+    setAppointments((current) =>
+      current.map((block) => (block.id === updated.id ? updated : block))
+    )
+  }
 
   // Whichever days are on screen, as `YYYY-MM-DD` — the shape the endpoint
   // takes, and stable strings rather than `Date` objects, so this effect runs
@@ -80,7 +95,23 @@ export default function AppointmentsPage() {
             </div>
 
             <div className="flex items-stretch border-t border-[#999999]/15">
-              <MiniMonth date={date} onDateChange={setDate} />
+              <div className="flex w-[300px] shrink-0 flex-col">
+                <MiniMonth date={date} onDateChange={setDate} />
+
+                {/* Under the month rather than in a column of its own: a third
+                    column would take its width from the grid, which is the part
+                    of this screen that needs it. The divider comes with the
+                    panel — on its own it would be a line under nothing. */}
+                {selected && (
+                  <div className="min-h-0 flex-1 border-t border-[#999999]/15">
+                    <AppointmentDetails
+                      block={selected}
+                      onClose={() => setSelectedId(null)}
+                      onUpdated={replace}
+                    />
+                  </div>
+                )}
+              </div>
 
               {/* A fixed height, not a minimum: the grid inside scrolls
                   through all twenty-four hours, and it can only do that if
@@ -91,6 +122,8 @@ export default function AppointmentsPage() {
                   view={view}
                   onDateChange={setDate}
                   appointments={appointments}
+                  selectedId={selectedId}
+                  onSelect={(block) => setSelectedId(block.id)}
                 />
               </div>
             </div>
