@@ -80,8 +80,10 @@ class AppointmentService:
         today = datetime.now(UTC).astimezone(tz).date()
 
         if query and start_day is None and end_day is None:
+            # Archived ones included: a booking put out of the calendar's way is
+            # exactly the kind someone goes looking for by name later.
             return await self._appointments.list_in_range(
-                business.id, None, None, statuses, query
+                business.id, None, None, statuses, query, include_archived=True
             )
 
         first = start_day or today
@@ -263,6 +265,14 @@ class AppointmentService:
 
         if changes.get("status") is not None:
             appointment.status = changes["status"].value
+
+        # A timestamp rather than a boolean column: "when was this put away" is
+        # worth having for free, and `NULL` is the only value that can mean
+        # "never was".
+        if changes.get("archived") is not None:
+            appointment.archived_at = (
+                datetime.now(UTC) if changes["archived"] else None
+            )
 
         # Where the booking sits is only re-checked when it has actually been
         # chosen again — a new time, or a service long enough to push the end

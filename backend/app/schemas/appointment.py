@@ -43,6 +43,8 @@ class AppointmentPublic(BaseModel):
     status: str
     source: str
     note: str | None = None
+    # Computed on the model from `archived_at`.
+    archived: bool = False
     created_at: datetime
 
 
@@ -99,6 +101,9 @@ class UpdateAppointmentRequest(BaseModel):
     starts_at: datetime | None = None
     note: str | None = Field(default=None, max_length=MAX_NOTE_LENGTH)
     status: AppointmentStatus | None = None
+    # Out of the calendar's way, or back into it. A view flag — it changes
+    # nothing about when the booking is or whether its hour is free.
+    archived: bool | None = None
 
     @field_validator("client_name")
     @classmethod

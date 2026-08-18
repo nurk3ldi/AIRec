@@ -2,13 +2,14 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
+  Archive02Icon,
   Cancel01Icon,
   Chat01Icon,
   Delete02Icon,
   PencilEdit02Icon,
 } from '@hugeicons/core-free-icons'
 import BookingPanel from './BookingPanel'
-import { deleteAppointment } from '../../lib/api'
+import { deleteAppointment, updateAppointment } from '../../lib/api'
 import { getAccessToken } from '../../lib/auth'
 import {
   formatDuration,
@@ -50,6 +51,23 @@ export default function BookingDetails({
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
+
+  const [archiving, setArchiving] = useState(false)
+
+  /** Out of the calendar's way, or back into it. */
+  const toggleArchive = async () => {
+    setArchiving(true)
+    setError('')
+    try {
+      await updateAppointment(getAccessToken(), block.id, {
+        archived: !block.archived,
+      })
+      onSaved()
+    } catch (err) {
+      setError(err.message)
+      setArchiving(false)
+    }
+  }
 
   const remove = async () => {
     setDeleting(true)
@@ -199,6 +217,31 @@ export default function BookingDetails({
                   className="shrink-0 text-[#171215]"
                 />
               </Link>
+
+              {/* Between the link and the bin, as asked — and the order is the
+                  order of consequence: open the conversation, put the booking
+                  away, destroy it. */}
+              <button
+                type="button"
+                onClick={toggleArchive}
+                disabled={archiving}
+                aria-label={
+                  block.archived ? 'Вернуть из архива' : 'В архив'
+                }
+                className="flex shrink-0 items-center gap-2 rounded-lg bg-[#999999]/15 px-3 py-2 text-[13px] font-medium text-[#171215] transition-colors outline-none hover:bg-[#999999]/25 focus-visible:ring-2 focus-visible:ring-[#3248F2] disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                <span className="truncate">
+                  {block.archived ? 'Из архива' : 'Архив'}
+                </span>
+                <HugeiconsIcon
+                  icon={Archive02Icon}
+                  size={15}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  className="shrink-0 text-[#171215]"
+                />
+              </button>
 
               {/* An icon on its own, and the only red on the card. It is the
                   one action here that cannot be taken back, so it is kept

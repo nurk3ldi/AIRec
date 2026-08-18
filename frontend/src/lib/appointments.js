@@ -71,6 +71,7 @@ export function toBlock(row, timeZone) {
     minutes: row.duration_minutes,
     price: row.price,
     status: row.status,
+    archived: row.archived,
     source: row.source,
     note: row.note,
   }

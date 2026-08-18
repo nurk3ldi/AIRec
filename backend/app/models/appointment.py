@@ -133,6 +133,17 @@ class Appointment(Base):
     )
     note: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
+    # Out of the calendar's way, still in the history.
+    #
+    # A view flag, not a scheduling one: an archived booking is hidden from the
+    # month and the day column, but it still occupies its time exactly as its
+    # status says it does. Archiving is "I have dealt with this", not "this
+    # never happened" — that is what `DELETE` is for — and letting it quietly
+    # reopen an hour would make availability depend on housekeeping.
+    archived_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -145,6 +156,10 @@ class Appointment(Base):
 
     business: Mapped[Business] = relationship()
     service: Mapped[Service | None] = relationship()
+
+    @property
+    def archived(self) -> bool:
+        return self.archived_at is not None
 
     @property
     def blocks_slot(self) -> bool:

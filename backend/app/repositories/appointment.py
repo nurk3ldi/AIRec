@@ -35,6 +35,7 @@ class AppointmentRepository:
         end: datetime | None,
         statuses: Sequence[str] | None = None,
         query: str | None = None,
+        include_archived: bool = False,
     ) -> Sequence[Appointment]:
         """Bookings that *overlap* the window, not merely start inside it.
 
@@ -44,6 +45,11 @@ class AppointmentRepository:
 
         `start`/`end` are optional so a search can run across the whole history;
         every other caller passes both.
+
+        Archived bookings are left out unless asked for. Two callers ask: the
+        search, because a booking put out of the way is exactly the kind you go
+        looking for by name, and the availability check, because archiving is a
+        view flag and must not hand an occupied hour back out.
         """
         stmt = select(Appointment).where(Appointment.business_id == business_id)
         if end is not None:
@@ -54,6 +60,8 @@ class AppointmentRepository:
             stmt = stmt.where(Appointment.status.in_(statuses))
         if query:
             stmt = stmt.where(_matches_client(query))
+        if not include_archived:
+            stmt = stmt.where(Appointment.archived_at.is_(None))
         return (
             await self._session.scalars(stmt.order_by(Appointment.starts_at))
         ).all()
@@ -61,8 +69,14 @@ class AppointmentRepository:
     async def list_blocking(
         self, business_id: uuid.UUID, start: datetime, end: datetime
     ) -> Sequence[Appointment]:
-        """The ones that actually take up a place in that window."""
-        return await self.list_in_range(business_id, start, end, BLOCKING_STATUSES)
+        """The ones that actually take up a place in that window.
+
+        `include_archived=True` on purpose: see `archived_at` on the model —
+        putting a booking out of sight must not put its hour back on sale.
+        """
+        return await self.list_in_range(
+            business_id, start, end, BLOCKING_STATUSES, include_archived=True
+        )
 
     def add(self, appointment: Appointment) -> None:
         self._session.add(appointment)
