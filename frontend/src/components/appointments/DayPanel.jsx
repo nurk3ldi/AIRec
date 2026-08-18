@@ -1,11 +1,9 @@
 import { useEffect, useRef } from 'react'
-import Link from 'next/link'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Add01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
-  Chat01Icon,
   Clock01Icon,
 } from '@hugeicons/core-free-icons'
 import {
@@ -13,7 +11,6 @@ import {
   byStart,
   formatDuration,
   formatPrice,
-  statusLabel,
 } from '../../lib/appointments'
 import { DAY_NAMES, MONTHS_OF, dayKey } from '../../lib/dates'
 
@@ -166,12 +163,10 @@ function Booking({ block, color, onOpen, highlighted }) {
           ? 'bg-[#3248F2]/[0.13] ring-2 ring-[#3248F2]'
           : 'bg-[#3248F2]/[0.06] hover:bg-[#3248F2]/[0.11]'
       }`}>
-      {/* The whole card opens the booking, as one target stretched over it —
-          not as a <button> wrapping everything, because the «Диалог» link
-          inside would then be a link inside a button: invalid HTML, and
-          unreachable by keyboard. This sits underneath instead, and the link
-          is lifted above it. Both stay in the tab order, and each does one
-          thing. */}
+      {/* The whole card opens the booking, as one target stretched over it
+          rather than a <button> wrapped around everything. It stays this shape
+          now that the link inside it is gone: a card that grows a control again
+          would otherwise have to be turned inside out a second time. */}
       <button
         type="button"
         onClick={() => onOpen?.(block, color)}
@@ -190,26 +185,18 @@ function Booking({ block, color, onOpen, highlighted }) {
         style={{ backgroundColor: color }}
       />
 
-      {/* The status sits opposite the name, in the space the edit pencil used
-          to hold. Deliberately *not* tinted by what it says: the colours on this
-          screen mark which booking it is, and giving the status a palette of its
-          own would put two colour systems on one card, each meaning something
-          different. The word is the whole signal.
-
-          `pointer-events-none` on the row so the card's own target underneath
-          still receives the press; `relative` so it paints above it. */}
-      <div className="pointer-events-none relative mt-4 flex items-start justify-between gap-2">
-        <p
-          className={`min-w-0 flex-1 truncate text-[20px] font-semibold tracking-[-0.02em] ${
-            dead ? 'text-[#999999] line-through' : 'text-[#171215]'
-          }`}
-        >
-          {block.client}
-        </p>
-        <span className="mt-0.5 shrink-0 rounded-md bg-white px-2 py-1 text-[12px] font-medium text-[#171215]">
-          {statusLabel(block.status)}
-        </span>
-      </div>
+      {/* TEMPORARILY REMOVED: a status pill sat opposite the name here, and a
+          «Диалог» link sat in the bottom row. Both are still in the details
+          window's own history — put them back by reversing this commit.
+          `pointer-events-none` keeps the card's own target underneath live;
+          `relative` paints the text above it. */}
+      <p
+        className={`pointer-events-none relative mt-4 truncate text-[20px] font-semibold tracking-[-0.02em] ${
+          dead ? 'text-[#999999] line-through' : 'text-[#171215]'
+        }`}
+      >
+        {block.client}
+      </p>
       <p className="pointer-events-none relative mt-1 truncate text-[14px] text-[#999999]">
         {block.service}
       </p>
@@ -235,33 +222,7 @@ function Booking({ block, color, onOpen, highlighted }) {
       </Row>
 
       <Row>
-        {/* Where the reference puts its «Meet Link» — the one thing on the card
-            you act on rather than read.
-
-            The phone number was here and is gone: reading it off the screen and
-            typing it into a phone is work the product can do itself. This goes
-            to the conversation instead, which is where the client actually is.
-            For now it lands on «Диалоги» as a whole; once that page can open one
-            chat, this becomes a link straight to theirs. */}
-        <Link
-          href="/inbox"
-          className="relative z-10 flex min-w-0 items-center gap-2 rounded-lg bg-white px-3 py-2 text-[13px] font-medium text-[#171215] transition-colors outline-none hover:bg-white/70 focus-visible:ring-2 focus-visible:ring-[#3248F2]"
-        >
-          {/* Label first, icon after it: the icon here is pointing at where
-              the button goes, and something that points forward belongs at the
-              end of what it is pointing from. In the same near-black as the
-              label, so the two read as one control rather than a grey mark
-              beside a black word. */}
-          <span className="truncate">Диалог</span>
-          <HugeiconsIcon
-            icon={Chat01Icon}
-            size={15}
-            strokeWidth={2}
-            className="shrink-0 text-[#171215]"
-          />
-        </Link>
-
-        <span className="shrink-0 text-[14px] font-medium text-[#171215]">
+        <span className="ml-auto shrink-0 text-[14px] font-medium text-[#171215]">
           {formatPrice(block.price)}
         </span>
       </Row>

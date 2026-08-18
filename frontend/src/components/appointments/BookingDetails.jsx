@@ -1,21 +1,15 @@
 import { useState } from 'react'
-import Link from 'next/link'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Archive02Icon,
   Cancel01Icon,
-  Chat01Icon,
   Delete02Icon,
   PencilEdit02Icon,
 } from '@hugeicons/core-free-icons'
 import BookingPanel from './BookingPanel'
 import { deleteAppointment, updateAppointment } from '../../lib/api'
 import { getAccessToken } from '../../lib/auth'
-import {
-  formatDuration,
-  formatPrice,
-  statusLabel,
-} from '../../lib/appointments'
+import { formatDuration, formatPrice } from '../../lib/appointments'
 import { DAY_NAMES, MONTHS_OF } from '../../lib/dates'
 
 /**
@@ -157,7 +151,10 @@ export default function BookingDetails({
             {formatDuration(block.minutes)}
           </span>
         </Row>
-        <Row label="Статус">{statusLabel(block.status)}</Row>
+        {/* TEMPORARILY REMOVED: a «Статус» row sat here, and a «Диалог»
+            button in the footer below. The status itself is untouched — it is
+            still set from the edit form, and still what strikes a cancelled
+            booking through. */}
         <Row label="Стоимость">{formatPrice(block.price)}</Row>
         {block.phone && (
           <Row label="Телефон">
@@ -205,22 +202,8 @@ export default function BookingDetails({
         ) : (
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
-              <Link
-                href="/inbox"
-                className="flex min-w-0 items-center gap-2 rounded-lg bg-[#999999]/15 px-3 py-2 text-[13px] font-medium text-[#171215] transition-colors outline-none hover:bg-[#999999]/25 focus-visible:ring-2 focus-visible:ring-[#3248F2]"
-              >
-                <span className="truncate">Диалог</span>
-                <HugeiconsIcon
-                  icon={Chat01Icon}
-                  size={15}
-                  strokeWidth={2}
-                  className="shrink-0 text-[#171215]"
-                />
-              </Link>
-
-              {/* Between the link and the bin, as asked — and the order is the
-                  order of consequence: open the conversation, put the booking
-                  away, destroy it. */}
+              {/* Ahead of the bin, in order of consequence: put the booking
+                  away, then destroy it. */}
               <button
                 type="button"
                 onClick={toggleArchive}
