@@ -5,24 +5,71 @@ import { me, refresh } from './api'
 const ACCESS_TOKEN_KEY = 'airec_access_token'
 const REFRESH_TOKEN_KEY = 'airec_refresh_token'
 
-export function saveTokens({ access_token, refresh_token }) {
-  localStorage.setItem(ACCESS_TOKEN_KEY, access_token)
-  localStorage.setItem(REFRESH_TOKEN_KEY, refresh_token)
+/**
+ * "Запомнить меня" is answered by *which store the tokens go into*, and the
+ * two browser stores already mean exactly the two things being asked:
+ *
+ *   localStorage    survives the browser closing — remembered
+ *   sessionStorage  cleared with the tab — not remembered
+ *
+ * That is only half of it. The backend takes the same flag on `POST /auth/login`
+ * and grants a matching refresh-token lifetime (30 days vs 12 hours), because
+ * dropping the token here would otherwise leave a live credential on the server
+ * that nobody holds — visible to the owner as a device in «Активные сессии»
+ * that has not existed for a month.
+ *
+ * Worth knowing: sessionStorage is *per tab*. Opening AIRec in a second tab
+ * after choosing not to be remembered asks for the password again. That is the
+ * behaviour the choice describes, not a bug — but it is why the box is ticked
+ * by default.
+ *
+ * Only one store ever holds a session: writing to either clears the other, so
+ * the readers below can take the first hit without deciding anything.
+ */
+function tokenStore(remember) {
+  return remember ? localStorage : sessionStorage
+}
+
+function currentStore() {
+  return sessionStorage.getItem(REFRESH_TOKEN_KEY) ? sessionStorage : localStorage
+}
+
+function read(key) {
+  if (typeof window === 'undefined') return null
+  return sessionStorage.getItem(key) ?? localStorage.getItem(key)
+}
+
+/**
+ * `remember` is stated only by a fresh sign-in. A rotation omits it and stays
+ * in the store it is already in — passing `remember` there would let a session
+ * the user asked not to remember promote itself to a permanent one the first
+ * time its 15-minute access token ran out.
+ */
+export function saveTokens({ access_token, refresh_token }, { remember } = {}) {
+  const store = remember === undefined ? currentStore() : tokenStore(remember)
+  const other = store === localStorage ? sessionStorage : localStorage
+
+  other.removeItem(ACCESS_TOKEN_KEY)
+  other.removeItem(REFRESH_TOKEN_KEY)
+  store.setItem(ACCESS_TOKEN_KEY, access_token)
+  store.setItem(REFRESH_TOKEN_KEY, refresh_token)
 }
 
 export function getAccessToken() {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem(ACCESS_TOKEN_KEY)
+  return read(ACCESS_TOKEN_KEY)
 }
 
 export function getRefreshToken() {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem(REFRESH_TOKEN_KEY)
+  return read(REFRESH_TOKEN_KEY)
 }
 
+/** Clears both stores — a sign-out must not leave a stale pair in the other. */
 export function clearTokens() {
-  localStorage.removeItem(ACCESS_TOKEN_KEY)
-  localStorage.removeItem(REFRESH_TOKEN_KEY)
+  if (typeof window === 'undefined') return
+  for (const store of [localStorage, sessionStorage]) {
+    store.removeItem(ACCESS_TOKEN_KEY)
+    store.removeItem(REFRESH_TOKEN_KEY)
+  }
 }
 
 export function isAuthenticated() {

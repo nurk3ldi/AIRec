@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, func, true
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -47,6 +47,18 @@ class RefreshToken(Base):
     # particular token was minted — i.e. the last refresh.
     first_seen_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    # "Запомнить меня", answered once at sign-in and copied across every
+    # rotation — without that the flag would last exactly one refresh, and a
+    # session the user asked *not* to remember would quietly promote itself to
+    # the full 30 days the first time its access token expired.
+    #
+    # It only sets how long `expires_at` is granted for; the client separately
+    # decides whether to keep the token past the browser closing. Both halves
+    # are needed: the store alone leaves a live token on the server that nobody
+    # holds, and the lifetime alone leaves it on a shared machine's disk.
+    remember: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=true()
     )
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False

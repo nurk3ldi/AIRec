@@ -57,7 +57,14 @@ class Settings(BaseSettings):
     # --- Security ---
     secret_key: SecretStr
     access_token_ttl_minutes: int = 15
+    # How long a refresh token lives, and it depends on the answer to
+    # "Запомнить меня". The short one is a backstop rather than the mechanism:
+    # an unremembered session is really ended by the browser dropping the token
+    # when it closes, and this is what stops the server-side row outliving it
+    # by a month — which would leave a phantom device in the sessions list and
+    # a live credential nobody is holding.
     refresh_token_ttl_days: int = 30
+    refresh_token_session_ttl_hours: int = 12
 
     # --- Password reset ---
     password_reset_code_ttl_minutes: int = 10

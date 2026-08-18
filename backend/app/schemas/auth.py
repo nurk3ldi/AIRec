@@ -87,6 +87,12 @@ class LoginRequest(BaseModel):
 
     identifier: str
     password: Password
+    # "Запомнить меня". Defaults to *off* so a client that never sends it gets
+    # the short-lived token — the wrong guess is then a session that ends too
+    # early, not one that outlives the browser it was made in. The web form
+    # always sends it, and ticks the box by default, because a panel someone
+    # opens every morning should not sign them out every night.
+    remember: bool = False
 
     _check_password = field_validator("password")(validate_password_length)
 

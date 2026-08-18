@@ -65,6 +65,20 @@ class RefreshTokenRepository:
         )
         return await self._session.scalar(stmt)
 
+    async def get_active_by_family_for_user(
+        self, family_id: uuid.UUID, user_id: uuid.UUID, now: datetime
+    ) -> RefreshToken | None:
+        """The one live token of a session, found by the family the access
+        token names. Rotation keeps exactly one alive per family, so this is a
+        lookup and not a pick-the-newest."""
+        stmt = select(RefreshToken).where(
+            RefreshToken.family_id == family_id,
+            RefreshToken.user_id == user_id,
+            RefreshToken.revoked_at.is_(None),
+            RefreshToken.expires_at > now,
+        )
+        return await self._session.scalar(stmt)
+
     async def revoke_other_families_for_user(
         self, user_id: uuid.UUID, keep_family_id: uuid.UUID | None, now: datetime
     ) -> None:

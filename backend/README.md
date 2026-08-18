@@ -67,7 +67,7 @@ All routes are under `/api/v1`. Interactive docs at `/docs`.
 | --- | --- | --- |
 | `POST` | `/auth/register` | Create an account, returns user + token pair (201) |
 | `GET` | `/auth/username-availability?username=` | Live check for the signup form (no auth) |
-| `POST` | `/auth/login` | Sign in with **email or username** in `identifier` |
+| `POST` | `/auth/login` | Sign in with **email or username** in `identifier`; `remember` picks the session length |
 | `POST` | `/auth/refresh` | Trade a refresh token for a fresh pair |
 | `POST` | `/auth/logout` | Revoke one refresh token (204, idempotent) |
 | `POST` | `/auth/forgot-password` | Email a 6-digit reset code (always a generic 200, no auth) |
@@ -137,6 +137,14 @@ Every failure comes back in one shape, so the frontend only needs one parser:
   refresh token stored only as a SHA-256 digest, which is what makes logout and
   revocation real. Refresh tokens rotate on every use; presenting an already-rotated
   token is treated as theft and revokes every session for that user.
+- **"Запомнить меня"** — `login.remember` sets how long the refresh token lives:
+  `REFRESH_TOKEN_TTL_DAYS` (30) against `REFRESH_TOKEN_SESSION_TTL_HOURS` (12).
+  It is stored on `refresh_tokens.remember` and copied across every rotation, so
+  the answer given once at sign-in cannot be re-decided by a token refresh or by
+  a password change. The field **defaults to `false`**: an omitted flag then
+  ends the session too early rather than outliving the browser it was made in.
+  The web client sets the matching half, keeping the tokens in `localStorage`
+  when remembered and `sessionStorage` when not.
 - **Identity** — emails are stored lower-cased with a plain unique index; usernames
   keep their typed casing but are unique case-insensitively via a
   `lower(username)` unique index, which also backs the login lookup.

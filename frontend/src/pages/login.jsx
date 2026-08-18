@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { EyeIcon, EyeOffIcon } from '@hugeicons/core-free-icons'
+import { EyeIcon, EyeOffIcon, Tick02Icon } from '@hugeicons/core-free-icons'
 import { login, restoreAccount } from '../lib/api'
 import { saveTokens, useRedirectIfAuthed } from '../lib/auth'
 import styles from '../styles/Login.module.css'
@@ -14,6 +14,11 @@ export default function LoginPage() {
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  // Ticked by default, unlike the usual convention, because this is a panel its
+  // owner opens every morning — defaulting to off would sign them out every
+  // night and read as a bug. The box is here for the other case: a borrowed or
+  // shared computer, where someone will deliberately clear it.
+  const [remember, setRemember] = useState(true)
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   // Set when the sign-in failed only because the account is inside its deletion
@@ -32,8 +37,8 @@ export default function LoginPage() {
     setIsSubmitting(true)
 
     try {
-      const { tokens } = await login({ identifier, password })
-      saveTokens(tokens)
+      const { tokens } = await login({ identifier, password, remember })
+      saveTokens(tokens, { remember })
       navigate('/dashboard')
     } catch (err) {
       setError(err.message)
@@ -46,8 +51,8 @@ export default function LoginPage() {
     setError('')
     setIsSubmitting(true)
     try {
-      const { tokens } = await restoreAccount({ identifier, password })
-      saveTokens(tokens)
+      const { tokens } = await restoreAccount({ identifier, password, remember })
+      saveTokens(tokens, { remember })
       navigate('/dashboard')
     } catch (err) {
       setError(err.message)
@@ -119,9 +124,44 @@ export default function LoginPage() {
               {passwordHasSpace && (
                 <p className="text-[13px] text-[#DC2626]">Пробелы недопустимы.</p>
               )}
+            </div>
+
+            {/* One row, not two. The link already lived alone under the password
+                field and the checkbox carries the same weight, so pairing them
+                adds the control without adding a line. Both get `py-2.5 -my-2.5`:
+                the padding grows the tap target to 38px, the negative margin
+                takes it back out of the layout, so the row still measures 18px. */}
+            <div className="flex items-center justify-between gap-4">
+              <label className="-my-2.5 flex cursor-pointer items-center gap-2.5 py-2.5 select-none">
+                <span className="relative flex h-[18px] w-[18px] shrink-0">
+                  {/* A native checkbox with its own paint stripped off, rather
+                      than a Radix one: space-to-toggle, form semantics and
+                      focus are already correct here, and CLAUDE.md keeps Radix
+                      for behaviour that is genuinely hard, never for looks. */}
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(event) => setRemember(event.target.checked)}
+                    className="peer h-full w-full cursor-pointer appearance-none rounded-[5px] border border-[#999999]/45 bg-white transition-colors hover:border-[#999999]/70 checked:border-[#3248F2] checked:bg-[#3248F2] focus-visible:outline-2 focus-visible:outline-[#3248F2] focus-visible:outline-offset-2"
+                  />
+                  <span className="pointer-events-none absolute inset-0 grid place-items-center text-white opacity-0 transition-opacity peer-checked:opacity-100">
+                    <HugeiconsIcon
+                      icon={Tick02Icon}
+                      size={12}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                    />
+                  </span>
+                </span>
+                {/* #999999 on white is 2.9:1 — fine for a placeholder, not for
+                    a label someone has to read to make a decision. */}
+                <span className="text-[13px] text-[#171215]/70">Запомнить меня</span>
+              </label>
+
               <Link
                 to="/forgot-password"
-                className="self-end text-[13px] font-medium text-[#3248F2] hover:underline"
+                className="-my-2.5 py-2.5 text-[13px] font-medium text-[#3248F2] hover:underline"
               >
                 Забыли пароль?
               </Link>

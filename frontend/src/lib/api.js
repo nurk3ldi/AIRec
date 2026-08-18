@@ -68,10 +68,16 @@ export function checkUsernameAvailability(username) {
   return request(`/auth/username-availability?username=${encodeURIComponent(username)}`)
 }
 
-export function login({ identifier, password }) {
+/**
+ * `remember` decides how long the refresh token lives — 30 days against 12
+ * hours. It has to be sent, not inferred: the server defaults it to `false`,
+ * so an omitted flag signs you out by evening. `lib/auth.js` handles the other
+ * half, choosing the store the tokens are kept in.
+ */
+export function login({ identifier, password, remember = false }) {
   return request('/auth/login', {
     method: 'POST',
-    body: { identifier, password },
+    body: { identifier, password, remember },
   })
 }
 
@@ -165,11 +171,12 @@ export function deleteAccount(accessToken, { currentPassword, confirmation }) {
   })
 }
 
-/** Undoes a deletion still inside its grace period and signs the user back in. */
-export function restoreAccount({ identifier, password }) {
+/** Undoes a deletion still inside its grace period and signs the user back in.
+ *  Takes `remember` for the same reason `login` does — it is the same form. */
+export function restoreAccount({ identifier, password, remember = false }) {
   return request('/auth/restore', {
     method: 'POST',
-    body: { identifier, password },
+    body: { identifier, password, remember },
   })
 }
 

@@ -133,8 +133,22 @@ def hash_refresh_token(raw: str) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def refresh_token_expiry() -> datetime:
-    return datetime.now(UTC) + timedelta(days=settings.refresh_token_ttl_days)
+def refresh_token_expiry(*, remember: bool) -> datetime:
+    """When a refresh token issued now should die.
+
+    Sliding either way — every rotation grants a fresh window — so the shorter
+    one measures inactivity, not the age of the sign-in. A tab left open all
+    day never trips it; a browser closed at six has nothing left to refresh
+    with, and the row is dead by morning.
+
+    Keyword-only, and with no default, so neither lifetime can be picked by
+    accident at a call site that never thought about it.
+    """
+    if remember:
+        return datetime.now(UTC) + timedelta(days=settings.refresh_token_ttl_days)
+    return datetime.now(UTC) + timedelta(
+        hours=settings.refresh_token_session_ttl_hours
+    )
 
 
 def generate_reset_code() -> tuple[str, str]:

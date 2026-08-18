@@ -120,6 +120,11 @@ class AuthService:
 
         tokens = await self._issue_tokens(
             user,
+            # Registration has no checkbox and does not need one: an account is
+            # made on the machine its owner works from, and the one place this
+            # would be wrong — signing up on a borrowed computer — is answered
+            # by signing out, not by a control on the form.
+            remember=True,
             user_agent=client.user_agent if client else None,
             ip_address=client.ip_address if client else None,
         )
@@ -127,7 +132,12 @@ class AuthService:
         return user, tokens
 
     async def authenticate(
-        self, identifier: str, password: str, *, client: ClientInfo | None = None
+        self,
+        identifier: str,
+        password: str,
+        *,
+        remember: bool,
+        client: ClientInfo | None = None,
     ) -> tuple[User, TokenPair]:
         user = await self._users.get_by_identifier(identifier)
 
@@ -150,6 +160,7 @@ class AuthService:
 
         tokens = await self._issue_tokens(
             user,
+            remember=remember,
             user_agent=client.user_agent if client else None,
             ip_address=client.ip_address if client else None,
         )
@@ -178,7 +189,12 @@ class AuthService:
         await self._session.commit()
 
     async def restore_account(
-        self, identifier: str, password: str, *, client: ClientInfo | None = None
+        self,
+        identifier: str,
+        password: str,
+        *,
+        remember: bool,
+        client: ClientInfo | None = None,
     ) -> tuple[User, TokenPair]:
         """Undo a deletion that hasn't been purged yet, and sign the user in."""
         user = await self._users.get_by_identifier(identifier)
@@ -190,13 +206,16 @@ class AuthService:
         if user.deleted_at is None:
             # Nothing to restore — but they did just prove who they are, so this
             # is a plain sign-in rather than an error.
-            return await self.authenticate(identifier, password, client=client)
+            return await self.authenticate(
+                identifier, password, remember=remember, client=client
+            )
         if not user.is_active:
             raise InactiveAccount
 
         user.deleted_at = None
         tokens = await self._issue_tokens(
             user,
+            remember=remember,
             user_agent=client.user_agent if client else None,
             ip_address=client.ip_address if client else None,
         )
@@ -251,6 +270,9 @@ class AuthService:
         await self._tokens.revoke(stored, now)
         tokens = await self._issue_tokens(
             user,
+            # Carried, not re-decided: the answer was given once at sign-in and
+            # this is the same session continuing.
+            remember=stored.remember,
             family_id=stored.family_id,
             user_agent=stored.user_agent,
             ip_address=stored.ip_address,
@@ -516,6 +538,7 @@ class AuthService:
         *,
         current_password: str | None = None,
         code: str | None = None,
+        current_session_id: uuid.UUID | None = None,
     ) -> tuple[User, TokenPair]:
         """Apply a password change and re-issue this client's session.
 
@@ -537,12 +560,27 @@ class AuthService:
             record = await self._consume_reset_code(user, code or "")
 
         now = datetime.now(UTC)
+
+        # Read before the revocation below wipes it: the replacement pair keeps
+        # this client's own answer to "Запомнить меня". Re-deciding it here
+        # would silently promote a session the user asked not to remember —
+        # changing a password is not a place to hand out a longer credential
+        # than the one being replaced. Unknown (a token minted before `sid`
+        # existed) falls back to the shorter life, which fails safe.
+        remember = False
+        if current_session_id is not None:
+            current = await self._tokens.get_active_by_family_for_user(
+                current_session_id, user.id, now
+            )
+            if current is not None:
+                remember = current.remember
+
         user.password_hash = await hash_password(new_password)
         if record is not None:
             record.used_at = now
         await self._tokens.revoke_all_for_user(user.id, now)
 
-        tokens = await self._issue_tokens(user)
+        tokens = await self._issue_tokens(user, remember=remember)
         await self._session.commit()
         return user, tokens
 
@@ -589,6 +627,7 @@ class AuthService:
         self,
         user: User,
         *,
+        remember: bool,
         family_id: uuid.UUID | None = None,
         user_agent: str | None = None,
         ip_address: str | None = None,
@@ -597,6 +636,10 @@ class AuthService:
         """Mint a pair. Passing an existing `family_id` continues that session
         instead of starting a new one — that's what a refresh does, and it's why
         rotation doesn't make a device look like a new sign-in every 15 minutes.
+
+        `remember` has no default on purpose: it decides how long the token
+        lives, and every one of the five places that mint a pair has a different
+        right answer. A default here would be one of them silently.
         """
         session_id = family_id or uuid.uuid4()
         access_token, _ = create_access_token(user.id, session_id)
@@ -610,7 +653,8 @@ class AuthService:
                 user_agent=user_agent,
                 ip_address=ip_address,
                 first_seen_at=first_seen_at or datetime.now(UTC),
-                expires_at=refresh_token_expiry(),
+                remember=remember,
+                expires_at=refresh_token_expiry(remember=remember),
             )
         )
         await self._session.flush()

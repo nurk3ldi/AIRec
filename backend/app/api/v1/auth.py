@@ -63,7 +63,10 @@ async def login(
     payload: LoginRequest, auth: AuthServiceDep, client: ClientInfoDep
 ) -> AuthResponse:
     user, tokens = await auth.authenticate(
-        payload.identifier, payload.password, client=client
+        payload.identifier,
+        payload.password,
+        remember=payload.remember,
+        client=client,
     )
     return AuthResponse(user=UserPublic.model_validate(user), tokens=tokens)
 
@@ -120,7 +123,10 @@ async def restore_account(
     payload: LoginRequest, auth: AuthServiceDep, client: ClientInfoDep
 ) -> AuthResponse:
     user, tokens = await auth.restore_account(
-        payload.identifier, payload.password, client=client
+        payload.identifier,
+        payload.password,
+        remember=payload.remember,
+        client=client,
     )
     return AuthResponse(user=UserPublic.model_validate(user), tokens=tokens)
 
@@ -207,13 +213,20 @@ async def request_password_change(
     ),
 )
 async def confirm_password_change(
-    payload: ChangePasswordRequest, user: CurrentUser, auth: AuthServiceDep
+    payload: ChangePasswordRequest,
+    user: CurrentUser,
+    claims: TokenClaims,
+    auth: AuthServiceDep,
 ) -> AuthResponse:
     updated, tokens = await auth.change_password(
         user,
         payload.new_password,
         current_password=payload.current_password,
         code=payload.code,
+        # So the re-issued pair inherits this session's "Запомнить меня"
+        # instead of quietly being granted a longer life than the one it
+        # replaces.
+        current_session_id=claims.session_id,
     )
     return AuthResponse(user=UserPublic.model_validate(updated), tokens=tokens)
 
