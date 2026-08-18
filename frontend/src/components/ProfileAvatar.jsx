@@ -11,7 +11,7 @@ export default function ProfileAvatar({ src }) {
       <img
         src={src}
         alt=""
-        className="h-7 w-7 rounded-full object-cover"
+        className="h-8 w-8 rounded-full object-cover"
         onError={() => setFailedSrc(src)}
       />
     )
@@ -20,7 +20,7 @@ export default function ProfileAvatar({ src }) {
   return (
     <HugeiconsIcon
       icon={User02Icon}
-      size={17}
+      size={20}
       strokeLinecap="round"
       strokeLinejoin="round"
       strokeWidth={1.8}
