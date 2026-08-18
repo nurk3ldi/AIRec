@@ -18,21 +18,27 @@ Both stay under the 10–15% band the product reserves for real data, so the gri
 reads as a surface rather than as something being pointed at.
 
 
-VARIANT A — accent tint (cool)
-------------------------------
+VARIANT A — accent tint (cool)   [ACTIVE]
+-----------------------------------------
 base    bg-[#3248F2]/[0.06]     ≈ rgb(240,241,253)
 hover   bg-[#3248F2]/[0.13]
-outside bg-[#3248F2]/[0.03]     (days from the neighbouring month)
-outside hover  bg-[#3248F2]/[0.08]
 card    bg-[#3248F2]/[0.06]  hover:bg-[#3248F2]/[0.11]   (DayPanel booking)
+
+Every day cell wears that one fill — the month's own days, the neighbouring
+month's, and days the business is closed alike. Separate fainter fills for the
+last two were tried on 2026-08-17 and dropped: at these opacities the steps
+were too small to read as meaning anything, and all they did was make the grid
+look unevenly lit. Those two facts are carried in text instead, which is the
+part that can actually be read: a muted number for another month, and the word
+«Выходной» on a closed day with nothing booked.
 
 Adds no new token — the tint falls out of the brand accent. Reads clearly
 against white because a cool cast separates from white better than a neutral
 does at the same lightness.
 
 
-VARIANT B — muted grey (neutral)   [ACTIVE]
--------------------------------------------
+VARIANT B — muted grey (neutral)
+--------------------------------
 base    bg-[#999999]/15         ≈ rgb(240,240,240)
 hover   bg-[#999999]/28
 outside bg-[#999999]/8

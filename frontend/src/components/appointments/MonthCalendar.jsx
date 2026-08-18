@@ -2,6 +2,7 @@ import { useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { HugeiconsIcon } from '@hugeicons/react'
 import BookingPanel from './BookingPanel'
+import CalendarSearch from './CalendarSearch'
 import { bookingColor, byStart } from '../../lib/appointments'
 import { isDayOff } from '../../lib/schedule'
 import {
@@ -135,6 +136,7 @@ export default function MonthCalendar({
   blocks,
   week,
   timeZone,
+  search,
   booking,
   onMonthChange,
   onSelect,
@@ -198,6 +200,7 @@ export default function MonthCalendar({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          {search && <CalendarSearch {...search} />}
           <Step
             icon={ArrowLeft01Icon}
             label="Предыдущий месяц"
@@ -298,25 +301,22 @@ function DayCell({
   // days' contents read as one column. The 8px gap is also what keeps
   // adjacent targets from being tapped by mistake.
   //
-  // A wash of the palette's muted grey rather than `#F6F8FA`. The page's grey
-  // is two percent away from white, and forty-two tiles whose edges the eye has
-  // to hunt for is what made the grid tiring to look at.
+  // A faint wash of the accent rather than `#F6F8FA`. The page's grey is two
+  // percent away from white, and forty-two tiles whose edges the eye has to
+  // hunt for is what made the grid tiring to look at; the same lightness in a
+  // cool cast reads immediately and belongs to the palette by construction.
+  // It stays under the 10-15% band the product reserves for real data, so the
+  // grid is a surface rather than something being pointed at.
   //
-  // The opacities are set so this lands at the same darkness the accent tint
-  // did — 15% of `#999999` and 6% of `#3248F2` are the same distance from white
-  // — so the two differ in hue and nothing else.
-  //
-  // A day the business is shut wears the faintest fill of the three, so a week
-  // reads as work and not-work before any of it is read. The calendar had no
-  // idea of opening hours at all until now: Sunday looked exactly like Monday,
-  // and the only way to find out was the server refusing a booking.
+  // **One fill for every day**, whatever month it belongs to and whether the
+  // business is open. Three shades of the same wash were tried and dropped:
+  // the differences were too small to read as meaning anything, so all they
+  // did was make the grid look unevenly lit. What those tiles say, they say in
+  // text — a muted number for another month, the word «Выходной» for a day off
+  // — and text is the part that can actually be read.
   const surface = isSelected
     ? 'bg-[#3248F2]'
-    : !inMonth
-      ? 'bg-[#999999]/8 hover:bg-[#999999]/16'
-      : isClosed
-        ? 'bg-[#999999]/6 hover:bg-[#999999]/14'
-        : 'bg-[#999999]/15 hover:bg-[#999999]/28'
+    : 'bg-[#3248F2]/[0.06] hover:bg-[#3248F2]/[0.13]'
 
   const number = isSelected
     ? 'text-white'

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
@@ -38,6 +39,7 @@ export default function DayPanel({
   onDateChange,
   onCreate,
   onOpen,
+  highlightedId,
 }) {
   const key = dayKey(date)
 
@@ -121,6 +123,7 @@ export default function DayPanel({
                     block={block}
                     color={bookingColor(order.get(block.id))}
                     onOpen={onOpen}
+                    highlighted={block.id === highlightedId}
                   />
                 ))}
               </div>
@@ -132,8 +135,17 @@ export default function DayPanel({
   )
 }
 
-function Booking({ block, color, onOpen }) {
+function Booking({ block, color, onOpen, highlighted }) {
   const dead = block.status === 'cancelled'
+  const card = useRef(null)
+
+  // Brought into view as well as marked. A client found by name may be the
+  // eighth booking of the day, and a highlight below the fold is a highlight
+  // nobody sees. `block: 'nearest'` scrolls the column only as far as it has
+  // to, so a card already on screen doesn't jump.
+  useEffect(() => {
+    if (highlighted) card.current?.scrollIntoView({ block: 'nearest' })
+  }, [highlighted])
 
   return (
     // A plain block, not a button. It holds a control of its own now, and a
@@ -144,7 +156,16 @@ function Booking({ block, color, onOpen }) {
     // The same wash as the calendar's day tiles, for the same reason: at two
     // percent off white the card's edge had to be looked for. See the note in
     // `MonthCalendar`.
-    <div className="relative rounded-2xl bg-[#999999]/15 p-5">
+    <div ref={card}
+      // The one picked out of the search wears a stronger cast of the same
+      // tint, plus a ring: the fill alone is too close to its neighbours to
+      // find at a glance, and the ring alone reads as focus rather than as
+      // "this is the one you asked for".
+      className={`relative rounded-2xl p-5 transition-colors ${
+        highlighted
+          ? 'bg-[#3248F2]/[0.13] ring-2 ring-[#3248F2]'
+          : 'bg-[#3248F2]/[0.06] hover:bg-[#3248F2]/[0.11]'
+      }`}>
       {/* The whole card opens the booking, as one target stretched over it —
           not as a <button> wrapping everything, because the «Диалог» link
           inside would then be a link inside a button: invalid HTML, and

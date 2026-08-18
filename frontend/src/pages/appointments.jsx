@@ -11,6 +11,18 @@ import { toBlock } from '../lib/appointments'
 import { dayKey, monthGrid, sameMonth } from '../lib/dates'
 import styles from '../styles/Appointments.module.css'
 
+// Long enough that a name typed at speed is one request rather than six, short
+// enough that the answer still feels like it arrives as you type.
+const SEARCH_DELAY = 300
+
+/** `2026-08-18` → a local `Date`. Split by hand because `new Date(key)` reads a
+ *  bare `YYYY-MM-DD` as UTC midnight, naming the previous day east of
+ *  Greenwich — which is everywhere this runs. */
+const parseDayKey = (key) => {
+  const [year, month, date] = key.split('-').map(Number)
+  return new Date(year, month - 1, date)
+}
+
 /**
  * Записи — version two.
  *
@@ -38,6 +50,13 @@ export default function AppointmentsPage() {
   // abroad, for one render.
   const [timeZone, setTimeZone] = useState(undefined)
   const [week, setWeek] = useState([])
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  // The booking picked out of the search results, so the day column can mark
+  // which of a busy day's cards was the one asked for. Cleared the moment the
+  // owner navigates by hand — by then they are looking for something else.
+  const [highlightedId, setHighlightedId] = useState(null)
   const [error, setError] = useState('')
   // The form that's open, or null: `{ date, centred, block }`. Held apart from
   // `selected` so closing it leaves the calendar exactly where it was. `block`
@@ -105,6 +124,42 @@ export default function AppointmentsPage() {
     }
   }, [from, to, reloads, timeZone])
 
+  useEffect(() => {
+    const term = query.trim()
+    if (!term) {
+      setResults([])
+      setSearchLoading(false)
+      return
+    }
+
+    let cancelled = false
+    // Shown from the first keystroke rather than when the request goes out, so
+    // the menu says "Ищем…" for the whole wait instead of showing the previous
+    // client's results for another third of a second.
+    setSearchLoading(true)
+
+    const timer = setTimeout(() => {
+      // No `from`/`to` on purpose: the server drops the date range when a query
+      // arrives alone, and looking for a client means looking for every visit
+      // they ever made — not the ones inside the month on screen.
+      listAppointments(getAccessToken(), { query: term })
+        .then((rows) => {
+          if (!cancelled) setResults(rows.map((row) => toBlock(row, timeZone)))
+        })
+        .catch(() => {
+          if (!cancelled) setResults([])
+        })
+        .finally(() => {
+          if (!cancelled) setSearchLoading(false)
+        })
+    }, SEARCH_DELAY)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [query, reloads, timeZone])
+
   /** Picking a day from the panel's arrows may walk out of the month on show. */
   const pickDay = (day) => {
     setSelected(day)
@@ -137,9 +192,27 @@ export default function AppointmentsPage() {
                 blocks={appointments}
                 week={week}
                 timeZone={timeZone}
+                search={{
+                  query,
+                  onQueryChange: setQuery,
+                  results,
+                  loading: searchLoading,
+                  // Takes the calendar to the day rather than opening the
+                  // booking: a result found across the whole history may be in
+                  // a month that isn't loaded, and the day column beside it
+                  // then lists it in its proper place, in its proper colour.
+                  onSelect: (block) => {
+                    pickDay(parseDayKey(block.day))
+                    setHighlightedId(block.id)
+                  },
+                  overlayOpen: Boolean(booking || viewing),
+                }}
                 booking={booking?.centred ? null : (booking?.date ?? null)}
                 onMonthChange={setMonth}
-                onSelect={setSelected}
+                onSelect={(day) => {
+                  setSelected(day)
+                  setHighlightedId(null)
+                }}
                 onCreate={(date) => setBooking({ date, centred: false })}
                 onBookingClose={() => setBooking(null)}
                 onBooked={() => {
@@ -158,9 +231,13 @@ export default function AppointmentsPage() {
                 <DayPanel
                   date={selected}
                   blocks={appointments}
-                  onDateChange={pickDay}
+                  onDateChange={(day) => {
+                    pickDay(day)
+                    setHighlightedId(null)
+                  }}
                   onCreate={(date) => setBooking({ date, centred: true })}
                   onOpen={(block, color) => setViewing({ block, color })}
+                  highlightedId={highlightedId}
                 />
               )}
             </div>
