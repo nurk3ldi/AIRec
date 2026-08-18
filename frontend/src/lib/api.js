@@ -1,5 +1,5 @@
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'
+  import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v1'
 
 // Uploaded files are served from the backend root (/media/...), not from under
 // the versioned API prefix, so strip it to get the origin.

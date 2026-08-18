@@ -1,17 +1,16 @@
 import { useState } from 'react'
-import Head from 'next/head'
-import Link from 'next/link'
-import { useRouter } from 'next/router'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { EyeIcon, EyeOffIcon } from '@hugeicons/core-free-icons'
 import { login, restoreAccount } from '../lib/api'
 import { saveTokens, useRedirectIfAuthed } from '../lib/auth'
 import styles from '../styles/Login.module.css'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 export default function LoginPage() {
   useRedirectIfAuthed()
 
-  const router = useRouter()
+  const navigate = useNavigate()
+  const [params] = useSearchParams()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -23,8 +22,8 @@ export default function LoginPage() {
 
   const identifierHasSpace = /\s/.test(identifier)
   const passwordHasSpace = /\s/.test(password)
-  const resetSuccess = router.query.reset === 'success'
-  const justDeleted = router.query.deleted === '1'
+  const resetSuccess = params.get('reset') === 'success'
+  const justDeleted = params.get('deleted') === '1'
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -35,7 +34,7 @@ export default function LoginPage() {
     try {
       const { tokens } = await login({ identifier, password })
       saveTokens(tokens)
-      router.push('/dashboard')
+      navigate('/dashboard')
     } catch (err) {
       setError(err.message)
       setCanRestore(err.code === 'account_deleted')
@@ -49,7 +48,7 @@ export default function LoginPage() {
     try {
       const { tokens } = await restoreAccount({ identifier, password })
       saveTokens(tokens)
-      router.push('/dashboard')
+      navigate('/dashboard')
     } catch (err) {
       setError(err.message)
       setIsSubmitting(false)
@@ -58,9 +57,6 @@ export default function LoginPage() {
 
   return (
     <>
-      <Head>
-        <title>AIRec</title>
-      </Head>
       <div className={styles.page} aria-label="Страница входа">
         <div className="mx-auto flex max-w-[400px] flex-col gap-6 px-4 py-16 sm:px-6">
           <h1 className="text-center font-display text-[26px] font-semibold tracking-[-0.02em] text-[#171215]">
@@ -68,7 +64,7 @@ export default function LoginPage() {
           </h1>
 
           {resetSuccess && (
-            <p className="rounded-lg border border-[#16A34A]/30 bg-[#F0FDF4] px-3.5 py-2.5 text-center text-[13px] text-[#16A34A]">
+            <p className="rounded-lg border border-[#16A34A]/30 bg-[#16A34A]/8 px-3.5 py-2.5 text-center text-[13px] text-[#16A34A]">
               Пароль изменён. Войдите с новым паролем.
             </p>
           )}
@@ -124,7 +120,7 @@ export default function LoginPage() {
                 <p className="text-[13px] text-[#DC2626]">Пробелы недопустимы.</p>
               )}
               <Link
-                href="/forgot-password"
+                to="/forgot-password"
                 className="self-end text-[13px] font-medium text-[#3248F2] hover:underline"
               >
                 Забыли пароль?
@@ -175,7 +171,7 @@ export default function LoginPage() {
 
           <p className="text-center text-[15px] text-[#999999]">
             Нет аккаунта?{' '}
-            <Link href="/signup" className="font-medium text-[#3248F2] hover:underline">
+            <Link to="/signup" className="font-medium text-[#3248F2] hover:underline">
               Зарегистрироваться
             </Link>
           </p>

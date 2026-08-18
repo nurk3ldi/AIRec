@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
+import { Outlet } from 'react-router-dom'
 import { useRequireAuth } from '../lib/auth'
 import Sidebar from './Sidebar'
 import Header from './Header'
 
-export default function DashboardLayout({ children }) {
+export default function DashboardLayout() {
   const verifiedUser = useRequireAuth()
   // Mirrored into state so edits made in the profile dialog (name, avatar)
   // show up in the sidebar without another `/auth/me` round trip.
@@ -20,7 +21,7 @@ export default function DashboardLayout({ children }) {
       <Sidebar user={user} onUserChange={setUser} />
       <main className="min-h-screen bg-[#F6F8FA] pl-16">
         <Header />
-        {children}
+        <Outlet />
       </main>
     </div>
   )

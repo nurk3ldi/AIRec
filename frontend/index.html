@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml" sizes="any" />
+
+    <!-- The title lives here, once. Every page used to declare the same
+         `<Head><title>AIRec</title></Head>` through `next/head`; in a
+         single-page app the title persists across navigation, so ten identical
+         copies of it were ten places to keep in step for no effect. A page that
+         ever needs its own can set `document.title` in an effect. -->
+    <title>AIRec</title>
+    <meta
+      name="description"
+      content="AIRec — ИИ-администратор, который общается с клиентами и записывает их на приём."
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

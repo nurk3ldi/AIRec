@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import Head from 'next/head'
 import * as Dialog from '@radix-ui/react-dialog'
 import DayPanel from '../components/appointments/DayPanel'
 import MonthCalendar from '../components/appointments/MonthCalendar'
@@ -26,9 +25,10 @@ const parseDayKey = (key) => {
 /**
  * Записи — version two.
  *
- * The first version is in `src/archive/appointments-v1/`, taken out of the app
- * on 2026-08-17 so this one could be designed without the first one's layout
- * deciding anything. Its README says what it did and how to put it back.
+ * There was a first version — a 24-hour scrolling time grid — replaced on
+ * 2026-08-17 so this one could be designed without the old layout deciding
+ * anything. It lived in `src/archive/appointments-v1/` until that folder was
+ * deleted; commit `1e0c045` still has it if it is ever wanted back.
  *
  * The page owns the three things the whole screen is a function of — the month
  * on show, the day selected inside it, and the bookings — so the calendar and
@@ -170,9 +170,6 @@ export default function AppointmentsPage() {
 
   return (
     <>
-      <Head>
-        <title>AIRec</title>
-      </Head>
       <div className={styles.page} aria-label="Страница записей">
         {/* A fixed height rather than a minimum, so `flex-1` below has a
             quantity to divide.

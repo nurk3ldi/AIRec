@@ -1,5 +1,4 @@
-import Link from 'next/link'
-import { useRouter } from 'next/router'
+import { Link, useLocation } from 'react-router-dom'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   ArrowRight01Icon,
@@ -18,10 +17,10 @@ const pageTitles = {
 }
 
 export default function Header() {
-  const router = useRouter()
-  const title = pageTitles[router.pathname] ?? 'AIRec'
-  const isOnNotifications = router.pathname === '/notifications'
-  const isOnDashboard = router.pathname === '/dashboard'
+  const { pathname } = useLocation()
+  const title = pageTitles[pathname] ?? 'AIRec'
+  const isOnNotifications = pathname === '/notifications'
+  const isOnDashboard = pathname === '/dashboard'
 
   return (
     <header className="sticky top-0 z-40 flex h-[68px] items-center justify-between gap-4 border-b border-[#999999]/25 bg-white px-4 sm:px-6 lg:px-8">
@@ -33,7 +32,7 @@ export default function Header() {
         <ol className="flex min-w-0 items-center gap-1">
           <li className="shrink-0">
             <Link
-              href="/dashboard"
+              to="/dashboard"
               aria-label="Главная"
               // Only the trail's own root is a link. On the dashboard itself
               // the icon still shows, so the path never starts halfway.
@@ -67,7 +66,7 @@ export default function Header() {
           about *right now*, so they belong next to the page you're on rather
           than in the list of places you can go. */}
       <Link
-        href="/notifications"
+        to="/notifications"
         aria-label="Уведомления"
         aria-current={isOnNotifications ? 'page' : undefined}
         className={`grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-[#171215] outline-none transition-colors ${

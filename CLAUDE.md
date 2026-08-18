@@ -6,19 +6,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AIRec is an AI-receptionist product, split into two independent apps with no root `package.json` — always run commands from inside `frontend/` or `backend/`:
 
-- `frontend/` — Next.js UI. Auth, `/business` and `/appointments` are built; `/dashboard`, `/inbox` and `/notifications` are still empty or placeholder screens.
+- `frontend/` — React + Vite + Tailwind SPA (**no Next.js**; migrated 2026-08-18). Auth, `/business` and `/appointments` are built; `/dashboard`, `/inbox` and `/notifications` are still empty or placeholder screens.
 - `backend/` — FastAPI service. Authentication and account profile, the business profile (services, working hours, logo) and bookings (`/appointments` CRUD, `/appointments/slots`, archive) are implemented and verified end-to-end against PostgreSQL 18. Not built: schedule overrides, a clients table, WhatsApp/assistant integration, and any test suite.
 
 **Auth is wired end-to-end**, including refresh rotation. `login.jsx` and `signup.jsx` call `backend/`'s `/api/v1/auth/*` through `frontend/src/lib/api.js`; tokens land in `localStorage` via `frontend/src/lib/auth.js`. `DashboardLayout` calls `useRequireAuth()`, which calls `verifySession()` — a real server round trip: `GET /auth/me` with the stored access token, and on any failure (expired, invalid, backend momentarily unreachable) a fallback `POST /auth/refresh` with the stored refresh token before giving up. Only if both fail does it clear tokens and redirect to `/login`; it renders nothing while that check is in flight, so protected content never flashes on screen. `login.jsx`/`signup.jsx` run the same `verifySession()` via `useRedirectIfAuthed()` to bounce a visitor with a live session straight to `/dashboard`. `components/ProfileMenu.jsx` holds the only sign-out control, which calls `/auth/logout` best-effort then clears local tokens regardless.
 
-Both apps must be running for auth to work: backend on `:8000` (`uvicorn app.main:app --reload`, Postgres started first) and frontend on `:3000` (`npm run dev`). `frontend/.env.local` (gitignored) holds `NEXT_PUBLIC_API_URL`, pointing at the backend's `/api/v1`; `.env.local.example` is the template. CORS on the backend is locked to `CORS_ORIGINS` in `backend/.env` — add an origin there before calling the API from anywhere else.
+Both apps must be running for auth to work: backend on `:8000` (`uvicorn app.main:app --reload`, Postgres started first) and frontend on `:3000` (`npm run dev`). `frontend/.env.local` (gitignored) holds `VITE_API_URL`, pointing at the backend's `/api/v1` — Vite only exposes keys prefixed `VITE_`, and reads them through `import.meta.env`, not `process.env`; `.env.local.example` is the template. CORS on the backend is locked to `CORS_ORIGINS` in `backend/.env` — add an origin there before calling the API from anywhere else.
 
 ## Commands
 
 Run from `frontend/`:
 
 - `npm install` — install dependencies
-- `npm run dev` — start dev server (Next.js 16 + React 19; Turbopack is the default dev bundler)
+- `npm run dev` — Vite dev server on **port 3000, `strictPort`**. The port is pinned on purpose: the backend's `CORS_ORIGINS` names it, and Vite would otherwise slide to the next free port and leave the API refusing the browser with no obvious cause.
+- `npm run preview` — serve the production build locally
 - `npm run build` — production build
 - `npm start` — run the production build
 - `npm run lint` — oxlint over `src/pages` and `src/components` only (`.oxlintrc.json` enables the `react` + `oxc` plugins; the only explicit rules are `rules-of-hooks` and `only-export-components`)
@@ -39,8 +40,32 @@ Run from `backend/` (with `.venv` active, or via `.venv/Scripts/python.exe -m �
 
 ## Architecture
 
-### Layout routing (`src/pages/_app.jsx`)
-Layout is chosen per-route, not per-page. A `PUBLIC_ROUTES` set holds paths that render inside `PublicLayout` (marketing header, no sidebar) — currently `/`, `/login`, `/signup`, `/forgot-password`, `/reset-password`. Every other route renders inside `DashboardLayout` (fixed icon `Sidebar` + `Header`), the authenticated app shell. When adding a new logged-out/marketing page, add its path to `PUBLIC_ROUTES`; everything else gets the dashboard chrome automatically.
+### Frontend stack — React + Vite, no framework
+
+Entry chain: `index.html` → `src/main.jsx` (fonts, `globals.css`, `BrowserRouter`) → `src/App.jsx` (routes). Nothing renders on a server; the build is a static bundle in `dist/`.
+
+Every Next.js primitive has one replacement, and mixing them back in is the thing to avoid:
+
+| Was | Is |
+| --- | --- |
+| `next/link` `<Link href>` | `react-router-dom` `<Link to>` |
+| `useRouter().push` / `.replace` | `useNavigate()(path)` / `(path, { replace: true })` |
+| `useRouter().pathname` | `useLocation().pathname` |
+| `useRouter().query` | `useSearchParams()` |
+| `next/head` | `index.html` — see below |
+| `_app.jsx` | `src/main.jsx` + `src/App.jsx` |
+| `_document.jsx` | `index.html` |
+| `getServerSideProps` | a client-side guard; there is no server |
+| `process.env.NEXT_PUBLIC_*` | `import.meta.env.VITE_*` |
+
+**The title lives in `index.html` and nowhere else.** All ten pages declared the same `<Head><title>AIRec</title></Head>`; in an SPA the title survives navigation, so those were ten copies of one string. A page that ever needs its own sets `document.title` in an effect — don't reintroduce a head-management library for it.
+
+### Routing (`src/App.jsx`)
+**There is no file-based routing.** `src/App.jsx` holds the whole route table, and every route sits inside one of two layout routes: `PublicLayout` (marketing header, no sidebar) for `/`, `/login`, `/signup`, `/forgot-password`, `/reset-password`, and `DashboardLayout` (fixed icon `Sidebar` + `Header`) for everything authenticated. Both layouts render `<Outlet/>` where they used to take `children`.
+
+This replaced `_app.jsx`'s `PUBLIC_ROUTES` set, and the change is worth keeping: **a new route cannot be added without choosing a shell for it**, because the shell is where you nest it rather than a list you might forget to update. Files still live under `src/pages/`, but the folder is a convention now — nothing routes from it.
+
+`*` is caught by `pages/404.jsx` inside the public shell. Next served a built-in page for unmatched URLs; a router has to be told, so that page had to be written.
 
 - `/` — public landing page (`pages/index.jsx`), the only public page with real content (hero + two CTAs).
 - `/dashboard` — authenticated home. Not `/` — that's the landing page.
@@ -50,12 +75,12 @@ Layout is chosen per-route, not per-page. A `PUBLIC_ROUTES` set holds paths that
 **There is no `/profile` route** — the whole profile area is an overlay, not a page. See "Profile overlay" below.
 - `/login` and `/signup` — built, intentionally near-identical: no `<label>`s (inputs use `placeholder` only); password field has a show/hide toggle (local `showPassword` state flips the `input type` between `password`/`text`); a `<hr>` sits below the submit button, followed by "Continue with Google" / "Continue with Apple" buttons (`public/google_logo.svg`, `public/apple_logo.svg`) — **UI only, not wired to real OAuth**; a bottom line cross-links to the other page (`Log In` / `Sign Up` in accent blue `#3248F2`). `login.jsx` also has a "Forgot password?" link under its password field, and shows a green success banner when `?reset=success` is in the URL. Keep the two pages in sync when restyling one — they're meant to stay visual twins. Both submit to the backend (see the auth-wiring note above) and show inline errors — `login.jsx` a single message above the `<hr>`, `signup.jsx` per-field messages (from 422 `fields`) plus the same general-error line for 409s/network failures. Every text input across `login.jsx`/`signup.jsx`/`forgot-password.jsx`/`reset-password.jsx` blocks whitespace client-side (a `/\s/.test(value)` check turns the border red with a "No spaces allowed." message) — the backend also rejects it, this is just an earlier signal. All four forms set `noValidate` on the `<form>` so the browser's native validation bubble (e.g. Chrome's built-in "must contain @" tooltip on `type="email"`) never appears — every message shown is ours.
 - `/forgot-password` — email-only form; posts to `/auth/forgot-password` then pushes to `/reset-password?email=<email>` regardless of whether the address is registered (the backend response is deliberately identical either way).
-- `/reset-password` — the six-digit code screen. **Uses `getServerSideProps`, not `useRouter().query`**, to read `?email=`: the page's own content depends on that query value, and for a page without data-fetching Next.js defers query availability until after client hydration, so reading it via `useRouter()` renders a blank page (no `<Head>` even) for one frame on every hard load — `getServerSideProps` makes `email` available in the initial HTML instead, and redirects to `/forgot-password` server-side if it's missing. The code itself is entered via `components/OtpInput.jsx` — six boxes with auto-advance, backspace-to-previous-box, and paste-fill, shared with the profile's email-change step. A wrong code clears the boxes and shows a red message; "Resend code" re-calls `/auth/forgot-password` with a 30s client-side cooldown. On success it redirects to `/login?reset=success`.
+- `/reset-password` — the six-digit code screen. Reads `?email=` with `useSearchParams` and returns `<Navigate to="/forgot-password" replace/>` when it is missing. **This used to be `getServerSideProps`**, and the reason was specific to Next: for a page with no data fetching it deferred `router.query` until after hydration, so reading the address on the client rendered a blank frame on every hard load. A router that only runs in the browser has the search string on the first render, so the guard is an early return — and the page no longer needs a server to render at all. The code itself is entered via `components/OtpInput.jsx` — six boxes with auto-advance, backspace-to-previous-box, and paste-fill, shared with the profile's email-change step. A wrong code clears the boxes and shows a red message; "Resend code" re-calls `/auth/forgot-password` with a 30s client-side cooldown. On success it redirects to `/login?reset=success`.
 
 Every page supplies its own `<Head><title>AIRec</title></Head>` — there's no shared default title, so new pages need their own.
 
 ### API client (`src/lib/`)
-- `lib/api.js` — the only place that calls the backend. One `request()` helper does the `fetch`, reads `NEXT_PUBLIC_API_URL`, and throws `ApiError` (`.code`, `.message`, `.fields`, `.status`) on any non-2xx or network failure, parsed straight from the backend's `{error: {...}}` envelope. Add new endpoints as small named exports here (`register`, `login`, `refresh`, `logout`, `me`, `checkUsernameAvailability`, `forgotPassword`, `resetPassword`, `updateProfile`, `requestEmailChange`, `confirmEmailChange`, `cancelEmailChange`, `getPendingEmailChange`, `requestPasswordChange`, `confirmPasswordChange`, `listSessions`, `revokeSession`, `revokeOtherSessions`, `deleteAccount`, `restoreAccount`, `getBusiness`, `updateBusiness`, `uploadBusinessLogo`, `deleteBusinessLogo`, `getServices`, `saveServices`, `getWorkingHours`, `saveWorkingHours`, `uploadAvatar`, `deleteAvatar`) rather than calling `fetch` from a page. Two details worth knowing: `request()` takes `formData` instead of `body` for uploads and deliberately omits `Content-Type` in that case — the browser must set its own multipart boundary. And `mediaUrl()` exists because uploaded files are served from the backend *root* (`/media/...`), not under the `/api/v1` prefix that `NEXT_PUBLIC_API_URL` points at, so `user.avatar_url` has to be resolved through it before use in an `<img src>`.
+- `lib/api.js` — the only place that calls the backend. One `request()` helper does the `fetch`, reads `import.meta.env.VITE_API_URL`, and throws `ApiError` (`.code`, `.message`, `.fields`, `.status`) on any non-2xx or network failure, parsed straight from the backend's `{error: {...}}` envelope. Add new endpoints as small named exports here (`register`, `login`, `refresh`, `logout`, `me`, `checkUsernameAvailability`, `forgotPassword`, `resetPassword`, `updateProfile`, `requestEmailChange`, `confirmEmailChange`, `cancelEmailChange`, `getPendingEmailChange`, `requestPasswordChange`, `confirmPasswordChange`, `listSessions`, `revokeSession`, `revokeOtherSessions`, `deleteAccount`, `restoreAccount`, `getBusiness`, `updateBusiness`, `uploadBusinessLogo`, `deleteBusinessLogo`, `getServices`, `saveServices`, `getWorkingHours`, `saveWorkingHours`, `uploadAvatar`, `deleteAvatar`) rather than calling `fetch` from a page. Two details worth knowing: `request()` takes `formData` instead of `body` for uploads and deliberately omits `Content-Type` in that case — the browser must set its own multipart boundary. And `mediaUrl()` exists because uploaded files are served from the backend *root* (`/media/...`), not under the `/api/v1` prefix that `VITE_API_URL` points at, so `user.avatar_url` has to be resolved through it before use in an `<img src>`.
 - `lib/auth.js` — `localStorage`-backed token storage (`saveTokens`, `getAccessToken`, `getRefreshToken`, `clearTokens`, `isAuthenticated`), `verifySession()` (the real check: `me()`, falling back to `refresh()` and re-saving tokens on success, clearing them and returning `null` if both fail), and two hooks built on it: `useRequireAuth()` (used by `DashboardLayout`, redirects to `/login` and returns `null` until a session is confirmed — callers must not render children until it returns a user; it returns the **user object**, not a boolean, so the shell can render their avatar without a second `/auth/me` call) and `useRedirectIfAuthed()` (used by `login.jsx`/`signup.jsx`, bounces a visitor with a live session to `/dashboard`). `isAuthenticated()` is a cheap presence-only check — reach for `verifySession()` instead anywhere the answer actually needs to be correct.
 
 ### Dashboard shell
@@ -81,19 +106,79 @@ Two layering details that are easy to break: the avatar cropper is a modal *insi
 - Images are plain `<img src="/…">` from `public/`, not `next/image`, and some carry a `?v=N` cache-buster — bump `N` when replacing an asset in place. `src/assets/` is tracked but imported by nothing: it's a stash of source/design images, not a runtime asset dir.
 
 ### Styling convention
-- Tailwind v4, configured entirely via the `@theme` block in `src/styles/globals.css` — there is no `tailwind.config.js`. PostCSS config is `postcss.config.mjs`.
+- Tailwind v4, configured entirely via the `@theme` block in `src/styles/globals.css` — there is no `tailwind.config.js`. It runs through **`@tailwindcss/vite`**, the first-party bundler plugin: there is no `postcss.config.mjs` and no `postcss` dependency, because the plugin replaces that whole chain.
 - **Any plain (non-`@layer`) CSS rule in `globals.css` beats every Tailwind utility, regardless of specificity or source order** — `@import 'tailwindcss'` expands to named layers (`theme, base, components, utilities`), and per the cascade-layers spec, unlayered styles always outrank layered ones. `globals.css` learned this the hard way: a bare `button, input, textarea, select { font: inherit }` silently ate every `font-*`/`text-[…]` utility ever applied to a form control, project-wide, until it was moved inside `@layer base`. Any new global reset in this file must go in `@layer base` (or another named layer) or it will do the same thing again.
 - Brand tokens: `--color-brand-blue #3248f2` (accent/CTA), `--color-brand-black #171215` (text/dark surfaces), `--color-brand-gray #999999` (borders, typically at 20–45% opacity), `--color-brand-soft #f6f8fa` (page background), `--color-brand-white #ffffff`.
 - Components overwhelmingly reference these as raw Tailwind arbitrary values (`bg-[#171215]`, `border-[#999999]/25`) rather than the semantic `bg-brand-*` classes. Match that existing convention instead of switching styles mid-codebase.
-- Fonts: Poppins (`font-display`, headings) and Roboto Variable (`font-sans`, body), loaded via `@fontsource` imports in `_app.jsx`.
+- Fonts: Poppins (`font-display`, headings) and Roboto Variable (`font-sans`, body), loaded via `@fontsource` imports in `src/main.jsx`.
 - Each page pairs with a CSS Module in `src/styles/` for its root container — the convention is `min-height: calc(100vh - Npx)` plus a background color, and nothing else. `N` must match the actual current height of that layout's header component (`Header.jsx` or `LandingHeader.jsx`) — check the header's `h-*` class rather than assuming a fixed number, since header heights get tuned independently. All other styling is inline Tailwind utility classes.
 - Icons: `@hugeicons/react` + `@hugeicons/core-free-icons` via the `HugeiconsIcon` component — not emoji, not another icon set.
 - No UI component library (no shadcn/ui, MUI, Ant Design, etc.). Components are hand-built with Tailwind. **Radix primitives are the one exception, and only for behaviour** — `@radix-ui/react-dialog` backs `ProfileDialog`; the business city picker is `@radix-ui/react-popover` + `cmdk` (`CitySelect.jsx`). It is *not* `@radix-ui/react-select`, which was tried first and removed: a select's keyboard handling is jump-to-letter rather than filtering, it owns every keypress, and there is nowhere inside it for a search box to live. For a filterable list of eighty-odd options, a combobox is the primitive, and cmdk is the piece that supplies the filtering and arrow-key/ARIA wiring. Reach for one when a widget's *behaviour* is hard to get right (focus trapping, keyboard navigation, ARIA wiring: dialog, popover, select, dropdown, tabs), never for its looks. shadcn/ui was considered and deliberately not adopted: it is Radix plus a default Tailwind skin built on `--background`/`--foreground` CSS variables, and this project's design language is fixed and unusual enough that the skin would be discarded — leaving a second token system, a path alias and a TS-first codegen to maintain for nothing. Take a single shadcn source file (its `Calendar`, say) if it saves real work; don't adopt the system.
 
-### Dashboard visual language
-**This is the settled design direction for the product** — every dashboard screen still to be built (Главная, Диалоги, Записи, Бизнес, Уведомления) follows it, and existing screens are brought in line as they're touched rather than in a separate pass. It is not a mood: the numbers below are the spec, and new screens copy them rather than approximating.
+### Palette — five brand colours, open to more
 
-An earlier iteration of the profile area deliberately avoided cards; that decision is superseded by this section. Where the two disagree, this section wins.
+`src/assets/color_font.webp` is the brand, and `@theme` in `globals.css` matches
+it. These five are the **base** every screen is built out of:
+
+| Token | Hex | What it is for |
+| --- | --- | --- |
+| accent | `#3248F2` | the colour that means *this one* |
+| ink | `#171215` | text, dark surfaces, tooltips |
+| muted | `#999999` | borders (at 15–30%), secondary text |
+| ground | `#F6F8FA` | the page behind the cards |
+| surface | `#FFFFFF` | the cards themselves |
+
+**They are not a ceiling.** Colour may be added wherever it carries meaning the
+five cannot: category badges, statuses, and per-item identity such as
+`BOOKING_COLORS` in `lib/appointments.js`, which gives each of a day's bookings
+its own hue so one can be told from another at a glance. Two things keep an open
+palette from turning into noise:
+
+- **A new hue should say something.** Decoration is what makes a screen loud;
+  a hue that distinguishes one row from another is doing work.
+- **Match the family.** New colours sit in the same saturation and lightness
+  band as `#3248F2` so they read as one set rather than as stickers.
+
+`#16A34A` and `#DC2626` keep their meaning — up/down, ok/error — so avoid them
+as decorative choices where a reader could take the signal literally.
+
+**Tints are the colour at low alpha** (`bg-[#16A34A]/8`, `bg-[#3248F2]/[0.06]`)
+rather than a separate pastel hex, so a tint always tracks the colour it came
+from. Filled buttons darken on hover — `#2839C9` and `#B91C1C` — because
+lowering alpha would lighten them against white, the wrong direction.
+
+**Typefaces are `Poppins` (`font-display`) and `Roboto` (`font-sans`).** The
+reference sets every heading *and every number* in Poppins; that is most of what
+gives it its look, so a metric in the body face is off-style even when the size
+is right.
+
+### Type scale — measured off the reference
+
+| Role | Size | Weight | Family |
+| --- | --- | --- | --- |
+| Page title | 28 | 600 | display |
+| Metric value | 32 | 700 | display |
+| Secondary value (funnel, donut centre) | 24 | 700 | display |
+| Card title | 15 | 600 | display |
+| Body, table cell | 14 | 400 | sans |
+| Secondary text, delta line | 13 | 400 | sans |
+| Axis label, table head | 11 | 500 | sans (heads `uppercase tracking-wide`) |
+
+Two rules the reference keeps and a screen fails without: **one thing per screen
+is at 32**, and **never place two adjacent steps side by side** — 15 next to 14
+reads as a mistake, 32 next to 13 reads as a hierarchy.
+
+Spacing is `4 / 8 / 12 / 16 / 24 / 32 / 48`. Card padding 24, gap between cards
+24. Radius: cards `rounded-2xl`, controls and pills `rounded-lg`–`rounded-xl`,
+icon badges `rounded-lg`, avatars and bar ends fully round.
+
+**Tooltip** — `bg-[#171215] text-white rounded-lg px-3 py-1.5 text-[13px]` with a
+shadow. It is one of the few things allowed to float.
+
+### Dashboard visual language
+**This is the design direction for the product**, taken from `src/assets/main_page.webp` — every dashboard screen still to be built (Главная, Диалоги, Записи, Бизнес, Уведомления) starts from it, and existing screens are brought in line as they're touched rather than in a separate pass.
+
+The numbers below are **defaults, not prohibitions**. They exist so that a screen built without a decision still comes out consistent; deviate where the screen is better for it, and where you do, say why in a comment so the next reader knows it was chosen rather than missed.
 
 **Cards.** Page content lives in cards on the `#F6F8FA` page ground:
 
@@ -101,28 +186,44 @@ An earlier iteration of the profile area deliberately avoided cards; that decisi
 bg-white  rounded-2xl  p-6  →  gap-6 between siblings
 ```
 
-**No border and no shadow.** White against the grey page is the whole separation mechanism; a hairline on top of that contrast is redundant, and a shadow makes a static block pretend to float. Cards sit *in* the page, they don't hover over it.
+**Elevation is allowed, in three steps.** White on the grey ground already separates a card, so a shadow is there to give the surface weight, not to hold it up — which is why every step below is wide, soft and low-opacity rather than a dark edge under the box:
 
-**Shadows are reserved for what genuinely floats**: `ProfileDialog`, `ProfileMenu`, `AvatarCropper`, tooltips. Spending shadow on a static card destroys the one cue that separates "a block on the page" from "a layer over the page".
+```
+resting card   shadow-[0_1px_2px_rgba(23,18,21,0.04),0_8px_24px_-12px_rgba(23,18,21,0.10)]
+interactive    hover:shadow-[0_2px_4px_rgba(23,18,21,0.05),0_12px_32px_-12px_rgba(23,18,21,0.16)]
+floating       shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)]   dialogs, menus, tooltips
+```
 
-**Never nest a card inside a card.** Internal grouping is done with a `1px` divider (`border-[#999999]/15`) and a small muted label. Four related KPIs are **one card split by hairlines into a 2×2**, not four cards — that is the single most characteristic move of this style.
+Keep the gap between *floating* and the other two: it is the cue that separates "a layer over the page" from "a block on it". A hairline (`ring-1 ring-[#171215]/6`) may accompany a shadow where the card sits on white rather than on the grey ground.
+
+**Prefer a divider to a second card.** Internal grouping reads best as a `1px` line (`border-[#999999]/15`) plus a small muted label; four related KPIs as **one card split by hairlines into a 2×2** is the single most characteristic move of this style, and four separate cards say they are four subjects. Nest a card only when the inner thing really is its own object.
 
 **Card header.** Title at `text-[15px] font-semibold`, optional control on the far right: either a small pill (`rounded-lg border border-[#999999]/25 px-3 py-1.5 text-[13px] text-[#999999]`, e.g. «За неделю ⌄») or a `•••` menu button. Nothing else competes at the top of a card.
 
 **Numbers are the loudest thing on screen.** A metric is three stacked lines: label `text-[14px] text-[#999999]`, value `text-[32px] font-bold tracking-[-0.02em] text-[#171215]`, then a delta line — coloured percentage (`#16A34A` up / `#DC2626` down) followed by muted context («+12% за 28 дней»). Nothing between those lines but tight spacing.
 
-**Charts carry no chrome.** No gridlines, no axis lines, no borders, no legends boxed off. Axis labels are `text-[11px] text-[#999999]`. Sparklines are a bare 2px stroke, green or red, no fill, no dots. Bars are fully rounded pills (radius = half the bar width), `#3248F2` for the one bar being highlighted and `#3248F2` at ~12% for all the rest. An area chart is a soft accent-tinted gradient that bleeds to the card's bottom edge, clipped by the card radius.
+**Charts carry little chrome.** No gridlines, no axis lines, no borders, no legends boxed off. Axis labels are `text-[11px] text-[#999999]`. Sparklines are a bare 2px stroke, green or red, no fill, no dots. Bars are fully rounded pills (radius = half the bar width), `#3248F2` for the one bar being highlighted and `#3248F2` at ~12% for all the rest. An area chart is a soft accent-tinted gradient that bleeds to the card's bottom edge, clipped by the card radius.
 
-**Tables have no frame.** Column headers are `text-[11px] uppercase tracking-wide text-[#999999]`; rows are separated by air and, at most, a `#999999/15` line — never vertical dividers, never zebra striping, never an outer border. Status is a tinted pill: `bg-[#16A34A]/10 text-[#16A34A]` / `bg-[#DC2626]/10 text-[#DC2626]`, `rounded-md px-2.5 py-1 text-[12px] font-medium`. Amounts right-align.
+**Tables carry no frame.** Column headers are `text-[11px] uppercase tracking-wide text-[#999999]`; rows are separated by air and, at most, a `#999999/15` line — never vertical dividers, never zebra striping, never an outer border. Status is a tinted pill: `bg-[#16A34A]/10 text-[#16A34A]` / `bg-[#DC2626]/10 text-[#DC2626]`, `rounded-md px-2.5 py-1 text-[12px] font-medium`. Amounts right-align.
 
-**Spend the accent about four times per screen.** In the reference, `#3248F2` appears on the active nav item, one highlighted bar, one donut segment and one icon badge — nothing else. Everything that is data-but-not-the-point uses the accent at 10–15% opacity (the lavender tint), and everything else is neutral. That scarcity is what makes the screen feel calm; using blue for every chart series throws it away.
+**Spend the accent sparingly.** In the reference `#3248F2` appears about four times — the active nav item, one highlighted bar, one donut segment, one icon badge — and everything that is data-but-not-the-point wears the lavender tint instead. The count is not a quota; the point is that the accent means *look here*, and a screen where every series is blue has nothing left to point with.
 
-**Icon badges**, where a metric needs one, are `h-7 w-7 rounded-lg` with a solid fill and a white glyph — and this is the one place a second hue is allowed (orange, red, green alongside blue), because they label distinct categories rather than decorate.
+**Icon badges**, where a metric needs one, are `h-7 w-7 rounded-lg` with a solid fill and a white glyph. A hue other than the accent belongs here readily — the badge labels a distinct category, which is exactly the work a colour should be doing.
 
-The shell keeps its existing dimensions (64px rail, 68px header) — the reference is a mock at a different scale, and only its content language is adopted.
+**Where the app still diverges from the reference**, listed so it is a decision
+rather than a drift:
+
+- **The shell is flush; the reference floats.** There, the whole app is a
+  rounded container inset on the grey page, with the dark rail rounded on its
+  left corners. Ours is a 64px rail hard against the window edge and a 68px
+  header. Adopting the frame is structural, so it is not assumed.
+- **The header shows a 15px breadcrumb; the reference shows a 28px page title**
+  beside a search pill (`bg-[#F6F8FA]`, magnifier left, `⌘K` right in muted).
+- **Cards mostly carry no shadow yet.** They were written under a no-elevation
+  rule; the three steps above are the target as screens are touched.
 
 ### UI language — Russian, everywhere
-**Every user-facing string is Russian**: the public flow, the dashboard chrome, the profile overlay, all `aria-label`s and `placeholder`s, and — this part is easy to forget — **every message the backend can return**. `_document.jsx` sets `<Html lang="ru">`. Write new copy in Russian; don't reintroduce English strings, and translate the backend side of any new endpoint at the same time as its UI.
+**Every user-facing string is Russian**: the public flow, the dashboard chrome, the profile overlay, all `aria-label`s and `placeholder`s, and — this part is easy to forget — **every message the backend can return**. `index.html` sets `<html lang="ru">`. Write new copy in Russian; don't reintroduce English strings, and translate the backend side of any new endpoint at the same time as its UI.
 
 Making the backend fully Russian took two non-obvious pieces, both in play for any new field you add:
 

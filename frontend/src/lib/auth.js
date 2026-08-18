@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/router'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { me, refresh } from './api'
 
 const ACCESS_TOKEN_KEY = 'airec_access_token'
@@ -71,7 +71,8 @@ export async function verifySession() {
  * boolean so the shell can show their avatar without a second `/auth/me` call.
  */
 export function useRequireAuth() {
-  const router = useRouter()
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
   const [user, setUser] = useState(null)
 
   useEffect(() => {
@@ -82,30 +83,30 @@ export function useRequireAuth() {
       if (me) {
         setUser(me)
       } else {
-        router.replace('/login')
+        navigate('/login', { replace: true })
       }
     })
 
     return () => {
       cancelled = true
     }
-    // Only the mount/route-change matters here, not `router` identity.
+    // Only the mount/route-change matters here, not the navigate identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.pathname])
+  }, [pathname])
 
   return user
 }
 
 /** Redirects a visitor with a valid session away from login/signup. */
 export function useRedirectIfAuthed(destination = '/dashboard') {
-  const router = useRouter()
+  const navigate = useNavigate()
 
   useEffect(() => {
     let cancelled = false
 
     verifySession().then((user) => {
       if (!cancelled && user) {
-        router.replace(destination)
+        navigate(destination, { replace: true })
       }
     })
 

@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react'
-import Head from 'next/head'
-import Link from 'next/link'
-import { useRouter } from 'next/router'
 import { forgotPassword } from '../lib/api'
 import { useRedirectIfAuthed } from '../lib/auth'
 import styles from '../styles/ForgotPassword.module.css'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 export default function ForgotPasswordPage() {
   useRedirectIfAuthed()
 
-  const router = useRouter()
+  const navigate = useNavigate()
+  const [params] = useSearchParams()
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -17,13 +16,14 @@ export default function ForgotPasswordPage() {
   const emailHasSpace = /\s/.test(email)
 
   useEffect(() => {
-    // Prefills when arriving via reset-password.jsx's "Wrong email?" link —
-    // router.query is only populated once client-side routing settles.
-    if (router.isReady && typeof router.query.email === 'string') {
-      setEmail(router.query.email)
-    }
+    // Prefills when arriving via reset-password.jsx's "Wrong email?" link.
+    // No `isReady` guard any more: Next deferred the query until client-side
+    // routing settled, but a router that lives entirely in the browser has the
+    // search string on the very first render.
+    const email = params.get('email')
+    if (email) setEmail(email)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.isReady, router.query.email])
+  }, [params])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -32,7 +32,9 @@ export default function ForgotPasswordPage() {
 
     try {
       await forgotPassword(email)
-      router.push(`/reset-password?email=${encodeURIComponent(email.trim().toLowerCase())}`)
+      navigate(
+        `/reset-password?email=${encodeURIComponent(email.trim().toLowerCase())}`
+      )
     } catch (err) {
       setError(err.message)
       setIsSubmitting(false)
@@ -41,9 +43,6 @@ export default function ForgotPasswordPage() {
 
   return (
     <>
-      <Head>
-        <title>AIRec</title>
-      </Head>
       <div className={styles.page} aria-label="Страница восстановления пароля">
         <div className="mx-auto flex max-w-[400px] flex-col gap-6 px-4 py-16 sm:px-6">
           <div className="flex flex-col items-center gap-2 text-center">
@@ -84,7 +83,7 @@ export default function ForgotPasswordPage() {
 
           <p className="text-center text-[15px] text-[#999999]">
             Вспомнили пароль?{' '}
-            <Link href="/login" className="font-medium text-[#3248F2] hover:underline">
+            <Link to="/login" className="font-medium text-[#3248F2] hover:underline">
               Войти
             </Link>
           </p>

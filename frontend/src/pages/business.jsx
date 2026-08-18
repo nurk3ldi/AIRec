@@ -1,4 +1,3 @@
-import Head from 'next/head'
 import BusinessProfile from '../components/business/BusinessProfile'
 import Card from '../components/business/Card'
 import styles from '../styles/Business.module.css'
@@ -19,9 +18,6 @@ import styles from '../styles/Business.module.css'
 export default function BusinessPage() {
   return (
     <>
-      <Head>
-        <title>AIRec</title>
-      </Head>
       <div className={styles.page} aria-label="Страница бизнеса">
         {/* Full-bleed: the content stretches to both edges of the shell rather
             than sitting in a centred column, so wide screens aren't mostly

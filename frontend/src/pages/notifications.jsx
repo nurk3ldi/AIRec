@@ -1,4 +1,3 @@
-import Head from 'next/head'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Notification01Icon } from '@hugeicons/core-free-icons'
 import styles from '../styles/Notifications.module.css'
@@ -6,9 +5,6 @@ import styles from '../styles/Notifications.module.css'
 export default function NotificationsPage() {
   return (
     <>
-      <Head>
-        <title>AIRec</title>
-      </Head>
       <div className={styles.page} aria-label="Страница уведомлений">
         {/* An empty state rather than a "скоро" placeholder: a new account
             genuinely has nothing here, so this is what it will look like even

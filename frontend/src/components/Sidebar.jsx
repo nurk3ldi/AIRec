@@ -1,6 +1,5 @@
+import { Link, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/router'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Home01Icon,
@@ -22,7 +21,7 @@ const navigation = [
 ]
 
 export default function Sidebar({ user = null, onUserChange }) {
-  const router = useRouter()
+  const { pathname } = useLocation()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   // null = dialog closed; otherwise the section id it's showing.
   const [dialogSection, setDialogSection] = useState(null)
@@ -30,7 +29,7 @@ export default function Sidebar({ user = null, onUserChange }) {
   // Navigating elsewhere should leave the menu closed behind you.
   useEffect(() => {
     setIsMenuOpen(false)
-  }, [router.pathname])
+  }, [pathname])
 
   const openSection = (sectionId) => {
     setIsMenuOpen(false)
@@ -40,7 +39,7 @@ export default function Sidebar({ user = null, onUserChange }) {
   return (
     <aside className="fixed inset-y-0 left-0 z-50 flex w-16 flex-col overflow-visible border-r border-[#999999]/45 bg-[#171215] text-white shadow-[6px_0_20px_rgba(23,18,21,0.08)]">
       <div className="flex h-[68px] shrink-0 items-center justify-center border-b border-[#999999]/30">
-        <Link href="/dashboard" aria-label="Главная страница AIRec">
+        <Link to="/dashboard" aria-label="Главная страница AIRec">
           <BrandMark />
         </Link>
       </div>
@@ -50,12 +49,12 @@ export default function Sidebar({ user = null, onUserChange }) {
         aria-label="Основная навигация"
       >
         {navigation.map((item) => {
-          const isActive = router.pathname === item.href
+          const isActive = pathname === item.href
 
           return (
             <Link
               key={item.href}
-              href={item.href}
+              to={item.href}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
               className={`group relative grid h-9 w-9 place-items-center rounded-[10px] transition-all duration-200 ${

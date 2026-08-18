@@ -1,28 +1,38 @@
 import { useEffect, useState } from 'react'
-import Head from 'next/head'
-import Link from 'next/link'
-import { useRouter } from 'next/router'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { EyeIcon, EyeOffIcon } from '@hugeicons/core-free-icons'
 import { forgotPassword, resetPassword } from '../lib/api'
 import { useRedirectIfAuthed } from '../lib/auth'
 import OtpInput from '../components/OtpInput'
 import styles from '../styles/ResetPassword.module.css'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 
 const RESEND_COOLDOWN_SECONDS = 30
 
-export async function getServerSideProps(context) {
-  const { email } = context.query
-  if (typeof email !== 'string' || !email) {
-    return { redirect: { destination: '/forgot-password', permanent: false } }
-  }
-  return { props: { email } }
+/**
+ * The address the code was sent to comes from `?email=`, and without it this
+ * page has nothing to confirm — so it sends you back to ask for one.
+ *
+ * This used to be `getServerSideProps`, and the reason was specific to Next:
+ * for a page with no data fetching it deferred `router.query` until after
+ * hydration, so reading the address on the client rendered a blank frame on
+ * every hard load. A router that only ever runs in the browser has the search
+ * string on the first render, so the guard is simply an early return now — and
+ * the page no longer needs a server to render at all.
+ */
+export default function ResetPasswordPage() {
+  const [params] = useSearchParams()
+  const email = params.get('email')
+
+  useRedirectIfAuthed()
+  const navigate = useNavigate()
+
+  if (!email) return <Navigate to="/forgot-password" replace />
+
+  return <ResetPasswordForm email={email} navigate={navigate} />
 }
 
-export default function ResetPasswordPage({ email }) {
-  useRedirectIfAuthed()
-
-  const router = useRouter()
+function ResetPasswordForm({ email, navigate }) {
 
   const [code, setCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -60,7 +70,7 @@ export default function ResetPasswordPage({ email }) {
     setIsSubmitting(true)
     try {
       await resetPassword({ email, code, newPassword })
-      router.push('/login?reset=success')
+      navigate('/login?reset=success')
     } catch (err) {
       if (err.fields?.length) {
         setFieldErrors(
@@ -89,9 +99,6 @@ export default function ResetPasswordPage({ email }) {
 
   return (
     <>
-      <Head>
-        <title>AIRec</title>
-      </Head>
       <div className={styles.page} aria-label="Страница сброса пароля">
         <div className="mx-auto flex max-w-[400px] flex-col gap-6 px-4 py-16 sm:px-6">
           <div className="flex flex-col items-center gap-2 text-center">
@@ -102,7 +109,7 @@ export default function ResetPasswordPage({ email }) {
               Мы отправили 6-значный код на <span className="text-[#171215]">{email}</span>
             </p>
             <Link
-              href={`/forgot-password?email=${encodeURIComponent(email)}`}
+              to={`/forgot-password?email=${encodeURIComponent(email)}`}
               className="text-[13px] font-medium text-[#3248F2] hover:underline"
             >
               Не тот email? Изменить
@@ -210,7 +217,7 @@ export default function ResetPasswordPage({ email }) {
 
           <p className="text-center text-[15px] text-[#999999]">
             Вспомнили пароль?{' '}
-            <Link href="/login" className="font-medium text-[#3248F2] hover:underline">
+            <Link to="/login" className="font-medium text-[#3248F2] hover:underline">
               Войти
             </Link>
           </p>

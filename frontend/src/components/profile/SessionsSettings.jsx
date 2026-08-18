@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/router'
+import { useNavigate } from 'react-router-dom'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Alert02Icon,
@@ -54,7 +54,7 @@ function formatMoment(iso) {
  * row per device — this list is not a token log, and shouldn't read like one.
  */
 export default function SessionsSettings({ user }) {
-  const router = useRouter()
+  const navigate = useNavigate()
 
   const [sessions, setSessions] = useState(null)
   const [error, setError] = useState('')
@@ -126,7 +126,7 @@ export default function SessionsSettings({ user }) {
       // Every session is gone server-side; drop the local copies too and leave
       // for the public side rather than letting the shell 401 its way out.
       clearTokens()
-      router.push('/login?deleted=1')
+      navigate('/login?deleted=1')
     } catch (err) {
       setDeleteError(err.fields?.[0]?.message || err.message)
       setIsDeleting(false)

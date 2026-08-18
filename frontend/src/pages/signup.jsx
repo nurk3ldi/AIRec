@@ -1,19 +1,18 @@
 import { useEffect, useState } from 'react'
-import Head from 'next/head'
-import Link from 'next/link'
-import { useRouter } from 'next/router'
+import { useNavigate } from 'react-router-dom'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { EyeIcon, EyeOffIcon, Tick02Icon } from '@hugeicons/core-free-icons'
 import { checkUsernameAvailability, register } from '../lib/api'
 import { saveTokens, useRedirectIfAuthed } from '../lib/auth'
 import styles from '../styles/Signup.module.css'
+import { Link } from 'react-router-dom'
 
 const USERNAME_PATTERN = /^[A-Za-z][A-Za-z0-9_.-]{2,31}$/
 
 export default function SignupPage() {
   useRedirectIfAuthed()
 
-  const router = useRouter()
+  const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -52,7 +51,7 @@ export default function SignupPage() {
     try {
       const { tokens } = await register({ username, email, password })
       saveTokens(tokens)
-      router.push('/dashboard')
+      navigate('/dashboard')
     } catch (err) {
       if (err.fields?.length) {
         setFieldErrors(
@@ -67,9 +66,6 @@ export default function SignupPage() {
 
   return (
     <>
-      <Head>
-        <title>AIRec</title>
-      </Head>
       <div className={styles.page} aria-label="Страница регистрации">
         <div className="mx-auto flex max-w-[400px] flex-col gap-6 px-4 py-16 sm:px-6">
           <h1 className="text-center font-display text-[26px] font-semibold tracking-[-0.02em] text-[#171215]">
@@ -193,7 +189,7 @@ export default function SignupPage() {
 
           <p className="text-center text-[15px] text-[#999999]">
             Уже есть аккаунт?{' '}
-            <Link href="/login" className="font-medium text-[#3248F2] hover:underline">
+            <Link to="/login" className="font-medium text-[#3248F2] hover:underline">
               Войти
             </Link>
           </p>

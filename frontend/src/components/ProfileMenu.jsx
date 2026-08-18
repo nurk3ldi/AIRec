@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { useRouter } from 'next/router'
+import { useNavigate } from 'react-router-dom'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Logout01Icon, User02Icon } from '@hugeicons/core-free-icons'
 import { PROFILE_SECTIONS } from './profile/sections'
@@ -17,7 +17,7 @@ import { clearTokens, getRefreshToken } from '../lib/auth'
  * after you click away or press Escape reads as broken.
  */
 export default function ProfileMenu({ user, onOpenSection, onClose }) {
-  const router = useRouter()
+  const navigate = useNavigate()
   const panelRef = useRef(null)
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function ProfileMenu({ user, onOpenSection, onClose }) {
     }
     clearTokens()
     onClose()
-    router.push('/')
+    navigate('/')
   }
 
   const avatarSrc = mediaUrl(user?.avatar_url)
