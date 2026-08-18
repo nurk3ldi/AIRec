@@ -25,6 +25,11 @@ export default function InlineText({
   format,
   parse,
   inputMode,
+  // A prop rather than a class passed in through `className`: `text-left` and
+  // `text-right` are utilities of equal weight, so which one won would depend
+  // on their order in the generated stylesheet, not on the order they were
+  // written in.
+  align = 'left',
 }) {
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState('')
@@ -106,6 +111,8 @@ export default function InlineText({
           }}
           autoFocus
           className={`-mx-2 w-[calc(100%+1rem)] rounded-lg border bg-white px-2 py-1 outline-none transition-colors focus:border-[#3248F2] disabled:opacity-60 ${
+            align === 'right' ? 'text-right' : 'text-left'
+          } ${
             error ? 'border-[#DC2626]' : 'border-[#999999]/35'
           } ${className}`}
         />
@@ -127,7 +134,9 @@ export default function InlineText({
       type="button"
       onClick={startEditing}
       aria-label={ariaLabel}
-      className={`-mx-2 block w-[calc(100%+1rem)] rounded-lg px-2 py-1 text-left break-words outline-none transition-colors hover:bg-[#F6F8FA] focus-visible:bg-[#F6F8FA] ${
+      className={`-mx-2 block w-[calc(100%+1rem)] rounded-lg px-2 py-1 break-words outline-none transition-colors hover:bg-[#F6F8FA] focus-visible:bg-[#F6F8FA] ${
+        align === 'right' ? 'text-right' : 'text-left'
+      } ${
         hasValue ? '' : 'font-medium text-[#999999]'
       } ${className}`}
     >

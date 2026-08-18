@@ -41,6 +41,49 @@ export const openMinutes = (item) => {
 const MINUTES_IN_DAY = 24 * 60
 
 /**
+ * The stretches of a day the business *is* open, as `[fromMinute, toMinute]`.
+ *
+ * The mirror image of `closedRanges`, and deliberately a separate function
+ * rather than one with a flag: this one speaks the card's vocabulary (`from`,
+ * `breakFrom`, `is24h`) where that one speaks the API's (`opens_at`,
+ * `break_starts_at`, `is_24h`), and the two shapes meet nowhere else.
+ *
+ * It exists for the week bar in `WorkingHours`, which needs the open stretches
+ * as geometry — a break is what makes a day two bars instead of one, and it is
+ * the only thing a row of times cannot show at a glance.
+ */
+export function openSpans(item) {
+  if (!item) return []
+  if (item.is24h) return [[0, MINUTES_IN_DAY]]
+  if (!item.from || !item.to) return []
+
+  const opens = toMinutes(item.from)
+  const closes = toMinutes(item.to)
+  // A day that reads as nonsense draws nothing rather than drawing backwards;
+  // `dayProblem` is what tells the owner about it.
+  if (closes <= opens) return []
+
+  if (item.breakFrom && item.breakTo) {
+    const from = toMinutes(item.breakFrom)
+    const to = toMinutes(item.breakTo)
+    if (from > opens && to < closes && to > from) {
+      return [
+        [opens, from],
+        [to, closes],
+      ]
+    }
+  }
+  return [[opens, closes]]
+}
+
+/** Minutes the business is open across the whole week. */
+export const weekMinutes = (schedule) =>
+  schedule.reduce(
+    (total, item) => total + (item.is24h ? MINUTES_IN_DAY : (openMinutes(item) ?? 0)),
+    0
+  )
+
+/**
  * Whether the business is shut all day.
  *
  * A missing row reads as *open*, not closed: it means the week hasn't arrived

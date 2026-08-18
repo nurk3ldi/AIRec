@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import * as Switch from '@radix-ui/react-switch'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Add01Icon,
@@ -31,6 +30,7 @@ import {
 import Card, { CardAction } from './Card'
 import InlineText from './InlineText'
 import OptionPicker from './OptionPicker'
+import StatusCard from './StatusCard'
 import WorkingHours from './WorkingHours'
 
 const MAX_LOGO_BYTES = 5 * 1024 * 1024
@@ -208,31 +208,36 @@ function ColumnLabel({ children, className = '' }) {
 // One template, used by the header row and every service row, so the columns
 // line up without either side knowing the widths. The last, narrow column is
 // the row's delete control.
-const SERVICE_COLUMNS = 'grid grid-cols-[1fr_140px_130px_150px_44px] gap-x-8'
+const SERVICE_COLUMNS =
+  '-mx-6 grid grid-cols-[1fr_140px_130px_120px_44px] gap-x-8 px-6'
 
 /**
- * Status as a switch rather than a label: hiding a service from the assistant
- * is a thing the owner *does*, several times a week — a seasonal service, a
- * master on holiday — so it belongs under one click, in the row itself.
+ * Status as a tinted pill, and the pill is the control.
+ *
+ * It was a switch with a label beside it, which read as a form field in a table
+ * — a switch is chrome, and eight of them down a column is most of what made
+ * this card look like a settings screen. The reference states a status as a
+ * tinted pill, so that is what this is; hiding a service is still one click,
+ * because the pill itself is the button.
+ *
+ * Off is muted rather than red. Red means something went wrong, and a service
+ * the owner deliberately took down is not a fault.
  */
 function ServiceStatusToggle({ active, name, onToggle }) {
   return (
-    <div className="flex items-center gap-2.5">
-      <Switch.Root
-        checked={active}
-        onCheckedChange={onToggle}
-        aria-label={`${name}: ${active ? 'скрыть' : 'показать'}`}
-        className="relative h-5 w-9 shrink-0 cursor-pointer rounded-full bg-[#999999]/35 outline-none transition-colors data-[state=checked]:bg-[#3248F2]"
-      >
-        <Switch.Thumb className="block h-4 w-4 translate-x-0.5 rounded-full bg-white shadow-[0_1px_3px_rgba(23,18,21,0.25)] transition-transform will-change-transform data-[state=checked]:translate-x-[18px]" />
-      </Switch.Root>
-
-      <span
-        className={`text-[14px] ${active ? 'text-[#171215]' : 'text-[#999999]'}`}
-      >
-        {active ? 'Активна' : 'Скрыта'}
-      </span>
-    </div>
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={active}
+      aria-label={`${name}: ${active ? 'скрыть' : 'показать'}`}
+      className={`w-fit rounded-md px-2.5 py-1 text-[12px] font-medium outline-none transition-colors ${
+        active
+          ? 'bg-[#16A34A]/10 text-[#16A34A] hover:bg-[#16A34A]/18 focus-visible:bg-[#16A34A]/18'
+          : 'bg-[#999999]/12 text-[#999999] hover:bg-[#999999]/20 focus-visible:bg-[#999999]/20'
+      }`}
+    >
+      {active ? 'Активна' : 'Скрыта'}
+    </button>
   )
 }
 
@@ -249,6 +254,24 @@ function ServiceStatusToggle({ active, name, onToggle }) {
  * the edit deserves, and it would hide the neighbouring values you're often
  * copying the format from.
  */
+/**
+ * A field cell's frame: a hairline above it, and none anywhere else.
+ *
+ * Nine cells each carrying four borders is a box of boxes — the table treatment
+ * the reference never uses and the one CLAUDE.md rules out by name ("never
+ * vertical dividers"). Rows are separated, columns are separated by air.
+ *
+ * The top border is switched off for whichever cells make up the *first* row,
+ * and that changes with the breakpoint — one column, then two, then three — so
+ * there is a rule per breakpoint rather than a single nth-child that would be
+ * right at one width and draw a stray line at the others.
+ */
+const FIELD_CELL =
+  'px-6 py-5 border-t border-[#999999]/15 ' +
+  '[&:nth-child(-n+1)]:border-t-0 ' +
+  'sm:[&:nth-child(-n+2)]:border-t-0 ' +
+  'lg:[&:nth-child(-n+3)]:border-t-0'
+
 function Field({
   fieldKey,
   label,
@@ -267,8 +290,8 @@ function Field({
   // the confirmation, so it commits straight away.
   if (options) {
     return (
-      <div className="group border-r border-b border-[#999999]/15 px-6 py-5">
-        <p className="mb-1.5 text-[13px] text-[#999999]">{label}</p>
+      <div className={`group ${FIELD_CELL}`}>
+        <ColumnLabel className="mb-1.5 block">{label}</ColumnLabel>
         <OptionPicker
           value={value}
           options={options}
@@ -298,22 +321,22 @@ function Field({
   }
 
   return (
-    <div className="border-r border-b border-[#999999]/15 px-6 py-5">
-      <p className="text-[13px] text-[#999999]">{label}</p>
+    <div className={FIELD_CELL}>
+      <ColumnLabel className="block">{label}</ColumnLabel>
 
       {editable ? (
         <span className="mt-1.5 block">
           <InlineText
             value={value}
             ariaLabel={`Изменить: ${label}`}
-            className="text-[16px] font-semibold text-[#171215]"
+            className="text-[15px] font-medium text-[#171215]"
             onSave={(next) => onSave(fieldKey, next)}
           />
         </span>
       ) : (
         <p
-          className={`mt-1.5 text-[16px] break-words ${
-            value ? 'font-semibold text-[#171215]' : 'font-medium text-[#999999]'
+          className={`mt-1.5 text-[15px] break-words ${
+            value ? 'font-medium text-[#171215]' : 'text-[#999999]'
           }`}
         >
           {(value && (format ? format(value) : value)) || 'Не указано'}
@@ -323,7 +346,15 @@ function Field({
   )
 }
 
-export default function BusinessProfile() {
+/**
+ * `trailing` is rendered in the last cell of the top row, under «Состояние».
+ *
+ * The page owns what goes there — right now the empty «Настройка ИИ» card — but
+ * this component owns the grid, because the grid is what its three cards are
+ * arranged in. Handing the slot down is what keeps a placeholder from having to
+ * live inside a component called BusinessProfile.
+ */
+export default function BusinessProfile({ trailing }) {
   const fileInputRef = useRef(null)
   const [business, setBusiness] = useState(null)
   const [pickedFile, setPickedFile] = useState(null)
@@ -531,11 +562,17 @@ export default function BusinessProfile() {
     'Заполните профиль, чтобы ассистент знал, что отвечать'
 
   return (
-    <div className="flex flex-col gap-6">
+    // 7/5 rather than one column of five equal slabs. Every card the same width
+    // gives the page no rhythm and the eye no entry point; the reference never
+    // stacks more than two full-width blocks in a row. The wide/narrow split
+    // rides on top, then two full-bleed rows, because the two tables below
+    // genuinely need the width — «Услуги» is five columns and the week is
+    // seven, and squeezing either into 58% is what would actually break.
+    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
       {/* One card for the whole profile: the identity strip on top, then the
           facts, split by a hairline. Two cards would imply two subjects — they
           are the same one, seen at two zoom levels. */}
-      <Card className="overflow-hidden !p-0">
+      <Card className="overflow-hidden !p-0 lg:col-span-7">
         <div className="flex flex-wrap items-center gap-4 px-6 py-5">
           {/* The whole square is the upload target — at 56px a corner badge
               would be a 20px hit area, well under the 44px minimum. */}
@@ -606,11 +643,10 @@ export default function BusinessProfile() {
 
         </div>
 
-        {/* The cells carry their own borders and the grid is pulled 1px past
-            the clipping wrapper, so the outermost lines fall outside and the
-            divider pattern comes out right at any column count. */}
-        <div className="overflow-hidden border-t border-[#999999]/15">
-          <div className="-mr-px -mb-px grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        {/* No clipping wrapper and no negative margins any more: with only a
+            top border per cell there are no outer lines to hide. */}
+        <div className="border-t border-[#999999]/15">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {fields.map((field) => (
               <Field
                 key={field.key}
@@ -629,7 +665,20 @@ export default function BusinessProfile() {
         </div>
       </Card>
 
+      {/* The narrow column is a stack, not a single card: «Состояние» is short,
+          and letting the placeholder grow into what is left keeps the top row
+          reading as one band rather than as a card with a hole beside it. */}
+      <div className="flex flex-col gap-6 lg:col-span-5 lg:self-stretch">
+        <StatusCard
+          business={business}
+          services={services}
+          schedule={schedule}
+        />
+        {trailing}
+      </div>
+
       <Card
+        className="lg:col-span-12"
         title="Услуги"
         action={
           <CardAction onClick={addService}>
@@ -652,7 +701,9 @@ export default function BusinessProfile() {
         <div className={`${SERVICE_COLUMNS} pb-3`}>
           <ColumnLabel>Услуга</ColumnLabel>
           <ColumnLabel>Длительность</ColumnLabel>
-          <ColumnLabel>Цена</ColumnLabel>
+          {/* Over the amounts it names, which are right-aligned — a heading
+              left of a column of right-aligned numbers points at nothing. */}
+          <ColumnLabel className="text-right">Цена</ColumnLabel>
           <ColumnLabel>Статус</ColumnLabel>
           <span />
         </div>
@@ -660,7 +711,7 @@ export default function BusinessProfile() {
         {services.map((service) => (
           <div
             key={service.id}
-            className={`${SERVICE_COLUMNS} group items-center border-t border-[#999999]/15 py-3.5`}
+            className={`${SERVICE_COLUMNS} group items-center border-t border-[#999999]/15 py-3.5 transition-colors hover:bg-[#F6F8FA]/70`}
           >
             <InlineText
               value={service.name}
@@ -685,11 +736,14 @@ export default function BusinessProfile() {
                 updateService(service.id, { minutes: parseDuration(next) })
               }
             />
+            {/* Right-aligned, so the digits line up under each other and two
+                prices can be compared without reading them. */}
             <InlineText
               value={service.price}
               format={formatPrice}
               parse={parsePrice}
               inputMode="numeric"
+              align="right"
               ariaLabel={`Изменить цену: ${service.name}`}
               className="text-[14px] font-semibold text-[#171215]"
               onSave={(next) => updateService(service.id, { price: next })}
@@ -744,7 +798,9 @@ export default function BusinessProfile() {
         {/* Only while there is something to save: a footer that is always there
             reads as "you have unsaved work" even when you don't. */}
         {(servicesDirty || servicesError) && (
-          <div className="mt-5 flex flex-wrap items-center justify-end gap-3 border-t border-[#999999]/15 pt-4">
+          // Bled to the card edges like the rows above it — a rule that stops
+          // short under a stack of full-width rules reads as a missed edit.
+          <div className="-mx-6 mt-5 flex flex-wrap items-center justify-end gap-3 border-t border-[#999999]/15 px-6 pt-4">
             {servicesError && (
               <p role="alert" className="mr-auto text-[13px] text-[#DC2626]">
                 {servicesError}
@@ -770,7 +826,7 @@ export default function BusinessProfile() {
         )}
       </Card>
 
-      <Card title="График работы">
+      <Card title="График работы" className="lg:col-span-12">
         <WorkingHours schedule={schedule} onChange={setSchedule} />
 
         {(scheduleDirty || scheduleError) && (

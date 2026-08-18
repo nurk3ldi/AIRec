@@ -2,7 +2,7 @@ import * as Switch from '@radix-ui/react-switch'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Add01Icon, MinusSignIcon } from '@hugeicons/core-free-icons'
 import OptionPicker from './OptionPicker'
-import { dayProblem, formatSpan, openMinutes } from '../../lib/schedule'
+import { dayProblem, formatSpan, openMinutes, openSpans } from '../../lib/schedule'
 
 /**
  * Quarter-hour steps — the same grid service durations are offered on, so a
@@ -38,7 +38,13 @@ const DEFAULT_BREAK = { breakFrom: '13:00', breakTo: '14:00' }
 // purpose: both the chip and its heading sit at the column's left edge, and the
 // leftover width is what keeps the pair off the opening time without needing a
 // margin that only one of the two would carry.
-const COLUMNS = 'grid grid-cols-[40px_1fr_72px_100px_100px_90px_170px] gap-8'
+// The bar column now holds the slack instead of the day name, which is fixed:
+// everything after it stays anchored to the right edge exactly as before, and
+// the one flexible column is the one that actually wants the width. `gap-6`
+// rather than `gap-8` is what pays for it — at eight columns the old 32px gaps
+// left the bar around 100px, which is too narrow to read a lunch break out of.
+const COLUMNS =
+  'grid grid-cols-[40px_130px_1fr_72px_100px_100px_90px_170px] gap-6'
 
 /** Table column header: tiny, uppercase, muted — the row's frame is air. */
 function ColumnLabel({ children, className = '' }) {
@@ -71,6 +77,18 @@ export default function WorkingHours({ schedule, onChange }) {
       <div className={`${COLUMNS} pb-3`}>
         <span />
         <ColumnLabel>День</ColumnLabel>
+        {/* The column heading *is* the scale. Three marks and no more: without
+            an anchor a bar cannot say whether the open stretch is the morning
+            or the evening, and with gridlines it would stop being a bar and
+            start being a chart. */}
+        <span
+          aria-hidden="true"
+          className="flex items-end justify-between self-end text-[11px] font-medium text-[#999999]"
+        >
+          <span>0</span>
+          <span>12</span>
+          <span>24</span>
+        </span>
         {/* Nudged 8px past the column's edge so it reads as sitting over the
             chip's label rather than over the chip's rounded corner. */}
         <ColumnLabel className="pl-[8px]">24/7</ColumnLabel>
@@ -118,7 +136,7 @@ export default function WorkingHours({ schedule, onChange }) {
                 )
               }
               aria-label={`${item.day}: ${isOpen ? 'сделать выходным' : 'сделать рабочим'}`}
-              className="relative h-5 w-9 shrink-0 cursor-pointer rounded-full bg-[#999999]/35 outline-none transition-colors data-[state=checked]:bg-[#3248F2]"
+              className="relative h-5 w-9 shrink-0 cursor-pointer rounded-full bg-[#999999]/35 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#3248F2] focus-visible:ring-offset-2 data-[state=checked]:bg-[#3248F2]"
             >
               <Switch.Thumb className="block h-4 w-4 translate-x-0.5 rounded-full bg-white shadow-[0_1px_3px_rgba(23,18,21,0.25)] transition-transform will-change-transform data-[state=checked]:translate-x-[18px]" />
             </Switch.Root>
@@ -128,6 +146,8 @@ export default function WorkingHours({ schedule, onChange }) {
             >
               {item.day}
             </span>
+
+            <DayBar item={item} />
 
             {/* Always visible: it is the only place in the product that offers
                 a round-the-clock day, so hiding it until hover would leave the
@@ -159,7 +179,7 @@ export default function WorkingHours({ schedule, onChange }) {
               className={`h-7 w-fit justify-self-start rounded-lg px-2 text-[12px] font-medium outline-none transition-colors ${
                 always
                   ? 'bg-[#3248F2]/10 text-[#3248F2]'
-                  : 'text-[#999999] hover:bg-[#F6F8FA] hover:text-[#171215]'
+                  : 'text-[#999999] hover:bg-[#F6F8FA] hover:text-[#171215] focus-visible:bg-[#F6F8FA] focus-visible:text-[#171215]'
               }`}
             >
               24 ч
@@ -216,7 +236,7 @@ export default function WorkingHours({ schedule, onChange }) {
                       update(item.day, { breakFrom: null, breakTo: null })
                     }
                     aria-label={`${item.day}: убрать перерыв`}
-                    className="ml-1 grid h-7 w-7 place-items-center rounded-lg text-[#999999] outline-none transition-colors hover:bg-[#DC2626]/8 hover:text-[#DC2626]"
+                    className="ml-1 grid h-7 w-7 place-items-center rounded-lg text-[#999999] outline-none transition-colors hover:bg-[#DC2626]/8 hover:text-[#DC2626] focus-visible:bg-[#DC2626]/8 focus-visible:text-[#DC2626]"
                   >
                     <HugeiconsIcon
                       icon={MinusSignIcon}
@@ -231,7 +251,7 @@ export default function WorkingHours({ schedule, onChange }) {
                 <button
                   type="button"
                   onClick={() => update(item.day, DEFAULT_BREAK)}
-                  className="inline-flex w-fit items-center gap-1 rounded-lg px-1.5 py-1 text-[13px] font-medium text-[#3248F2] outline-none transition-colors hover:bg-[#3248F2]/8"
+                  className="inline-flex w-fit items-center gap-1 rounded-lg px-1.5 py-1 text-[13px] font-medium text-[#3248F2] outline-none transition-colors hover:bg-[#3248F2]/8 focus-visible:bg-[#3248F2]/8"
                 >
                   <HugeiconsIcon
                     icon={Add01Icon}
@@ -251,7 +271,7 @@ export default function WorkingHours({ schedule, onChange }) {
             {problem && (
               <p
                 role="alert"
-                className="pb-2.5 pl-[72px] text-[13px] text-[#DC2626]"
+                className="pb-2.5 pl-[64px] text-[13px] text-[#DC2626]"
               >
                 {problem}
               </p>
@@ -260,6 +280,43 @@ export default function WorkingHours({ schedule, onChange }) {
         )
       })}
     </div>
+  )
+}
+
+/**
+ * One day drawn as the stretches it is open, across a track of twenty-four
+ * hours.
+ *
+ * This is the only chart on the page and it earns its place: a break is what
+ * splits a day into two, and seven rows of times cannot show that — you have to
+ * read four numbers and subtract. As a shape it is one glance, and a Sunday
+ * left open by accident stands out of the column without being read at all.
+ *
+ * Deliberately bare, per the reference: no gridlines, no axis, no border, no
+ * tick under each hour. And a tint rather than solid accent — every day here is
+ * equal, so seven solid blue bars would spend the colour that is supposed to
+ * mean "look at this one".
+ *
+ * `aria-hidden`, because it restates the times sitting beside it; a screen
+ * reader announcing a row twice is worse than not announcing the picture.
+ */
+function DayBar({ item }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="relative block h-1.5 w-full self-center overflow-hidden rounded-full bg-[#999999]/12"
+    >
+      {openSpans(item).map(([from, to]) => (
+        <span
+          key={from}
+          className="absolute inset-y-0 rounded-full bg-[#3248F2]/35"
+          style={{
+            left: `${(from / 1440) * 100}%`,
+            width: `${((to - from) / 1440) * 100}%`,
+          }}
+        />
+      ))}
+    </span>
   )
 }
 
