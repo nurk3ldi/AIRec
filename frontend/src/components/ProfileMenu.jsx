@@ -69,15 +69,29 @@ export default function ProfileMenu({ user, onOpenSection, onClose }) {
       // laid out against the viewport rather than contributing to the
       // document's scrollable overflow.
       style={{ transformOrigin: 'bottom left' }}
-      initial={reduce ? false : { opacity: 0, scale: 0.96, x: -4 }}
-      animate={{ opacity: 1, scale: 1, x: 0 }}
-      exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.98, x: -2 }}
-      // A menu has to feel instant — 140ms in, 90ms out. Anything slower and
-      // the click and the panel stop feeling like one event.
-      transition={{
-        duration: reduce ? 0 : 0.14,
-        ease: [0.16, 1, 0.3, 1],
+      initial={reduce ? false : { opacity: 0, scale: 0.94, x: -6 }}
+      animate={{
+        opacity: 1,
+        scale: 1,
+        x: 0,
+        // 320ms on a long ease-out: almost all the distance is covered early,
+        // then it eases into place over the tail. That is what makes a slower
+        // panel read as unhurried rather than as lag — the eye judges the
+        // start, not the total.
+        transition: { duration: reduce ? 0 : 0.32, ease: [0.16, 1, 0.3, 1] },
       }}
+      // Leaving stays quick. A menu you have dismissed should be gone, and
+      // matching the opening time would make every close feel like a wait.
+      exit={
+        reduce
+          ? { opacity: 0 }
+          : {
+              opacity: 0,
+              scale: 0.97,
+              x: -3,
+              transition: { duration: 0.13, ease: 'easeIn' },
+            }
+      }
       className="fixed bottom-4 left-[72px] z-50 w-[264px] overflow-hidden rounded-2xl border border-[#999999]/20 bg-white py-2 shadow-[0_16px_40px_-8px_rgba(23,18,21,0.28)]"
     >
       <div className="flex items-center gap-3 px-4 py-3">
