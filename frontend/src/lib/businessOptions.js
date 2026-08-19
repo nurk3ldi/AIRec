@@ -32,10 +32,10 @@ export const SERVICE_LANGUAGES = ['Қазақша', 'Русский', 'English']
  * worse still: an owner in Shymkent has no business scrolling past Kathmandu.
  *
  * The column stays a free string on the backend, so a second country is a data
- * change here rather than a migration.
+ * change here rather than a migration. There is no default constant here to
+ * match it — the backend column defaults to Asia/Almaty, and a second copy on
+ * this side would be a value that can disagree with the one that counts.
  */
-export const DEFAULT_TIME_ZONE = 'Asia/Almaty'
-
 const zoneLabels = new Map()
 
 /**

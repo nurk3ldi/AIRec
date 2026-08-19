@@ -72,10 +72,6 @@ export function clearTokens() {
   }
 }
 
-export function isAuthenticated() {
-  return Boolean(getAccessToken())
-}
-
 /**
  * Confirms the current session against the backend, transparently rotating
  * an expired access token via the refresh token when needed.

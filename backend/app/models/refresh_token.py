@@ -71,6 +71,3 @@ class RefreshToken(Base):
     )
 
     user: Mapped[User] = relationship(back_populates="refresh_tokens")
-
-    def is_usable(self, now: datetime) -> bool:
-        return self.revoked_at is None and self.expires_at > now

@@ -981,7 +981,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
 
   return (
     <>
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-2 pb-6 [scrollbar-color:#3248F2_#F6F8FA] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#3248F2] [&::-webkit-scrollbar-track]:bg-[#F6F8FA] [&::-webkit-scrollbar]:w-2">
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-2 pb-6">
         {/* Avatar block — outside the <form>, since the picture saves on its
             own rather than with the Save button. */}
         <div className="flex flex-col items-center gap-2">

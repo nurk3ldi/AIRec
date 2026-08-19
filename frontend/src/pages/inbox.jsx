@@ -1,9 +1,9 @@
 import styles from '../styles/Inbox.module.css'
 
+/**
+ * Диалоги — пусто. Здесь будут переписки, которые ассистент ведёт в WhatsApp;
+ * ни канала, ни таблицы сообщений на бэкенде пока нет.
+ */
 export default function InboxPage() {
-  return (
-    <>
-      <div className={styles.page} aria-label="Страница диалогов" />
-    </>
-  )
+  return <div className={styles.page} aria-label="Диалоги" />
 }
