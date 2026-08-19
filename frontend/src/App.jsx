@@ -10,6 +10,7 @@ import LandingPage from './pages/index'
 import LoginPage from './pages/login'
 import NotFoundPage from './pages/404'
 import NotificationsPage from './pages/notifications'
+import ProfilePage from './pages/profile'
 import ResetPasswordPage from './pages/reset-password'
 import SignupPage from './pages/signup'
 
@@ -43,6 +44,10 @@ export default function App() {
         <Route path="/inbox" element={<InboxPage />} />
         <Route path="/appointments" element={<AppointmentsPage />} />
         <Route path="/business" element={<BusinessPage />} />
+        {/* Not linked to on a desktop — the rail opens the popup instead —
+            but a real route all the same, because the phone's bottom bar
+            points at it and a back gesture has to have somewhere to go. */}
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
       </Route>
 

@@ -9,10 +9,11 @@ const pageTitles = {
   '/inbox': 'Диалоги',
   '/appointments': 'Записи',
   '/business': 'Бизнес',
+  '/profile': 'Профиль',
   '/notifications': 'Уведомления',
 }
 
-export default function Header() {
+export default function Header({ className = '' }) {
   const { pathname } = useLocation()
   const title = pageTitles[pathname] ?? 'AIRec'
   const isOnNotifications = pathname === '/notifications'
@@ -26,7 +27,9 @@ export default function Header() {
     // It is still `sticky`, so it will need something behind it once a page can
     // actually scroll — the ground colour, or a blur — or content will run
     // underneath and show through.
-    <header className="sticky top-0 z-40 flex h-[68px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+    <header
+      className={`sticky top-0 z-40 h-[68px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 ${className}`}
+    >
       {/* On a phone the wordmark, because the rail that normally carries it is
           not there and a screen with the product's name nowhere on it reads as
           a fragment. The page title is redundant at that width anyway — the

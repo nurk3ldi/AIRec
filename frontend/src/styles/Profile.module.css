@@ -1,0 +1,17 @@
+.page {
+  /* A flex column so the column inside can stretch and push «Выйти» to the
+     bottom edge with `mt-auto`, however few cards sit above it. */
+  display: flex;
+  flex-direction: column;
+  /* No header on this route below `sm` — only the 50px bottom bar and the home
+     indicator come off the viewport. Above `sm` the header is back, the bar is
+     gone, and the usual 68px is all that is subtracted. */
+  min-height: calc(100vh - 50px - env(safe-area-inset-bottom));
+  background: #f6f8fa;
+}
+
+@media (min-width: 640px) {
+  .page {
+    min-height: calc(100vh - 68px);
+  }
+}

@@ -32,8 +32,11 @@ import {
  * this and update instantly. A click should be acknowledged now; only the
  * content it swaps needs to cross over.
  */
-export default function PageTransition() {
-  const outlet = useOutlet()
+export default function PageTransition({ context }) {
+  // `useOutlet(context)` is how a shell hands things to its pages — the
+  // dashboard passes the signed-in user and the profile-dialog opener, which
+  // pages read back with `useOutletContext()`.
+  const outlet = useOutlet(context)
   const { pathname } = useLocation()
   const reduce = useReducedMotion()
 

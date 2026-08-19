@@ -22,13 +22,15 @@ import ProfileAvatar from './ProfileAvatar'
  * Russian starts truncating, and with five destinations the glyphs carry it.
  * Every slot keeps an `aria-label`, so nothing is lost to a screen reader.
  *
- * The fifth slot is the profile, and it is a *button*, not a link: there is no
- * `/profile` route anywhere in this app, only an overlay. It sits last for the
- * same reason it sits at the bottom of the rail — it is about you, not about
- * the business, and it is the one you reach for least.
+ * The fifth slot is the profile, and here it *is* a link — to `/profile`, a
+ * screen that exists for phones. The desktop rail opens a popup instead; a
+ * 264px panel floating over a 390pt viewport is a desktop shape, and a route
+ * means the back gesture works. It sits last for the same reason it sits at the
+ * bottom of the rail — it is about you, not about the business.
  */
-export default function BottomNav({ user, isMenuOpen, onToggleMenu }) {
+export default function BottomNav({ user }) {
   const { pathname } = useLocation()
+  const isProfile = pathname === '/profile'
 
   return (
     <nav
@@ -71,27 +73,27 @@ export default function BottomNav({ user, isMenuOpen, onToggleMenu }) {
         )
       })}
 
-      <button
-        type="button"
-        data-profile-menu-toggle
-        onClick={onToggleMenu}
-        aria-haspopup="menu"
-        aria-expanded={isMenuOpen}
+      {/* A link, not the popup the rail opens. On a phone the account is a
+          screen of its own: a 264px panel floating over a 390pt viewport is a
+          desktop shape, and a real route means the back gesture works. */}
+      <Link
+        to="/profile"
         aria-label="Профиль"
+        aria-current={isProfile ? 'page' : undefined}
         className="flex flex-1 items-center justify-center"
       >
-        {/* Ringed while the sheet is open — the avatar is a photograph, and the
+        {/* Ringed when current — the avatar is a photograph, and the
             stroke-weight trick the glyphs use has nothing to act on here. */}
         <span
           className={`grid h-[23px] w-[23px] place-items-center overflow-hidden rounded-full transition-shadow ${
-            isMenuOpen
+            isProfile
               ? 'ring-2 ring-[#3248F2] ring-offset-2 ring-offset-[#F6F8FA]'
               : 'opacity-70'
           }`}
         >
           <ProfileAvatar src={mediaUrl(user?.avatar_url)} size={23} />
         </span>
-      </button>
+      </Link>
     </nav>
   )
 }

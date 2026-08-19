@@ -1,5 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import { m, useReducedMotion } from 'motion/react'
+import { useMediaQuery } from '../lib/media'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Cancel01Icon } from '@hugeicons/core-free-icons'
 import AccountSettings from './profile/AccountSettings'
@@ -44,6 +45,9 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
     document.querySelector('[data-nested-overlay]') !== null
 
   const reduce = useReducedMotion()
+  // Not a `sm:` class, because what differs is the *animation* — a value handed
+  // to Motion — and not only the styling.
+  const isDesktop = useMediaQuery('(min-width: 640px)')
 
   return (
     <Dialog.Root
@@ -67,7 +71,13 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: reduce ? 0 : 0.2, ease: 'easeOut' }}
-            className="fixed inset-0 z-[60] grid place-items-center bg-[#171215]/50 p-4"
+            // Clears the iPhone status bar and home indicator, which a
+            // full-bleed sheet would otherwise print its header underneath.
+            style={{
+              paddingTop: isDesktop ? undefined : 'env(safe-area-inset-top)',
+              paddingBottom: isDesktop ? undefined : 'env(safe-area-inset-bottom)',
+            }}
+            className="fixed inset-0 z-[60] grid place-items-center bg-[#171215]/50 sm:p-4"
           >
           <Dialog.Content
             asChild
@@ -79,14 +89,37 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
             }}
           >
           <m.div
-            initial={reduce ? false : { opacity: 0, scale: 0.97, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            // Out faster than in, and without the rise: leaving should get out
-            // of the way, arriving should settle.
-            exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
-            transition={{ duration: reduce ? 0 : 0.24, ease: [0.16, 1, 0.3, 1] }}
-            className={`flex max-h-[calc(100vh-2rem)] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_-12px_rgba(23,18,21,0.35)] outline-none ${
-              isAccount ? 'w-[520px]' : 'h-[580px] w-[728px]'
+            // Two shapes, and the animation is what tells them apart. On a
+            // desktop the panel fades and scales in the middle of the screen.
+            // On a phone it *is* the screen — full bleed, square corners, rising
+            // from the bottom edge over the navigation, so the section reads as
+            // somewhere you went rather than as a card laid on the page. That is
+            // also why it covers the bottom bar instead of sitting above it: a
+            // sideways tap out of a form you opened on purpose is not a way out
+            // worth offering.
+            initial={
+              reduce
+                ? false
+                : isDesktop
+                  ? { opacity: 0, scale: 0.97, y: 8 }
+                  : { y: '100%' }
+            }
+            animate={isDesktop ? { opacity: 1, scale: 1, y: 0 } : { y: 0 }}
+            // Out faster than in: leaving should get out of the way, arriving
+            // should settle.
+            exit={
+              reduce
+                ? { opacity: 0 }
+                : isDesktop
+                  ? { opacity: 0, scale: 0.98 }
+                  : { y: '100%' }
+            }
+            transition={{
+              duration: reduce ? 0 : isDesktop ? 0.24 : 0.32,
+              ease: [0.16, 1, 0.3, 1],
+            }}
+            className={`flex h-full w-full flex-col overflow-hidden bg-white outline-none sm:max-h-[calc(100vh-2rem)] sm:max-w-[calc(100vw-2rem)] sm:rounded-2xl sm:shadow-[0_24px_60px_-12px_rgba(23,18,21,0.35)] ${
+              isAccount ? 'sm:h-auto sm:w-[520px]' : 'sm:h-[580px] sm:w-[728px]'
             }`}
           >
             <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-3">

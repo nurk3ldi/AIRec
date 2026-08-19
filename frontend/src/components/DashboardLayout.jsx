@@ -57,17 +57,23 @@ export default function DashboardLayout() {
           its own — 50px plus the home indicator. The page modules subtract the
           same, or the two together overrun the viewport. */}
       <main className="min-h-screen bg-[#F6F8FA] pb-[calc(50px+env(safe-area-inset-bottom))] sm:pb-0 sm:pl-16">
-        <Header />
+        {/* Hidden on `/profile` below `sm`: that screen is about you, and the
+            phone header carries the app's name and a bell, neither of which
+            belongs above it. Hidden rather than unmounted — the page module
+            measures against the same breakpoint. */}
+        <Header
+          className={pathname === '/profile' ? 'hidden sm:flex' : 'flex'}
+        />
         {/* The shells sit outside this and update instantly — a click should be
             acknowledged now; only the content it swaps needs to cross over. */}
-        <PageTransition />
+        <PageTransition
+          context={{ user, onUserChange: setUser, onOpenSection: openSection }}
+        />
       </main>
 
-      <BottomNav
-        user={user}
-        isMenuOpen={isMenuOpen}
-        onToggleMenu={() => setIsMenuOpen((open) => !open)}
-      />
+      {/* No menu props: on a phone the profile slot is a link to `/profile`,
+          a real screen, so the popup below is the rail's alone. */}
+      <BottomNav user={user} />
 
       {/* Each overlay gets its own `AnimatePresence` — separate boundaries, so
           closing the menu to open the dialog does not make Motion treat one as
