@@ -7,7 +7,7 @@
      indicator come off the viewport. Above `sm` the header is back, the bar is
      gone, and the usual 68px is all that is subtracted. */
   min-height: calc(100vh - 50px - env(safe-area-inset-bottom));
-  background: #f6f8fa;
+  background: var(--ground);
 }
 
 @media (min-width: 640px) {

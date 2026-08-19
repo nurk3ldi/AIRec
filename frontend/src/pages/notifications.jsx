@@ -10,7 +10,7 @@ export default function NotificationsPage() {
             genuinely has nothing here, so this is what it will look like even
             once the feature is wired up. */}
         <div className="mx-auto max-w-[440px] px-6 py-24 text-center">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-white text-[#999999]">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-surface text-muted">
             <HugeiconsIcon
               icon={Notification01Icon}
               size={24}
@@ -20,10 +20,10 @@ export default function NotificationsPage() {
             />
           </div>
 
-          <p className="mt-4 text-[15px] font-medium text-[#171215]">
+          <p className="mt-4 text-[15px] font-medium text-ink">
             Пока нет уведомлений
           </p>
-          <p className="mt-1.5 text-[14px] text-[#999999]">
+          <p className="mt-1.5 text-[14px] text-muted">
             Здесь появятся новые записи, отменённые брони и диалоги, в которых
             ассистенту нужна ваша помощь.
           </p>

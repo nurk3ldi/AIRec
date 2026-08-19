@@ -98,10 +98,10 @@ export default function ProfileMenu({ user, onOpenSection, onClose }) {
       // Desktop only: on a phone the account is `/profile`, a real screen. This
       // panel hangs off the rail's avatar button, and there is no rail below
       // `sm` for it to hang off.
-      className="fixed bottom-4 left-[72px] z-50 w-[264px] overflow-hidden rounded-2xl border border-[#999999]/20 bg-white py-2 shadow-[0_16px_40px_-8px_rgba(23,18,21,0.28)]"
+      className="fixed bottom-4 left-[72px] z-50 w-[264px] overflow-hidden rounded-2xl border border-line bg-surface py-2 shadow-[0_16px_40px_-8px_rgba(23,18,21,0.28)]"
     >
       <div className="flex items-center gap-3 px-4 py-3">
-        <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[#F6F8FA] ring-1 ring-[#999999]/20">
+        <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-ground ring-1 ring-line">
           {avatarSrc ? (
             <img src={avatarSrc} alt="" className="h-full w-full object-cover" />
           ) : (
@@ -111,21 +111,21 @@ export default function ProfileMenu({ user, onOpenSection, onClose }) {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={1.8}
-              className="text-[#999999]"
+              className="text-muted"
             />
           )}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-[14px] font-medium text-[#171215]">
+          <p className="truncate text-[14px] font-medium text-ink">
             {user?.username || '—'}
           </p>
-          <p className="truncate text-[12px] text-[#999999]">
+          <p className="truncate text-[12px] text-muted">
             {user?.email || ''}
           </p>
         </div>
       </div>
 
-      <hr className="my-1 border-t border-[#999999]/20" />
+      <hr className="my-1 border-t border-line" />
 
       <nav className="px-1.5 py-0.5">
         {PROFILE_SECTIONS.map((item) => (
@@ -137,7 +137,7 @@ export default function ProfileMenu({ user, onOpenSection, onClose }) {
             // outline-none kills the browser's default ring on click;
             // focus-visible keeps a keyboard indicator, reusing the hover fill
             // so it reads as part of the design rather than a stray outline.
-            className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-[14px] text-[#171215] outline-none transition-colors hover:bg-[#F6F8FA] focus-visible:bg-[#F6F8FA]"
+            className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-[14px] text-ink outline-none transition-colors hover:bg-ground focus-visible:bg-ground"
           >
             <HugeiconsIcon
               icon={item.icon}
@@ -145,21 +145,21 @@ export default function ProfileMenu({ user, onOpenSection, onClose }) {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={1.8}
-              className="shrink-0 text-[#171215]/70"
+              className="shrink-0 text-ink/70"
             />
             {item.label}
           </button>
         ))}
       </nav>
 
-      <hr className="my-1 border-t border-[#999999]/20" />
+      <hr className="my-1 border-t border-line" />
 
       <div className="px-1.5 pb-0.5">
         <button
           type="button"
           role="menuitem"
           onClick={handleSignOut}
-          className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-[14px] text-[#DC2626] outline-none transition-colors hover:bg-[#DC2626]/8 focus-visible:bg-[#DC2626]/8"
+          className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-[14px] text-danger outline-none transition-colors hover:bg-danger/8 focus-visible:bg-danger/8"
         >
           <HugeiconsIcon
             icon={Logout01Icon}

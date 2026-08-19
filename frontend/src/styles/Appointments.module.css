@@ -4,7 +4,7 @@
      leave the room or the two together overrun the viewport. From `sm` the bar
      is gone and only the header is subtracted. */
   min-height: calc(100vh - 118px - env(safe-area-inset-bottom));
-  background: #f6f8fa;
+  background: var(--ground);
 }
 
 @media (min-width: 640px) {

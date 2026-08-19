@@ -46,10 +46,10 @@ export default function ForgotPasswordPage() {
       <div className={styles.page} aria-label="Страница восстановления пароля">
         <div className="mx-auto flex max-w-[400px] flex-col gap-6 px-4 py-16 sm:px-6">
           <div className="flex flex-col items-center gap-2 text-center">
-            <h1 className="font-display text-[26px] font-semibold tracking-[-0.02em] text-[#171215]">
+            <h1 className="font-display text-[26px] font-semibold tracking-[-0.02em] text-ink">
               Восстановление пароля
             </h1>
-            <p className="text-[14px] text-[#999999]">
+            <p className="text-[14px] text-muted">
               Введите email — мы отправим 6-значный код.
             </p>
           </div>
@@ -63,27 +63,27 @@ export default function ForgotPasswordPage() {
                 placeholder="Email"
                 autoComplete="email"
                 autoFocus
-                className={`rounded-lg border bg-white px-3.5 py-2 text-[14px] text-[#171215] outline-none transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${emailHasSpace ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
+                className={`rounded-lg border bg-surface px-3.5 py-2 text-[14px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent ${emailHasSpace ? 'border-danger' : 'border-line-strong'}`}
               />
               {emailHasSpace && (
-                <p className="text-[13px] text-[#DC2626]">Пробелы недопустимы.</p>
+                <p className="text-[13px] text-danger">Пробелы недопустимы.</p>
               )}
             </div>
 
-            {error && <p className="text-[13px] text-[#DC2626]">{error}</p>}
+            {error && <p className="text-[13px] text-danger">{error}</p>}
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-[#171215] px-5 py-2 text-[14px] font-medium text-white transition-colors hover:bg-[#171215]/85 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg bg-ink px-5 py-2 text-[14px] font-medium text-surface transition-colors hover:bg-ink/85 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? 'Отправляем…' : 'Отправить код'}
             </button>
           </form>
 
-          <p className="text-center text-[15px] text-[#999999]">
+          <p className="text-center text-[15px] text-muted">
             Вспомнили пароль?{' '}
-            <Link to="/login" className="font-medium text-[#3248F2] hover:underline">
+            <Link to="/login" className="font-medium text-accent hover:underline">
               Войти
             </Link>
           </p>

@@ -1,20 +1,67 @@
 @import 'tailwindcss';
 
-@theme {
-  --color-brand-blue: #3248f2;
-  --color-brand-black: #171215;
-  --color-brand-gray: #999999;
-  --color-brand-soft: #f6f8fa;
-  --color-brand-white: #ffffff;
+/**
+ * Semantic tokens, and `inline` is what makes them themeable.
+ *
+ * A plain `@theme` block bakes its values into the utilities at build time, so
+ * `bg-surface` would compile to `background:#fff` and no runtime switch could
+ * reach it. `@theme inline` emits `var(--surface)` instead, which means the
+ * declarations below — and the dark overrides under `[data-theme='dark']` — are
+ * what every utility actually reads.
+ *
+ * The five brand colours are still the base; these name the *role* each plays,
+ * because a role is the thing that can have two values. Reach for a token in
+ * anything new. The raw `#171215`-style arbitrary values elsewhere are what the
+ * app was written with, and they are light-only by construction.
+ */
+@theme inline {
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  /* Two weights, because a divider between rows and the edge of an input are
+     not the same line. Both are tokens rather than `muted` at an alpha: grey at
+     25% reads clearly on white and all but vanishes on a near-black ground, so
+     the *colour* has to change with the theme, not only its opacity. */
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  /* The dark rail is dark in *both* themes — it is the one surface whose colour
+     is an identity rather than a role, so it gets tokens of its own instead of
+     being flipped with everything else. */
+  --color-rail: var(--rail);
+  --color-rail-ink: var(--rail-ink);
+  /* The wash behind a modal. Dark in *both* themes and so not a flipped role:
+     `ink` at 50% would become a light haze once ink is near-white, which is the
+     opposite of dimming. */
+  --color-scrim: var(--scrim);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+
   --font-sans: 'Roboto Variable', Roboto, sans-serif;
   --font-display: Poppins, 'Roboto Variable', sans-serif;
 }
 
 :root {
+  --accent: #3248f2;
+  --accent-strong: #2839c9;
+  --ink: #171215;
+  --muted: #999999;
+  --ground: #f6f8fa;
+  --surface: #ffffff;
+  --line: rgb(153 153 153 / 0.24);
+  --line-strong: rgb(153 153 153 / 0.4);
+  --rail: #171215;
+  --rail-ink: #ffffff;
+  --scrim: rgb(23 18 21 / 0.5);
+  --danger: #dc2626;
+  --ok: #16a34a;
+
   color-scheme: light;
   font-family: 'Roboto Variable', Roboto, sans-serif;
-  color: #171215;
-  background: #ffffff;
+  color: var(--ink);
+  background: var(--surface);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -25,13 +72,55 @@
   box-sizing: border-box;
 }
 
+/**
+ * Dark values for the same roles.
+ *
+ * Not an inversion: the ground stays *below* the surface in lightness, the way
+ * it is in light mode, so a card still reads as sitting on the page rather than
+ * cut out of it. The accent lifts to `#7086ff` because `#3248f2` on a near-black
+ * ground is about 1.9:1 — legible as a shape, not as text.
+ *
+ * `[data-theme]` is set by `lib/theme.js`, and by the inline script in
+ * `index.html` before first paint so the page never flashes the wrong theme.
+ */
+[data-theme='dark'] {
+  /* The accent does not move. It is the brand colour and it should be the same
+     blue in both themes — a deliberate choice over the contrast one: `#3248f2`
+     on this ground is about 1.9:1, which is fine for a *fill* you tap and thin
+     for a *label* you read. If accent-coloured text ever becomes hard to read
+     here, split it — keep this for fills and add a lighter token for text —
+     rather than lifting this one and changing the brand in half the app. */
+  --accent: #3248f2;
+  --accent-strong: #2839c9;
+  --ink: #f3f1f2;
+  --muted: #8b8588;
+  --ground: #0e0c0d;
+  --surface: #1a1719;
+  /* White at low alpha, not grey: on this ground it is the only thing that
+     reads as a hairline rather than as a smudge. Carried higher than the light
+     theme's equivalent on purpose — a dark surface swallows a hairline, so the
+     two themes match in *how visible the line is*, not in its opacity. */
+  --line: rgb(255 255 255 / 0.22);
+  --line-strong: rgb(255 255 255 / 0.36);
+  --rail: #0a0809;
+  --rail-ink: #f3f1f2;
+  /* Deeper on a dark ground: 50% over near-black barely reads as a dim. */
+  --scrim: rgb(5 4 5 / 0.66);
+  /* Both lifted: the light-mode red and green are tuned against white and come
+     out muddy on a near-black ground. */
+  --danger: #f87171;
+  --ok: #4ade80;
+
+  color-scheme: dark;
+}
+
 html,
 body,
 #__next {
   min-width: 320px;
   min-height: 100%;
   margin: 0;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 body {

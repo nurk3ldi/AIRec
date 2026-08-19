@@ -193,21 +193,21 @@ export default function AvatarCropper({
       // Marks this as a nested overlay so ProfileDialog's Escape handler
       // stands down while the cropper is up — otherwise one Escape closes both.
       data-nested-overlay
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-[#171215]/60 p-4"
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-scrim p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onCancel()
       }}
     >
-      <div className="w-full max-w-[360px] rounded-2xl bg-white p-5 shadow-[0_24px_48px_-12px_rgba(23,18,21,0.3)]">
+      <div className="w-full max-w-[360px] rounded-2xl bg-surface p-5 shadow-[0_24px_48px_-12px_rgba(23,18,21,0.3)]">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-[16px] font-semibold text-[#171215]">
+          <h2 className="font-display text-[16px] font-semibold text-ink">
             {title}
           </h2>
           <button
             type="button"
             onClick={onCancel}
             aria-label="Закрыть"
-            className="grid h-8 w-8 place-items-center rounded-lg text-[#999999] transition-colors hover:bg-[#F6F8FA] hover:text-[#171215]"
+            className="grid h-8 w-8 place-items-center rounded-lg text-muted transition-colors hover:bg-ground hover:text-ink"
           >
             <HugeiconsIcon
               icon={Cancel01Icon}
@@ -220,7 +220,7 @@ export default function AvatarCropper({
         </div>
 
         <div
-          className="relative mx-auto mt-4 cursor-grab touch-none overflow-hidden rounded-xl bg-[#F6F8FA] active:cursor-grabbing"
+          className="relative mx-auto mt-4 cursor-grab touch-none overflow-hidden rounded-xl bg-ground active:cursor-grabbing"
           style={{ width: VIEWPORT, height: VIEWPORT }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -257,7 +257,7 @@ export default function AvatarCropper({
             type="button"
             onClick={() => applyZoom(zoom - 0.25)}
             aria-label="Уменьшить"
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[#999999]/35 text-[#171215] transition-colors hover:bg-[#F6F8FA]"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-line-strong text-ink transition-colors hover:bg-ground"
           >
             <HugeiconsIcon icon={MinusSignIcon} size={15} strokeWidth={2.4} />
           </button>
@@ -269,20 +269,20 @@ export default function AvatarCropper({
             value={zoom}
             onChange={(event) => applyZoom(Number(event.target.value))}
             aria-label="Масштаб"
-            className="h-1 w-full cursor-pointer appearance-none rounded-full bg-[#999999]/30 accent-[#3248F2]"
+            className="h-1 w-full cursor-pointer appearance-none rounded-full bg-muted/30 accent-accent"
           />
           <button
             type="button"
             onClick={() => applyZoom(zoom + 0.25)}
             aria-label="Увеличить"
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[#999999]/35 text-[#171215] transition-colors hover:bg-[#F6F8FA]"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-line-strong text-ink transition-colors hover:bg-ground"
           >
             <HugeiconsIcon icon={PlusSignIcon} size={15} strokeWidth={2.4} />
           </button>
         </div>
 
         {error && (
-          <p role="alert" className="mt-3 text-center text-[13px] text-[#DC2626]">
+          <p role="alert" className="mt-3 text-center text-[13px] text-danger">
             {error}
           </p>
         )}
@@ -291,7 +291,7 @@ export default function AvatarCropper({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 rounded-lg border border-[#999999]/35 px-4 py-2 text-[14px] font-medium text-[#171215] transition-colors hover:bg-[#F6F8FA]"
+            className="flex-1 rounded-lg border border-line-strong px-4 py-2 text-[14px] font-medium text-ink transition-colors hover:bg-ground"
           >
             Отмена
           </button>
@@ -299,7 +299,7 @@ export default function AvatarCropper({
             type="button"
             onClick={handleSave}
             disabled={!image || isSaving}
-            className="flex-1 rounded-lg bg-[#3248F2] px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-[#2839c9] disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex-1 rounded-lg bg-accent px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving ? 'Сохраняем…' : 'Сохранить'}
           </button>

@@ -45,7 +45,7 @@ export default function DashboardLayout() {
   if (!user) return null
 
   return (
-    <div className="min-h-screen bg-[#F6F8FA] text-[#171215]">
+    <div className="min-h-screen bg-ground text-ink">
       <Sidebar
         user={user}
         isMenuOpen={isMenuOpen}
@@ -56,7 +56,7 @@ export default function DashboardLayout() {
           bottom for the bar, which is fixed and so occupies no layout height of
           its own — 50px plus the home indicator. The page modules subtract the
           same, or the two together overrun the viewport. */}
-      <main className="min-h-screen bg-[#F6F8FA] pb-[calc(50px+env(safe-area-inset-bottom))] sm:pb-0 sm:pl-16">
+      <main className="min-h-screen bg-ground pb-[calc(50px+env(safe-area-inset-bottom))] sm:pb-0 sm:pl-16">
         {/* Hidden on `/profile` below `sm`: that screen is about you, and the
             phone header carries the app's name and a bell, neither of which
             belongs above it. Hidden rather than unmounted — the page module

@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { Route, Routes } from 'react-router-dom'
+import { applyTheme, getThemePreference } from './lib/theme'
 import DashboardLayout from './components/DashboardLayout'
 import PublicLayout from './components/PublicLayout'
 import AppointmentsPage from './pages/appointments'
@@ -29,6 +31,19 @@ import SignupPage from './pages/signup'
  * used to render `children`.
  */
 export default function App() {
+  // The inline script in `index.html` sets the theme before first paint; this
+  // keeps it right *afterwards*. On «Системная» — the default — a phone going
+  // dark at sunset should take the app with it, and the settings panel that
+  // otherwise owns this is closed almost all of the time.
+  useEffect(() => {
+    const media = globalThis.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = () => {
+      if (getThemePreference() === 'system') applyTheme('system')
+    }
+    media.addEventListener('change', onChange)
+    return () => media.removeEventListener('change', onChange)
+  }, [])
+
   return (
     <Routes>
       <Route element={<PublicLayout />}>

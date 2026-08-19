@@ -60,7 +60,7 @@ export default function OtpInput({ value, onChange, hasError, autoFocus }) {
           value={digit}
           onChange={handleChange(index)}
           onKeyDown={handleKeyDown(index)}
-          className={`h-14 w-11 rounded-lg border bg-white text-center text-[20px] font-semibold text-[#171215] outline-none transition-colors focus:border-[#3248F2] ${hasError ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
+          className={`h-14 w-11 rounded-lg border bg-surface text-center text-[20px] font-semibold text-ink outline-none transition-colors focus:border-accent ${hasError ? 'border-danger' : 'border-line-strong'}`}
         />
       ))}
     </div>

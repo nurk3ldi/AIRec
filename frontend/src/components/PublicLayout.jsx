@@ -28,7 +28,7 @@ export default function PublicLayout() {
   const { pathname } = useLocation()
 
   return (
-    <div className="min-h-screen bg-white text-[#171215]">
+    <div className="min-h-screen bg-surface text-ink">
       {/* Hidden, not unmounted: `display` is what the page modules measure
           against, and they add the 64px back at the same breakpoint. */}
       <LandingHeader

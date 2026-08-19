@@ -48,7 +48,7 @@ function Marker({ reduce }) {
       // side. That travel is the animation; it draws the line between where you
       // were and where you are.
       layoutId="bottom-nav-active"
-      className="absolute inset-0 rounded-full bg-[#171215]/8"
+      className="absolute inset-0 rounded-full bg-ink/8"
       // A spring rather than a duration: the gap between slots is the same
       // every time here, but the rail uses one for the same marker and two
       // navigations should not move at two different speeds.
@@ -79,7 +79,7 @@ export default function BottomNav({ user }) {
       //
       // `pb-[env(safe-area-inset-bottom)]` keeps the row clear of the home
       // indicator on an iPhone; everywhere else the inset is zero.
-      className="fixed inset-x-0 bottom-0 z-50 flex h-[50px] border-t border-[#999999]/20 bg-[#F6F8FA] pb-[env(safe-area-inset-bottom)] sm:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 flex h-[50px] border-t border-line bg-ground pb-[env(safe-area-inset-bottom)] sm:hidden"
     >
       {NAVIGATION.map((item) => {
         const isActive = pathname === item.href
@@ -93,7 +93,7 @@ export default function BottomNav({ user }) {
             // Each slot takes an equal fifth and the full height of the bar, so
             // the tap target is the whole cell rather than the glyph in it.
             className={`flex flex-1 items-center justify-center transition-colors ${
-              isActive ? 'text-[#171215]' : 'text-[#999999]'
+              isActive ? 'text-ink' : 'text-muted'
             }`}
           >
             <span className={SLOT}>

@@ -59,15 +59,15 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-[13px] font-medium text-[#999999]">
+      <label htmlFor={id} className="text-[13px] font-medium text-muted">
         {label}
       </label>
       <div className="relative flex items-center">
         <input
           id={id}
-          className={`w-full rounded-lg border bg-white px-3.5 py-2 text-[14px] text-[#171215] outline-none transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${
+          className={`w-full rounded-lg border bg-surface px-3.5 py-2 text-[14px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent ${
             adornment ? 'pr-9' : ''
-          } ${error ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
+          } ${error ? 'border-danger' : 'border-line-strong'}`}
           {...inputProps}
         />
         {adornment}
@@ -75,7 +75,7 @@ function Field({
       {/* A failure always wins the line — a stale "all good" under a rejected
           field would contradict the red border right above it. */}
       {error ? (
-        <p role="alert" className="text-[13px] text-[#DC2626]">
+        <p role="alert" className="text-[13px] text-danger">
           {error}
         </p>
       ) : (
@@ -83,7 +83,7 @@ function Field({
           <p
             role="status"
             className={`text-[13px] ${
-              hintTone === 'success' ? 'text-[#16A34A]' : 'text-[#999999]'
+              hintTone === 'success' ? 'text-ok' : 'text-muted'
             }`}
           >
             {hint}
@@ -107,14 +107,14 @@ function PasswordInput({ show, onToggleShow, ...inputProps }) {
     <div className="relative flex items-center">
       <input
         type={show ? 'text' : 'password'}
-        className="w-full rounded-lg border border-[#999999]/35 bg-white px-3.5 py-2 pr-11 text-[14px] text-[#171215] outline-none transition-colors placeholder:text-[#999999] focus:border-[#3248F2]"
+        className="w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2 pr-11 text-[14px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent"
         {...inputProps}
       />
       <button
         type="button"
         onClick={onToggleShow}
         aria-label={show ? 'Скрыть пароль' : 'Показать пароль'}
-        className="absolute right-3 grid place-items-center text-[#999999] transition-colors hover:text-[#171215]"
+        className="absolute right-3 grid place-items-center text-muted transition-colors hover:text-ink"
       >
         <HugeiconsIcon
           icon={show ? EyeIcon : EyeOffIcon}
@@ -144,16 +144,16 @@ function ActionRow({
 }) {
   return (
     <div className="mt-4 flex flex-col gap-1.5">
-      <span className="text-[13px] font-medium text-[#999999]">{label}</span>
-      <div className="flex items-center justify-between gap-3 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-2">
-        <span className={`min-w-0 truncate text-[14px] text-[#171215] ${valueClassName}`}>
+      <span className="text-[13px] font-medium text-muted">{label}</span>
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-line-strong bg-surface px-3.5 py-2">
+        <span className={`min-w-0 truncate text-[14px] text-ink ${valueClassName}`}>
           {value}
         </span>
         <button
           type="button"
           onClick={onAction}
           disabled={disabled}
-          className="shrink-0 text-[13px] font-medium text-[#3248F2] outline-none hover:underline disabled:text-[#999999] disabled:no-underline"
+          className="shrink-0 text-[13px] font-medium text-accent outline-none hover:underline disabled:text-muted disabled:no-underline"
         >
           {action}
         </button>
@@ -169,12 +169,12 @@ function StatusRow({ tone, label, children }) {
   return (
     <div
       className={`mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-3 py-2 ${
-        isSuccess ? 'bg-[#16A34A]/8' : 'bg-[#DC2626]/6'
+        isSuccess ? 'bg-ok/8' : 'bg-danger/6'
       }`}
     >
       <span
         className={`inline-flex items-center gap-1.5 text-[13px] font-medium ${
-          isSuccess ? 'text-[#16A34A]' : 'text-[#DC2626]'
+          isSuccess ? 'text-ok' : 'text-danger'
         }`}
       >
         <HugeiconsIcon
@@ -198,8 +198,8 @@ function StatusAction({ onClick, disabled, tone = 'accent', children }) {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`shrink-0 text-[13px] font-medium outline-none hover:underline disabled:text-[#999999] disabled:no-underline ${
-        tone === 'muted' ? 'text-[#999999]' : 'ml-auto text-[#3248F2]'
+      className={`shrink-0 text-[13px] font-medium outline-none hover:underline disabled:text-muted disabled:no-underline ${
+        tone === 'muted' ? 'text-muted' : 'ml-auto text-accent'
       }`}
     >
       {children}
@@ -662,7 +662,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
     if (pendingEmail && pendingEmail !== user.email) {
       return (
         <StatusRow tone="warning" label="Не подтверждён">
-          <span className="min-w-0 flex-1 truncate text-[13px] text-[#171215]">
+          <span className="min-w-0 flex-1 truncate text-[13px] text-ink">
             {pendingEmail}
           </span>
           <StatusAction onClick={() => setEmailStep('code')}>
@@ -697,15 +697,15 @@ export default function AccountSettings({ onUserChange, onClose }) {
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-2 pb-6">
           {pwMode === 'code' ? (
             <>
-              <p className="text-center text-[14px] text-[#171215]">
+              <p className="text-center text-[14px] text-ink">
                 Мы отправили 6-значный код на
               </p>
-              <p className="mt-0.5 text-center text-[14px] font-semibold text-[#171215]">
+              <p className="mt-0.5 text-center text-[14px] font-semibold text-ink">
                 {user?.email}
               </p>
             </>
           ) : (
-            <p className="text-center text-[14px] text-[#999999]">
+            <p className="text-center text-[14px] text-muted">
               Введите текущий пароль, чтобы задать новый.
             </p>
           )}
@@ -767,7 +767,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
           </form>
 
           {pwError && (
-            <p role="alert" className="mt-3 text-center text-[13px] text-[#DC2626]">
+            <p role="alert" className="mt-3 text-center text-[13px] text-danger">
               {pwError}
             </p>
           )}
@@ -779,7 +779,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
                   type="button"
                   onClick={handleResendPasswordCode}
                   disabled={pwResendCooldown > 0}
-                  className="text-[13px] font-medium text-[#3248F2] outline-none hover:underline disabled:text-[#999999] disabled:no-underline"
+                  className="text-[13px] font-medium text-accent outline-none hover:underline disabled:text-muted disabled:no-underline"
                 >
                   {pwResendCooldown > 0
                     ? `Отправить код ещё раз (${pwResendCooldown})`
@@ -788,7 +788,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
                 <button
                   type="button"
                   onClick={handleSwitchToPassword}
-                  className="text-[13px] font-medium text-[#999999] outline-none hover:underline"
+                  className="text-[13px] font-medium text-muted outline-none hover:underline"
                 >
                   Ввести текущий пароль
                 </button>
@@ -798,14 +798,14 @@ export default function AccountSettings({ onUserChange, onClose }) {
                 type="button"
                 onClick={handleSwitchToCode}
                 disabled={isSaving}
-                className="text-[13px] font-medium text-[#3248F2] outline-none hover:underline disabled:text-[#999999] disabled:no-underline"
+                className="text-[13px] font-medium text-accent outline-none hover:underline disabled:text-muted disabled:no-underline"
               >
                 {isSaving ? 'Отправляем код…' : 'Не помните пароль? Получить код на почту'}
               </button>
             )}
           </div>
 
-          <p className="mt-3 text-center text-[12px] text-[#999999]">
+          <p className="mt-3 text-center text-[12px] text-muted">
             После смены пароля вы останетесь в системе, но выйдете на других
             устройствах.
           </p>
@@ -815,7 +815,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
           <button
             type="button"
             onClick={handleClosePasswordStep}
-            className="rounded-xl border border-[#999999]/30 px-5 py-2.5 text-[14px] font-medium text-[#171215] outline-none transition-colors hover:bg-[#171215]/5 focus-visible:bg-[#171215]/5"
+            className="rounded-xl border border-line px-5 py-2.5 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/5 focus-visible:bg-ink/5"
           >
             Отменить
           </button>
@@ -828,7 +828,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
               !confirmPassword ||
               isChangingPassword
             }
-            className="rounded-xl bg-[#3248F2] px-5 py-2.5 text-[14px] font-medium text-white outline-none transition-colors hover:bg-[#2839c9] focus-visible:bg-[#2839c9] disabled:cursor-not-allowed disabled:opacity-45"
+            className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-white outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
           >
             {isChangingPassword ? 'Сохраняем…' : 'Сохранить'}
           </button>
@@ -844,10 +844,10 @@ export default function AccountSettings({ onUserChange, onClose }) {
     return (
       <>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-2 pb-6">
-          <p className="text-center text-[14px] text-[#999999]">
+          <p className="text-center text-[14px] text-muted">
             Текущий адрес
           </p>
-          <p className="mt-0.5 text-center text-[14px] font-semibold text-[#171215]">
+          <p className="mt-0.5 text-center text-[14px] font-semibold text-ink">
             {user?.email}
           </p>
 
@@ -867,18 +867,18 @@ export default function AccountSettings({ onUserChange, onClose }) {
               placeholder="Новый email"
               autoComplete="email"
               autoFocus
-              className={`w-full rounded-lg border bg-white px-3.5 py-2 text-[14px] text-[#171215] outline-none transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${
-                emailError ? 'border-[#DC2626]' : 'border-[#999999]/35'
+              className={`w-full rounded-lg border bg-surface px-3.5 py-2 text-[14px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent ${
+                emailError ? 'border-danger' : 'border-line-strong'
               }`}
             />
           </form>
 
           {emailError ? (
-            <p role="alert" className="mt-2 text-[13px] text-[#DC2626]">
+            <p role="alert" className="mt-2 text-[13px] text-danger">
               {emailError}
             </p>
           ) : (
-            <p className="mt-2 text-[13px] text-[#999999]">
+            <p className="mt-2 text-[13px] text-muted">
               На новый адрес придёт код подтверждения. Пока вы его не введёте,
               адрес аккаунта не изменится.
             </p>
@@ -889,7 +889,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
           <button
             type="button"
             onClick={() => setEmailStep(null)}
-            className="rounded-xl border border-[#999999]/30 px-5 py-2.5 text-[14px] font-medium text-[#171215] outline-none transition-colors hover:bg-[#171215]/5 focus-visible:bg-[#171215]/5"
+            className="rounded-xl border border-line px-5 py-2.5 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/5 focus-visible:bg-ink/5"
           >
             Отменить
           </button>
@@ -897,7 +897,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
             type="submit"
             form={EMAIL_FORM_ID}
             disabled={!newEmail.trim() || isSaving}
-            className="rounded-xl bg-[#3248F2] px-5 py-2.5 text-[14px] font-medium text-white outline-none transition-colors hover:bg-[#2839c9] focus-visible:bg-[#2839c9] disabled:cursor-not-allowed disabled:opacity-45"
+            className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-white outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
           >
             {isSaving ? 'Отправляем…' : 'Отправить код'}
           </button>
@@ -910,10 +910,10 @@ export default function AccountSettings({ onUserChange, onClose }) {
     return (
       <>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-2 pb-6">
-          <p className="text-center text-[14px] text-[#171215]">
+          <p className="text-center text-[14px] text-ink">
             Мы отправили 6-значный код на
           </p>
-          <p className="mt-0.5 text-center text-[14px] font-semibold text-[#171215]">
+          <p className="mt-0.5 text-center text-[14px] font-semibold text-ink">
             {pendingEmail}
           </p>
 
@@ -930,7 +930,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
           </form>
 
           {codeError && (
-            <p role="alert" className="mt-3 text-center text-[13px] text-[#DC2626]">
+            <p role="alert" className="mt-3 text-center text-[13px] text-danger">
               {codeError}
             </p>
           )}
@@ -940,7 +940,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
               type="button"
               onClick={handleResendCode}
               disabled={resendCooldown > 0}
-              className="text-[13px] font-medium text-[#3248F2] outline-none hover:underline disabled:text-[#999999] disabled:no-underline"
+              className="text-[13px] font-medium text-accent outline-none hover:underline disabled:text-muted disabled:no-underline"
             >
               {resendCooldown > 0
                 ? `Отправить код ещё раз (${resendCooldown})`
@@ -950,7 +950,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
               <button
                 type="button"
                 onClick={handleCancelEmailChange}
-                className="text-[13px] font-medium text-[#999999] outline-none hover:underline"
+                className="text-[13px] font-medium text-muted outline-none hover:underline"
               >
                 Отменить смену email
               </button>
@@ -962,7 +962,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
           <button
             type="button"
             onClick={handleCloseCodeStep}
-            className="rounded-xl border border-[#999999]/30 px-5 py-2.5 text-[14px] font-medium text-[#171215] outline-none transition-colors hover:bg-[#171215]/5 focus-visible:bg-[#171215]/5"
+            className="rounded-xl border border-line px-5 py-2.5 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/5 focus-visible:bg-ink/5"
           >
             Отменить
           </button>
@@ -970,7 +970,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
             type="button"
             onClick={handleConfirmEmail}
             disabled={code.length !== 6 || isConfirming}
-            className="rounded-xl bg-[#3248F2] px-5 py-2.5 text-[14px] font-medium text-white outline-none transition-colors hover:bg-[#2839c9] focus-visible:bg-[#2839c9] disabled:cursor-not-allowed disabled:opacity-45"
+            className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-white outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
           >
             {isConfirming ? 'Проверяем…' : 'Подтвердить'}
           </button>
@@ -986,7 +986,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
             own rather than with the Save button. */}
         <div className="flex flex-col items-center gap-2">
           <div className="relative">
-            <div className="grid h-[185px] w-[185px] place-items-center overflow-hidden rounded-full bg-[#F6F8FA]">
+            <div className="grid h-[185px] w-[185px] place-items-center overflow-hidden rounded-full bg-ground">
               {avatarSrc ? (
                 <img src={avatarSrc} alt="" className="h-full w-full object-cover" />
               ) : (
@@ -996,7 +996,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={1.2}
-                  className="text-[#999999]"
+                  className="text-muted"
                 />
               )}
             </div>
@@ -1008,7 +1008,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
               onClick={() => fileInputRef.current?.click()}
               disabled={isSaving}
               aria-label={avatarSrc ? 'Заменить фото' : 'Загрузить фото'}
-              className="absolute right-1.5 bottom-1.5 grid h-10 w-10 place-items-center rounded-full border border-[#999999]/20 bg-white text-[#171215] shadow-[0_4px_12px_rgba(23,18,21,0.14)] outline-none transition-colors hover:bg-[#F6F8FA] focus-visible:bg-[#F6F8FA] disabled:cursor-not-allowed disabled:opacity-60"
+              className="absolute right-1.5 bottom-1.5 grid h-10 w-10 place-items-center rounded-full border border-line bg-surface text-ink shadow-[0_4px_12px_rgba(23,18,21,0.14)] outline-none transition-colors hover:bg-ground focus-visible:bg-ground disabled:cursor-not-allowed disabled:opacity-60"
             >
               <HugeiconsIcon
                 icon={Camera01Icon}
@@ -1027,14 +1027,14 @@ export default function AccountSettings({ onUserChange, onClose }) {
               type="button"
               onClick={handleRemoveAvatar}
               disabled={isSaving}
-              className="rounded-lg px-2 py-0.5 text-[13px] font-medium text-[#999999] outline-none transition-colors hover:text-[#DC2626] focus-visible:text-[#DC2626] disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg px-2 py-0.5 text-[13px] font-medium text-muted outline-none transition-colors hover:text-danger focus-visible:text-danger disabled:cursor-not-allowed disabled:opacity-60"
             >
               Удалить фото
             </button>
           )}
 
           {avatarError && (
-            <p role="alert" className="text-center text-[13px] text-[#DC2626]">
+            <p role="alert" className="text-center text-[13px] text-danger">
               {avatarError}
             </p>
           )}
@@ -1087,7 +1087,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
             hintTone="success"
             adornment={
               usernameStatus === 'available' ? (
-                <span className="absolute right-3 grid place-items-center text-[#16A34A]">
+                <span className="absolute right-3 grid place-items-center text-ok">
                   <HugeiconsIcon
                     icon={Tick02Icon}
                     size={18}
@@ -1123,7 +1123,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
             pwChanged && (
               <p
                 role="status"
-                className="inline-flex items-center gap-1.5 text-[13px] text-[#16A34A]"
+                className="inline-flex items-center gap-1.5 text-[13px] text-ok"
               >
                 <HugeiconsIcon
                   icon={Tick02Icon}
@@ -1141,7 +1141,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
         {/* Failures only — a successful save shows its result in the fields
             themselves, so a confirmation line would just be noise. */}
         {error && (
-          <p role="alert" className="mt-3 text-center text-[13px] text-[#DC2626]">
+          <p role="alert" className="mt-3 text-center text-[13px] text-danger">
             {error}
           </p>
         )}
@@ -1152,7 +1152,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
         <button
           type="button"
           onClick={onClose}
-          className="rounded-xl border border-[#999999]/30 px-5 py-2.5 text-[14px] font-medium text-[#171215] outline-none transition-colors hover:bg-[#171215]/5 focus-visible:bg-[#171215]/5"
+          className="rounded-xl border border-line px-5 py-2.5 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/5 focus-visible:bg-ink/5"
         >
           Отменить
         </button>
@@ -1160,7 +1160,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
           type="submit"
           form={FORM_ID}
           disabled={!isDirty || isSaving}
-          className="rounded-xl bg-[#3248F2] px-5 py-2.5 text-[14px] font-medium text-white outline-none transition-colors hover:bg-[#2839c9] focus-visible:bg-[#2839c9] disabled:cursor-not-allowed disabled:opacity-45"
+          className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-white outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
         >
           {isSaving ? 'Сохраняем…' : 'Сохранить'}
         </button>

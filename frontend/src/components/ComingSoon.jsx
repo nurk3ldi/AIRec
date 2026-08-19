@@ -2,8 +2,8 @@
 export default function ComingSoon({ children }) {
   return (
     <div className="py-16 text-center">
-      <p className="text-[15px] font-medium text-[#171215]">Скоро</p>
-      <p className="mx-auto mt-1.5 max-w-[420px] text-[14px] text-[#999999]">
+      <p className="text-[15px] font-medium text-ink">Скоро</p>
+      <p className="mx-auto mt-1.5 max-w-[420px] text-[14px] text-muted">
         {children}
       </p>
     </div>

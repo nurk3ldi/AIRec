@@ -73,7 +73,7 @@ export default function ProfilePage() {
             because it is the one part that says whose account this is. */}
         <div className="flex flex-col items-center pt-1 pb-8">
           <div className="relative">
-            <span className="grid h-20 w-20 place-items-center overflow-hidden rounded-full bg-white ring-1 ring-[#999999]/20">
+            <span className="grid h-20 w-20 place-items-center overflow-hidden rounded-full bg-surface ring-1 ring-line">
               <ProfileAvatar src={mediaUrl(user?.avatar_url)} size={80} />
             </span>
             {/* The badge is the shortcut to the one section that can change the
@@ -83,7 +83,7 @@ export default function ProfilePage() {
               type="button"
               onClick={() => onOpenSection('account')}
               aria-label="Изменить профиль"
-              className="absolute right-0 bottom-0 grid h-7 w-7 place-items-center rounded-full border-2 border-[#F6F8FA] bg-[#171215] text-white"
+              className="absolute right-0 bottom-0 grid h-7 w-7 place-items-center rounded-full border-2 border-ground bg-ink text-surface"
             >
               <HugeiconsIcon
                 icon={PencilEdit02Icon}
@@ -94,14 +94,14 @@ export default function ProfilePage() {
               />
             </button>
           </div>
-          <p className="mt-3 font-display text-[19px] font-semibold tracking-[-0.01em] text-[#171215]">
+          <p className="mt-3 font-display text-[19px] font-semibold tracking-[-0.01em] text-ink">
             {user?.full_name || user?.username || '—'}
           </p>
           {/* The address belongs with the name, not as a row of its own: it
               identifies the account rather than leading anywhere, and a row
               whose only job is to be read is a row you keep tapping by
               mistake. Changing it lives inside «Профиль». */}
-          <p className="mt-1 max-w-full truncate text-[14px] text-[#999999]">
+          <p className="mt-1 max-w-full truncate text-[14px] text-muted">
             {user?.email || ''}
           </p>
         </div>
@@ -143,7 +143,7 @@ export default function ProfilePage() {
           type="button"
           onClick={handleSignOut}
           disabled={signingOut}
-          className="flex items-center gap-3.5 rounded-2xl bg-white px-5 py-4 text-left text-[#DC2626] transition-colors active:bg-[#DC2626]/6 disabled:opacity-60"
+          className="flex items-center gap-3.5 rounded-2xl bg-surface px-5 py-4 text-left text-danger transition-colors active:bg-danger/6 disabled:opacity-60"
         >
           <HugeiconsIcon
             icon={Logout01Icon}
@@ -166,7 +166,7 @@ export default function ProfilePage() {
 /** One group: rows in a single card, hairlines between them. */
 function Card({ children }) {
   return (
-    <section className="overflow-hidden rounded-2xl bg-white">{children}</section>
+    <section className="overflow-hidden rounded-2xl bg-surface">{children}</section>
   )
 }
 
@@ -186,7 +186,7 @@ function Row({ icon, label, value, detail, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full items-center gap-3.5 px-5 text-left transition-colors active:bg-[#F6F8FA]"
+      className="group flex w-full items-center gap-3.5 px-5 text-left transition-colors active:bg-ground"
     >
       <HugeiconsIcon
         icon={icon}
@@ -194,23 +194,23 @@ function Row({ icon, label, value, detail, onClick }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={1.9}
-        className="shrink-0 text-[#171215]"
+        className="shrink-0 text-ink"
       />
 
-      <span className="flex min-w-0 flex-1 items-center gap-3 border-t border-[#999999]/15 py-4 group-first:border-t-0">
+      <span className="flex min-w-0 flex-1 items-center gap-3 border-t border-line py-4 group-first:border-t-0">
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[15px] font-medium text-[#171215]">
+          <span className="block truncate text-[15px] font-medium text-ink">
             {label}
           </span>
           {detail && (
-            <span className="mt-0.5 block truncate text-[14px] text-[#999999]">
+            <span className="mt-0.5 block truncate text-[14px] text-muted">
               {detail}
             </span>
           )}
         </span>
 
         {value && (
-          <span className="shrink-0 text-[15px] text-[#999999]">{value}</span>
+          <span className="shrink-0 text-[15px] text-muted">{value}</span>
         )}
 
         <HugeiconsIcon
@@ -219,7 +219,7 @@ function Row({ icon, label, value, detail, onClick }) {
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={2}
-          className="shrink-0 text-[#999999]"
+          className="shrink-0 text-muted"
         />
       </span>
     </button>

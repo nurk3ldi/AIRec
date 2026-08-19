@@ -5,6 +5,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { Cancel01Icon } from '@hugeicons/core-free-icons'
 import AccountSettings from './profile/AccountSettings'
 import SessionsSettings from './profile/SessionsSettings'
+import AppearanceSettings from './profile/AppearanceSettings'
 import { PROFILE_SECTIONS, SECTION_PLACEHOLDERS } from './profile/sections'
 import ComingSoon from './ComingSoon'
 
@@ -76,7 +77,7 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
             // bar from the colour at the top of the page, and 50% black over
             // white sampled as the grey strip above the sheet. Transparent
             // below `sm` and the strip takes the sheet's white instead.
-            className="fixed inset-0 z-[60] grid place-items-center sm:bg-[#171215]/50 sm:p-4"
+            className="fixed inset-0 z-[60] grid place-items-center sm:bg-scrim sm:p-4"
           >
           <Dialog.Content
             asChild
@@ -139,12 +140,12 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
             // the overlay left the phone's status-bar strip showing the dark
             // backdrop instead of the sheet. Padding the sheet keeps its white
             // running edge to edge and only holds the content clear.
-            className={`flex h-full w-full flex-col overflow-hidden bg-white pb-[env(safe-area-inset-bottom)] outline-none sm:max-h-[calc(100vh-2rem)] sm:max-w-[calc(100vw-2rem)] sm:rounded-2xl sm:pb-0 sm:shadow-[0_24px_60px_-12px_rgba(23,18,21,0.35)] ${
+            className={`flex h-full w-full flex-col overflow-hidden bg-surface pb-[env(safe-area-inset-bottom)] outline-none sm:max-h-[calc(100vh-2rem)] sm:max-w-[calc(100vw-2rem)] sm:rounded-2xl sm:pb-0 sm:shadow-[0_24px_60px_-12px_rgba(23,18,21,0.35)] ${
               isAccount ? 'sm:h-auto sm:w-[520px]' : 'sm:h-[580px] sm:w-[728px]'
             }`}
           >
             <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-[calc(1.25rem+env(safe-area-inset-top))] pb-3 sm:pt-5">
-              <Dialog.Title className="font-display text-[19px] font-semibold tracking-[-0.02em] text-[#171215]">
+              <Dialog.Title className="font-display text-[19px] font-semibold tracking-[-0.02em] text-ink">
                 {active.dialogLabel ?? active.label}
               </Dialog.Title>
 
@@ -152,7 +153,7 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
                 <button
                   type="button"
                   aria-label="Закрыть"
-                  className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#999999] outline-none transition-colors hover:bg-[#171215]/6 hover:text-[#171215] focus-visible:bg-[#171215]/6 focus-visible:text-[#171215]"
+                  className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted outline-none transition-colors hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6 focus-visible:text-ink"
                 >
                   <HugeiconsIcon
                     icon={Cancel01Icon}
@@ -170,6 +171,8 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
                 <AccountSettings onUserChange={onUserChange} onClose={onClose} />
               ) : active.id === 'security' ? (
                 <SessionsSettings user={user} />
+              ) : active.id === 'settings' ? (
+                <AppearanceSettings />
               ) : (
                 <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
                   <ComingSoon>{SECTION_PLACEHOLDERS[active.id]}</ComingSoon>

@@ -33,6 +33,5 @@ export const PROFILE_SECTIONS = [
 export const SECTION_PLACEHOLDERS = {
   subscription:
     'Здесь будут ваш тариф, лимиты использования, способ оплаты и история счетов.',
-  settings:
-    'Здесь будут язык интерфейса, часовой пояс, уведомления и общие параметры приложения.',
+
 }

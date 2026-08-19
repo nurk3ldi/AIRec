@@ -68,7 +68,7 @@ export default function SignupPage() {
     <>
       <div className={styles.page} aria-label="Страница регистрации">
         <div className="m-auto flex w-full max-w-[400px] flex-col gap-6 px-4 py-10 sm:px-6 sm:py-16">
-          <h1 className="text-center font-display text-[26px] font-semibold tracking-[-0.02em] text-[#171215]">
+          <h1 className="text-center font-display text-[26px] font-semibold tracking-[-0.02em] text-ink">
             Создание аккаунта
           </h1>
 
@@ -81,10 +81,10 @@ export default function SignupPage() {
                   onChange={(event) => setUsername(event.target.value)}
                   placeholder="Логин"
                   autoComplete="username"
-                  className={`w-full rounded-lg border bg-white px-3.5 py-2.5 pr-9 text-[16px] text-[#171215] outline-none sm:py-2 sm:text-[14px] transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${fieldErrors.username || usernameHasSpace || usernameStatus === 'taken' ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
+                  className={`w-full rounded-lg border bg-surface px-3.5 py-2.5 pr-9 text-[16px] text-ink outline-none sm:py-2 sm:text-[14px] transition-colors placeholder:text-muted focus:border-accent ${fieldErrors.username || usernameHasSpace || usernameStatus === 'taken' ? 'border-danger' : 'border-line-strong'}`}
                 />
                 {usernameStatus === 'available' && !usernameHasSpace && (
-                  <span className="absolute right-3 grid place-items-center text-[#16A34A]">
+                  <span className="absolute right-3 grid place-items-center text-ok">
                     <HugeiconsIcon
                       icon={Tick02Icon}
                       size={18}
@@ -96,12 +96,12 @@ export default function SignupPage() {
                 )}
               </div>
               {fieldErrors.username ? (
-                <p className="text-[13px] text-[#DC2626]">{fieldErrors.username}</p>
+                <p className="text-[13px] text-danger">{fieldErrors.username}</p>
               ) : usernameHasSpace ? (
-                <p className="text-[13px] text-[#DC2626]">Пробелы недопустимы.</p>
+                <p className="text-[13px] text-danger">Пробелы недопустимы.</p>
               ) : (
                 usernameStatus === 'taken' && (
-                  <p className="text-[13px] text-[#DC2626]">Этот логин уже занят.</p>
+                  <p className="text-[13px] text-danger">Этот логин уже занят.</p>
                 )
               )}
             </div>
@@ -113,13 +113,13 @@ export default function SignupPage() {
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="Email"
                 autoComplete="email"
-                className={`rounded-lg border bg-white px-3.5 py-2.5 text-[16px] text-[#171215] outline-none sm:py-2 sm:text-[14px] transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${fieldErrors.email || emailHasSpace ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
+                className={`rounded-lg border bg-surface px-3.5 py-2.5 text-[16px] text-ink outline-none sm:py-2 sm:text-[14px] transition-colors placeholder:text-muted focus:border-accent ${fieldErrors.email || emailHasSpace ? 'border-danger' : 'border-line-strong'}`}
               />
               {fieldErrors.email ? (
-                <p className="text-[13px] text-[#DC2626]">{fieldErrors.email}</p>
+                <p className="text-[13px] text-danger">{fieldErrors.email}</p>
               ) : (
                 emailHasSpace && (
-                  <p className="text-[13px] text-[#DC2626]">Пробелы недопустимы.</p>
+                  <p className="text-[13px] text-danger">Пробелы недопустимы.</p>
                 )
               )}
             </div>
@@ -132,13 +132,13 @@ export default function SignupPage() {
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder="Пароль"
                   autoComplete="new-password"
-                  className={`w-full rounded-lg border bg-white px-3.5 py-2.5 pr-11 text-[16px] text-[#171215] outline-none sm:py-2 sm:text-[14px] transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${fieldErrors.password || passwordHasSpace ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
+                  className={`w-full rounded-lg border bg-surface px-3.5 py-2.5 pr-11 text-[16px] text-ink outline-none sm:py-2 sm:text-[14px] transition-colors placeholder:text-muted focus:border-accent ${fieldErrors.password || passwordHasSpace ? 'border-danger' : 'border-line-strong'}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
-                  className="absolute right-3 top-1/2 grid -translate-y-1/2 place-items-center text-[#999999] transition-colors hover:text-[#171215]"
+                  className="absolute right-3 top-1/2 grid -translate-y-1/2 place-items-center text-muted transition-colors hover:text-ink"
                 >
                   <HugeiconsIcon
                     icon={showPassword ? EyeIcon : EyeOffIcon}
@@ -150,29 +150,29 @@ export default function SignupPage() {
                 </button>
               </div>
               {fieldErrors.password ? (
-                <p className="text-[13px] text-[#DC2626]">{fieldErrors.password}</p>
+                <p className="text-[13px] text-danger">{fieldErrors.password}</p>
               ) : (
                 passwordHasSpace && (
-                  <p className="text-[13px] text-[#DC2626]">Пробелы недопустимы.</p>
+                  <p className="text-[13px] text-danger">Пробелы недопустимы.</p>
                 )
               )}
             </div>
 
-            {error && <p className="text-[13px] text-[#DC2626]">{error}</p>}
+            {error && <p className="text-[13px] text-danger">{error}</p>}
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-[#171215] px-5 py-3 text-[15px] font-medium sm:py-2 sm:text-[14px] text-white transition-colors hover:bg-[#171215]/85 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg bg-ink px-5 py-3 text-[15px] font-medium sm:py-2 sm:text-[14px] text-surface transition-colors hover:bg-ink/85 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? 'Создаём аккаунт…' : 'Зарегистрироваться'}
             </button>
 
-            <hr className="border-t border-[#999999]/25" />
+            <hr className="border-t border-line" />
 
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-3 text-[15px] font-semibold sm:py-2 sm:text-[14px] text-[#171215] transition-colors hover:bg-[#F6F8FA]"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-line-strong bg-surface px-3.5 py-3 text-[15px] font-semibold sm:py-2 sm:text-[14px] text-ink transition-colors hover:bg-ground"
             >
               <img src="/google_logo.svg" alt="" className="h-[18px] w-[18px]" aria-hidden="true" />
               Продолжить с Google
@@ -180,16 +180,16 @@ export default function SignupPage() {
 
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-3 text-[15px] font-semibold sm:py-2 sm:text-[14px] text-[#171215] transition-colors hover:bg-[#F6F8FA]"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-line-strong bg-surface px-3.5 py-3 text-[15px] font-semibold sm:py-2 sm:text-[14px] text-ink transition-colors hover:bg-ground"
             >
               <img src="/apple_logo.svg" alt="" className="h-[18px] w-[18px]" aria-hidden="true" />
               Продолжить с Apple
             </button>
           </form>
 
-          <p className="text-center text-[15px] text-[#999999]">
+          <p className="text-center text-[15px] text-muted">
             Уже есть аккаунт?{' '}
-            <Link to="/login" className="font-medium text-[#3248F2] hover:underline">
+            <Link to="/login" className="font-medium text-accent hover:underline">
               Войти
             </Link>
           </p>

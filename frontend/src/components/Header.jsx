@@ -19,22 +19,23 @@ export default function Header({ className = '' }) {
   const isOnNotifications = pathname === '/notifications'
 
   return (
-    // No fill and no rule at any width: the header sits straight on the page's
-    // own ground, the way the bottom bar does. A white strip with a line under
-    // it is a box drawn around a title and one icon, and the grey ground below
-    // already separates the content from everything above it.
+    // No fill, but a rule. Dropping the white strip was right — a filled bar is
+    // a box drawn around a title and one icon — and dropping the line with it
+    // was not: without it the header and the page are one flat field, which is
+    // most obvious in dark mode, where there is no shadow doing the work
+    // either.
     //
     // It is still `sticky`, so it will need something behind it once a page can
     // actually scroll — the ground colour, or a blur — or content will run
     // underneath and show through.
     <header
-      className={`sticky top-0 z-40 h-[68px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 ${className}`}
+      className={`sticky top-0 z-40 h-[68px] items-center justify-between gap-4 border-b border-line px-4 sm:px-6 lg:px-8 ${className}`}
     >
       {/* On a phone the wordmark, because the rail that normally carries it is
           not there and a screen with the product's name nowhere on it reads as
           a fragment. The page title is redundant at that width anyway — the
           bottom bar names the screen you are on, permanently. */}
-      <span className="font-display text-[20px] font-bold tracking-[-0.03em] text-[#171215] sm:hidden">
+      <span className="font-display text-[20px] font-bold tracking-[-0.03em] text-ink sm:hidden">
         AIRec
       </span>
 
@@ -43,7 +44,7 @@ export default function Header({ className = '' }) {
           look. 24 rather than the reference's ~30 — our header bar is 68px
           where its is far taller, and a title near that size leaves no air
           above or below it. */}
-      <h1 className="hidden min-w-0 truncate font-display text-[24px] font-bold tracking-[-0.02em] text-[#171215] sm:block">
+      <h1 className="hidden min-w-0 truncate font-display text-[24px] font-bold tracking-[-0.02em] text-ink sm:block">
         {title}
       </h1>
 
@@ -54,10 +55,10 @@ export default function Header({ className = '' }) {
         to="/notifications"
         aria-label="Уведомления"
         aria-current={isOnNotifications ? 'page' : undefined}
-        className={`grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-[#171215] outline-none transition-colors ${
+        className={`grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-ink outline-none transition-colors ${
           isOnNotifications
-            ? 'bg-[#3248F2]/8'
-            : 'hover:bg-[#3248F2]/8 focus-visible:bg-[#3248F2]/8'
+            ? 'bg-accent/8'
+            : 'hover:bg-accent/8 focus-visible:bg-accent/8'
         }`}
       >
         {/* Same size and stroke weight as the sidebar rail icons, so the two

@@ -21,6 +21,17 @@
          single-page app the title persists across navigation, so ten identical
          copies of it were ten places to keep in step for no effect. A page that
          ever needs its own can set `document.title` in an effect. -->
+    <!-- Before the first paint, not in React. The stylesheet keys every colour
+         on `[data-theme]`, so setting it after hydration would render the page
+         light and then correct it — a flash that is worse than no dark mode.
+         Kept to one expression on purpose; it duplicates `resolveTheme` in
+         `src/lib/theme.js`, and the two have to agree. -->
+    <script>
+      document.documentElement.dataset.theme =
+        localStorage.getItem('airec_theme') ||
+        (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    </script>
+
     <title>AIRec</title>
     <meta
       name="description"

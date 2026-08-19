@@ -21,16 +21,16 @@ export default function LandingPage() {
       <div className="m-auto flex w-full max-w-[420px] flex-col items-center px-8 text-center sm:hidden">
         {/* Set in the display face at a size nothing else on the screen comes
             near: on a splash the name is the picture. */}
-        <p className="font-display text-[34px] font-semibold tracking-[-0.03em] text-[#171215]">
+        <p className="font-display text-[34px] font-semibold tracking-[-0.03em] text-ink">
           AIRec
         </p>
 
-        <h1 className="mt-6 text-[21px] leading-[1.35] font-semibold tracking-[-0.01em] text-[#171215]">
+        <h1 className="mt-6 text-[21px] leading-[1.35] font-semibold tracking-[-0.01em] text-ink">
           ИИ-администратор отвечает клиентам и{' '}
           {/* The accent lands on the four words that are the product. Colour
               here is doing what colour is for — pointing — rather than
               decorating a headline that would read the same in black. */}
-          <span className="text-[#3248F2]">записывает их на приём</span>.
+          <span className="text-accent">записывает их на приём</span>.
         </h1>
 
         {/* Full width and fully round: the primary action on a phone should be
@@ -38,22 +38,22 @@ export default function LandingPage() {
             room to spare. */}
         <Link
           to="/login"
-          className="mt-9 w-full rounded-full bg-[#3248F2] py-[15px] text-[16px] font-semibold text-white transition-colors hover:bg-[#2839c9] active:bg-[#2839c9]"
+          className="mt-9 w-full rounded-full bg-accent py-[15px] text-[16px] font-semibold text-white transition-colors hover:bg-accent-strong active:bg-accent-strong"
         >
           Открыть AIRec
         </Link>
 
-        <p className="mt-6 text-[15px] text-[#999999]">
+        <p className="mt-6 text-[15px] text-muted">
           <Link
             to="/login"
-            className="font-semibold text-[#3248F2] transition-opacity active:opacity-70"
+            className="font-semibold text-accent transition-opacity active:opacity-70"
           >
             Войти
           </Link>{' '}
           или{' '}
           <Link
             to="/signup"
-            className="font-semibold text-[#3248F2] transition-opacity active:opacity-70"
+            className="font-semibold text-accent transition-opacity active:opacity-70"
           >
             зарегистрироваться
           </Link>

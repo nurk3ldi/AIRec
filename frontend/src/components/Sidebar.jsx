@@ -23,8 +23,8 @@ export default function Sidebar({ user = null, isMenuOpen, onToggleMenu }) {
     // layout animation, and layout projection is the one feature the smaller
     // bundle leaves out.
     <LazyMotion features={domMax} strict>
-      <aside className="fixed inset-y-0 left-0 z-50 hidden w-16 flex-col overflow-visible border-r border-[#999999]/45 bg-[#171215] text-white shadow-[6px_0_20px_rgba(23,18,21,0.08)] sm:flex">
-        <div className="flex h-[68px] shrink-0 items-center justify-center border-b border-[#999999]/30">
+      <aside className="fixed inset-y-0 left-0 z-50 hidden w-16 flex-col overflow-visible border-r border-line-strong bg-rail text-rail-ink shadow-[6px_0_20px_rgba(23,18,21,0.08)] sm:flex">
+        <div className="flex h-[68px] shrink-0 items-center justify-center border-b border-line">
           <Link to="/dashboard" aria-label="Главная страница AIRec">
             <BrandMark />
           </Link>
@@ -44,7 +44,7 @@ export default function Sidebar({ user = null, isMenuOpen, onToggleMenu }) {
                 aria-label={item.label}
                 aria-current={isActive ? 'page' : undefined}
                 className={`group relative grid h-9 w-9 place-items-center rounded-[10px] transition-colors duration-200 ${
-                  isActive ? 'text-white' : 'text-white hover:bg-[#F6F8FA]/10'
+                  isActive ? 'text-rail-ink' : 'text-rail-ink hover:bg-rail-ink/10'
                 }`}
               >
                 {/* One marker for the whole rail, not a background on each item:
@@ -56,7 +56,7 @@ export default function Sidebar({ user = null, isMenuOpen, onToggleMenu }) {
                 {isActive && (
                   <m.span
                     layoutId="sidebar-active"
-                    className="absolute inset-0 rounded-[10px] bg-[#3248F2] shadow-[0_8px_22px_rgba(50,72,242,0.38)]"
+                    className="absolute inset-0 rounded-[10px] bg-accent shadow-[0_8px_22px_rgba(50,72,242,0.38)]"
                     // A spring rather than a duration: the distance between items
                     // varies, and a spring covers a long move and a short one in
                     // times that both feel right. Damped just short of a visible
@@ -80,7 +80,7 @@ export default function Sidebar({ user = null, isMenuOpen, onToggleMenu }) {
                     strokeWidth={2.15}
                   />
                 </span>
-                <span className="pointer-events-none absolute left-[46px] z-50 whitespace-nowrap rounded-md bg-[#171215] px-2.5 py-1.5 font-sans text-[11px] font-medium text-white opacity-0 shadow-xl transition-all duration-150 group-hover:translate-x-1 group-hover:opacity-100">
+                <span className="pointer-events-none absolute left-[46px] z-50 whitespace-nowrap rounded-md bg-ink px-2.5 py-1.5 font-sans text-[11px] font-medium text-surface opacity-0 shadow-xl transition-all duration-150 group-hover:translate-x-1 group-hover:opacity-100">
                   {item.label}
                 </span>
               </Link>
@@ -98,13 +98,13 @@ export default function Sidebar({ user = null, isMenuOpen, onToggleMenu }) {
           // No blue active state here, unlike the nav items above: the avatar is
           // already a picture, and a coloured frame around it reads as a stray
           // border rather than "this is selected".
-          className="group relative mx-auto mb-[18px] grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-white outline-none transition-colors duration-200 hover:bg-[#F6F8FA]/10 focus-visible:bg-[#F6F8FA]/10"
+          className="group relative mx-auto mb-[18px] grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-rail-ink outline-none transition-colors duration-200 hover:bg-rail-ink/10 focus-visible:bg-rail-ink/10"
         >
           <ProfileAvatar src={mediaUrl(user?.avatar_url)} />
           {/* Hidden while the menu is open — the panel already names everything
               it points at, so the tooltip would just overlap it. */}
           {!isMenuOpen && (
-            <span className="pointer-events-none absolute left-[46px] z-50 whitespace-nowrap rounded-md bg-[#171215] px-2.5 py-1.5 font-sans text-[11px] font-medium text-white opacity-0 shadow-xl transition-all duration-150 group-hover:translate-x-1 group-hover:opacity-100">
+            <span className="pointer-events-none absolute left-[46px] z-50 whitespace-nowrap rounded-md bg-ink px-2.5 py-1.5 font-sans text-[11px] font-medium text-surface opacity-0 shadow-xl transition-all duration-150 group-hover:translate-x-1 group-hover:opacity-100">
               Профиль
             </span>
           )}

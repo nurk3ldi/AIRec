@@ -64,18 +64,18 @@ export default function LoginPage() {
     <>
       <div className={styles.page} aria-label="Страница входа">
         <div className="m-auto flex w-full max-w-[400px] flex-col gap-6 px-4 py-10 sm:px-6 sm:py-16">
-          <h1 className="text-center font-display text-[26px] font-semibold tracking-[-0.02em] text-[#171215]">
+          <h1 className="text-center font-display text-[26px] font-semibold tracking-[-0.02em] text-ink">
             Вход в AIRec
           </h1>
 
           {resetSuccess && (
-            <p className="rounded-lg border border-[#16A34A]/30 bg-[#16A34A]/8 px-3.5 py-2.5 text-center text-[13px] text-[#16A34A]">
+            <p className="rounded-lg border border-ok/30 bg-ok/8 px-3.5 py-2.5 text-center text-[13px] text-ok">
               Пароль изменён. Войдите с новым паролем.
             </p>
           )}
 
           {justDeleted && (
-            <p className="rounded-lg border border-[#999999]/30 bg-[#F6F8FA] px-3.5 py-2.5 text-center text-[13px] text-[#171215]/70">
+            <p className="rounded-lg border border-line bg-ground px-3.5 py-2.5 text-center text-[13px] text-ink/70">
               Аккаунт удалён. В течение 30 дней его можно восстановить — просто
               войдите снова.
             </p>
@@ -89,10 +89,10 @@ export default function LoginPage() {
                 onChange={(event) => setIdentifier(event.target.value)}
                 placeholder="Email или логин"
                 autoComplete="username"
-                className={`rounded-lg border bg-white px-3.5 py-2.5 text-[16px] text-[#171215] outline-none sm:py-2 sm:text-[14px] transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${identifierHasSpace ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
+                className={`rounded-lg border bg-surface px-3.5 py-2.5 text-[16px] text-ink outline-none sm:py-2 sm:text-[14px] transition-colors placeholder:text-muted focus:border-accent ${identifierHasSpace ? 'border-danger' : 'border-line-strong'}`}
               />
               {identifierHasSpace && (
-                <p className="text-[13px] text-[#DC2626]">Пробелы недопустимы.</p>
+                <p className="text-[13px] text-danger">Пробелы недопустимы.</p>
               )}
             </div>
 
@@ -104,13 +104,13 @@ export default function LoginPage() {
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder="Пароль"
                   autoComplete="current-password"
-                  className={`w-full rounded-lg border bg-white px-3.5 py-2.5 pr-11 text-[16px] text-[#171215] outline-none sm:py-2 sm:text-[14px] transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${passwordHasSpace ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
+                  className={`w-full rounded-lg border bg-surface px-3.5 py-2.5 pr-11 text-[16px] text-ink outline-none sm:py-2 sm:text-[14px] transition-colors placeholder:text-muted focus:border-accent ${passwordHasSpace ? 'border-danger' : 'border-line-strong'}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
-                  className="absolute right-3 top-1/2 grid -translate-y-1/2 place-items-center text-[#999999] transition-colors hover:text-[#171215]"
+                  className="absolute right-3 top-1/2 grid -translate-y-1/2 place-items-center text-muted transition-colors hover:text-ink"
                 >
                   <HugeiconsIcon
                     icon={showPassword ? EyeIcon : EyeOffIcon}
@@ -122,7 +122,7 @@ export default function LoginPage() {
                 </button>
               </div>
               {passwordHasSpace && (
-                <p className="text-[13px] text-[#DC2626]">Пробелы недопустимы.</p>
+                <p className="text-[13px] text-danger">Пробелы недопустимы.</p>
               )}
             </div>
 
@@ -142,7 +142,7 @@ export default function LoginPage() {
                     type="checkbox"
                     checked={remember}
                     onChange={(event) => setRemember(event.target.checked)}
-                    className="peer h-full w-full cursor-pointer appearance-none rounded-[5px] border border-[#999999]/45 bg-white transition-colors hover:border-[#999999]/70 checked:border-[#3248F2] checked:bg-[#3248F2] focus-visible:outline-2 focus-visible:outline-[#3248F2] focus-visible:outline-offset-2"
+                    className="peer h-full w-full cursor-pointer appearance-none rounded-[5px] border border-line-strong bg-surface transition-colors hover:border-line-strong checked:border-accent checked:bg-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
                   />
                   <span className="pointer-events-none absolute inset-0 grid place-items-center text-white opacity-0 transition-opacity peer-checked:opacity-100">
                     <HugeiconsIcon
@@ -158,20 +158,20 @@ export default function LoginPage() {
                     a label someone has to read to make a decision. `font-medium`
                     matches the "Забыли пароль?" link sharing this row: the two
                     controls carry the same weight, so they should look it. */}
-                <span className="text-[13px] font-medium text-[#171215]/70">
+                <span className="text-[13px] font-medium text-ink/70">
                   Запомнить меня
                 </span>
               </label>
 
               <Link
                 to="/forgot-password"
-                className="-my-2.5 py-2.5 text-[13px] font-medium text-[#3248F2] hover:underline"
+                className="-my-2.5 py-2.5 text-[13px] font-medium text-accent hover:underline"
               >
                 Забыли пароль?
               </Link>
             </div>
 
-            {error && <p className="text-[13px] text-[#DC2626]">{error}</p>}
+            {error && <p className="text-[13px] text-danger">{error}</p>}
 
             {/* The password was already accepted — the only thing standing in
                 the way is the pending deletion, so undoing it is one click. */}
@@ -180,7 +180,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={handleRestore}
                 disabled={isSubmitting}
-                className="rounded-lg border border-[#3248F2]/40 px-5 py-3 text-[15px] font-medium sm:py-2 sm:text-[14px] text-[#3248F2] transition-colors hover:bg-[#3248F2]/6 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg border border-accent/40 px-5 py-3 text-[15px] font-medium sm:py-2 sm:text-[14px] text-accent transition-colors hover:bg-accent/6 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Восстановить аккаунт и войти
               </button>
@@ -189,16 +189,16 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-[#171215] px-5 py-3 text-[15px] font-medium sm:py-2 sm:text-[14px] text-white transition-colors hover:bg-[#171215]/85 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg bg-ink px-5 py-3 text-[15px] font-medium sm:py-2 sm:text-[14px] text-surface transition-colors hover:bg-ink/85 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? 'Входим…' : 'Войти'}
             </button>
 
-            <hr className="border-t border-[#999999]/25" />
+            <hr className="border-t border-line" />
 
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-3 text-[15px] font-semibold sm:py-2 sm:text-[14px] text-[#171215] transition-colors hover:bg-[#F6F8FA]"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-line-strong bg-surface px-3.5 py-3 text-[15px] font-semibold sm:py-2 sm:text-[14px] text-ink transition-colors hover:bg-ground"
             >
               <img src="/google_logo.svg" alt="" className="h-[18px] w-[18px]" aria-hidden="true" />
               Продолжить с Google
@@ -206,16 +206,16 @@ export default function LoginPage() {
 
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-3 text-[15px] font-semibold sm:py-2 sm:text-[14px] text-[#171215] transition-colors hover:bg-[#F6F8FA]"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-line-strong bg-surface px-3.5 py-3 text-[15px] font-semibold sm:py-2 sm:text-[14px] text-ink transition-colors hover:bg-ground"
             >
               <img src="/apple_logo.svg" alt="" className="h-[18px] w-[18px]" aria-hidden="true" />
               Продолжить с Apple
             </button>
           </form>
 
-          <p className="text-center text-[15px] text-[#999999]">
+          <p className="text-center text-[15px] text-muted">
             Нет аккаунта?{' '}
-            <Link to="/signup" className="font-medium text-[#3248F2] hover:underline">
+            <Link to="/signup" className="font-medium text-accent hover:underline">
               Зарегистрироваться
             </Link>
           </p>
