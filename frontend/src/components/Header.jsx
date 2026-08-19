@@ -23,7 +23,13 @@ export default function Header() {
           chevron, then this — and it was a path of exactly two steps whose
           first step is already the sidebar's top item. A trail that never
           branches is chrome, not navigation. */}
-      <h1 className="min-w-0 truncate text-[15px] font-semibold tracking-[-0.01em] text-[#171215]">
+      {/* Poppins, not the body face: setting headings in the display family is
+          most of what gives the reference its look, and at this size the title
+          stops being a label on the chrome and becomes the thing that says
+          where you are. 24 rather than the reference's ~30 — our header bar is
+          68px where its is far taller, and a 30px title in a 68px bar leaves no
+          air above or below it. */}
+      <h1 className="min-w-0 truncate font-display text-[24px] font-bold tracking-[-0.02em] text-[#171215]">
         {title}
       </h1>
 

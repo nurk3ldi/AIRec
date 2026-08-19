@@ -162,7 +162,7 @@ is right.
 
 | Role | Size | Weight | Family |
 | --- | --- | --- | --- |
-| Page title | 28 | 600 | display |
+| Page title | 28 | 700 | display |  ← reference measures ~30px `#17161F`; ours sits at 24, see divergences
 | Metric value | 32 | 700 | display |
 | Secondary value (funnel, donut centre) | 24 | 700 | display |
 | Card title | 15 | 600 | display |
@@ -223,10 +223,12 @@ rather than a drift:
   rounded container inset on the grey page, with the dark rail rounded on its
   left corners. Ours is a 64px rail hard against the window edge and a 68px
   header. Adopting the frame is structural, so it is not assumed.
-- **The header shows a 15px page title; the reference shows it at 28px** beside
-  a search pill (`bg-[#F6F8FA]`, magnifier left, `⌘K` right in muted). A
-  breadcrumb was tried and taken out: with a flat route table the trail is
-  always Главная › <page>, and a path that never branches is chrome.
+- **The header title is 24px, not the reference's ~30, and there is no search
+  pill.** Our header bar is 68px where the reference's is far taller, so the
+  page-title step lands one notch down; the pill (`bg-[#F6F8FA]`, magnifier
+  left, `⌘K` right in muted) is simply not built. A breadcrumb was tried there
+  and taken out: with a flat route table the trail is always Главная › <page>,
+  and a path that never branches is chrome.
 - **Nothing carries elevation yet.** The one card component that had the
   resting shadow went with `/business`; the surviving screens were written
   under the old no-elevation rule and pick it up as they are rebuilt.
