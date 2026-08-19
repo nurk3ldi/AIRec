@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { m, useReducedMotion } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Logout01Icon, User02Icon } from '@hugeicons/core-free-icons'
@@ -51,12 +52,32 @@ export default function ProfileMenu({ user, onOpenSection, onClose }) {
   }
 
   const avatarSrc = mediaUrl(user?.avatar_url)
+  const reduce = useReducedMotion()
 
   return (
-    <div
+    <m.div
       ref={panelRef}
       role="menu"
       aria-label="Меню профиля"
+      // Grows out of its own bottom-left corner, which is where the avatar
+      // button that opened it sits — so the panel reads as coming *from* the
+      // control rather than appearing over the page. The 4px shift toward the
+      // rail is the same idea in the other axis.
+      //
+      // Safe to transform even though a stray six pixels put a scrollbar on
+      // the public shell: this is `position: fixed`, and fixed elements are
+      // laid out against the viewport rather than contributing to the
+      // document's scrollable overflow.
+      style={{ transformOrigin: 'bottom left' }}
+      initial={reduce ? false : { opacity: 0, scale: 0.96, x: -4 }}
+      animate={{ opacity: 1, scale: 1, x: 0 }}
+      exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.98, x: -2 }}
+      // A menu has to feel instant — 140ms in, 90ms out. Anything slower and
+      // the click and the panel stop feeling like one event.
+      transition={{
+        duration: reduce ? 0 : 0.14,
+        ease: [0.16, 1, 0.3, 1],
+      }}
       className="fixed bottom-4 left-[72px] z-50 w-[264px] overflow-hidden rounded-2xl border border-[#999999]/20 bg-white py-2 shadow-[0_16px_40px_-8px_rgba(23,18,21,0.28)]"
     >
       <div className="flex items-center gap-3 px-4 py-3">
@@ -131,6 +152,6 @@ export default function ProfileMenu({ user, onOpenSection, onClose }) {
           Выйти
         </button>
       </div>
-    </div>
+    </m.div>
   )
 }

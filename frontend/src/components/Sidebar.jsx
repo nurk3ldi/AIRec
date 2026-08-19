@@ -11,6 +11,7 @@ import { mediaUrl } from '../lib/api'
 import BrandMark from './BrandMark'
 import ProfileAvatar from './ProfileAvatar'
 import ProfileDialog from './ProfileDialog'
+import { AnimatePresence, domAnimation, LazyMotion } from 'motion/react'
 import ProfileMenu from './ProfileMenu'
 
 const navigation = [
@@ -100,13 +101,22 @@ export default function Sidebar({ user = null, onUserChange }) {
         )}
       </button>
 
-      {isMenuOpen && (
-        <ProfileMenu
-          user={user}
-          onOpenSection={openSection}
-          onClose={() => setIsMenuOpen(false)}
-        />
-      )}
+      {/* `AnimatePresence` lives here rather than inside `ProfileMenu` because
+          the menu unmounts when this flag flips — a component cannot animate
+          its own exit after React has already removed it. `LazyMotion` +
+          `domAnimation` is the transform/opacity subset; the full `motion`
+          component cannot be tree-shaken. */}
+      <LazyMotion features={domAnimation} strict>
+        <AnimatePresence>
+          {isMenuOpen && (
+            <ProfileMenu
+              user={user}
+              onOpenSection={openSection}
+              onClose={() => setIsMenuOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+      </LazyMotion>
 
       {dialogSection && (
         <ProfileDialog
