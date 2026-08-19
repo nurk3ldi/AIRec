@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { domMax, LazyMotion, m, useReducedMotion } from 'motion/react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { mediaUrl } from '../lib/api'
 import { NAVIGATION } from './navigation'
@@ -22,17 +23,54 @@ import ProfileAvatar from './ProfileAvatar'
  * Russian starts truncating, and with five destinations the glyphs carry it.
  * Every slot keeps an `aria-label`, so nothing is lost to a screen reader.
  *
+ * The current slot wears a **grey surround that slides** between items, not a
+ * colour: the accent is the app's way of saying *look here*, and a bar that is
+ * permanently pointing at one of five things spends it on something you already
+ * know. Grey says the same thing without claiming attention.
+ *
  * The fifth slot is the profile, and here it *is* a link — to `/profile`, a
  * screen that exists for phones. The desktop rail opens a popup instead; a
  * 264px panel floating over a 390pt viewport is a desktop shape, and a route
  * means the back gesture works. It sits last for the same reason it sits at the
  * bottom of the rail — it is about you, not about the business.
  */
+// One box per slot, whether or not it is current: the marker fills it, so the
+// row's geometry never depends on which item is selected.
+const SLOT = 'relative grid h-9 w-12 place-items-center'
+
+/** The grey surround, shared across every slot. */
+function Marker({ reduce }) {
+  return (
+    <m.span
+      // The same `layoutId` on every active state is what lets Motion see it as
+      // one element moving rather than two fading in and out, so it slides from
+      // the slot you left to the one you picked — the rail's marker, on its
+      // side. That travel is the animation; it draws the line between where you
+      // were and where you are.
+      layoutId="bottom-nav-active"
+      className="absolute inset-0 rounded-full bg-[#171215]/8"
+      // A spring rather than a duration: the gap between slots is the same
+      // every time here, but the rail uses one for the same marker and two
+      // navigations should not move at two different speeds.
+      transition={
+        reduce
+          ? { duration: 0 }
+          : { type: 'spring', stiffness: 420, damping: 34, mass: 0.8 }
+      }
+    />
+  )
+}
+
 export default function BottomNav({ user }) {
   const { pathname } = useLocation()
+  const reduce = useReducedMotion()
   const isProfile = pathname === '/profile'
 
   return (
+    // `domMax`, not `domAnimation`: the sliding marker is a shared layout
+    // animation, and layout projection is the one feature the smaller bundle
+    // leaves out. The rail already loads it, so it costs nothing here.
+    <LazyMotion features={domMax} strict>
     <nav
       aria-label="Основная навигация"
       // 50px rather than the 56 it started at: the bar is anchored to the
@@ -55,20 +93,25 @@ export default function BottomNav({ user }) {
             // Each slot takes an equal fifth and the full height of the bar, so
             // the tap target is the whole cell rather than the glyph in it.
             className={`flex flex-1 items-center justify-center transition-colors ${
-              isActive ? 'text-[#3248F2]' : 'text-[#999999]'
+              isActive ? 'text-[#171215]' : 'text-[#999999]'
             }`}
           >
-            <HugeiconsIcon
-              icon={item.icon}
-              size={23}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              // The references mark the current tab by swapping an outline
-              // glyph for a filled one; the free icon set ships strokes only,
-              // so the accent and a heavier line carry it instead. Weight as
-              // well as colour, so it still reads without colour vision.
-              strokeWidth={isActive ? 2.4 : 1.9}
-            />
+            <span className={SLOT}>
+              {isActive && <Marker reduce={reduce} />}
+              {/* Above the marker: an absolutely positioned sibling paints over
+                  static content whatever the DOM order. */}
+              <span className="relative z-10 grid place-items-center">
+                <HugeiconsIcon
+                  icon={item.icon}
+                  size={23}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  // Weight as well as the surround, so it still reads to
+                  // someone who cannot separate the two greys.
+                  strokeWidth={isActive ? 2.4 : 1.9}
+                />
+              </span>
+            </span>
           </Link>
         )
       })}
@@ -82,18 +125,18 @@ export default function BottomNav({ user }) {
         aria-current={isProfile ? 'page' : undefined}
         className="flex flex-1 items-center justify-center"
       >
-        {/* Ringed when current — the avatar is a photograph, and the
-            stroke-weight trick the glyphs use has nothing to act on here. */}
-        <span
-          className={`grid h-[23px] w-[23px] place-items-center overflow-hidden rounded-full transition-shadow ${
-            isProfile
-              ? 'ring-2 ring-[#3248F2] ring-offset-2 ring-offset-[#F6F8FA]'
-              : 'opacity-70'
-          }`}
-        >
-          <ProfileAvatar src={mediaUrl(user?.avatar_url)} size={23} />
+        <span className={SLOT}>
+          {isProfile && <Marker reduce={reduce} />}
+          <span
+            className={`relative z-10 grid h-[23px] w-[23px] place-items-center overflow-hidden rounded-full ${
+              isProfile ? '' : 'opacity-70'
+            }`}
+          >
+            <ProfileAvatar src={mediaUrl(user?.avatar_url)} size={23} />
+          </span>
         </span>
       </Link>
     </nav>
+    </LazyMotion>
   )
 }
