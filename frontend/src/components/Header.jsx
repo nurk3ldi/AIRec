@@ -18,18 +18,29 @@ export default function Header() {
   const isOnNotifications = pathname === '/notifications'
 
   return (
-    <header className="sticky top-0 z-40 flex h-[68px] items-center justify-between gap-4 border-b border-[#999999]/25 bg-white px-4 sm:px-6 lg:px-8">
-      {/* Just the page title. There was a breadcrumb here — a home icon, a
-          chevron, then this — and it was a path of exactly two steps whose
-          first step is already the sidebar's top item. A trail that never
-          branches is chrome, not navigation. */}
-      {/* Poppins, not the body face: setting headings in the display family is
-          most of what gives the reference its look, and at this size the title
-          stops being a label on the chrome and becomes the thing that says
-          where you are. 24 rather than the reference's ~30 — our header bar is
-          68px where its is far taller, and a title near that size leaves no air
+    // No fill and no rule at any width: the header sits straight on the page's
+    // own ground, the way the bottom bar does. A white strip with a line under
+    // it is a box drawn around a title and one icon, and the grey ground below
+    // already separates the content from everything above it.
+    //
+    // It is still `sticky`, so it will need something behind it once a page can
+    // actually scroll — the ground colour, or a blur — or content will run
+    // underneath and show through.
+    <header className="sticky top-0 z-40 flex h-[68px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+      {/* On a phone the wordmark, because the rail that normally carries it is
+          not there and a screen with the product's name nowhere on it reads as
+          a fragment. The page title is redundant at that width anyway — the
+          bottom bar names the screen you are on, permanently. */}
+      <span className="font-display text-[20px] font-bold tracking-[-0.03em] text-[#171215] sm:hidden">
+        AIRec
+      </span>
+
+      {/* The page title, from `sm` up. Poppins, not the body face: setting
+          headings in the display family is most of what gives the reference its
+          look. 24 rather than the reference's ~30 — our header bar is 68px
+          where its is far taller, and a title near that size leaves no air
           above or below it. */}
-      <h1 className="min-w-0 truncate font-display text-[24px] font-bold tracking-[-0.02em] text-[#171215]">
+      <h1 className="hidden min-w-0 truncate font-display text-[24px] font-bold tracking-[-0.02em] text-[#171215] sm:block">
         {title}
       </h1>
 

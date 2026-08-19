@@ -68,7 +68,10 @@ export default function ProfileMenu({ user, onOpenSection, onClose }) {
       // the public shell: this is `position: fixed`, and fixed elements are
       // laid out against the viewport rather than contributing to the
       // document's scrollable overflow.
-      style={{ transformOrigin: 'bottom left' }}
+      // Bottom-centre on a phone, bottom-left on a desktop: the control it
+      // grows out of is the middle of the bottom bar in one and the avatar
+      // beside the rail in the other.
+      style={{ transformOrigin: 'bottom center' }}
       initial={reduce ? false : { opacity: 0, scale: 0.94, x: -6 }}
       animate={{
         opacity: 1,
@@ -92,7 +95,14 @@ export default function ProfileMenu({ user, onOpenSection, onClose }) {
               transition: { duration: 0.13, ease: 'easeIn' },
             }
       }
-      className="fixed bottom-4 left-[72px] z-50 w-[264px] overflow-hidden rounded-2xl border border-[#999999]/20 bg-white py-2 shadow-[0_16px_40px_-8px_rgba(23,18,21,0.28)]"
+      // A sheet above the bottom bar on a phone, an anchored panel beside the
+      // rail from `sm` up. Same panel, same contents — only where it is pinned
+      // differs, because on a phone there is no rail for it to hang off and a
+      // 264px card floating at the left edge would point at nothing.
+      //
+      // The bottom offset clears the 64px bar plus whatever the home indicator
+      // takes on an iPhone; from `sm` all of that is thrown away again.
+      className="fixed inset-x-3 bottom-[calc(50px+env(safe-area-inset-bottom)+0.75rem)] z-50 overflow-hidden rounded-2xl border border-[#999999]/20 bg-white py-2 shadow-[0_16px_40px_-8px_rgba(23,18,21,0.28)] sm:inset-x-auto sm:bottom-4 sm:left-[72px] sm:w-[264px]"
     >
       <div className="flex items-center gap-3 px-4 py-3">
         <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-[#F6F8FA] ring-1 ring-[#999999]/20">
