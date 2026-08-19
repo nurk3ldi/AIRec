@@ -34,13 +34,16 @@ import styles from '../styles/Profile.module.css'
  * the bottom edge as a full-bleed sheet with an ×, over the navigation rather
  * than beside it, because those are forms you went into on purpose.
  *
- * The shape is taken from `design/profile_example.png`: identity centred at the
- * top with an edit badge on the avatar, then **named groups, each one card of
- * several rows** split by hairlines that start after the icon column. Not a
- * card per row — a card is a group, and the label above it is what says why
- * those rows are together. Rows carry their value on the right where they have
- * one, and a second muted line under the label where the value is too long to
- * sit beside it.
+ * Identity is centred at the top — avatar with an edit badge, name, and the
+ * email under it rather than as a row of its own, since the address identifies
+ * the account instead of leading anywhere. Below that, **one card**: every
+ * section as a row, split by hairlines that start after the icon column, so the
+ * icons read as a single strip down the block instead of being chopped up by
+ * every line. Rows carry their value on the right where they have one.
+ *
+ * `design/profile_example.png` sorts its rows into named groups; four rows with
+ * short labels and distinct icons did not need that, and the headings ended up
+ * naming groups you could already see.
  */
 export default function ProfilePage() {
   const { user, onOpenSection } = useOutletContext()
@@ -60,7 +63,12 @@ export default function ProfilePage() {
 
   return (
     <div className={styles.page} aria-label="Профиль">
-      <div className="mx-auto flex min-h-full w-full max-w-[560px] flex-col px-4 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-6">
+      {/* `flex-1`, not `min-h-full`: the page module is a flex column, so
+          stretching is what actually fills it — `min-height: 100%` resolves
+          against the parent's *auto* height and leaves the column short, which
+          is why `mt-auto` below had nothing to push into. `pb-2` puts the
+          sign-out down against the navigation instead of a screen-edge gap. */}
+      <div className="mx-auto flex w-full max-w-[560px] flex-1 flex-col px-4 pt-[calc(1.5rem+env(safe-area-inset-top))] pb-2">
         {/* Identity, centred. The avatar is the largest thing on the screen
             because it is the one part that says whose account this is. */}
         <div className="flex flex-col items-center pt-1 pb-8">
@@ -98,9 +106,9 @@ export default function ProfilePage() {
           </p>
         </div>
 
-        {/* `shrink-0` on nothing here, but the wrapper is `min-h-full`, so the
-            `mt-auto` on the sign-out below eats whatever height is left over. */}
-        <GroupLabel>Учётная запись</GroupLabel>
+        {/* One card, no group headings. Four rows with short labels and
+            distinct icons do not need sorting into three named piles — the
+            headings were naming groups you could already see. */}
         <Card>
           <Row
             icon={UserCircleIcon}
@@ -112,20 +120,12 @@ export default function ProfilePage() {
             label="Безопасность"
             onClick={() => onOpenSection('security')}
           />
-        </Card>
-
-        <GroupLabel>Подписка</GroupLabel>
-        <Card>
           <Row
             icon={CreditCardIcon}
             label="Тариф"
             value="Бесплатный"
             onClick={() => onOpenSection('subscription')}
           />
-        </Card>
-
-        <GroupLabel>Приложение</GroupLabel>
-        <Card>
           <Row
             icon={Settings02Icon}
             label="Настройки"
@@ -160,16 +160,6 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
-  )
-}
-
-/** The name above a group. Muted and small — it labels the card below it, it is
- *  not a heading competing with the rows inside. */
-function GroupLabel({ children }) {
-  return (
-    <p className="mt-7 mb-2 px-1.5 text-[13px] font-medium text-[#999999]">
-      {children}
-    </p>
   )
 }
 

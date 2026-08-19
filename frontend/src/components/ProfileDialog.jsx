@@ -71,13 +71,12 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: reduce ? 0 : 0.2, ease: 'easeOut' }}
-            // Clears the iPhone status bar and home indicator, which a
-            // full-bleed sheet would otherwise print its header underneath.
-            style={{
-              paddingTop: isDesktop ? undefined : 'env(safe-area-inset-top)',
-              paddingBottom: isDesktop ? undefined : 'env(safe-area-inset-bottom)',
-            }}
-            className="fixed inset-0 z-[60] grid place-items-center bg-[#171215]/50 sm:p-4"
+            // No dim on a phone. The sheet covers the viewport there, so the
+            // backdrop is never seen *behind* it — but Safari tints its status
+            // bar from the colour at the top of the page, and 50% black over
+            // white sampled as the grey strip above the sheet. Transparent
+            // below `sm` and the strip takes the sheet's white instead.
+            className="fixed inset-0 z-[60] grid place-items-center sm:bg-[#171215]/50 sm:p-4"
           >
           <Dialog.Content
             asChild
@@ -118,11 +117,15 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
               duration: reduce ? 0 : isDesktop ? 0.24 : 0.32,
               ease: [0.16, 1, 0.3, 1],
             }}
-            className={`flex h-full w-full flex-col overflow-hidden bg-white outline-none sm:max-h-[calc(100vh-2rem)] sm:max-w-[calc(100vw-2rem)] sm:rounded-2xl sm:shadow-[0_24px_60px_-12px_rgba(23,18,21,0.35)] ${
+            // The safe-area insets live *here*, not on the dim behind it: padding
+            // the overlay left the phone's status-bar strip showing the dark
+            // backdrop instead of the sheet. Padding the sheet keeps its white
+            // running edge to edge and only holds the content clear.
+            className={`flex h-full w-full flex-col overflow-hidden bg-white pb-[env(safe-area-inset-bottom)] outline-none sm:max-h-[calc(100vh-2rem)] sm:max-w-[calc(100vw-2rem)] sm:rounded-2xl sm:pb-0 sm:shadow-[0_24px_60px_-12px_rgba(23,18,21,0.35)] ${
               isAccount ? 'sm:h-auto sm:w-[520px]' : 'sm:h-[580px] sm:w-[728px]'
             }`}
           >
-            <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-3">
+            <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-[calc(1.25rem+env(safe-area-inset-top))] pb-3 sm:pt-5">
               <Dialog.Title className="font-display text-[19px] font-semibold tracking-[-0.02em] text-[#171215]">
                 {active.dialogLabel ?? active.label}
               </Dialog.Title>
