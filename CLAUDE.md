@@ -223,8 +223,10 @@ rather than a drift:
   rounded container inset on the grey page, with the dark rail rounded on its
   left corners. Ours is a 64px rail hard against the window edge and a 68px
   header. Adopting the frame is structural, so it is not assumed.
-- **The header shows a 15px breadcrumb; the reference shows a 28px page title**
-  beside a search pill (`bg-[#F6F8FA]`, magnifier left, `⌘K` right in muted).
+- **The header shows a 15px page title; the reference shows it at 28px** beside
+  a search pill (`bg-[#F6F8FA]`, magnifier left, `⌘K` right in muted). A
+  breadcrumb was tried and taken out: with a flat route table the trail is
+  always Главная › <page>, and a path that never branches is chrome.
 - **Nothing carries elevation yet.** The one card component that had the
   resting shadow went with `/business`; the surviving screens were written
   under the old no-elevation rule and pick it up as they are rebuilt.
