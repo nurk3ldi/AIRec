@@ -15,13 +15,13 @@ export default function LandingHeader() {
       <div className="flex items-center gap-2 sm:gap-3">
         <Link
           to="/login"
-          className="rounded-lg border border-[#999999]/40 bg-white px-[15px] py-[7px] text-[13px] font-semibold text-[#171215] transition-colors hover:bg-[#F6F8FA]"
+          className="rounded-lg border border-[#999999]/40 bg-white px-4 py-2.5 text-[14px] font-semibold sm:px-[15px] sm:py-[7px] sm:text-[13px] text-[#171215] transition-colors hover:bg-[#F6F8FA]"
         >
           Войти
         </Link>
         <Link
           to="/signup"
-          className="rounded-lg bg-[#3248F2] px-[15px] py-[7px] text-[13px] font-semibold text-white transition-colors hover:bg-[#2839c9]"
+          className="rounded-lg bg-[#3248F2] px-4 py-2.5 text-[14px] font-semibold sm:px-[15px] sm:py-[7px] sm:text-[13px] text-white transition-colors hover:bg-[#2839c9]"
         >
           Регистрация
         </Link>

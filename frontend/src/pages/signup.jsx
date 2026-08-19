@@ -67,7 +67,7 @@ export default function SignupPage() {
   return (
     <>
       <div className={styles.page} aria-label="Страница регистрации">
-        <div className="mx-auto flex max-w-[400px] flex-col gap-6 px-4 py-16 sm:px-6">
+        <div className="mx-auto flex max-w-[400px] flex-col gap-6 px-4 py-10 sm:px-6 sm:py-16">
           <h1 className="text-center font-display text-[26px] font-semibold tracking-[-0.02em] text-[#171215]">
             Создание аккаунта
           </h1>
@@ -81,7 +81,7 @@ export default function SignupPage() {
                   onChange={(event) => setUsername(event.target.value)}
                   placeholder="Логин"
                   autoComplete="username"
-                  className={`w-full rounded-lg border bg-white px-3.5 py-2 pr-9 text-[14px] text-[#171215] outline-none transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${fieldErrors.username || usernameHasSpace || usernameStatus === 'taken' ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
+                  className={`w-full rounded-lg border bg-white px-3.5 py-2.5 pr-9 text-[16px] text-[#171215] outline-none sm:py-2 sm:text-[14px] transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${fieldErrors.username || usernameHasSpace || usernameStatus === 'taken' ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
                 />
                 {usernameStatus === 'available' && !usernameHasSpace && (
                   <span className="absolute right-3 grid place-items-center text-[#16A34A]">
@@ -113,7 +113,7 @@ export default function SignupPage() {
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="Email"
                 autoComplete="email"
-                className={`rounded-lg border bg-white px-3.5 py-2 text-[14px] text-[#171215] outline-none transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${fieldErrors.email || emailHasSpace ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
+                className={`rounded-lg border bg-white px-3.5 py-2.5 text-[16px] text-[#171215] outline-none sm:py-2 sm:text-[14px] transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${fieldErrors.email || emailHasSpace ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
               />
               {fieldErrors.email ? (
                 <p className="text-[13px] text-[#DC2626]">{fieldErrors.email}</p>
@@ -132,7 +132,7 @@ export default function SignupPage() {
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder="Пароль"
                   autoComplete="new-password"
-                  className={`w-full rounded-lg border bg-white px-3.5 py-2 pr-11 text-[14px] text-[#171215] outline-none transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${fieldErrors.password || passwordHasSpace ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
+                  className={`w-full rounded-lg border bg-white px-3.5 py-2.5 pr-11 text-[16px] text-[#171215] outline-none sm:py-2 sm:text-[14px] transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${fieldErrors.password || passwordHasSpace ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
                 />
                 <button
                   type="button"
@@ -163,7 +163,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-[#171215] px-5 py-2 text-[14px] font-medium text-white transition-colors hover:bg-[#171215]/85 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg bg-[#171215] px-5 py-3 text-[15px] font-medium sm:py-2 sm:text-[14px] text-white transition-colors hover:bg-[#171215]/85 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? 'Создаём аккаунт…' : 'Зарегистрироваться'}
             </button>
@@ -172,7 +172,7 @@ export default function SignupPage() {
 
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-2 text-[14px] font-semibold text-[#171215] transition-colors hover:bg-[#F6F8FA]"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-3 text-[15px] font-semibold sm:py-2 sm:text-[14px] text-[#171215] transition-colors hover:bg-[#F6F8FA]"
             >
               <img src="/google_logo.svg" alt="" className="h-[18px] w-[18px]" aria-hidden="true" />
               Продолжить с Google
@@ -180,7 +180,7 @@ export default function SignupPage() {
 
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-2 text-[14px] font-semibold text-[#171215] transition-colors hover:bg-[#F6F8FA]"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-3 text-[15px] font-semibold sm:py-2 sm:text-[14px] text-[#171215] transition-colors hover:bg-[#F6F8FA]"
             >
               <img src="/apple_logo.svg" alt="" className="h-[18px] w-[18px]" aria-hidden="true" />
               Продолжить с Apple

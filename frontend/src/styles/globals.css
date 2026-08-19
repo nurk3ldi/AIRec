@@ -67,6 +67,24 @@ h6 {
   [role='button']:not([aria-disabled='true']) {
     cursor: pointer;
   }
+
+  html {
+    /* Stops iOS inflating text when the phone is turned to landscape. Without
+       it a rotation silently changes every font size on the page. */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Removes the ~300ms wait a mobile browser holds after a tap in case a second
+     one arrives to mean "zoom". This is the half of "no zoom" that actually
+     matters: it makes every tap in the app respond at once, and unlike the
+     viewport flags it takes nothing away from someone who needs to magnify. */
+  button,
+  a,
+  label,
+  input[type='checkbox'],
+  [role='button'] {
+    touch-action: manipulation;
+  }
 }
 
 button,

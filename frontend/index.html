@@ -2,7 +2,18 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- `user-scalable=no` + `maximum-scale=1` are here because pinch-zoom was
+         asked for to be off. Two things worth knowing about that. It fails WCAG
+         1.4.4, which is why nothing else in this project blocks a user
+         preference. And iOS Safari has ignored both flags since iOS 10, so on
+         an iPhone this line changes nothing — the zoom people actually hit
+         there is Safari magnifying the page when you focus an input under 16px,
+         and the fix for that is the input font size (see the auth pages), not
+         this attribute. On Android it does what it says. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
     <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml" sizes="any" />
 
     <!-- The title lives here, once. Every page used to declare the same

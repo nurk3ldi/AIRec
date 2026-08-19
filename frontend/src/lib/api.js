@@ -1,8 +1,21 @@
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v1'
+/**
+ * Where the backend is.
+ *
+ * Relative by default, on purpose. In development the Vite dev server proxies
+ * `/api` and `/media` to the backend on 127.0.0.1, so the browser only ever
+ * talks to the origin it loaded the page from — which is what lets a phone on
+ * the Wi-Fi use the API without the backend leaving localhost, without a
+ * firewall rule for its port, and without CORS being involved at all.
+ *
+ * `VITE_API_URL` wins when set: that is how you point at a deployed backend, or
+ * at one running somewhere the proxy cannot reach.
+ */
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
 // Uploaded files are served from the backend root (/media/...), not from under
-// the versioned API prefix, so strip it to get the origin.
+// the versioned API prefix, so strip it to get the origin. With the default
+// relative base this comes out empty, which is right: `/media/x.png` is then
+// resolved against the page's own origin and goes through the same proxy.
 const API_ORIGIN = API_BASE_URL.replace(/\/api\/v\d+\/?$/, '')
 
 /** Turns a backend-relative path like `/media/avatars/x.png` into a full URL. */
@@ -20,6 +33,18 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * How long to wait before deciding the server is not there.
+ *
+ * Without it a request to a host that is reachable but has nothing listening —
+ * a phone pointed at a laptop whose backend is bound to localhost, say — sits
+ * unanswered until the operating system's TCP timeout, which can be a minute or
+ * more. `fetch` never rejects in that window, so the form shows «Входим…» and
+ * nothing else, forever. Ten seconds is long enough for a slow upload to start
+ * and short enough that a dead backend says so while you are still looking.
+ */
+const REQUEST_TIMEOUT_MS = 10_000
+
 async function request(path, { method = 'GET', body, formData, accessToken } = {}) {
   let response
   try {
@@ -32,11 +57,15 @@ async function request(path, { method = 'GET', body, formData, accessToken } = {
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
       body: formData ?? (body ? JSON.stringify(body) : undefined),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     })
-  } catch {
+  } catch (error) {
     throw new ApiError({
-      code: 'network_error',
-      message: 'Cannot reach the server. Is the backend running?',
+      code: error?.name === 'TimeoutError' ? 'timeout' : 'network_error',
+      message:
+        error?.name === 'TimeoutError'
+          ? 'Сервер не отвечает. Проверьте подключение и попробуйте снова.'
+          : 'Не удалось связаться с сервером. Проверьте, запущен ли бэкенд.',
     })
   }
 
@@ -48,7 +77,7 @@ async function request(path, { method = 'GET', body, formData, accessToken } = {
     const error = data?.error
     throw new ApiError({
       code: error?.code || 'unknown_error',
-      message: error?.message || 'Something went wrong.',
+      message: error?.message || 'Что-то пошло не так.',
       fields: error?.fields,
       status: response.status,
     })

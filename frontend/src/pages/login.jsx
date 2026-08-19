@@ -63,7 +63,7 @@ export default function LoginPage() {
   return (
     <>
       <div className={styles.page} aria-label="Страница входа">
-        <div className="mx-auto flex max-w-[400px] flex-col gap-6 px-4 py-16 sm:px-6">
+        <div className="mx-auto flex max-w-[400px] flex-col gap-6 px-4 py-10 sm:px-6 sm:py-16">
           <h1 className="text-center font-display text-[26px] font-semibold tracking-[-0.02em] text-[#171215]">
             Вход в AIRec
           </h1>
@@ -89,7 +89,7 @@ export default function LoginPage() {
                 onChange={(event) => setIdentifier(event.target.value)}
                 placeholder="Email или логин"
                 autoComplete="username"
-                className={`rounded-lg border bg-white px-3.5 py-2 text-[14px] text-[#171215] outline-none transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${identifierHasSpace ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
+                className={`rounded-lg border bg-white px-3.5 py-2.5 text-[16px] text-[#171215] outline-none sm:py-2 sm:text-[14px] transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${identifierHasSpace ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
               />
               {identifierHasSpace && (
                 <p className="text-[13px] text-[#DC2626]">Пробелы недопустимы.</p>
@@ -104,7 +104,7 @@ export default function LoginPage() {
                   onChange={(event) => setPassword(event.target.value)}
                   placeholder="Пароль"
                   autoComplete="current-password"
-                  className={`w-full rounded-lg border bg-white px-3.5 py-2 pr-11 text-[14px] text-[#171215] outline-none transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${passwordHasSpace ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
+                  className={`w-full rounded-lg border bg-white px-3.5 py-2.5 pr-11 text-[16px] text-[#171215] outline-none sm:py-2 sm:text-[14px] transition-colors placeholder:text-[#999999] focus:border-[#3248F2] ${passwordHasSpace ? 'border-[#DC2626]' : 'border-[#999999]/35'}`}
                 />
                 <button
                   type="button"
@@ -180,7 +180,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={handleRestore}
                 disabled={isSubmitting}
-                className="rounded-lg border border-[#3248F2]/40 px-5 py-2 text-[14px] font-medium text-[#3248F2] transition-colors hover:bg-[#3248F2]/6 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg border border-[#3248F2]/40 px-5 py-3 text-[15px] font-medium sm:py-2 sm:text-[14px] text-[#3248F2] transition-colors hover:bg-[#3248F2]/6 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Восстановить аккаунт и войти
               </button>
@@ -189,7 +189,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-[#171215] px-5 py-2 text-[14px] font-medium text-white transition-colors hover:bg-[#171215]/85 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg bg-[#171215] px-5 py-3 text-[15px] font-medium sm:py-2 sm:text-[14px] text-white transition-colors hover:bg-[#171215]/85 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? 'Входим…' : 'Войти'}
             </button>
@@ -198,7 +198,7 @@ export default function LoginPage() {
 
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-2 text-[14px] font-semibold text-[#171215] transition-colors hover:bg-[#F6F8FA]"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-3 text-[15px] font-semibold sm:py-2 sm:text-[14px] text-[#171215] transition-colors hover:bg-[#F6F8FA]"
             >
               <img src="/google_logo.svg" alt="" className="h-[18px] w-[18px]" aria-hidden="true" />
               Продолжить с Google
@@ -206,7 +206,7 @@ export default function LoginPage() {
 
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-2 text-[14px] font-semibold text-[#171215] transition-colors hover:bg-[#F6F8FA]"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#999999]/35 bg-white px-3.5 py-3 text-[15px] font-semibold sm:py-2 sm:text-[14px] text-[#171215] transition-colors hover:bg-[#F6F8FA]"
             >
               <img src="/apple_logo.svg" alt="" className="h-[18px] w-[18px]" aria-hidden="true" />
               Продолжить с Apple

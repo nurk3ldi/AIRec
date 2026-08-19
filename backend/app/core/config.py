@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     debug: bool = False
     api_v1_prefix: str = "/api/v1"
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    # Matched in addition to the list above. It exists for one case: opening the
+    # dev server from a phone on the same Wi-Fi, where the origin is the
+    # machine's LAN address and that address changes whenever DHCP feels like
+    # it. Set it in `.env` to something like
+    # `http://192\.168\.\d+\.\d+:3000` and leave it unset in production —
+    # a regex here is a list of origins nobody reviewed.
+    cors_origin_regex: str | None = None
 
     # --- Database ---
     # Given as separate parts rather than one URL so `.env` stays readable and
