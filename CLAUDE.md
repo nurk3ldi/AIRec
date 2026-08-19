@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AIRec is an AI-receptionist product, split into two independent apps with no root `package.json` — always run commands from inside `frontend/` or `backend/`:
 
-- `frontend/` — React + Vite + Tailwind SPA (**no Next.js**; migrated 2026-08-18). **Only the auth flow, the landing page and the profile overlay have UI.** Every dashboard screen — `/dashboard`, `/inbox`, `/appointments`, `/business` — is deliberately an empty page ground while it is redesigned; `/notifications` has a real empty state. The backend behind `/appointments` and `/business` is finished and untouched by that.
+- `frontend/` — React + Vite + Tailwind SPA (**no Next.js**; migrated 2026-08-18). **Only the auth flow and the profile overlay have UI.** The landing page and every dashboard screen — `/`, `/dashboard`, `/inbox`, `/appointments`, `/business` — are deliberately empty page grounds while they are redesigned; `/notifications` has a real empty state. The backend behind `/appointments` and `/business` is finished and untouched by that.
 - `backend/` — FastAPI service. Authentication and account profile, the business profile (services, working hours, logo) and bookings (`/appointments` CRUD, `/appointments/slots`, archive) are implemented and verified end-to-end against PostgreSQL 18. Not built: schedule overrides, a clients table, WhatsApp/assistant integration, and any test suite.
 
 **Auth is wired end-to-end**, including refresh rotation. `login.jsx` and `signup.jsx` call `backend/`'s `/api/v1/auth/*` through `frontend/src/lib/api.js`; tokens land in `localStorage` or `sessionStorage` via `frontend/src/lib/auth.js`, depending on «Запомнить меня». `DashboardLayout` calls `useRequireAuth()`, which calls `verifySession()` — a real server round trip: `GET /auth/me` with the stored access token, and on any failure (expired, invalid, backend momentarily unreachable) a fallback `POST /auth/refresh` with the stored refresh token before giving up. Only if both fail does it clear tokens and redirect to `/login`; it renders nothing while that check is in flight, so protected content never flashes on screen. `login.jsx`/`signup.jsx` run the same `verifySession()` via `useRedirectIfAuthed()` to bounce a visitor with a live session straight to `/dashboard`. `components/ProfileMenu.jsx` holds the only sign-out control, which calls `/auth/logout` best-effort then clears local tokens regardless.
@@ -66,7 +66,7 @@ Every Next.js primitive has one replacement, and mixing them back in is the thin
 
 `*` is caught by `pages/404.jsx` inside the public shell.
 
-- `/` — public landing page (`pages/index.jsx`), the only public page with real content (hero + two CTAs).
+- `/` — public landing page (`pages/index.jsx`), now an empty page ground; its hero (heading, paragraph, «Начать» / «Подробнее») was removed on 2026-08-19 and is in git history. `PublicLayout` still gives it the header, so the route to signup is not lost.
 - `/dashboard` — authenticated home. Not `/` — that's the landing page.
 - `/inbox` — «Диалоги»: empty. This is where the assistant's WhatsApp conversations will go; there is no channel and no message table behind it yet.
 - `/appointments` — «Записи»: **an empty page on purpose.** Two designs were built and each was taken down whole rather than edited, so the next inherits nothing from the last — v1 (a 24-hour time grid) is in commit `1e0c045`, v2 (a month calendar) was archived under `src/archive/` and that folder has since been deleted; both are in git history.
