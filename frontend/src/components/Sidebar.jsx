@@ -11,7 +11,13 @@ import { mediaUrl } from '../lib/api'
 import BrandMark from './BrandMark'
 import ProfileAvatar from './ProfileAvatar'
 import ProfileDialog from './ProfileDialog'
-import { AnimatePresence, domAnimation, LazyMotion } from 'motion/react'
+import {
+  AnimatePresence,
+  domMax,
+  LazyMotion,
+  m,
+  useReducedMotion,
+} from 'motion/react'
 import ProfileMenu from './ProfileMenu'
 
 const navigation = [
@@ -23,6 +29,7 @@ const navigation = [
 
 export default function Sidebar({ user = null, onUserChange }) {
   const { pathname } = useLocation()
+  const reduce = useReducedMotion()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   // null = dialog closed; otherwise the section id it's showing.
   const [dialogSection, setDialogSection] = useState(null)
@@ -38,6 +45,10 @@ export default function Sidebar({ user = null, onUserChange }) {
   }
 
   return (
+    // `domMax`, not `domAnimation`: the sliding active marker below is a shared
+    // layout animation, and layout projection is the one feature the smaller
+    // bundle leaves out.
+    <LazyMotion features={domMax} strict>
     <aside className="fixed inset-y-0 left-0 z-50 flex w-16 flex-col overflow-visible border-r border-[#999999]/45 bg-[#171215] text-white shadow-[6px_0_20px_rgba(23,18,21,0.08)]">
       <div className="flex h-[68px] shrink-0 items-center justify-center border-b border-[#999999]/30">
         <Link to="/dashboard" aria-label="Главная страница AIRec">
@@ -58,19 +69,43 @@ export default function Sidebar({ user = null, onUserChange }) {
               to={item.href}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
-              className={`group relative grid h-9 w-9 place-items-center rounded-[10px] transition-all duration-200 ${
-                isActive
-                  ? 'bg-[#3248F2] text-white shadow-[0_8px_22px_rgba(50,72,242,0.38)]'
-                  : 'text-white hover:bg-[#F6F8FA]/10'
+              className={`group relative grid h-9 w-9 place-items-center rounded-[10px] transition-colors duration-200 ${
+                isActive ? 'text-white' : 'text-white hover:bg-[#F6F8FA]/10'
               }`}
             >
-              <HugeiconsIcon
-                icon={item.icon}
-                size={18}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2.15}
-              />
+              {/* One marker for the whole rail, not a background on each item:
+                  the same `layoutId` on every active state is what lets Motion
+                  recognise it as the *same* element moving, so it slides from
+                  the item you left to the one you picked instead of blinking
+                  out here and in over there. That travel is the animation —
+                  it draws the line between where you were and where you are. */}
+              {isActive && (
+                <m.span
+                  layoutId="sidebar-active"
+                  className="absolute inset-0 rounded-[10px] bg-[#3248F2] shadow-[0_8px_22px_rgba(50,72,242,0.38)]"
+                  // A spring rather than a duration: the distance between items
+                  // varies, and a spring covers a long move and a short one in
+                  // times that both feel right. Damped just short of a visible
+                  // overshoot — this is a selection, not a bounce.
+                  transition={
+                    reduce
+                      ? { duration: 0 }
+                      : { type: 'spring', stiffness: 420, damping: 34, mass: 0.8 }
+                  }
+                />
+              )}
+              {/* Above the marker: an absolutely positioned sibling paints over
+                  static content whatever the DOM order, so the icon needs its
+                  own stacking context or the blue square swallows it. */}
+              <span className="relative z-10 grid place-items-center">
+                <HugeiconsIcon
+                  icon={item.icon}
+                  size={18}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.15}
+                />
+              </span>
               <span className="pointer-events-none absolute left-[46px] z-50 whitespace-nowrap rounded-md bg-[#171215] px-2.5 py-1.5 font-sans text-[11px] font-medium text-white opacity-0 shadow-xl transition-all duration-150 group-hover:translate-x-1 group-hover:opacity-100">
                 {item.label}
               </span>
@@ -101,38 +136,32 @@ export default function Sidebar({ user = null, onUserChange }) {
         )}
       </button>
 
-      {/* Both overlays sit under one `LazyMotion`, and each gets its own
-          `AnimatePresence` — separate boundaries so closing the menu to open
-          the dialog does not make Motion treat one as replacing the other.
-          The presence wrappers live here rather than inside the components
+      {/* Each overlay gets its own `AnimatePresence` — separate boundaries, so
+          closing the menu to open the dialog does not make Motion treat one as
+          replacing the other. They live here rather than inside the components
           because both unmount when their flag clears, and a component cannot
-          animate its own exit after React has removed it.
+          animate its own exit after React has removed it. */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <ProfileMenu
+            user={user}
+            onOpenSection={openSection}
+            onClose={() => setIsMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
-          `domAnimation` is Motion's transform/opacity subset: the full
-          `motion.*` component carries layout projection, drag, scroll and SVG
-          morphing, and so cannot be tree-shaken. */}
-      <LazyMotion features={domAnimation} strict>
-        <AnimatePresence>
-          {isMenuOpen && (
-            <ProfileMenu
-              user={user}
-              onOpenSection={openSection}
-              onClose={() => setIsMenuOpen(false)}
-            />
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {dialogSection && (
-            <ProfileDialog
-              section={dialogSection}
-              user={user}
-              onClose={() => setDialogSection(null)}
-              onUserChange={onUserChange}
-            />
-          )}
-        </AnimatePresence>
-      </LazyMotion>
+      <AnimatePresence>
+        {dialogSection && (
+          <ProfileDialog
+            section={dialogSection}
+            user={user}
+            onClose={() => setDialogSection(null)}
+            onUserChange={onUserChange}
+          />
+        )}
+      </AnimatePresence>
     </aside>
+    </LazyMotion>
   )
 }

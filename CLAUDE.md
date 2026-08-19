@@ -116,6 +116,10 @@ Two layering details that are easy to break: the avatar cropper is a modal *insi
 
   Two things to keep if this is extended. **`m` + `LazyMotion features={domAnimation}`, never bare `motion.div`** — the full component carries layout projection, drag, scroll and SVG morphing and so cannot be tree-shaken; the subset costs ~46 kB less. And **motion is not free**: the library adds ~77 kB raw / ~28 kB gzipped to the bundle for this one transition. Second and third uses are cheap; a first use somewhere else should still be worth it on its own.
 
+  **The sidebar's active marker slides.** `Sidebar.jsx` gives the blue square a shared `layoutId="sidebar-active"` instead of putting a background on whichever item is current, so Motion recognises it as one element moving and travels it from the item you left to the one you picked. It rides a spring rather than a duration — the gap between items varies, and a spring handles a long move and a short one in times that both feel right. The icon needs `relative z-10`: an absolutely positioned sibling paints over static content whatever the DOM order, so without it the marker swallows the glyph.
+
+  That marker is why `Sidebar` loads **`domMax` where everything else loads `domAnimation`** — layout projection is the one feature the smaller bundle leaves out, and it costs about 12 kB gzipped. Nothing else in the app needs it; keep new work on `domAnimation` unless it is another shared-element move.
+
   The other two animations in the app are the profile overlays, documented above: the menu grows out of its own bottom-left corner, the dialog fades and scales in behind a dimming backdrop. Both are `position: fixed`, which is why they may transform where a page may not.
 
   Motion rules for anything new, from `ui-ux-pro-max`: 150–300ms, ease-out entering and ease-in leaving, `opacity`/`transform` only (never height), **at most one or two moving things per view**, and always honour `prefers-reduced-motion`. Animation that does not answer "what just happened" or "where did this come from" is decoration, and decoration is what makes a screen loud.
