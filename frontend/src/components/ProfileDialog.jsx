@@ -1,4 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog'
+import { m, useReducedMotion } from 'motion/react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Cancel01Icon } from '@hugeicons/core-free-icons'
 import AccountSettings from './profile/AccountSettings'
@@ -42,6 +43,8 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
     typeof document !== 'undefined' &&
     document.querySelector('[data-nested-overlay]') !== null
 
+  const reduce = useReducedMotion()
+
   return (
     <Dialog.Root
       open
@@ -50,14 +53,38 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[60] grid place-items-center bg-[#171215]/50 p-4">
+        {/* `asChild` on both, so Radix keeps its behaviour — focus trap, scroll
+            lock, dismissal — and hands the element it would have rendered over
+            to Motion. The two are timed apart on purpose: the backdrop is a
+            plain 200ms fade, and the panel takes slightly longer with a little
+            scale, so the dim reads as the room going dark and the panel as the
+            thing arriving in it. Both fade rather than slide: the dialog is
+            centred and comes from nowhere in particular, so travel would be
+            inventing a direction that does not exist. */}
+        <Dialog.Overlay asChild>
+          <m.div
+            initial={reduce ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduce ? 0 : 0.2, ease: 'easeOut' }}
+            className="fixed inset-0 z-[60] grid place-items-center bg-[#171215]/50 p-4"
+          >
           <Dialog.Content
+            asChild
             // No description element, and none is wanted — telling Radix so
             // keeps it from warning about a missing one.
             aria-describedby={undefined}
             onEscapeKeyDown={(event) => {
               if (nestedOverlayOpen()) event.preventDefault()
             }}
+          >
+          <m.div
+            initial={reduce ? false : { opacity: 0, scale: 0.97, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            // Out faster than in, and without the rise: leaving should get out
+            // of the way, arriving should settle.
+            exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
+            transition={{ duration: reduce ? 0 : 0.24, ease: [0.16, 1, 0.3, 1] }}
             className={`flex max-h-[calc(100vh-2rem)] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_60px_-12px_rgba(23,18,21,0.35)] outline-none ${
               isAccount ? 'w-[520px]' : 'h-[580px] w-[728px]'
             }`}
@@ -95,7 +122,9 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
                 </div>
               )}
             </div>
+          </m.div>
           </Dialog.Content>
+          </m.div>
         </Dialog.Overlay>
       </Dialog.Portal>
     </Dialog.Root>

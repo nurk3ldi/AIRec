@@ -101,11 +101,16 @@ export default function Sidebar({ user = null, onUserChange }) {
         )}
       </button>
 
-      {/* `AnimatePresence` lives here rather than inside `ProfileMenu` because
-          the menu unmounts when this flag flips — a component cannot animate
-          its own exit after React has already removed it. `LazyMotion` +
-          `domAnimation` is the transform/opacity subset; the full `motion`
-          component cannot be tree-shaken. */}
+      {/* Both overlays sit under one `LazyMotion`, and each gets its own
+          `AnimatePresence` — separate boundaries so closing the menu to open
+          the dialog does not make Motion treat one as replacing the other.
+          The presence wrappers live here rather than inside the components
+          because both unmount when their flag clears, and a component cannot
+          animate its own exit after React has removed it.
+
+          `domAnimation` is Motion's transform/opacity subset: the full
+          `motion.*` component carries layout projection, drag, scroll and SVG
+          morphing, and so cannot be tree-shaken. */}
       <LazyMotion features={domAnimation} strict>
         <AnimatePresence>
           {isMenuOpen && (
@@ -116,16 +121,18 @@ export default function Sidebar({ user = null, onUserChange }) {
             />
           )}
         </AnimatePresence>
-      </LazyMotion>
 
-      {dialogSection && (
-        <ProfileDialog
-          section={dialogSection}
-          user={user}
-          onClose={() => setDialogSection(null)}
-          onUserChange={onUserChange}
-        />
-      )}
+        <AnimatePresence>
+          {dialogSection && (
+            <ProfileDialog
+              section={dialogSection}
+              user={user}
+              onClose={() => setDialogSection(null)}
+              onUserChange={onUserChange}
+            />
+          )}
+        </AnimatePresence>
+      </LazyMotion>
     </aside>
   )
 }
