@@ -70,7 +70,7 @@ Every Next.js primitive has one replacement, and mixing them back in is the thin
 
 `*` is caught by `pages/404.jsx` inside the public shell.
 
-- `/` — public landing page (`pages/index.jsx`), now an empty page ground; its hero (heading, paragraph, «Начать» / «Подробнее») was removed on 2026-08-19 and is in git history. `PublicLayout` still gives it the header, so the route to signup is not lost.
+- `/` — public landing page (`pages/index.jsx`). **On a phone it is a splash and on a desktop it is still empty**, and that asymmetry is deliberate rather than unfinished: below `sm` it shows the wordmark, one line of what AIRec is, «Открыть AIRec» and a «Войти или зарегистрироваться» pair, centred in the viewport; above `sm` the desktop landing is being designed separately and the phone screen is not a draft of it. The old hero (heading, paragraph, «Начать» / «Подробнее») was removed on 2026-08-19 and is in git history.
 - `/dashboard` — authenticated home. Not `/` — that's the landing page.
 - `/inbox` — «Диалоги»: empty. This is where the assistant's WhatsApp conversations will go; there is no channel and no message table behind it yet.
 - `/appointments` — «Записи»: **an empty page on purpose.** Two designs were built and each was taken down whole rather than edited, so the next inherits nothing from the last — v1 (a 24-hour time grid) is in commit `1e0c045`, v2 (a month calendar) was archived under `src/archive/` and that folder has since been deleted; both are in git history.
@@ -257,6 +257,10 @@ rather than a drift:
 The zoom people actually hit on iOS is Safari magnifying the page when a text field under `16px` takes focus, and it never zooms back out. That is fixed where it is caused — **every input on `/login` and `/signup` is `text-[16px]` up to the `sm:` breakpoint** and drops to 14 above it. Any new form field needs the same pair, or the page will jump the first time someone taps it on a phone.
 
 What replaces the viewport flags for the thing they were meant to fix is `touch-action: manipulation` in `@layer base`, which drops the ~300ms a mobile browser waits after a tap in case a second one means "zoom". It makes taps respond at once and takes nothing away from someone who needs to magnify.
+
+**`/`, `/login` and `/signup` drop the header below `sm`** — `PublicLayout` holds the set, and `LandingHeader` takes a `className` so it is hidden rather than unmounted. On a phone each of those three is a self-contained screen that already offers what the header would: the landing page has both calls to action in its body, the auth pages cross-link at the bottom. A 64px bar repeating them costs a tenth of the viewport. `/forgot-password` and `/reset-password` keep it, deliberately — they are mid-flow, and the header is the way back out.
+
+The three page modules pay for that with a media query: `min-height: 100vh` below `sm`, `calc(100vh - 64px)` above it, matching the breakpoint the header returns at. They are also `display: flex; flex-direction: column`, and their content centres with **`m-auto`, not `justify-center`** — `justify-center` clips the top of anything taller than the viewport instead of letting it scroll, which the signup form is on a short screen.
 
 Touch targets on the auth pages and the landing header grow on small screens (`py-3 sm:py-2`) to clear the 44px minimum; the 68px/64px headers and the 400px auth column already fit a 375px screen, so nothing else needed a breakpoint. `-webkit-text-size-adjust: 100%` stops iOS resizing text on rotation.
 

@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
 
-export default function LandingHeader() {
+export default function LandingHeader({ className = '' }) {
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-[#999999]/25 bg-white px-4 sm:px-6 lg:px-8">
+    <header
+      className={`sticky top-0 z-40 h-16 items-center justify-between border-b border-[#999999]/25 bg-white px-4 sm:px-6 lg:px-8 ${className}`}
+    >
       <Link to="/" className="flex h-full items-center" aria-label="AIRec — главная">
         <img
           src="/black_logo_icon.png?v=2"

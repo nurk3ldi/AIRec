@@ -63,7 +63,7 @@ export default function LoginPage() {
   return (
     <>
       <div className={styles.page} aria-label="Страница входа">
-        <div className="mx-auto flex max-w-[400px] flex-col gap-6 px-4 py-10 sm:px-6 sm:py-16">
+        <div className="m-auto flex w-full max-w-[400px] flex-col gap-6 px-4 py-10 sm:px-6 sm:py-16">
           <h1 className="text-center font-display text-[26px] font-semibold tracking-[-0.02em] text-[#171215]">
             Вход в AIRec
           </h1>

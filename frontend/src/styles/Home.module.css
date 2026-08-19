@@ -1,4 +1,17 @@
 .page {
-  min-height: calc(100vh - 64px);
-  background: #f6f8fa;
+  display: flex;
+  flex-direction: column;
+  /* No header on this route below the sm breakpoint, so the page owns the whole
+     viewport there; above it the 64px LandingHeader is back and takes its share.
+     A flex column so the content can centre itself with `m-auto` — `m-auto`
+     rather than `justify-center`, which clips the top of anything taller than
+     the viewport instead of letting it scroll. */
+  min-height: 100vh;
+  background: #ffffff;
+}
+
+@media (min-width: 640px) {
+  .page {
+    min-height: calc(100vh - 64px);
+  }
 }
