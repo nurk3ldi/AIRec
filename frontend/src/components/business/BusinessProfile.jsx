@@ -30,7 +30,6 @@ import {
 import Card, { CardAction } from './Card'
 import InlineText from './InlineText'
 import OptionPicker from './OptionPicker'
-import StatusCard from './StatusCard'
 import WorkingHours from './WorkingHours'
 
 const MAX_LOGO_BYTES = 5 * 1024 * 1024
@@ -347,7 +346,7 @@ function Field({
 }
 
 /**
- * `trailing` is rendered in the last cell of the top row, under «Состояние».
+ * `trailing` fills the narrow right-hand cell of the top row.
  *
  * The page owns what goes there — right now the empty «Настройка ИИ» card — but
  * this component owns the grid, because the grid is what its three cards are
@@ -665,15 +664,9 @@ export default function BusinessProfile({ trailing }) {
         </div>
       </Card>
 
-      {/* The narrow column is a stack, not a single card: «Состояние» is short,
-          and letting the placeholder grow into what is left keeps the top row
-          reading as one band rather than as a card with a hole beside it. */}
+      {/* Still a column rather than the card itself, so the page can put more
+          than one thing here without this component changing shape. */}
       <div className="flex flex-col gap-6 lg:col-span-5 lg:self-stretch">
-        <StatusCard
-          business={business}
-          services={services}
-          schedule={schedule}
-        />
         {trailing}
       </div>
 

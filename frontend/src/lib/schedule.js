@@ -76,13 +76,6 @@ export function openSpans(item) {
   return [[opens, closes]]
 }
 
-/** Minutes the business is open across the whole week. */
-export const weekMinutes = (schedule) =>
-  schedule.reduce(
-    (total, item) => total + (item.is24h ? MINUTES_IN_DAY : (openMinutes(item) ?? 0)),
-    0
-  )
-
 /**
  * Whether the business is shut all day.
  *
