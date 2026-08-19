@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Outlet } from 'react-router-dom'
 import { useRequireAuth } from '../lib/auth'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import PageTransition from './PageTransition'
 
 export default function DashboardLayout() {
   const verifiedUser = useRequireAuth()
@@ -21,7 +21,10 @@ export default function DashboardLayout() {
       <Sidebar user={user} onUserChange={setUser} />
       <main className="min-h-screen bg-[#F6F8FA] pl-16">
         <Header />
-        <Outlet />
+        {/* The rail and the header sit outside this and update instantly — a
+            click should be acknowledged now; only the content it swaps needs
+            to cross over. */}
+        <PageTransition />
       </main>
     </div>
   )
