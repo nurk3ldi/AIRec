@@ -155,8 +155,12 @@ export default function LoginPage() {
                   </span>
                 </span>
                 {/* #999999 on white is 2.9:1 — fine for a placeholder, not for
-                    a label someone has to read to make a decision. */}
-                <span className="text-[13px] text-[#171215]/70">Запомнить меня</span>
+                    a label someone has to read to make a decision. `font-medium`
+                    matches the "Забыли пароль?" link sharing this row: the two
+                    controls carry the same weight, so they should look it. */}
+                <span className="text-[13px] font-medium text-[#171215]/70">
+                  Запомнить меня
+                </span>
               </label>
 
               <Link
