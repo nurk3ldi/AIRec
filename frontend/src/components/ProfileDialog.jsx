@@ -111,12 +111,30 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
                 ? { opacity: 0 }
                 : isDesktop
                   ? { opacity: 0, scale: 0.98 }
-                  : { y: '100%' }
+                  : { y: '100%', transition: { duration: 0.22, ease: 'easeIn' } }
             }
-            transition={{
-              duration: reduce ? 0 : isDesktop ? 0.24 : 0.32,
-              ease: [0.16, 1, 0.3, 1],
-            }}
+            // The phone sheet travels the whole height of the screen, where the
+            // desktop panel moves eight pixels — the same timing makes the one
+            // that goes furthest look thrown.
+            //
+            // `cubic-bezier(0.32, 0.72, 0, 1)` — the curve iOS uses for its own
+            // sheets, and worth borrowing for its shape rather than its
+            // pedigree: it eases *in* as well as out, so the panel gathers
+            // speed instead of leaving from a standstill already at full pace.
+            //
+            // Springs were tried at both ends and neither worked. A soft one
+            // read as sluggish — over a whole screen height, the tail of a slow
+            // settle is time spent waiting. A stiff one read as rigid, because
+            // a spring starts at maximum acceleration and that is the part the
+            // eye calls abrupt. Closing stays a quick tween; a sheet you
+            // dismissed should be gone.
+            transition={
+              reduce
+                ? { duration: 0 }
+                : isDesktop
+                  ? { duration: 0.24, ease: [0.16, 1, 0.3, 1] }
+                  : { duration: 0.42, ease: [0.32, 0.72, 0, 1] }
+            }
             // The safe-area insets live *here*, not on the dim behind it: padding
             // the overlay left the phone's status-bar strip showing the dark
             // backdrop instead of the sheet. Padding the sheet keeps its white
