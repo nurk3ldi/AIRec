@@ -100,16 +100,25 @@
      hairline, not its fill. */
   --ground: #000000;
   --surface: #000000;
-  /* White at low alpha, not grey: on this ground it is the only thing that
-     reads as a hairline rather than as a smudge.
+  /* Solid greys, not white at an alpha — taken from Vercel's dark theme, where
+     `--ds-gray-400` (#2e2e2e) is the workhorse border and `--ds-gray-500`
+     (#454545) is the step up from it.
      *
-     * Tuned against pure black, and lower than it was for the old `#0e0c0d`
-     * ground for exactly that reason: the darker the surface, the less alpha it
-     * takes to separate from it, and 22% on black stops being a hairline and
-     * becomes a bright rule. 14% lands near rgb(36,36,36) — visible at a
-     * glance, invisible as an object. */
-  --line: rgb(255 255 255 / 0.14);
-  --line-strong: rgb(255 255 255 / 0.22);
+     * Solid is the part worth copying. An alpha line is a different colour on
+     * every surface it crosses: over the page, over a card, over a dimmed
+     * backdrop. A fixed grey is the same line everywhere, which is what makes a
+     * dark interface look drawn rather than assembled. The light theme keeps
+     * its alpha values — there the surfaces are close enough in lightness that
+     * the difference does not show. */
+  /* **Both tiers are the same value here**, on purpose: on a pure black ground
+     the gap between #2e2e2e and #454545 reads as two *kinds* of line rather
+     than as one line at two weights, and a shell whose header rule and menu
+     divider disagree looks unfinished. Light keeps its two alphas — there the
+     surfaces are close enough in lightness that a divider and an input edge
+     want different weights, and it never shows as a mismatch. Splitting them
+     again is one value, not a refactor. */
+  --line: #454545;
+  --line-strong: #454545;
   --rail: #000000;
   --rail-ink: #ffffff;
   /* Deeper on a dark ground: 50% over near-black barely reads as a dim. */

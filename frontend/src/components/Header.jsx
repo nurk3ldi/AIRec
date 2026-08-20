@@ -29,7 +29,7 @@ export default function Header({ className = '' }) {
     // actually scroll — the ground colour, or a blur — or content will run
     // underneath and show through.
     <header
-      className={`sticky top-0 z-40 h-[68px] items-center justify-between gap-4 border-b border-line px-4 sm:px-6 lg:px-8 ${className}`}
+      className={`sticky top-0 z-40 h-[68px] items-center justify-between gap-4 border-b border-line-strong px-4 sm:px-6 lg:px-8 ${className}`}
     >
       {/* On a phone the wordmark, because the rail that normally carries it is
           not there and a screen with the product's name nowhere on it reads as

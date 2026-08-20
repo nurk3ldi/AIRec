@@ -24,7 +24,7 @@ export default function Sidebar({ user = null, isMenuOpen, onToggleMenu }) {
     // bundle leaves out.
     <LazyMotion features={domMax} strict>
       <aside className="fixed inset-y-0 left-0 z-50 hidden w-16 flex-col overflow-visible border-r border-line-strong bg-rail text-rail-ink shadow-[6px_0_20px_rgba(23,18,21,0.08)] sm:flex">
-        <div className="flex h-[68px] shrink-0 items-center justify-center border-b border-line">
+        <div className="flex h-[68px] shrink-0 items-center justify-center border-b border-line-strong">
           <Link to="/dashboard" aria-label="Главная страница AIRec">
             <BrandMark />
           </Link>
