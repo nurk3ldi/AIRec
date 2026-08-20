@@ -92,7 +92,7 @@
      rather than lifting this one and changing the brand in half the app. */
   --accent: #3248f2;
   --accent-strong: #2839c9;
-  --ink: #f3f1f2;
+  --ink: #ffffff;
   --muted: #8b8588;
   /* Pure black for the page, the cards and the dialogs — and the rail below
      matches, so the whole dark UI is one unbroken surface with nothing reading
@@ -111,7 +111,7 @@
   --line: rgb(255 255 255 / 0.14);
   --line-strong: rgb(255 255 255 / 0.22);
   --rail: #000000;
-  --rail-ink: #f3f1f2;
+  --rail-ink: #ffffff;
   /* Deeper on a dark ground: 50% over near-black barely reads as a dim. */
   --scrim: rgb(5 4 5 / 0.66);
   /* Both lifted: the light-mode red and green are tuned against white and come

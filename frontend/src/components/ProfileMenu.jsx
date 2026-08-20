@@ -145,7 +145,7 @@ export default function ProfileMenu({ user, onOpenSection, onClose }) {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={1.8}
-              className="shrink-0 text-ink/70"
+              className="shrink-0 text-ink"
             />
             {item.label}
           </button>
