@@ -94,15 +94,23 @@
   --accent-strong: #2839c9;
   --ink: #f3f1f2;
   --muted: #8b8588;
-  --ground: #0e0c0d;
-  --surface: #1a1719;
+  /* Pure black for the page, the cards and the dialogs — and the rail below
+     matches, so the whole dark UI is one unbroken surface with nothing reading
+     as a panel laid on top. What separates a card from the page here is its
+     hairline, not its fill. */
+  --ground: #000000;
+  --surface: #000000;
   /* White at low alpha, not grey: on this ground it is the only thing that
-     reads as a hairline rather than as a smudge. Carried higher than the light
-     theme's equivalent on purpose — a dark surface swallows a hairline, so the
-     two themes match in *how visible the line is*, not in its opacity. */
-  --line: rgb(255 255 255 / 0.22);
-  --line-strong: rgb(255 255 255 / 0.36);
-  --rail: #0a0809;
+     reads as a hairline rather than as a smudge.
+     *
+     * Tuned against pure black, and lower than it was for the old `#0e0c0d`
+     * ground for exactly that reason: the darker the surface, the less alpha it
+     * takes to separate from it, and 22% on black stops being a hairline and
+     * becomes a bright rule. 14% lands near rgb(36,36,36) — visible at a
+     * glance, invisible as an object. */
+  --line: rgb(255 255 255 / 0.14);
+  --line-strong: rgb(255 255 255 / 0.22);
+  --rail: #000000;
   --rail-ink: #f3f1f2;
   /* Deeper on a dark ground: 50% over near-black barely reads as a dim. */
   --scrim: rgb(5 4 5 / 0.66);
