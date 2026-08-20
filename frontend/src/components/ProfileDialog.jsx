@@ -138,9 +138,16 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
             }
             // The safe-area insets live *here*, not on the dim behind it: padding
             // the overlay left the phone's status-bar strip showing the dark
-            // backdrop instead of the sheet. Padding the sheet keeps its white
+            // backdrop instead of the sheet. Padding the sheet keeps its fill
             // running edge to edge and only holds the content clear.
-            className={`flex h-full w-full flex-col overflow-hidden bg-surface pb-[env(safe-area-inset-bottom)] outline-none sm:max-h-[calc(100vh-2rem)] sm:max-w-[calc(100vw-2rem)] sm:rounded-2xl sm:pb-0 sm:shadow-[0_24px_60px_-12px_rgba(23,18,21,0.35)] ${
+            //
+            // The border is desktop-only, and it is what gives the panel an edge
+            // in dark mode: the page is pure black, the panel is pure black, the
+            // shadow is black-on-black and the scrim cannot darken what is
+            // already at zero — so a hairline is the only thing left that says
+            // one is floating over the other. On a phone the sheet fills the
+            // screen and has no outside to be edged against.
+            className={`flex h-full w-full flex-col overflow-hidden border-line bg-surface pb-[env(safe-area-inset-bottom)] outline-none sm:max-h-[calc(100vh-2rem)] sm:border sm:max-w-[calc(100vw-2rem)] sm:rounded-2xl sm:pb-0 sm:shadow-[0_24px_60px_-12px_rgba(23,18,21,0.35)] ${
               isAccount ? 'sm:h-auto sm:w-[520px]' : 'sm:h-[580px] sm:w-[728px]'
             }`}
           >

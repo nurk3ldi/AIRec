@@ -198,7 +198,10 @@ export default function AvatarCropper({
         if (event.target === event.currentTarget) onCancel()
       }}
     >
-      <div className="w-full max-w-[360px] rounded-2xl bg-surface p-5 shadow-[0_24px_48px_-12px_rgba(23,18,21,0.3)]">
+      {/* A border as well as the shadow: in dark mode the panel, the page and
+          the shadow are all black, and the hairline is the only thing left
+          that says this is a layer over something. */}
+      <div className="w-full max-w-[360px] rounded-2xl border border-line bg-surface p-5 shadow-[0_24px_48px_-12px_rgba(23,18,21,0.3)]">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-[16px] font-semibold text-ink">
             {title}
