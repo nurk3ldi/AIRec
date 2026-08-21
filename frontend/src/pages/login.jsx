@@ -23,15 +23,19 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 // One recipe for every control on this page, so the inputs, the submit and the
 // social buttons are the same object at different weights.
-const CONTROL = 'h-10 w-full rounded-lg px-3 text-[16px] transition-all duration-150'
+// Measured off the reference's controls: 40px tall, a 6px radius (`--geist-radius`),
+// 12px of horizontal padding and 16px text. The radius is the giveaway — 8px
+// reads as a card, 6px reads as a control.
+const CONTROL =
+  'h-10 w-full rounded-md px-3 text-[16px] font-medium transition-all duration-150'
 
 const FIELD =
-  `${CONTROL} bg-surface text-ink outline-none placeholder:text-muted ` +
+  `${CONTROL} bg-surface font-normal text-ink outline-none placeholder:text-muted ` +
   'shadow-[0_0_0_1px_var(--color-field)] hover:shadow-[0_0_0_1px_var(--color-field-hover)] ' +
   'focus:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)]'
 
 const FIELD_ERROR =
-  `${CONTROL} bg-surface text-ink outline-none placeholder:text-muted ` +
+  `${CONTROL} bg-surface font-normal text-ink outline-none placeholder:text-muted ` +
   'shadow-[0_0_0_1px_var(--color-danger)] focus:shadow-[0_0_0_1px_var(--color-danger),0_0_0_4px_var(--color-field-halo)]'
 
 export default function LoginPage() {
@@ -209,7 +213,7 @@ export default function LoginPage() {
               type="button"
               onClick={handleRestore}
               disabled={isSubmitting}
-              className={`${CONTROL} mt-2.5 bg-surface text-[14px] font-medium text-ink shadow-[0_0_0_1px_var(--color-field-hover)] hover:shadow-[0_0_0_1px_var(--color-field-focus)] disabled:cursor-not-allowed disabled:opacity-60`}
+              className={`${CONTROL} mt-2.5 bg-surface text-ink shadow-[0_0_0_1px_var(--color-field-hover)] hover:bg-ink/6 hover:shadow-[0_0_0_1px_var(--color-field-focus)] disabled:cursor-not-allowed disabled:opacity-60`}
             >
               Восстановить аккаунт и войти
             </button>
@@ -218,7 +222,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`${CONTROL} mt-2.5 bg-accent text-[14px] font-medium text-surface hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60`}
+            className={`${CONTROL} mt-2.5 bg-accent text-surface hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60`}
           >
             {isSubmitting ? 'Входим…' : 'Войти'}
           </button>
@@ -235,7 +239,7 @@ export default function LoginPage() {
         <div className="flex flex-col gap-2.5">
           <button
             type="button"
-            className={`${CONTROL} flex items-center justify-center gap-2 bg-surface text-[14px] font-medium text-ink shadow-[0_0_0_1px_var(--color-field-hover)] hover:shadow-[0_0_0_1px_var(--color-field-focus)]`}
+            className={`${CONTROL} flex items-center justify-center gap-2 bg-surface text-ink shadow-[0_0_0_1px_var(--color-field-hover)] hover:bg-ink/6 hover:shadow-[0_0_0_1px_var(--color-field-focus)]`}
           >
             <img src="/google_logo.svg" alt="" className="h-4 w-4" aria-hidden="true" />
             Продолжить с Google
@@ -243,7 +247,7 @@ export default function LoginPage() {
 
           <button
             type="button"
-            className={`${CONTROL} flex items-center justify-center gap-2 bg-surface text-[14px] font-medium text-ink shadow-[0_0_0_1px_var(--color-field-hover)] hover:shadow-[0_0_0_1px_var(--color-field-focus)]`}
+            className={`${CONTROL} flex items-center justify-center gap-2 bg-surface text-ink shadow-[0_0_0_1px_var(--color-field-hover)] hover:bg-ink/6 hover:shadow-[0_0_0_1px_var(--color-field-focus)]`}
           >
             <img src="/apple_logo.svg" alt="" className="h-4 w-4" aria-hidden="true" />
             Продолжить с Apple
