@@ -3,6 +3,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { EyeIcon, EyeOffIcon } from '@hugeicons/core-free-icons'
 import { forgotPassword, resetPassword } from '../lib/api'
 import { useRedirectIfAuthed } from '../lib/auth'
+import { useT } from '../lib/i18n'
 import OtpInput from '../components/OtpInput'
 import { BUTTON_PRIMARY, FIELD, FIELD_ERROR } from '../components/controls'
 import styles from '../styles/ResetPassword.module.css'
@@ -38,6 +39,7 @@ export default function ResetPasswordPage() {
 }
 
 function ResetPasswordForm({ email, navigate }) {
+  const t = useT()
 
   const [code, setCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -64,11 +66,11 @@ function ResetPasswordForm({ email, navigate }) {
     setFieldErrors({})
 
     if (code.length !== 6) {
-      setError('Введите 6-значный код.')
+      setError(t('reset.needCode'))
       return
     }
     if (passwordsMismatch) {
-      setError('Пароли не совпадают.')
+      setError(t('reset.mismatch'))
       return
     }
 
@@ -103,19 +105,19 @@ function ResetPasswordForm({ email, navigate }) {
   }
 
   return (
-    <div className={styles.page} aria-label="Страница сброса пароля">
+    <div className={styles.page} aria-label={t('reset.aria')}>
       <div className="m-auto flex w-full max-w-[360px] flex-col px-4 py-10 sm:py-16">
         <h1 className="text-center font-display text-[32px] leading-10 font-semibold tracking-[-0.04em] text-ink">
-          Введите код
+          {t('reset.title')}
         </h1>
         <p className="mt-2 text-center text-[14px] text-muted">
-          Мы отправили 6-значный код на <span className="text-ink">{email}</span>
+          {t('reset.sentTo')} <span className="text-ink">{email}</span>
         </p>
         <Link
           to={`/forgot-password?email=${encodeURIComponent(email)}`}
           className="mt-1 text-center text-[13px] text-muted underline-offset-2 transition-colors hover:text-ink hover:underline"
         >
-          Не тот email? Изменить
+          {t('reset.wrongEmail')}
         </Link>
 
         <form onSubmit={handleSubmit} noValidate className="mt-7 flex flex-col gap-2.5">
@@ -133,17 +135,15 @@ function ResetPasswordForm({ email, navigate }) {
             className="mx-auto text-[13px] text-muted underline-offset-2 transition-colors hover:text-ink hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-60"
           >
             {resendCooldown > 0
-              ? `Отправить снова (${resendCooldown} с)`
-              : justResent
-                ? 'Код отправлен.'
-                : 'Отправить код снова'}
+              ? t('reset.resendIn', { seconds: resendCooldown })
+              : t(justResent ? 'reset.resent' : 'reset.resend')}
           </button>
 
           {/* A labelled rule: the code proves who you are, the fields below set
               the new password. Two steps in one form, said out loud. */}
           <div className="my-4 flex items-center gap-3">
             <span className="h-px flex-1 bg-line" />
-            <span className="text-[13px] text-muted">новый пароль</span>
+            <span className="text-[13px] text-muted">{t('reset.newPasswordLabel')}</span>
             <span className="h-px flex-1 bg-line" />
           </div>
 
@@ -153,7 +153,7 @@ function ResetPasswordForm({ email, navigate }) {
                 type={showPassword ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(event) => setNewPassword(event.target.value)}
-                placeholder="Новый пароль"
+                placeholder={t('reset.newPassword')}
                 autoComplete="new-password"
                 className={`${
                   fieldErrors.new_password || newPasswordHasSpace ? FIELD_ERROR : FIELD
@@ -165,7 +165,7 @@ function ResetPasswordForm({ email, navigate }) {
               <p className="mt-1.5 text-[13px] text-danger">{fieldErrors.new_password}</p>
             ) : (
               newPasswordHasSpace && (
-                <p className="mt-1.5 text-[13px] text-danger">Пробелы недопустимы.</p>
+                <p className="mt-1.5 text-[13px] text-danger">{t('form.noSpaces')}</p>
               )
             )}
           </div>
@@ -176,14 +176,14 @@ function ResetPasswordForm({ email, navigate }) {
                 type={showPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="Повторите пароль"
+                placeholder={t('reset.repeatPassword')}
                 autoComplete="new-password"
                 className={`${passwordsMismatch ? FIELD_ERROR : FIELD} pr-10`}
               />
               <PasswordToggle shown={showPassword} onToggle={setShowPassword} />
             </div>
             {passwordsMismatch && (
-              <p className="mt-1.5 text-[13px] text-danger">Пароли не совпадают.</p>
+              <p className="mt-1.5 text-[13px] text-danger">{t('reset.mismatch')}</p>
             )}
           </div>
 
@@ -194,14 +194,14 @@ function ResetPasswordForm({ email, navigate }) {
           )}
 
           <button type="submit" disabled={isSubmitting} className={`${BUTTON_PRIMARY} mt-2.5`}>
-            {isSubmitting ? 'Сохраняем…' : 'Сменить пароль'}
+            {t(isSubmitting ? 'reset.submitting' : 'reset.submit')}
           </button>
         </form>
 
         <p className="mt-8 text-center text-[14px] text-muted">
-          Вспомнили пароль?{' '}
+          {t('reset.remembered')}{' '}
           <Link to="/login" className="text-ink underline-offset-2 hover:underline">
-            Войти
+            {t('reset.login')}
           </Link>
         </p>
       </div>
@@ -213,11 +213,13 @@ function ResetPasswordForm({ email, navigate }) {
  *  checking a repeat against a hidden original is not something to ask of
  *  anyone. */
 function PasswordToggle({ shown, onToggle }) {
+  const t = useT()
+
   return (
     <button
       type="button"
       onClick={() => onToggle((prev) => !prev)}
-      aria-label={shown ? 'Скрыть пароли' : 'Показать пароли'}
+      aria-label={t(shown ? 'form.hidePasswords' : 'form.showPasswords')}
       className="absolute right-2.5 grid h-7 w-7 place-items-center rounded-md text-muted transition-colors hover:text-ink"
     >
       <HugeiconsIcon

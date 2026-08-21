@@ -1,11 +1,14 @@
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Notification01Icon } from '@hugeicons/core-free-icons'
+import { useT } from '../lib/i18n'
 import styles from '../styles/Notifications.module.css'
 
 export default function NotificationsPage() {
+  const t = useT()
+
   return (
     <>
-      <div className={styles.page} aria-label="Страница уведомлений">
+      <div className={styles.page} aria-label={t('notifications.aria')}>
         {/* An empty state rather than a "скоро" placeholder: a new account
             genuinely has nothing here, so this is what it will look like even
             once the feature is wired up. */}
@@ -21,11 +24,10 @@ export default function NotificationsPage() {
           </div>
 
           <p className="mt-4 text-[15px] font-medium text-ink">
-            Пока нет уведомлений
+            {t('notifications.empty')}
           </p>
           <p className="mt-1.5 text-[14px] text-muted">
-            Здесь появятся новые записи, отменённые брони и диалоги, в которых
-            ассистенту нужна ваша помощь.
+            {t('notifications.emptyLead')}
           </p>
         </div>
       </div>

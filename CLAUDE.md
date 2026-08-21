@@ -176,7 +176,7 @@ A `bg-ink` button (the inverted primary on the auth pages) must carry `text-surf
 
 **State** is in `lib/theme.js`: three choices, `system` (default) / `light` / `dark`, stored in `localStorage` under `airec_theme` with `system` recorded as the *absence* of a key. `applyTheme` writes `data-theme` on `<html>`. The same one line runs as an **inline script in `index.html` before first paint** — set it after hydration and the page renders light then corrects itself, and that flash is worse than no dark mode. The two implementations must agree. `App.jsx` keeps a `prefers-color-scheme` listener so «Системная» tracks the OS while the settings panel — which otherwise owns this — is closed.
 
-The UI is `components/profile/AppearanceSettings.jsx`, rendered for the `settings` section. Still light-only: box shadows are `rgba(23,18,21,…)` and all but disappear on a dark ground.
+The UI is `components/profile/AppearanceSettings.jsx`, rendered for the `settings` section — **two cards of the same shape, theme and language**. The language rows name each language *in itself* and never translate it: someone who switched into a script they cannot read has to be able to find their way back, and «Ағылшынша» is no help to a reader looking for English. The icon column carries the two-letter code rather than a glyph — there is no picture of a language, and a flag would name a country instead of a tongue.
 
 ### Styling convention
 - Tailwind v4, configured entirely via the `@theme` block in `src/styles/globals.css` — there is no `tailwind.config.js`. It runs through **`@tailwindcss/vite`**, the first-party bundler plugin: there is no `postcss.config.mjs` and no `postcss` dependency, because the plugin replaces that whole chain.
@@ -315,8 +315,35 @@ The three page modules pay for that with a media query: `min-height: 100vh` belo
 
 Touch targets on the auth pages and the landing header grow on small screens (`py-3 sm:py-2`) to clear the 44px minimum; the 68px/64px headers and the 400px auth column already fit a 375px screen, so nothing else needed a breakpoint. `-webkit-text-size-adjust: 100%` stops iOS resizing text on rotation.
 
-### UI language — Russian, everywhere
-**Every user-facing string is Russian**: the public flow, the dashboard chrome, the profile overlay, all `aria-label`s and `placeholder`s, and — this part is easy to forget — **every message the backend can return**. `index.html` sets `<html lang="ru">`. Write new copy in Russian; don't reintroduce English strings, and translate the backend side of any new endpoint at the same time as its UI.
+### UI language — three, switchable; Russian is the source
+**The frontend speaks Russian, Kazakh and English**, chosen in the profile's «Настройки» section and remembered in `localStorage` under `airec_lang`. **Russian is the source language and the fallback**, not English: the product is sold in Kazakhstan, where a business owner reads Russian whichever language they prefer, so a key missing from `kk` or `en` falls through to something they can still act on. Write new copy in `ru` first, then the other two.
+
+Everything lives in `src/lib/i18n.js` plus one file per language under `src/lib/locales/`. There is **no React context and no i18n library** — the language is a module-level variable with a `Set` of listeners, because it is read at every depth in the tree and threading a provider through all of it would be a lot of plumbing for one string.
+
+The API is small and worth knowing whole:
+
+- `useT()` → the `translate` function, plus a re-render when the language changes. **This is what a component uses.**
+- `translate(key, vars, lang)` → the same thing without the subscription, for code that is not a component (`lib/api.js`'s network errors) or that runs in a callback rather than a render (`AvatarCropper`'s `img.onerror`). It reads the language at *call* time, which is exactly right there and is also why it must not go in a `useEffect` dependency list.
+- `useLanguage()` → `[lang, setLanguage]`, for the settings panel.
+- `getLocale()` → the BCP 47 tag (`ru-RU` / `kk-KZ` / `en-GB`) for `toLocaleDateString` and friends. **Dates are part of the translation** — `SessionsSettings.formatMoment` takes its locale from here rather than being pinned to `ru-RU`, or a Kazakh screen would show Russian month names.
+- `vars` fills `{name}` placeholders (`'Отправить снова ({seconds} с)'`), which is what keeps a sentence one translatable string instead of fragments a translator has to reassemble in an order their language may not use.
+
+**A missing key renders as the key itself** (`login.title`), deliberately: that is a gap you can find on screen, where an empty string is a bug you cannot.
+
+Two rules that are easy to break:
+
+- **A module-level constant may not hold a translated string.** `NAVIGATION`, `PROFILE_SECTIONS`, `SECTION_PLACEHOLDERS` and `Header`'s `PAGE_TITLE_KEYS` are all evaluated once at import, so a translated label there would freeze in whichever language happened to load first and never follow a change. They hold **keys** — `labelKey`, `dialogLabelKey` — and the components call `t()` at render. The same goes for a translated default in a function signature: `AvatarCropper`'s `title` has no default, and falls back to `t('cropper.title')` in the JSX instead.
+- **Nothing keeps the three dictionaries in step but you.** They are plain objects with no schema; the check is one command:
+
+  ```
+  node --input-type=module -e "import ru from './src/lib/locales/ru.js';import kk from './src/lib/locales/kk.js';import en from './src/lib/locales/en.js';const r=Object.keys(ru);console.log(r.filter(k=>!(k in kk)),r.filter(k=>!(k in en)))"
+  ```
+
+`applyLanguage()` runs from `App.jsx` and stamps `<html lang>`, which is what a screen reader picks its voice from; `index.html` sets it a second time before first paint. Unlike the theme that pre-paint copy is **not** load-bearing — nothing is painted from `lang`, and the store has already read `localStorage` by the time React's first render happens, so there is no flash to prevent. It is there because getting the attribute right before the document is announced costs one line.
+
+**The backend is still Russian only, and that is a real seam.** Every message the API returns — «Неверный логин или пароль.», every 422 field message — is worded server-side, so a reader on English or Kazakh sees Russian the moment a request fails. `lib/api.js` translates only the two failures it generates itself (`timeout`, `network_error`) plus the last-resort unknown. Closing this needs either `Accept-Language` on the backend or a code→message map on the client; it is **not** done.
+
+**`src/lib/cities.js`, `dates.js`, `appointments.js`, `businessOptions.js` and `schedule.js` are also untranslated** — about 150 Russian strings between them. They belong to the screens that are currently empty and are imported by nothing, so they are tree-shaken out of the build; translate them when those screens come back, not before.
 
 Making the backend fully Russian took two non-obvious pieces, both in play for any new field you add:
 

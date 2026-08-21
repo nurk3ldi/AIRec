@@ -1,3 +1,4 @@
+import { useT } from '../lib/i18n'
 import styles from '../styles/Dashboard.module.css'
 
 /**
@@ -11,5 +12,7 @@ import styles from '../styles/Dashboard.module.css'
  * Это домашний экран после входа, а не `/` — по тому адресу лендинг.
  */
 export default function DashboardHomePage() {
-  return <div className={styles.page} aria-label="Главная" />
+  const t = useT()
+
+  return <div className={styles.page} aria-label={t('nav.dashboard')} />
 }

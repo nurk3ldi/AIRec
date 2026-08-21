@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { applyTheme, getThemePreference } from './lib/theme'
+import { applyLanguage } from './lib/i18n'
 import DashboardLayout from './components/DashboardLayout'
 import PublicLayout from './components/PublicLayout'
 import AppointmentsPage from './pages/appointments'
@@ -36,6 +37,12 @@ export default function App() {
   // dark at sunset should take the app with it, and the settings panel that
   // otherwise owns this is closed almost all of the time.
   useEffect(() => {
+    // The language needs no pre-paint script the way the theme does — the store
+    // reads `localStorage` at module load, so the first render is already in the
+    // right language. This only stamps `<html lang>`, which is what a screen
+    // reader picks its voice from.
+    applyLanguage()
+
     const media = globalThis.matchMedia('(prefers-color-scheme: dark)')
     const onChange = () => {
       if (getThemePreference() === 'system') applyTheme('system')

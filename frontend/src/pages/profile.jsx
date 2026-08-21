@@ -12,6 +12,7 @@ import {
 } from '@hugeicons/core-free-icons'
 import { logout as logoutRequest, mediaUrl } from '../lib/api'
 import { clearTokens, getRefreshToken } from '../lib/auth'
+import { useT } from '../lib/i18n'
 import ProfileAvatar from '../components/ProfileAvatar'
 import styles from '../styles/Profile.module.css'
 
@@ -46,6 +47,7 @@ import styles from '../styles/Profile.module.css'
  * naming groups you could already see.
  */
 export default function ProfilePage() {
+  const t = useT()
   const { user, onOpenSection } = useOutletContext()
   const navigate = useNavigate()
   const [signingOut, setSigningOut] = useState(false)
@@ -62,7 +64,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className={styles.page} aria-label="Профиль">
+    <div className={styles.page} aria-label={t('profile.aria')}>
       {/* `flex-1`, not `min-h-full`: the page module is a flex column, so
           stretching is what actually fills it — `min-height: 100%` resolves
           against the parent's *auto* height and leaves the column short, which
@@ -82,7 +84,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={() => onOpenSection('account')}
-              aria-label="Изменить профиль"
+              aria-label={t('profile.edit')}
               className="absolute right-0 bottom-0 grid h-7 w-7 place-items-center rounded-full border-2 border-ground bg-ink text-surface"
             >
               <HugeiconsIcon
@@ -112,23 +114,23 @@ export default function ProfilePage() {
         <Card>
           <Row
             icon={UserCircleIcon}
-            label="Профиль"
+            label={t('profile.section.account')}
             onClick={() => onOpenSection('account')}
           />
           <Row
             icon={Shield01Icon}
-            label="Безопасность"
+            label={t('profile.section.security')}
             onClick={() => onOpenSection('security')}
           />
           <Row
             icon={CreditCardIcon}
-            label="Тариф"
-            value="Бесплатный"
+            label={t('profile.plan')}
+            value={t('profile.planFree')}
             onClick={() => onOpenSection('subscription')}
           />
           <Row
             icon={Settings02Icon}
-            label="Настройки"
+            label={t('profile.section.settings')}
             onClick={() => onOpenSection('settings')}
           />
         </Card>
@@ -154,7 +156,7 @@ export default function ProfilePage() {
             className="shrink-0"
           />
           <span className="text-[15px] font-medium">
-            {signingOut ? 'Выходим…' : 'Выйти'}
+            {t(signingOut ? 'profile.signingOut' : 'profile.signOut')}
           </span>
         </button>
         </div>

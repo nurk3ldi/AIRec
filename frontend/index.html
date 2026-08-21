@@ -30,6 +30,13 @@
       document.documentElement.dataset.theme =
         localStorage.getItem('airec_theme') ||
         (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+
+      // The language needs no pre-paint pass the way the theme does — nothing
+      // is painted from it — but `lang` is what a screen reader picks its voice
+      // from, and getting it right before the document is announced costs one
+      // line. `src/lib/i18n.js` is the authority; this only reads what it wrote.
+      var airecLang = localStorage.getItem('airec_lang')
+      if (airecLang) document.documentElement.lang = airecLang
     </script>
 
     <title>AIRec</title>

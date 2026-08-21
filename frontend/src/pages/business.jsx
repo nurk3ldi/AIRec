@@ -1,3 +1,4 @@
+import { useT } from '../lib/i18n'
 import styles from '../styles/Business.module.css'
 
 /**
@@ -18,5 +19,7 @@ import styles from '../styles/Business.module.css'
  * страница честнее, чем ссылка, ведущая в 404.
  */
 export default function BusinessPage() {
-  return <div className={styles.page} aria-label="Бизнес" />
+  const t = useT()
+
+  return <div className={styles.page} aria-label={t('nav.business')} />
 }

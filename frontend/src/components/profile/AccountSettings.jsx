@@ -10,6 +10,7 @@ import {
 } from '@hugeicons/core-free-icons'
 import AvatarCropper from '../AvatarCropper'
 import OtpInput from '../OtpInput'
+import { useT } from '../../lib/i18n'
 import {
   cancelEmailChange,
   checkUsernameAvailability,
@@ -103,6 +104,8 @@ function Field({
  * comparing them impossible, which is the whole point of a repeat field.
  */
 function PasswordInput({ show, onToggleShow, ...inputProps }) {
+  const t = useT()
+
   return (
     <div className="relative flex items-center">
       <input
@@ -113,7 +116,7 @@ function PasswordInput({ show, onToggleShow, ...inputProps }) {
       <button
         type="button"
         onClick={onToggleShow}
-        aria-label={show ? 'Скрыть пароль' : 'Показать пароль'}
+        aria-label={t(show ? 'form.hidePassword' : 'form.showPassword')}
         className="absolute right-3 grid place-items-center text-muted transition-colors hover:text-ink"
       >
         <HugeiconsIcon
@@ -213,6 +216,7 @@ function StatusAction({ onClick, disabled, tone = 'accent', children }) {
  * the viewport. The dialog sizes itself narrower for this section.
  */
 export default function AccountSettings({ onUserChange, onClose }) {
+  const t = useT()
   const fileInputRef = useRef(null)
 
   const [user, setUser] = useState(null)
@@ -403,7 +407,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
     const address = newEmail.trim()
 
     if (!EMAIL_PATTERN.test(address)) {
-      setEmailError('Некорректный email.')
+      setEmailError(t('account.invalidEmail'))
       return
     }
 
@@ -428,7 +432,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
     setCodeError('')
 
     if (code.length !== 6) {
-      setCodeError('Введите 6-значный код.')
+      setCodeError(t('account.needCode'))
       return
     }
 
@@ -500,19 +504,19 @@ export default function AccountSettings({ onUserChange, onClose }) {
     setPwError('')
 
     if (pwMode === 'code' && pwCode.length !== 6) {
-      setPwError('Введите 6-значный код.')
+      setPwError(t('account.needCode'))
       return
     }
     if (pwMode === 'password' && !currentPassword) {
-      setPwError('Введите текущий пароль.')
+      setPwError(t('account.needCurrentPassword'))
       return
     }
     if (/\s/.test(newPassword)) {
-      setPwError('Пробелы недопустимы.')
+      setPwError(t('form.noSpaces'))
       return
     }
     if (newPassword !== confirmPassword) {
-      setPwError('Пароли не совпадают.')
+      setPwError(t('account.passwordMismatch'))
       return
     }
 
@@ -619,11 +623,11 @@ export default function AccountSettings({ onUserChange, onClose }) {
 
     setAvatarError('')
     if (!file.type.startsWith('image/')) {
-      setAvatarError('Выберите файл изображения.')
+      setAvatarError(t('account.pickImage'))
       return
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      setAvatarError('Изображение должно быть меньше 5 МБ.')
+      setAvatarError(t('account.imageTooLarge'))
       return
     }
     setPickedFile(file)
@@ -661,15 +665,15 @@ export default function AccountSettings({ onUserChange, onClose }) {
 
     if (pendingEmail && pendingEmail !== user.email) {
       return (
-        <StatusRow tone="warning" label="Не подтверждён">
+        <StatusRow tone="warning" label={t('account.unconfirmed')}>
           <span className="min-w-0 flex-1 truncate text-[13px] text-ink">
             {pendingEmail}
           </span>
           <StatusAction onClick={() => setEmailStep('code')}>
-            Подтвердить
+            {t('account.confirm')}
           </StatusAction>
           <StatusAction tone="muted" onClick={handleCancelEmailChange}>
-            Отменить
+            {t('form.cancel')}
           </StatusAction>
         </StatusRow>
       )
@@ -677,18 +681,18 @@ export default function AccountSettings({ onUserChange, onClose }) {
 
     if (!user.email_verified) {
       return (
-        <StatusRow tone="warning" label="Не подтверждён">
+        <StatusRow tone="warning" label={t('account.unconfirmed')}>
           <StatusAction
             onClick={pendingEmail ? () => setEmailStep('code') : handleVerifyCurrentEmail}
             disabled={isSaving}
           >
-            Подтвердить
+            {t('account.confirm')}
           </StatusAction>
         </StatusRow>
       )
     }
 
-    return <StatusRow tone="success" label="Подтверждён" />
+    return <StatusRow tone="success" label={t('account.confirmed')} />
   })()
 
   if (showPasswordStep) {
@@ -698,7 +702,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
           {pwMode === 'code' ? (
             <>
               <p className="text-center text-[14px] text-ink">
-                Мы отправили 6-значный код на
+                {t('account.codeSentTo')}
               </p>
               <p className="mt-0.5 text-center text-[14px] font-semibold text-ink">
                 {user?.email}
@@ -706,7 +710,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
             </>
           ) : (
             <p className="text-center text-[14px] text-muted">
-              Введите текущий пароль, чтобы задать новый.
+              {t('account.passwordLead')}
             </p>
           )}
 
@@ -735,7 +739,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
                   setCurrentPassword(event.target.value)
                   setPwError('')
                 }}
-                placeholder="Текущий пароль"
+                placeholder={t('security.currentPassword')}
                 autoComplete="current-password"
                 autoFocus
               />
@@ -749,7 +753,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
                 setNewPassword(event.target.value)
                 setPwError('')
               }}
-              placeholder="Новый пароль"
+              placeholder={t('account.newPassword')}
               autoComplete="new-password"
             />
 
@@ -761,7 +765,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
                 setConfirmPassword(event.target.value)
                 setPwError('')
               }}
-              placeholder="Повторите пароль"
+              placeholder={t('account.repeatPassword')}
               autoComplete="new-password"
             />
           </form>
@@ -782,15 +786,15 @@ export default function AccountSettings({ onUserChange, onClose }) {
                   className="text-[13px] font-medium text-accent outline-none hover:underline disabled:text-muted disabled:no-underline"
                 >
                   {pwResendCooldown > 0
-                    ? `Отправить код ещё раз (${pwResendCooldown})`
-                    : 'Отправить код ещё раз'}
+                    ? t('account.resendCodeIn', { seconds: pwResendCooldown })
+                    : t('account.resendCode')}
                 </button>
                 <button
                   type="button"
                   onClick={handleSwitchToPassword}
                   className="text-[13px] font-medium text-muted outline-none hover:underline"
                 >
-                  Ввести текущий пароль
+                  {t('account.usePassword')}
                 </button>
               </>
             ) : (
@@ -800,14 +804,13 @@ export default function AccountSettings({ onUserChange, onClose }) {
                 disabled={isSaving}
                 className="text-[13px] font-medium text-accent outline-none hover:underline disabled:text-muted disabled:no-underline"
               >
-                {isSaving ? 'Отправляем код…' : 'Не помните пароль? Получить код на почту'}
+                {t(isSaving ? 'account.sendingMailCode' : 'account.forgotPassword')}
               </button>
             )}
           </div>
 
           <p className="mt-3 text-center text-[12px] text-muted">
-            После смены пароля вы останетесь в системе, но выйдете на других
-            устройствах.
+            {t('account.passwordNote')}
           </p>
         </div>
 
@@ -817,7 +820,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
             onClick={handleClosePasswordStep}
             className="rounded-xl border border-line px-5 py-2.5 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/5 focus-visible:bg-ink/5"
           >
-            Отменить
+            {t('form.cancel')}
           </button>
           <button
             type="submit"
@@ -830,7 +833,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
             }
             className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-surface outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
           >
-            {isChangingPassword ? 'Сохраняем…' : 'Сохранить'}
+            {t(isChangingPassword ? 'form.saving' : 'form.save')}
           </button>
         </div>
       </>
@@ -845,7 +848,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
       <>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-2 pb-6">
           <p className="text-center text-[14px] text-muted">
-            Текущий адрес
+            {t('account.currentAddress')}
           </p>
           <p className="mt-0.5 text-center text-[14px] font-semibold text-ink">
             {user?.email}
@@ -864,7 +867,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
                 setNewEmail(event.target.value)
                 setEmailError('')
               }}
-              placeholder="Новый email"
+              placeholder={t('account.newEmail')}
               autoComplete="email"
               autoFocus
               className={`w-full rounded-lg border bg-surface px-3.5 py-2 text-[14px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent ${
@@ -879,8 +882,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
             </p>
           ) : (
             <p className="mt-2 text-[13px] text-muted">
-              На новый адрес придёт код подтверждения. Пока вы его не введёте,
-              адрес аккаунта не изменится.
+              {t('account.emailLead')}
             </p>
           )}
         </div>
@@ -891,7 +893,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
             onClick={() => setEmailStep(null)}
             className="rounded-xl border border-line px-5 py-2.5 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/5 focus-visible:bg-ink/5"
           >
-            Отменить
+            {t('form.cancel')}
           </button>
           <button
             type="submit"
@@ -899,7 +901,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
             disabled={!newEmail.trim() || isSaving}
             className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-surface outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
           >
-            {isSaving ? 'Отправляем…' : 'Отправить код'}
+            {t(isSaving ? 'account.sendingCode' : 'account.sendCode')}
           </button>
         </div>
       </>
@@ -911,7 +913,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
       <>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-2 pb-6">
           <p className="text-center text-[14px] text-ink">
-            Мы отправили 6-значный код на
+            {t('account.codeSentTo')}
           </p>
           <p className="mt-0.5 text-center text-[14px] font-semibold text-ink">
             {pendingEmail}
@@ -943,8 +945,8 @@ export default function AccountSettings({ onUserChange, onClose }) {
               className="text-[13px] font-medium text-accent outline-none hover:underline disabled:text-muted disabled:no-underline"
             >
               {resendCooldown > 0
-                ? `Отправить код ещё раз (${resendCooldown})`
-                : 'Отправить код ещё раз'}
+                ? t('account.resendCodeIn', { seconds: resendCooldown })
+                : t('account.resendCode')}
             </button>
             {pendingEmail !== user?.email && (
               <button
@@ -952,7 +954,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
                 onClick={handleCancelEmailChange}
                 className="text-[13px] font-medium text-muted outline-none hover:underline"
               >
-                Отменить смену email
+                {t('account.cancelEmailChange')}
               </button>
             )}
           </div>
@@ -964,7 +966,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
             onClick={handleCloseCodeStep}
             className="rounded-xl border border-line px-5 py-2.5 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/5 focus-visible:bg-ink/5"
           >
-            Отменить
+            {t('form.cancel')}
           </button>
           <button
             type="button"
@@ -972,7 +974,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
             disabled={code.length !== 6 || isConfirming}
             className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-surface outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
           >
-            {isConfirming ? 'Проверяем…' : 'Подтвердить'}
+            {t(isConfirming ? 'account.checking' : 'account.confirm')}
           </button>
         </div>
       </>
@@ -1007,7 +1009,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isSaving}
-              aria-label={avatarSrc ? 'Заменить фото' : 'Загрузить фото'}
+              aria-label={t(avatarSrc ? 'account.replacePhoto' : 'account.uploadPhoto')}
               className="absolute right-1.5 bottom-1.5 grid h-10 w-10 place-items-center rounded-full border border-line bg-surface text-ink shadow-[0_4px_12px_rgba(23,18,21,0.14)] outline-none transition-colors hover:bg-ground focus-visible:bg-ground disabled:cursor-not-allowed disabled:opacity-60"
             >
               <HugeiconsIcon
@@ -1029,7 +1031,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
               disabled={isSaving}
               className="rounded-lg px-2 py-0.5 text-[13px] font-medium text-muted outline-none transition-colors hover:text-danger focus-visible:text-danger disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Удалить фото
+              {t('account.deletePhoto')}
             </button>
           )}
 
@@ -1056,7 +1058,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
         >
           <Field
             id="first_name"
-            label="Имя"
+            label={t('account.firstName')}
             type="text"
             value={form.first_name}
             onChange={setField('first_name')}
@@ -1065,7 +1067,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
           />
           <Field
             id="last_name"
-            label="Фамилия"
+            label={t('account.lastName')}
             type="text"
             value={form.last_name}
             onChange={setField('last_name')}
@@ -1074,16 +1076,16 @@ export default function AccountSettings({ onUserChange, onClose }) {
           />
           <Field
             id="username"
-            label="Имя пользователя"
+            label={t('account.username')}
             type="text"
             value={form.username}
             onChange={setField('username')}
             autoComplete="username"
             error={
               fieldErrors.username ||
-              (usernameStatus === 'taken' ? 'Этот логин уже занят.' : '')
+              (usernameStatus === 'taken' ? t('account.usernameTaken') : '')
             }
-            hint={usernameStatus === 'available' ? 'Логин свободен.' : ''}
+            hint={usernameStatus === 'available' ? t('account.usernameFree') : ''}
             hintTone="success"
             adornment={
               usernameStatus === 'available' ? (
@@ -1104,19 +1106,19 @@ export default function AccountSettings({ onUserChange, onClose }) {
         {/* Email and password both sit outside the form: neither is saved by
             the Save button, each opens its own verified step instead. */}
         <ActionRow
-          label="Email"
+          label={t('account.email')}
           value={user?.email || ''}
-          action="Изменить"
+          action={t('account.change')}
           onAction={handleStartEmailChange}
           disabled={isSaving}
           footer={emailStatus}
         />
 
         <ActionRow
-          label="Пароль"
+          label={t('account.password')}
           value="••••••••"
           valueClassName="tracking-[0.2em]"
-          action="Изменить"
+          action={t('account.change')}
           onAction={handleStartPasswordChange}
           disabled={isSaving}
           footer={
@@ -1132,7 +1134,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
                   strokeLinejoin="round"
                   strokeWidth={2.1}
                 />
-                Пароль изменён.
+                {t('account.passwordChanged')}
               </p>
             )
           }
@@ -1154,7 +1156,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
           onClick={onClose}
           className="rounded-xl border border-line px-5 py-2.5 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/5 focus-visible:bg-ink/5"
         >
-          Отменить
+          {t('form.cancel')}
         </button>
         <button
           type="submit"
@@ -1162,7 +1164,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
           disabled={!isDirty || isSaving}
           className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-surface outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
         >
-          {isSaving ? 'Сохраняем…' : 'Сохранить'}
+          {t(isSaving ? 'form.saving' : 'form.save')}
         </button>
       </div>
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Cancel01Icon, MinusSignIcon, PlusSignIcon } from '@hugeicons/core-free-icons'
+import { translate, useT } from '../lib/i18n'
 
 const VIEWPORT = 288
 const OUTPUT_SIZE = 512
@@ -23,8 +24,12 @@ export default function AvatarCropper({
   // The output is square either way — `shape` only changes the mask, so the
   // crop you frame matches the corner radius the picture will actually get.
   shape = 'circle',
-  title = 'Настройте фото',
+  // No default here: a translated one would be evaluated when the module loads
+  // and freeze in that language. `t('cropper.title')` below fills the gap at
+  // render time instead.
+  title,
 }) {
+  const t = useT()
   const [image, setImage] = useState(null)
   const [zoom, setZoom] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
@@ -72,7 +77,10 @@ export default function AvatarCropper({
         y: (VIEWPORT - img.naturalHeight * initialScale) / 2,
       })
     }
-    img.onerror = () => setError('Не удалось прочитать файл как изображение.')
+    // `translate`, not `t`: this fires from an image callback, not from a
+    // render, so it wants the language at *call* time and does not belong in
+    // the effect's dependency list.
+    img.onerror = () => setError(translate('cropper.readFailed'))
     img.src = objectUrl
 
     return () => URL.revokeObjectURL(objectUrl)
@@ -177,10 +185,10 @@ export default function AvatarCropper({
       const blob = await new Promise((resolve) =>
         canvas.toBlob(resolve, 'image/png')
       )
-      if (!blob) throw new Error('Не удалось обработать изображение.')
+      if (!blob) throw new Error(t('cropper.processFailed'))
       await onSave(blob)
     } catch (err) {
-      setError(err?.message || 'Не удалось сохранить изображение.')
+      setError(err?.message || t('cropper.saveFailed'))
       setIsSaving(false)
     }
   }
@@ -189,7 +197,7 @@ export default function AvatarCropper({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Обрезка фото"
+      aria-label={t('cropper.aria')}
       // Marks this as a nested overlay so ProfileDialog's Escape handler
       // stands down while the cropper is up — otherwise one Escape closes both.
       data-nested-overlay
@@ -204,12 +212,12 @@ export default function AvatarCropper({
       <div className="w-full max-w-[360px] rounded-2xl border border-line bg-surface p-5 shadow-[0_24px_48px_-12px_rgba(23,18,21,0.3)]">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-[16px] font-semibold text-ink">
-            {title}
+            {title ?? t('cropper.title')}
           </h2>
           <button
             type="button"
             onClick={onCancel}
-            aria-label="Закрыть"
+            aria-label={t('form.close')}
             className="grid h-8 w-8 place-items-center rounded-lg text-muted transition-colors hover:bg-ground hover:text-ink"
           >
             <HugeiconsIcon
@@ -259,7 +267,7 @@ export default function AvatarCropper({
           <button
             type="button"
             onClick={() => applyZoom(zoom - 0.25)}
-            aria-label="Уменьшить"
+            aria-label={t('cropper.zoomOut')}
             className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-line-strong text-ink transition-colors hover:bg-ground"
           >
             <HugeiconsIcon icon={MinusSignIcon} size={15} strokeWidth={2.4} />
@@ -271,13 +279,13 @@ export default function AvatarCropper({
             step={0.01}
             value={zoom}
             onChange={(event) => applyZoom(Number(event.target.value))}
-            aria-label="Масштаб"
+            aria-label={t('cropper.zoom')}
             className="h-1 w-full cursor-pointer appearance-none rounded-full bg-muted/30 accent-accent"
           />
           <button
             type="button"
             onClick={() => applyZoom(zoom + 0.25)}
-            aria-label="Увеличить"
+            aria-label={t('cropper.zoomIn')}
             className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-line-strong text-ink transition-colors hover:bg-ground"
           >
             <HugeiconsIcon icon={PlusSignIcon} size={15} strokeWidth={2.4} />
@@ -296,7 +304,7 @@ export default function AvatarCropper({
             onClick={onCancel}
             className="flex-1 rounded-lg border border-line-strong px-4 py-2 text-[14px] font-medium text-ink transition-colors hover:bg-ground"
           >
-            Отмена
+            {t('form.cancel')}
           </button>
           <button
             type="button"
@@ -304,7 +312,7 @@ export default function AvatarCropper({
             disabled={!image || isSaving}
             className="flex-1 rounded-lg bg-accent px-4 py-2 text-[14px] font-medium text-surface transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSaving ? 'Сохраняем…' : 'Сохранить'}
+            {t(isSaving ? 'form.saving' : 'form.save')}
           </button>
         </div>
       </div>

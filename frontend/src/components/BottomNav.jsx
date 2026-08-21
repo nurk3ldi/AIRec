@@ -3,6 +3,7 @@ import { domMax, LazyMotion, m, useReducedMotion } from 'motion/react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { mediaUrl } from '../lib/api'
 import { NAVIGATION } from './navigation'
+import { useT } from '../lib/i18n'
 import ProfileAvatar from './ProfileAvatar'
 
 /**
@@ -62,6 +63,7 @@ function Marker({ reduce }) {
 }
 
 export default function BottomNav({ user }) {
+  const t = useT()
   const { pathname } = useLocation()
   const reduce = useReducedMotion()
   const isProfile = pathname === '/profile'
@@ -72,7 +74,7 @@ export default function BottomNav({ user }) {
     // leaves out. The rail already loads it, so it costs nothing here.
     <LazyMotion features={domMax} strict>
     <nav
-      aria-label="Основная навигация"
+      aria-label={t('nav.main')}
       // 50px rather than the 56 it started at: the bar is anchored to the
       // bottom, so taking height off it moves both the hairline and the row of
       // glyphs down the screen together.
@@ -88,7 +90,7 @@ export default function BottomNav({ user }) {
           <Link
             key={item.href}
             to={item.href}
-            aria-label={item.label}
+            aria-label={t(item.labelKey)}
             aria-current={isActive ? 'page' : undefined}
             // Each slot takes an equal fifth and the full height of the bar, so
             // the tap target is the whole cell rather than the glyph in it.
@@ -121,7 +123,7 @@ export default function BottomNav({ user }) {
           desktop shape, and a real route means the back gesture works. */}
       <Link
         to="/profile"
-        aria-label="Профиль"
+        aria-label={t('nav.profile')}
         aria-current={isProfile ? 'page' : undefined}
         className="flex flex-1 items-center justify-center"
       >

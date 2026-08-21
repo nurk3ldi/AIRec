@@ -5,6 +5,7 @@ import { mediaUrl } from '../lib/api'
 import BrandMark from './BrandMark'
 import ProfileAvatar from './ProfileAvatar'
 import { NAVIGATION } from './navigation'
+import { useT } from '../lib/i18n'
 
 /**
  * The desktop rail. Hidden below `sm`, where `BottomNav` takes over — the same
@@ -15,6 +16,7 @@ import { NAVIGATION } from './navigation'
  * overlays are rendered there. This component is the rail and nothing else.
  */
 export default function Sidebar({ user = null, isMenuOpen, onToggleMenu }) {
+  const t = useT()
   const { pathname } = useLocation()
   const reduce = useReducedMotion()
 
@@ -25,14 +27,14 @@ export default function Sidebar({ user = null, isMenuOpen, onToggleMenu }) {
     <LazyMotion features={domMax} strict>
       <aside className="fixed inset-y-0 left-0 z-50 hidden w-16 flex-col overflow-visible border-r border-line-strong bg-rail text-rail-ink shadow-[6px_0_20px_rgba(23,18,21,0.08)] sm:flex">
         <div className="flex h-[68px] shrink-0 items-center justify-center border-b border-line-strong">
-          <Link to="/dashboard" aria-label="Главная страница AIRec">
+          <Link to="/dashboard" aria-label={t('nav.home')}>
             <BrandMark />
           </Link>
         </div>
 
         <nav
           className="flex flex-1 flex-col items-center gap-3.5 py-6"
-          aria-label="Основная навигация"
+          aria-label={t('nav.main')}
         >
           {NAVIGATION.map((item) => {
             const isActive = pathname === item.href
@@ -41,7 +43,7 @@ export default function Sidebar({ user = null, isMenuOpen, onToggleMenu }) {
               <Link
                 key={item.href}
                 to={item.href}
-                aria-label={item.label}
+                aria-label={t(item.labelKey)}
                 aria-current={isActive ? 'page' : undefined}
                 className={`group relative grid h-9 w-9 place-items-center rounded-[10px] transition-colors duration-200 ${
                   isActive ? 'text-rail' : 'text-rail-ink hover:bg-rail-ink/10'
@@ -84,7 +86,7 @@ export default function Sidebar({ user = null, isMenuOpen, onToggleMenu }) {
                   />
                 </span>
                 <span className="pointer-events-none absolute left-[46px] z-50 whitespace-nowrap rounded-md bg-ink px-2.5 py-1.5 font-sans text-[11px] font-medium text-surface opacity-0 shadow-xl transition-all duration-150 group-hover:translate-x-1 group-hover:opacity-100">
-                  {item.label}
+                  {t(item.labelKey)}
                 </span>
               </Link>
             )
@@ -97,7 +99,7 @@ export default function Sidebar({ user = null, isMenuOpen, onToggleMenu }) {
           onClick={onToggleMenu}
           aria-haspopup="menu"
           aria-expanded={isMenuOpen}
-          aria-label="Профиль"
+          aria-label={t('nav.profile')}
           // No blue active state here, unlike the nav items above: the avatar is
           // already a picture, and a coloured frame around it reads as a stray
           // border rather than "this is selected".
@@ -108,7 +110,7 @@ export default function Sidebar({ user = null, isMenuOpen, onToggleMenu }) {
               it points at, so the tooltip would just overlap it. */}
           {!isMenuOpen && (
             <span className="pointer-events-none absolute left-[46px] z-50 whitespace-nowrap rounded-md bg-ink px-2.5 py-1.5 font-sans text-[11px] font-medium text-surface opacity-0 shadow-xl transition-all duration-150 group-hover:translate-x-1 group-hover:opacity-100">
-              Профиль
+              {t('nav.profile')}
             </span>
           )}
         </button>

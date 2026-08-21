@@ -8,6 +8,7 @@ import SessionsSettings from './profile/SessionsSettings'
 import AppearanceSettings from './profile/AppearanceSettings'
 import { PROFILE_SECTIONS, SECTION_PLACEHOLDERS } from './profile/sections'
 import ComingSoon from './ComingSoon'
+import { useT } from '../lib/i18n'
 
 /**
  * Settings dialog opened from `ProfileMenu`, showing exactly the section the
@@ -34,6 +35,7 @@ import ComingSoon from './ComingSoon'
  * there are no `/profile/*` pages to keep in sync.
  */
 export default function ProfileDialog({ section, user, onClose, onUserChange }) {
+  const t = useT()
   const active = PROFILE_SECTIONS.find((s) => s.id === section) ?? PROFILE_SECTIONS[0]
   const isAccount = active.id === 'account'
 
@@ -153,13 +155,13 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
           >
             <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-[calc(1.25rem+env(safe-area-inset-top))] pb-3 sm:pt-5">
               <Dialog.Title className="font-display text-[19px] font-semibold tracking-[-0.02em] text-ink">
-                {active.dialogLabel ?? active.label}
+                {t(active.dialogLabelKey ?? active.labelKey)}
               </Dialog.Title>
 
               <Dialog.Close asChild>
                 <button
                   type="button"
-                  aria-label="Закрыть"
+                  aria-label={t('form.close')}
                   className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted outline-none transition-colors hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6 focus-visible:text-ink"
                 >
                   <HugeiconsIcon
@@ -182,7 +184,7 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
                 <AppearanceSettings />
               ) : (
                 <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
-                  <ComingSoon>{SECTION_PLACEHOLDERS[active.id]}</ComingSoon>
+                  <ComingSoon>{t(SECTION_PLACEHOLDERS[active.id] ?? 'comingSoon')}</ComingSoon>
                 </div>
               )}
             </div>

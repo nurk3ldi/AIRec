@@ -14,6 +14,7 @@ import {
   revokeSession,
 } from '../../lib/api'
 import { clearTokens, getAccessToken } from '../../lib/auth'
+import { getLocale, translate, useT } from '../../lib/i18n'
 
 // Mirrors `account_deletion_grace_days` on the backend. Only used for copy —
 // the deadline the user is actually held to is the server's.
@@ -27,20 +28,24 @@ function formatMoment(iso) {
   const value = new Date(iso)
   if (Number.isNaN(value.getTime())) return ''
 
-  const time = value.toLocaleTimeString('ru-RU', {
+  // The locale follows the interface language rather than being pinned to
+  // `ru-RU`: month names and the 12/24-hour choice are part of the translation,
+  // not decoration on top of it.
+  const locale = getLocale()
+  const time = value.toLocaleTimeString(locale, {
     hour: '2-digit',
     minute: '2-digit',
   })
   const today = new Date()
   const isSameDay = (a, b) => a.toDateString() === b.toDateString()
 
-  if (isSameDay(value, today)) return `Сегодня, ${time}`
+  if (isSameDay(value, today)) return translate('security.today', { time })
 
   const yesterday = new Date(today)
   yesterday.setDate(today.getDate() - 1)
-  if (isSameDay(value, yesterday)) return `Вчера, ${time}`
+  if (isSameDay(value, yesterday)) return translate('security.yesterday', { time })
 
-  return value.toLocaleDateString('ru-RU', {
+  return value.toLocaleDateString(locale, {
     day: 'numeric',
     month: 'long',
     year: value.getFullYear() === today.getFullYear() ? undefined : 'numeric',
@@ -54,6 +59,7 @@ function formatMoment(iso) {
  * row per device — this list is not a token log, and shouldn't read like one.
  */
 export default function SessionsSettings({ user }) {
+  const t = useT()
   const navigate = useNavigate()
 
   const [sessions, setSessions] = useState(null)
@@ -138,8 +144,7 @@ export default function SessionsSettings({ user }) {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-2 pb-6">
       <p className="text-[14px] text-muted">
-        Устройства, на которых выполнен вход в ваш аккаунт. Если какое-то из них
-        вам незнакомо — завершите сеанс и смените пароль.
+        {t('security.lead')}
       </p>
 
       {error && (
@@ -159,7 +164,7 @@ export default function SessionsSettings({ user }) {
       )}
 
       {sessions === null ? (
-        <p className="mt-4 text-[14px] text-muted">Загружаем…</p>
+        <p className="mt-4 text-[14px] text-muted">{t('security.loading')}</p>
       ) : (
         <div className="mt-4 flex flex-col gap-2">
           {sessions.map((session) => (
@@ -174,14 +179,14 @@ export default function SessionsSettings({ user }) {
                   </span>
                   {session.is_current && (
                     <span className="rounded-md bg-ok/10 px-2 py-0.5 text-[12px] font-medium text-ok">
-                      Текущий
+                      {t('security.current')}
                     </span>
                   )}
                 </div>
                 <p className="mt-0.5 truncate text-[13px] text-muted">
                   {session.ip_address ? `${session.ip_address} · ` : ''}
-                  Вход: {formatMoment(session.signed_in_at)} · Активность:{' '}
-                  {formatMoment(session.last_active_at)}
+                  {t('security.signedIn')}: {formatMoment(session.signed_in_at)} ·{' '}
+                  {t('security.lastActive')}: {formatMoment(session.last_active_at)}
                 </p>
               </div>
 
@@ -192,7 +197,7 @@ export default function SessionsSettings({ user }) {
                   type="button"
                   onClick={() => handleRevoke(session.id)}
                   disabled={busyId === session.id}
-                  aria-label="Завершить сеанс"
+                  aria-label={t('security.revoke')}
                   className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted outline-none transition-colors hover:bg-danger/8 hover:text-danger focus-visible:bg-danger/8 focus-visible:text-danger disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <HugeiconsIcon
@@ -215,8 +220,8 @@ export default function SessionsSettings({ user }) {
               className="mt-2 self-start rounded-xl border border-danger/30 px-4 py-2 text-[13px] font-medium text-danger outline-none transition-colors hover:bg-danger/6 focus-visible:bg-danger/6 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isRevokingOthers
-                ? 'Завершаем…'
-                : `Завершить остальные сеансы (${otherCount})`}
+                ? t('security.revoking')
+                : t('security.revokeOthers', { count: otherCount })}
             </button>
           )}
         </div>
@@ -225,14 +230,14 @@ export default function SessionsSettings({ user }) {
       {/* Kept behind a disclosure and visually separated: this is the one
           action on the page that isn't undoable by clicking again. */}
       <div className="mt-8 rounded-xl border border-danger/25 bg-danger/4 p-4">
-        <h3 className="text-[14px] font-semibold text-danger">Удаление аккаунта</h3>
+        <h3 className="text-[14px] font-semibold text-danger">
+          {t('security.deleteTitle')}
+        </h3>
 
         {!isDeleteOpen ? (
           <>
             <p className="mt-1 text-[13px] text-ink/70">
-              Аккаунт удаляется не сразу: {GRACE_DAYS} дней его можно
-              восстановить, просто войдя снова. После этого удаление станет
-              окончательным.
+              {t('security.deleteLead', { days: GRACE_DAYS })}
             </p>
             <button
               type="button"
@@ -242,15 +247,13 @@ export default function SessionsSettings({ user }) {
               }}
               className="mt-3 ml-auto block rounded-xl border border-danger/40 px-4 py-2 text-[13px] font-medium text-danger outline-none transition-colors hover:bg-danger/8 focus-visible:bg-danger/8"
             >
-              Удалить аккаунт
+              {t('security.deleteAction')}
             </button>
           </>
         ) : (
           <form onSubmit={handleDelete} noValidate className="mt-3 flex flex-col gap-3">
             <p className="text-[13px] text-ink/70">
-              Вы выйдете на всех устройствах. В течение {GRACE_DAYS} дней вход
-              восстановит аккаунт. Всё это время ваш email и имя пользователя
-              остаются занятыми.
+              {t('security.deleteWarning', { days: GRACE_DAYS })}
             </p>
 
             <div className="relative flex items-center">
@@ -261,14 +264,14 @@ export default function SessionsSettings({ user }) {
                   setDeletePassword(event.target.value)
                   setDeleteError('')
                 }}
-                placeholder="Текущий пароль"
+                placeholder={t('security.currentPassword')}
                 autoComplete="current-password"
                 className="w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2 pr-11 text-[14px] text-ink outline-none transition-colors placeholder:text-muted focus:border-danger"
               />
               <button
                 type="button"
                 onClick={() => setShowDeletePassword((prev) => !prev)}
-                aria-label={showDeletePassword ? 'Скрыть пароль' : 'Показать пароль'}
+                aria-label={t(showDeletePassword ? 'form.hidePassword' : 'form.showPassword')}
                 className="absolute right-3 grid place-items-center text-muted transition-colors hover:text-ink"
               >
                 <HugeiconsIcon
@@ -286,8 +289,9 @@ export default function SessionsSettings({ user }) {
                 htmlFor="delete-confirmation"
                 className="text-[13px] text-ink/70"
               >
-                Введите <span className="font-semibold">{user?.username}</span>,
-                чтобы подтвердить
+                {t('security.confirmBefore')}{' '}
+                <span className="font-semibold">{user?.username}</span>
+                {t('security.confirmAfter')}
               </label>
               <input
                 id="delete-confirmation"
@@ -319,14 +323,14 @@ export default function SessionsSettings({ user }) {
                 }}
                 className="rounded-xl border border-line px-4 py-2 text-[13px] font-medium text-ink outline-none transition-colors hover:bg-ink/5 focus-visible:bg-ink/5"
               >
-                Отменить
+                {t('form.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={!deletePassword || !confirmation || isDeleting}
                 className="rounded-xl bg-danger px-4 py-2 text-[13px] font-medium text-white outline-none transition-colors hover:bg-[#B91C1C] focus-visible:bg-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-45"
               >
-                {isDeleting ? 'Удаляем…' : 'Удалить аккаунт'}
+                {t(isDeleting ? 'security.deleting' : 'security.deleteAction')}
               </button>
             </div>
           </form>

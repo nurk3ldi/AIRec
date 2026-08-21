@@ -3,6 +3,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { EyeIcon, EyeOffIcon, Tick02Icon } from '@hugeicons/core-free-icons'
 import { login, restoreAccount } from '../lib/api'
 import { saveTokens, useRedirectIfAuthed } from '../lib/auth'
+import { useT } from '../lib/i18n'
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
@@ -30,6 +31,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 // One recipe for every control on this page, so the inputs, the submit and the
 // social buttons are the same object at different weights.
 export default function LoginPage() {
+  const t = useT()
   useRedirectIfAuthed()
 
   const navigate = useNavigate()
@@ -84,25 +86,24 @@ export default function LoginPage() {
   }
 
   return (
-    <div className={styles.page} aria-label="Страница входа">
+    <div className={styles.page} aria-label={t('login.aria')}>
       {/* 360px — wider than the reference's 320. Vercel's login is one email field —
           ours carries a login, a password with a toggle inside it, and a row of
           two controls under them, and at 320 that row runs out of room. */}
       <div className="m-auto flex w-full max-w-[360px] flex-col px-4 py-10 sm:py-16">
         <h1 className="text-center font-display text-[32px] leading-10 font-semibold tracking-[-0.04em] text-ink">
-          Вход в AIRec
+          {t('login.title')}
         </h1>
 
         {resetSuccess && (
           <p className="mt-8 rounded-lg px-3.5 py-2.5 text-center text-[14px] text-ok shadow-[0_0_0_1px_var(--color-ok)]">
-            Пароль изменён. Войдите с новым паролем.
+            {t('login.resetOk')}
           </p>
         )}
 
         {justDeleted && (
           <p className="mt-8 rounded-lg px-3.5 py-2.5 text-center text-[14px] text-muted shadow-[0_0_0_1px_var(--color-field)]">
-            Аккаунт удалён. В течение 30 дней его можно восстановить — просто
-            войдите снова.
+            {t('login.deleted')}
           </p>
         )}
 
@@ -116,12 +117,12 @@ export default function LoginPage() {
               type="text"
               value={identifier}
               onChange={(event) => setIdentifier(event.target.value)}
-              placeholder="Email или логин"
+              placeholder={t('login.identifier')}
               autoComplete="username"
               className={identifierHasSpace ? FIELD_ERROR : FIELD}
             />
             {identifierHasSpace && (
-              <p className="mt-1.5 text-[13px] text-danger">Пробелы недопустимы.</p>
+              <p className="mt-1.5 text-[13px] text-danger">{t('form.noSpaces')}</p>
             )}
           </div>
 
@@ -131,14 +132,14 @@ export default function LoginPage() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Пароль"
+                placeholder={t('login.password')}
                 autoComplete="current-password"
                 className={`${passwordHasSpace ? FIELD_ERROR : FIELD} pr-10`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                aria-label={t(showPassword ? 'form.hidePassword' : 'form.showPassword')}
                 className="absolute right-2.5 grid h-7 w-7 place-items-center rounded-md text-muted transition-colors hover:text-ink"
               >
                 <HugeiconsIcon
@@ -151,7 +152,7 @@ export default function LoginPage() {
               </button>
             </div>
             {passwordHasSpace && (
-              <p className="mt-1.5 text-[13px] text-danger">Пробелы недопустимы.</p>
+              <p className="mt-1.5 text-[13px] text-danger">{t('form.noSpaces')}</p>
             )}
           </div>
 
@@ -180,14 +181,14 @@ export default function LoginPage() {
                   />
                 </span>
               </span>
-              <span className="text-[14px] text-muted">Запомнить меня</span>
+              <span className="text-[14px] text-muted">{t('login.remember')}</span>
             </label>
 
             <Link
               to="/forgot-password"
               className="-my-2 py-2 text-[14px] text-muted transition-colors hover:text-ink"
             >
-              Забыли пароль?
+              {t('login.forgot')}
             </Link>
           </div>
 
@@ -206,7 +207,7 @@ export default function LoginPage() {
               disabled={isSubmitting}
               className={`${BUTTON_SECONDARY} mt-2.5`}
             >
-              Восстановить аккаунт и войти
+              {t('login.restore')}
             </button>
           )}
 
@@ -215,7 +216,7 @@ export default function LoginPage() {
             disabled={isSubmitting}
             className={`${BUTTON_PRIMARY} mt-2.5`}
           >
-            {isSubmitting ? 'Входим…' : 'Войти'}
+            {t(isSubmitting ? 'login.submitting' : 'login.submit')}
           </button>
         </form>
 
@@ -223,7 +224,7 @@ export default function LoginPage() {
             is separate instead of just separating it. */}
         <div className="my-6 flex items-center gap-3">
           <span className="h-px flex-1 bg-line" />
-          <span className="text-[13px] text-muted">или</span>
+          <span className="text-[13px] text-muted">{t('form.or')}</span>
           <span className="h-px flex-1 bg-line" />
         </div>
 
@@ -233,7 +234,7 @@ export default function LoginPage() {
             className={`${BUTTON_SECONDARY} flex items-center justify-center gap-2`}
           >
             <img src="/google_logo.svg" alt="" className="h-4 w-4" aria-hidden="true" />
-            Продолжить с Google
+            {t('form.google')}
           </button>
 
           <button
@@ -255,14 +256,14 @@ export default function LoginPage() {
               aria-hidden="true"
               className="hidden h-4 w-4 dark:block"
             />
-            Продолжить с Apple
+            {t('form.apple')}
           </button>
         </div>
 
         <p className="mt-8 text-center text-[14px] text-muted">
-          Нет аккаунта?{' '}
+          {t('login.noAccount')}{' '}
           <Link to="/signup" className="text-ink underline-offset-2 hover:underline">
-            Зарегистрироваться
+            {t('login.signup')}
           </Link>
         </p>
       </div>

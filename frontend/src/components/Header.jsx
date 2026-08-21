@@ -1,21 +1,29 @@
 import { Link, useLocation } from 'react-router-dom'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Notification01Icon } from '@hugeicons/core-free-icons'
+import { useT } from '../lib/i18n'
 
-// Profile has no entry here on purpose: it's an overlay opened from the
-// sidebar, not a route, so the page underneath keeps its own title.
-const pageTitles = {
-  '/dashboard': 'Главная',
-  '/inbox': 'Диалоги',
-  '/appointments': 'Записи',
-  '/business': 'Бизнес',
-  '/profile': 'Профиль',
-  '/notifications': 'Уведомления',
+// Translation keys rather than titles: this map is built once at import, so a
+// translated string would freeze in whichever language loaded first.
+//
+// Profile has no entry here on purpose — it's an overlay opened from the
+// sidebar, not a route, so the page underneath keeps its own title. (It is
+// listed all the same because `/profile` *is* a route on a phone; the header is
+// hidden there, which is why it never shows.)
+const PAGE_TITLE_KEYS = {
+  '/dashboard': 'nav.dashboard',
+  '/inbox': 'nav.inbox',
+  '/appointments': 'nav.appointments',
+  '/business': 'nav.business',
+  '/profile': 'nav.profile',
+  '/notifications': 'nav.notifications',
 }
 
 export default function Header({ className = '' }) {
+  const t = useT()
   const { pathname } = useLocation()
-  const title = pageTitles[pathname] ?? 'AIRec'
+  const titleKey = PAGE_TITLE_KEYS[pathname]
+  const title = titleKey ? t(titleKey) : 'AIRec'
   const isOnNotifications = pathname === '/notifications'
 
   return (
@@ -53,7 +61,7 @@ export default function Header({ className = '' }) {
           than in the list of places you can go. */}
       <Link
         to="/notifications"
-        aria-label="Уведомления"
+        aria-label={t('nav.notifications')}
         aria-current={isOnNotifications ? 'page' : undefined}
         className={`grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-ink outline-none transition-colors ${
           isOnNotifications

@@ -9,9 +9,11 @@ import {
  * The profile area's sections, shared by `ProfileMenu` (which picks one) and
  * `ProfileDialog` (which renders it). Add a section here and both pick it up.
  *
- * `label` is the menu entry; optional `dialogLabel` is the dialog's heading
- * when it should read differently — the menu names the place, the heading names
- * the action.
+ * `labelKey` is the menu entry; optional `dialogLabelKey` is the dialog's
+ * heading when it should read differently — the menu names the place, the
+ * heading names the action. Both are translation *keys*: this array is built
+ * once at import, so a translated string would freeze in the language that was
+ * in force at first load.
  *
  * Scope: this is the *person's* account. What the business offers and how the
  * assistant behaves live on `/management`, a real route — putting them here too
@@ -20,18 +22,17 @@ import {
 export const PROFILE_SECTIONS = [
   {
     id: 'account',
-    label: 'Профиль',
-    dialogLabel: 'Редактировать профиль',
+    labelKey: 'profile.section.account',
+    dialogLabelKey: 'profile.section.accountDialog',
     icon: UserCircleIcon,
   },
-  { id: 'security', label: 'Безопасность', icon: Shield01Icon },
-  { id: 'subscription', label: 'Подписка', icon: CreditCardIcon },
-  { id: 'settings', label: 'Настройки', icon: Settings02Icon },
+  { id: 'security', labelKey: 'profile.section.security', icon: Shield01Icon },
+  { id: 'subscription', labelKey: 'profile.section.subscription', icon: CreditCardIcon },
+  { id: 'settings', labelKey: 'profile.section.settings', icon: Settings02Icon },
 ]
 
-/** Placeholder copy for the sections that have no backend behind them yet. */
+/** Placeholder copy for the sections that have no backend behind them yet —
+ *  keys, for the same reason the labels are. */
 export const SECTION_PLACEHOLDERS = {
-  subscription:
-    'Здесь будут ваш тариф, лимиты использования, способ оплаты и история счетов.',
-
+  subscription: 'profile.subscriptionSoon',
 }

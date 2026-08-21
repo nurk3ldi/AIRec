@@ -1,3 +1,5 @@
+import { translate } from './i18n'
+
 /**
  * Where the backend is.
  *
@@ -62,10 +64,16 @@ async function request(path, { method = 'GET', body, formData, accessToken } = {
   } catch (error) {
     throw new ApiError({
       code: error?.name === 'TimeoutError' ? 'timeout' : 'network_error',
-      message:
-        error?.name === 'TimeoutError'
-          ? 'Сервер не отвечает. Проверьте подключение и попробуйте снова.'
-          : 'Не удалось связаться с сервером. Проверьте, запущен ли бэкенд.',
+      // `translate`, not `useT`: this is not a component, and the call happens
+      // at throw time rather than at import, so it picks up whatever language
+      // is in force when the request actually fails.
+      //
+      // Only the two failures *we* generate are translated. Everything the
+      // backend returns below arrives already worded, in Russian, and stays
+      // that way until the API learns `Accept-Language`.
+      message: translate(
+        error?.name === 'TimeoutError' ? 'error.timeout' : 'error.network'
+      ),
     })
   }
 
@@ -77,7 +85,7 @@ async function request(path, { method = 'GET', body, formData, accessToken } = {
     const error = data?.error
     throw new ApiError({
       code: error?.code || 'unknown_error',
-      message: error?.message || 'Что-то пошло не так.',
+      message: error?.message || translate('error.unknown'),
       fields: error?.fields,
       status: response.status,
     })

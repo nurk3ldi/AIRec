@@ -1,0 +1,219 @@
+/**
+ * Russian — the source language and the fallback for the other two.
+ *
+ * Keys are `screen.thing`. A key missing here shows up in the UI as the key
+ * itself, which is the point: a visible `login.title` is a gap you can find.
+ */
+export default {
+  // ── Navigation and shell ───────────────────────────────────────────────────
+  'nav.dashboard': 'Главная',
+  'nav.inbox': 'Диалоги',
+  'nav.appointments': 'Записи',
+  'nav.business': 'Бизнес',
+  'nav.profile': 'Профиль',
+  'nav.notifications': 'Уведомления',
+  'nav.main': 'Основная навигация',
+  'nav.home': 'AIRec — главная',
+
+  // ── Public header ─────────────────────────────────────────────────────────
+  'header.login': 'Войти',
+  'header.signup': 'Регистрация',
+
+  // ── Landing ───────────────────────────────────────────────────────────────
+  'landing.aria': 'Главная страница',
+  'landing.leadStart': 'ИИ-администратор отвечает клиентам и',
+  'landing.leadEnd': 'записывает их на приём',
+  'landing.open': 'Открыть AIRec',
+  'landing.login': 'Войти',
+  'landing.or': 'или',
+  'landing.signup': 'зарегистрироваться',
+
+  // ── Shared form words ─────────────────────────────────────────────────────
+  'form.or': 'или',
+  'form.google': 'Продолжить с Google',
+  'form.apple': 'Продолжить с Apple',
+  'form.noSpaces': 'Пробелы недопустимы.',
+  'form.showPassword': 'Показать пароль',
+  'form.hidePassword': 'Скрыть пароль',
+  'form.showPasswords': 'Показать пароли',
+  'form.hidePasswords': 'Скрыть пароли',
+  'form.cancel': 'Отменить',
+  'form.save': 'Сохранить',
+  'form.saving': 'Сохраняем…',
+  'form.close': 'Закрыть',
+
+  // ── Login ─────────────────────────────────────────────────────────────────
+  'login.aria': 'Страница входа',
+  'login.title': 'Вход в AIRec',
+  'login.identifier': 'Email или логин',
+  'login.password': 'Пароль',
+  'login.remember': 'Запомнить меня',
+  'login.forgot': 'Забыли пароль?',
+  'login.submit': 'Войти',
+  'login.submitting': 'Входим…',
+  'login.restore': 'Восстановить аккаунт и войти',
+  'login.noAccount': 'Нет аккаунта?',
+  'login.signup': 'Зарегистрироваться',
+  'login.resetOk': 'Пароль изменён. Войдите с новым паролем.',
+  'login.deleted':
+    'Аккаунт удалён. В течение 30 дней его можно восстановить — просто войдите снова.',
+
+  // ── Signup ────────────────────────────────────────────────────────────────
+  'signup.aria': 'Страница регистрации',
+  'signup.title': 'Создание аккаунта',
+  'signup.username': 'Логин',
+  'signup.email': 'Email',
+  'signup.password': 'Пароль',
+  'signup.submit': 'Зарегистрироваться',
+  'signup.submitting': 'Создаём аккаунт…',
+  'signup.taken': 'Этот логин уже занят.',
+  'signup.haveAccount': 'Уже есть аккаунт?',
+  'signup.login': 'Войти',
+
+  // ── Forgot password ───────────────────────────────────────────────────────
+  'forgot.aria': 'Страница восстановления пароля',
+  'forgot.title': 'Восстановление пароля',
+  'forgot.lead': 'Введите email — мы отправим 6-значный код.',
+  'forgot.email': 'Email',
+  'forgot.submit': 'Отправить код',
+  'forgot.submitting': 'Отправляем…',
+  'forgot.remembered': 'Вспомнили пароль?',
+  'forgot.login': 'Войти',
+
+  // ── Reset password ────────────────────────────────────────────────────────
+  'reset.aria': 'Страница сброса пароля',
+  'reset.title': 'Введите код',
+  'reset.needCode': 'Введите 6-значный код.',
+  'reset.sentTo': 'Мы отправили 6-значный код на',
+  'reset.wrongEmail': 'Не тот email? Изменить',
+  'reset.resend': 'Отправить код снова',
+  'reset.resendIn': 'Отправить снова ({seconds} с)',
+  'reset.resent': 'Код отправлен.',
+  'reset.newPasswordLabel': 'новый пароль',
+  'reset.newPassword': 'Новый пароль',
+  'reset.repeatPassword': 'Повторите пароль',
+  'reset.mismatch': 'Пароли не совпадают.',
+  'reset.submit': 'Сменить пароль',
+  'reset.submitting': 'Сохраняем…',
+  'reset.remembered': 'Вспомнили пароль?',
+  'reset.login': 'Войти',
+
+  // ── Profile screen and menu ───────────────────────────────────────────────
+  'profile.aria': 'Профиль',
+  'profile.menu': 'Меню профиля',
+  'profile.edit': 'Изменить профиль',
+  'profile.section.account': 'Профиль',
+  'profile.section.accountDialog': 'Редактировать профиль',
+  'profile.section.security': 'Безопасность',
+  'profile.section.subscription': 'Подписка',
+  'profile.section.settings': 'Настройки',
+  'profile.plan': 'Тариф',
+  'profile.planFree': 'Бесплатный',
+  'profile.signOut': 'Выйти',
+  'profile.signingOut': 'Выходим…',
+  'profile.subscriptionSoon':
+    'Здесь будут ваш тариф, лимиты использования, способ оплаты и история счетов.',
+
+  // ── Settings: appearance and language ─────────────────────────────────────
+  'settings.theme': 'Тема',
+  'settings.themeLead': 'Оформление приложения. Выбор сохраняется в этом браузере.',
+  'settings.theme.system': 'Системная',
+  'settings.theme.systemHint': 'Как на устройстве — переключится вместе с ним',
+  'settings.theme.light': 'Светлая',
+  'settings.theme.lightHint': 'Всегда светлая',
+  'settings.theme.dark': 'Тёмная',
+  'settings.theme.darkHint': 'Всегда тёмная',
+  'settings.language': 'Язык',
+  'settings.languageLead': 'Язык интерфейса. Выбор сохраняется в этом браузере.',
+
+  // ── Notifications, empty states, errors ───────────────────────────────────
+  'notifications.aria': 'Страница уведомлений',
+  'notifications.empty': 'Пока нет уведомлений',
+  'notifications.emptyLead':
+    'Здесь появятся новые записи, отменённые брони и диалоги, в которых ассистенту нужна ваша помощь.',
+  'comingSoon.title': 'Скоро',
+  'comingSoon': 'Скоро здесь появится этот раздел.',
+  'notFound.title': 'Страница не найдена',
+  'notFound.lead': 'Возможно, ссылка устарела или в адресе опечатка.',
+  'notFound.home': 'На главную',
+
+  // ── Network errors ────────────────────────────────────────────────────────
+  'error.timeout': 'Сервер не отвечает. Проверьте подключение и попробуйте снова.',
+  'error.network': 'Не удалось связаться с сервером. Проверьте, запущен ли бэкенд.',
+  'error.unknown': 'Что-то пошло не так.',
+
+  // -- Security section: sessions and account deletion -----------------------
+  'security.lead':
+    'Устройства, на которых выполнен вход в ваш аккаунт. Если какое-то из них вам незнакомо — завершите сеанс и смените пароль.',
+  'security.loading': 'Загружаем…',
+  'security.today': 'Сегодня, {time}',
+  'security.yesterday': 'Вчера, {time}',
+  'security.current': 'Текущий',
+  'security.signedIn': 'Вход',
+  'security.lastActive': 'Активность',
+  'security.revoke': 'Завершить сеанс',
+  'security.revoking': 'Завершаем…',
+  'security.revokeOthers': 'Завершить остальные сеансы ({count})',
+  'security.deleteTitle': 'Удаление аккаунта',
+  'security.deleteLead':
+    'Аккаунт удаляется не сразу: {days} дней его можно восстановить, просто войдя снова. После этого удаление станет окончательным.',
+  'security.deleteAction': 'Удалить аккаунт',
+  'security.deleteWarning':
+    'Вы выйдете на всех устройствах. В течение {days} дней вход восстановит аккаунт. Всё это время ваш email и имя пользователя остаются занятыми.',
+  'security.currentPassword': 'Текущий пароль',
+  'security.confirmBefore': 'Введите',
+  'security.confirmAfter': ', чтобы подтвердить',
+  'security.deleting': 'Удаляем…',
+
+  // -- Avatar cropper --------------------------------------------------------
+  'cropper.title': 'Настройте фото',
+  'cropper.aria': 'Обрезка фото',
+  'cropper.readFailed': 'Не удалось прочитать файл как изображение.',
+  'cropper.processFailed': 'Не удалось обработать изображение.',
+  'cropper.saveFailed': 'Не удалось сохранить изображение.',
+  'cropper.zoomOut': 'Уменьшить',
+  'cropper.zoom': 'Масштаб',
+  'cropper.zoomIn': 'Увеличить',
+
+  // -- Account section -------------------------------------------------------
+  'account.firstName': 'Имя',
+  'account.lastName': 'Фамилия',
+  'account.username': 'Имя пользователя',
+  'account.usernameTaken': 'Этот логин уже занят.',
+  'account.usernameFree': 'Логин свободен.',
+  'account.email': 'Email',
+  'account.password': 'Пароль',
+  'account.change': 'Изменить',
+  'account.confirm': 'Подтвердить',
+  'account.confirmed': 'Подтверждён',
+  'account.unconfirmed': 'Не подтверждён',
+  'account.currentAddress': 'Текущий адрес',
+  'account.newEmail': 'Новый email',
+  'account.emailLead':
+    'На новый адрес придёт код подтверждения. Пока вы его не введёте, адрес аккаунта не изменится.',
+  'account.sendCode': 'Отправить код',
+  'account.sendingCode': 'Отправляем…',
+  'account.codeSentTo': 'Мы отправили 6-значный код на',
+  'account.resendCode': 'Отправить код ещё раз',
+  'account.resendCodeIn': 'Отправить код ещё раз ({seconds})',
+  'account.cancelEmailChange': 'Отменить смену email',
+  'account.checking': 'Проверяем…',
+  'account.invalidEmail': 'Некорректный email.',
+  'account.needCode': 'Введите 6-значный код.',
+  'account.needCurrentPassword': 'Введите текущий пароль.',
+  'account.passwordMismatch': 'Пароли не совпадают.',
+  'account.passwordLead': 'Введите текущий пароль, чтобы задать новый.',
+  'account.newPassword': 'Новый пароль',
+  'account.repeatPassword': 'Повторите пароль',
+  'account.usePassword': 'Ввести текущий пароль',
+  'account.sendingMailCode': 'Отправляем код…',
+  'account.forgotPassword': 'Не помните пароль? Получить код на почту',
+  'account.passwordNote':
+    'После смены пароля вы останетесь в системе, но выйдете на других устройствах.',
+  'account.passwordChanged': 'Пароль изменён.',
+  'account.replacePhoto': 'Заменить фото',
+  'account.uploadPhoto': 'Загрузить фото',
+  'account.deletePhoto': 'Удалить фото',
+  'account.pickImage': 'Выберите файл изображения.',
+  'account.imageTooLarge': 'Изображение должно быть меньше 5 МБ.',
+}

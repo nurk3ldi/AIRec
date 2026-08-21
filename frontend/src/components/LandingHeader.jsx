@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { useT } from '../lib/i18n'
 
 /**
  * The public header: the mark on the left, the way in on the right.
@@ -35,6 +36,7 @@ const SECONDARY =
 const PRIMARY = 'bg-accent text-surface hover:bg-accent-strong'
 
 export default function LandingHeader({ className = '' }) {
+  const t = useT()
   const { pathname } = useLocation()
   const onLogin = pathname === '/login'
   const onSignup = pathname === '/signup'
@@ -57,7 +59,7 @@ export default function LandingHeader({ className = '' }) {
           (`airec_logo.png`) is 1024² with the mark off-centre inside it, which
           rendered a third smaller and sat 14px low; correcting that in CSS
           would have meant two sets of offsets to keep in step forever. */}
-      <Link to="/" className="flex h-full items-center" aria-label="AIRec — главная">
+      <Link to="/" className="flex h-full items-center" aria-label={t('nav.home')}>
         <img
           src="/black_logo_icon.png?v=2"
           alt=""
@@ -75,7 +77,7 @@ export default function LandingHeader({ className = '' }) {
       <div className="flex items-center gap-2 sm:gap-3">
         {!onLogin && (
           <Link to="/login" className={`${SIZE} ${SECONDARY}`}>
-            Войти
+            {t('header.login')}
           </Link>
         )}
         {!onSignup && (
@@ -83,7 +85,7 @@ export default function LandingHeader({ className = '' }) {
             to="/signup"
             className={`${SIZE} ${onAuthPage ? SECONDARY : PRIMARY}`}
           >
-            Регистрация
+            {t('header.signup')}
           </Link>
         )}
       </div>

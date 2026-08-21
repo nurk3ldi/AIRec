@@ -1,3 +1,4 @@
+import { useT } from '../lib/i18n'
 import styles from '../styles/Appointments.module.css'
 
 /**
@@ -16,5 +17,7 @@ import styles from '../styles/Appointments.module.css'
  * пустая страница честнее, чем ссылка, ведущая в 404.
  */
 export default function AppointmentsPage() {
-  return <div className={styles.page} aria-label="Записи" />
+  const t = useT()
+
+  return <div className={styles.page} aria-label={t('nav.appointments')} />
 }

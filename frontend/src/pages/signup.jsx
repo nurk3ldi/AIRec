@@ -4,6 +4,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { EyeIcon, EyeOffIcon, Tick02Icon } from '@hugeicons/core-free-icons'
 import { checkUsernameAvailability, register } from '../lib/api'
 import { saveTokens, useRedirectIfAuthed } from '../lib/auth'
+import { useT } from '../lib/i18n'
 import {
   BUTTON_PRIMARY,
   BUTTON_SECONDARY,
@@ -26,6 +27,7 @@ const USERNAME_PATTERN = /^[A-Za-z][A-Za-z0-9_.-]{2,31}$/
  * appearing on every keystroke would be noise in a field you are still typing.
  */
 export default function SignupPage() {
+  const t = useT()
   useRedirectIfAuthed()
 
   const navigate = useNavigate()
@@ -88,10 +90,10 @@ export default function SignupPage() {
   }
 
   return (
-    <div className={styles.page} aria-label="Страница регистрации">
+    <div className={styles.page} aria-label={t('signup.aria')}>
       <div className="m-auto flex w-full max-w-[360px] flex-col px-4 py-10 sm:py-16">
         <h1 className="text-center font-display text-[32px] leading-10 font-semibold tracking-[-0.04em] text-ink">
-          Создание аккаунта
+          {t('signup.title')}
         </h1>
 
         <form onSubmit={handleSubmit} noValidate className="mt-7 flex flex-col gap-2.5">
@@ -101,7 +103,7 @@ export default function SignupPage() {
                 type="text"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
-                placeholder="Логин"
+                placeholder={t('signup.username')}
                 autoComplete="username"
                 className={`${usernameBad ? FIELD_ERROR : FIELD} pr-10`}
               />
@@ -122,10 +124,10 @@ export default function SignupPage() {
             {fieldErrors.username ? (
               <p className="mt-1.5 text-[13px] text-danger">{fieldErrors.username}</p>
             ) : usernameHasSpace ? (
-              <p className="mt-1.5 text-[13px] text-danger">Пробелы недопустимы.</p>
+              <p className="mt-1.5 text-[13px] text-danger">{t('form.noSpaces')}</p>
             ) : (
               usernameStatus === 'taken' && (
-                <p className="mt-1.5 text-[13px] text-danger">Этот логин уже занят.</p>
+                <p className="mt-1.5 text-[13px] text-danger">{t('signup.taken')}</p>
               )
             )}
           </div>
@@ -135,7 +137,7 @@ export default function SignupPage() {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="Email"
+              placeholder={t('signup.email')}
               autoComplete="email"
               className={emailBad ? FIELD_ERROR : FIELD}
             />
@@ -143,7 +145,7 @@ export default function SignupPage() {
               <p className="mt-1.5 text-[13px] text-danger">{fieldErrors.email}</p>
             ) : (
               emailHasSpace && (
-                <p className="mt-1.5 text-[13px] text-danger">Пробелы недопустимы.</p>
+                <p className="mt-1.5 text-[13px] text-danger">{t('form.noSpaces')}</p>
               )
             )}
           </div>
@@ -154,14 +156,14 @@ export default function SignupPage() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Пароль"
+                placeholder={t('signup.password')}
                 autoComplete="new-password"
                 className={`${passwordBad ? FIELD_ERROR : FIELD} pr-10`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                aria-label={t(showPassword ? 'form.hidePassword' : 'form.showPassword')}
                 className="absolute right-2.5 grid h-7 w-7 place-items-center rounded-md text-muted transition-colors hover:text-ink"
               >
                 <HugeiconsIcon
@@ -177,7 +179,7 @@ export default function SignupPage() {
               <p className="mt-1.5 text-[13px] text-danger">{fieldErrors.password}</p>
             ) : (
               passwordHasSpace && (
-                <p className="mt-1.5 text-[13px] text-danger">Пробелы недопустимы.</p>
+                <p className="mt-1.5 text-[13px] text-danger">{t('form.noSpaces')}</p>
               )
             )}
           </div>
@@ -189,7 +191,7 @@ export default function SignupPage() {
           )}
 
           <button type="submit" disabled={isSubmitting} className={`${BUTTON_PRIMARY} mt-2.5`}>
-            {isSubmitting ? 'Создаём аккаунт…' : 'Зарегистрироваться'}
+            {t(isSubmitting ? 'signup.submitting' : 'signup.submit')}
           </button>
         </form>
 
@@ -197,7 +199,7 @@ export default function SignupPage() {
             is separate instead of just separating it. */}
         <div className="my-6 flex items-center gap-3">
           <span className="h-px flex-1 bg-line" />
-          <span className="text-[13px] text-muted">или</span>
+          <span className="text-[13px] text-muted">{t('form.or')}</span>
           <span className="h-px flex-1 bg-line" />
         </div>
 
@@ -207,7 +209,7 @@ export default function SignupPage() {
             className={`${BUTTON_SECONDARY} flex items-center justify-center gap-2`}
           >
             <img src="/google_logo.svg" alt="" className="h-4 w-4" aria-hidden="true" />
-            Продолжить с Google
+            {t('form.google')}
           </button>
 
           <button
@@ -229,14 +231,14 @@ export default function SignupPage() {
               aria-hidden="true"
               className="hidden h-4 w-4 dark:block"
             />
-            Продолжить с Apple
+            {t('form.apple')}
           </button>
         </div>
 
         <p className="mt-8 text-center text-[14px] text-muted">
-          Уже есть аккаунт?{' '}
+          {t('signup.haveAccount')}{' '}
           <Link to="/login" className="text-ink underline-offset-2 hover:underline">
-            Войти
+            {t('signup.login')}
           </Link>
         </p>
       </div>

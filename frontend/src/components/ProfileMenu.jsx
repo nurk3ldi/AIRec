@@ -6,6 +6,7 @@ import { Logout01Icon, User02Icon } from '@hugeicons/core-free-icons'
 import { PROFILE_SECTIONS } from './profile/sections'
 import { logout as logoutRequest, mediaUrl } from '../lib/api'
 import { clearTokens, getRefreshToken } from '../lib/auth'
+import { useT } from '../lib/i18n'
 
 /**
  * Popup anchored to the sidebar's profile button: identity on top, the profile
@@ -18,6 +19,7 @@ import { clearTokens, getRefreshToken } from '../lib/auth'
  * after you click away or press Escape reads as broken.
  */
 export default function ProfileMenu({ user, onOpenSection, onClose }) {
+  const t = useT()
   const navigate = useNavigate()
   const panelRef = useRef(null)
 
@@ -58,7 +60,7 @@ export default function ProfileMenu({ user, onOpenSection, onClose }) {
     <m.div
       ref={panelRef}
       role="menu"
-      aria-label="Меню профиля"
+      aria-label={t('profile.menu')}
       // Grows out of its own bottom-left corner, which is where the avatar
       // button that opened it sits — so the panel reads as coming *from* the
       // control rather than appearing over the page. The 4px shift toward the
@@ -147,7 +149,7 @@ export default function ProfileMenu({ user, onOpenSection, onClose }) {
               strokeWidth={1.8}
               className="shrink-0 text-ink"
             />
-            {item.label}
+            {t(item.labelKey)}
           </button>
         ))}
       </nav>
@@ -169,7 +171,7 @@ export default function ProfileMenu({ user, onOpenSection, onClose }) {
             strokeWidth={1.8}
             className="shrink-0"
           />
-          Выйти
+          {t('profile.signOut')}
         </button>
       </div>
     </m.div>

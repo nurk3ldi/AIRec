@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useT } from '../lib/i18n'
 import styles from '../styles/Home.module.css'
 
 /**
@@ -16,8 +17,10 @@ import styles from '../styles/Home.module.css'
  * draft of it.
  */
 export default function LandingPage() {
+  const t = useT()
+
   return (
-    <main className={styles.page} aria-label="Главная страница">
+    <main className={styles.page} aria-label={t('landing.aria')}>
       <div className="m-auto flex w-full max-w-[420px] flex-col items-center px-8 text-center sm:hidden">
         {/* Set in the display face at a size nothing else on the screen comes
             near: on a splash the name is the picture. */}
@@ -30,8 +33,8 @@ export default function LandingPage() {
             that are the product are at full contrast: the emphasis is the same,
             carried by the two colours the project actually has. */}
         <h1 className="mt-6 text-[21px] leading-[1.35] font-semibold tracking-[-0.01em] text-muted">
-          ИИ-администратор отвечает клиентам и{' '}
-          <span className="text-ink">записывает их на приём</span>.
+          {t('landing.leadStart')}{' '}
+          <span className="text-ink">{t('landing.leadEnd')}</span>.
         </h1>
 
         {/* Full width and fully round: the primary action on a phone should be
@@ -41,7 +44,7 @@ export default function LandingPage() {
           to="/login"
           className="mt-9 w-full rounded-full bg-accent py-[15px] text-[16px] font-semibold text-surface transition-colors hover:bg-accent-strong active:bg-accent-strong"
         >
-          Открыть AIRec
+          {t('landing.open')}
         </Link>
 
         <p className="mt-6 text-[15px] text-muted">
@@ -49,14 +52,14 @@ export default function LandingPage() {
             to="/login"
             className="font-semibold text-accent transition-opacity active:opacity-70"
           >
-            Войти
+            {t('landing.login')}
           </Link>{' '}
-          или{' '}
+          {t('landing.or')}{' '}
           <Link
             to="/signup"
             className="font-semibold text-accent transition-opacity active:opacity-70"
           >
-            зарегистрироваться
+            {t('landing.signup')}
           </Link>
         </p>
       </div>
