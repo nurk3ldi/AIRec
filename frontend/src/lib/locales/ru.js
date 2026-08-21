@@ -115,6 +115,7 @@ export default {
     'Здесь будут ваш тариф, лимиты использования, способ оплаты и история счетов.',
 
   // ── Settings: appearance and language ─────────────────────────────────────
+  'settings.interface': 'Интерфейс',
   'settings.theme': 'Тема',
   'settings.theme.system': 'Системная',
   'settings.theme.light': 'Светлая',

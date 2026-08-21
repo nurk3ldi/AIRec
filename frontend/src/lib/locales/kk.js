@@ -100,6 +100,7 @@ export default {
   'profile.subscriptionSoon':
     'Мұнда тарифіңіз, қолдану лимиттері, төлем әдісі және шоттар тарихы болады.',
 
+  'settings.interface': 'Интерфейс',
   'settings.theme': 'Тақырып',
   'settings.theme.system': 'Жүйелік',
   'settings.theme.light': 'Ашық',

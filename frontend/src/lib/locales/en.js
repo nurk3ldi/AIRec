@@ -100,6 +100,7 @@ export default {
   'profile.subscriptionSoon':
     'Your plan, usage limits, payment method and invoice history will live here.',
 
+  'settings.interface': 'Interface',
   'settings.theme': 'Theme',
   'settings.theme.system': 'System',
   'settings.theme.light': 'Light',
