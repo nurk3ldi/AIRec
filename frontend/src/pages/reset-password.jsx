@@ -4,6 +4,7 @@ import { EyeIcon, EyeOffIcon } from '@hugeicons/core-free-icons'
 import { forgotPassword, resetPassword } from '../lib/api'
 import { useRedirectIfAuthed } from '../lib/auth'
 import OtpInput from '../components/OtpInput'
+import { BUTTON_PRIMARY, FIELD, FIELD_ERROR } from '../components/controls'
 import styles from '../styles/ResetPassword.module.css'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -98,131 +99,130 @@ function ResetPasswordForm({ email, navigate }) {
   }
 
   return (
-    <>
-      <div className={styles.page} aria-label="Страница сброса пароля">
-        <div className="mx-auto flex max-w-[400px] flex-col gap-6 px-4 py-16 sm:px-6">
-          <div className="flex flex-col items-center gap-2 text-center">
-            <h1 className="font-display text-[26px] font-semibold tracking-[-0.02em] text-ink">
-              Введите код
-            </h1>
-            <p className="text-[14px] text-muted">
-              Мы отправили 6-значный код на <span className="text-ink">{email}</span>
-            </p>
-            <Link
-              to={`/forgot-password?email=${encodeURIComponent(email)}`}
-              className="text-[13px] font-medium text-accent hover:underline"
-            >
-              Не тот email? Изменить
-            </Link>
+    <div className={styles.page} aria-label="Страница сброса пароля">
+      <div className="m-auto flex w-full max-w-[360px] flex-col px-4 py-10 sm:py-16">
+        <h1 className="text-center font-display text-[32px] leading-10 font-semibold tracking-[-0.04em] text-ink">
+          Введите код
+        </h1>
+        <p className="mt-2 text-center text-[14px] text-muted">
+          Мы отправили 6-значный код на <span className="text-ink">{email}</span>
+        </p>
+        <Link
+          to={`/forgot-password?email=${encodeURIComponent(email)}`}
+          className="mt-1 text-center text-[13px] text-muted underline-offset-2 transition-colors hover:text-ink hover:underline"
+        >
+          Не тот email? Изменить
+        </Link>
+
+        <form onSubmit={handleSubmit} noValidate className="mt-7 flex flex-col gap-2.5">
+          <OtpInput
+            value={code}
+            onChange={setCode}
+            hasError={Boolean(error) && !passwordsMismatch}
+            autoFocus
+          />
+
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={resendCooldown > 0}
+            className="mx-auto text-[13px] text-muted underline-offset-2 transition-colors hover:text-ink hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-60"
+          >
+            {resendCooldown > 0
+              ? `Отправить снова (${resendCooldown} с)`
+              : justResent
+                ? 'Код отправлен.'
+                : 'Отправить код снова'}
+          </button>
+
+          {/* A labelled rule: the code proves who you are, the fields below set
+              the new password. Two steps in one form, said out loud. */}
+          <div className="my-4 flex items-center gap-3">
+            <span className="h-px flex-1 bg-line" />
+            <span className="text-[13px] text-muted">новый пароль</span>
+            <span className="h-px flex-1 bg-line" />
           </div>
 
-          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-            <div className="flex flex-col items-center gap-2">
-              <OtpInput
-                value={code}
-                onChange={setCode}
-                hasError={Boolean(error) && !passwordsMismatch}
-                autoFocus
+          <div>
+            <div className="relative flex items-center">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                placeholder="Новый пароль"
+                autoComplete="new-password"
+                className={`${
+                  fieldErrors.new_password || newPasswordHasSpace ? FIELD_ERROR : FIELD
+                } pr-10`}
               />
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={resendCooldown > 0}
-                className="text-[13px] font-medium text-accent transition-colors hover:underline disabled:cursor-not-allowed disabled:text-muted disabled:no-underline"
-              >
-                {resendCooldown > 0
-                  ? `Отправить снова (${resendCooldown} с)`
-                  : justResent
-                    ? 'Код отправлен.'
-                    : 'Отправить код снова'}
-              </button>
+              <PasswordToggle shown={showPassword} onToggle={setShowPassword} />
             </div>
+            {fieldErrors.new_password ? (
+              <p className="mt-1.5 text-[13px] text-danger">{fieldErrors.new_password}</p>
+            ) : (
+              newPasswordHasSpace && (
+                <p className="mt-1.5 text-[13px] text-danger">Пробелы недопустимы.</p>
+              )
+            )}
+          </div>
 
-            <hr className="border-t border-line" />
-
-            <div className="flex flex-col gap-1.5">
-              <div className="relative flex items-center">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={newPassword}
-                  onChange={(event) => setNewPassword(event.target.value)}
-                  placeholder="Новый пароль"
-                  autoComplete="new-password"
-                  className={`w-full rounded-lg border bg-surface px-3.5 py-2 pr-11 text-[14px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent ${fieldErrors.new_password || newPasswordHasSpace ? 'border-danger' : 'border-line-strong'}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? 'Скрыть пароли' : 'Показать пароли'}
-                  className="absolute right-3 top-1/2 grid -translate-y-1/2 place-items-center text-muted transition-colors hover:text-ink"
-                >
-                  <HugeiconsIcon
-                    icon={showPassword ? EyeIcon : EyeOffIcon}
-                    size={18}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.8}
-                  />
-                </button>
-              </div>
-              {fieldErrors.new_password ? (
-                <p className="text-[13px] text-danger">{fieldErrors.new_password}</p>
-              ) : (
-                newPasswordHasSpace && (
-                  <p className="text-[13px] text-danger">Пробелы недопустимы.</p>
-                )
-              )}
+          <div>
+            <div className="relative flex items-center">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                placeholder="Повторите пароль"
+                autoComplete="new-password"
+                className={`${passwordsMismatch ? FIELD_ERROR : FIELD} pr-10`}
+              />
+              <PasswordToggle shown={showPassword} onToggle={setShowPassword} />
             </div>
+            {passwordsMismatch && (
+              <p className="mt-1.5 text-[13px] text-danger">Пароли не совпадают.</p>
+            )}
+          </div>
 
-            <div className="flex flex-col gap-1.5">
-              <div className="relative flex items-center">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                  placeholder="Повторите пароль"
-                  autoComplete="new-password"
-                  className={`w-full rounded-lg border bg-surface px-3.5 py-2 pr-11 text-[14px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent ${passwordsMismatch ? 'border-danger' : 'border-line-strong'}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? 'Скрыть пароли' : 'Показать пароли'}
-                  className="absolute right-3 top-1/2 grid -translate-y-1/2 place-items-center text-muted transition-colors hover:text-ink"
-                >
-                  <HugeiconsIcon
-                    icon={showPassword ? EyeIcon : EyeOffIcon}
-                    size={18}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.8}
-                  />
-                </button>
-              </div>
-              {passwordsMismatch && (
-                <p className="text-[13px] text-danger">Пароли не совпадают.</p>
-              )}
-            </div>
+          {error && (
+            <p role="alert" className="mt-1 text-center text-[13px] text-danger">
+              {error}
+            </p>
+          )}
 
-            {error && <p className="text-center text-[13px] text-danger">{error}</p>}
+          <button type="submit" disabled={isSubmitting} className={`${BUTTON_PRIMARY} mt-2.5`}>
+            {isSubmitting ? 'Сохраняем…' : 'Сменить пароль'}
+          </button>
+        </form>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-lg bg-ink px-5 py-2 text-[14px] font-medium text-surface transition-colors hover:bg-ink/85 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSubmitting ? 'Сохраняем…' : 'Сменить пароль'}
-            </button>
-          </form>
-
-          <p className="text-center text-[15px] text-muted">
-            Вспомнили пароль?{' '}
-            <Link to="/login" className="font-medium text-accent hover:underline">
-              Войти
-            </Link>
-          </p>
-        </div>
+        <p className="mt-8 text-center text-[14px] text-muted">
+          Вспомнили пароль?{' '}
+          <Link to="/login" className="text-ink underline-offset-2 hover:underline">
+            Войти
+          </Link>
+        </p>
       </div>
-    </>
+    </div>
+  )
+}
+
+/** Both password fields share one visibility switch, so they reveal together —
+ *  checking a repeat against a hidden original is not something to ask of
+ *  anyone. */
+function PasswordToggle({ shown, onToggle }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle((prev) => !prev)}
+      aria-label={shown ? 'Скрыть пароли' : 'Показать пароли'}
+      className="absolute right-2.5 grid h-7 w-7 place-items-center rounded-md text-muted transition-colors hover:text-ink"
+    >
+      <HugeiconsIcon
+        icon={shown ? EyeIcon : EyeOffIcon}
+        size={17}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.8}
+      />
+    </button>
   )
 }

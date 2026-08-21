@@ -3,6 +3,12 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { EyeIcon, EyeOffIcon, Tick02Icon } from '@hugeicons/core-free-icons'
 import { login, restoreAccount } from '../lib/api'
 import { saveTokens, useRedirectIfAuthed } from '../lib/auth'
+import {
+  BUTTON_PRIMARY,
+  BUTTON_SECONDARY,
+  FIELD,
+  FIELD_ERROR,
+} from '../components/controls'
 import styles from '../styles/Login.module.css'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -23,21 +29,6 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 // One recipe for every control on this page, so the inputs, the submit and the
 // social buttons are the same object at different weights.
-// Measured off the reference's controls: 40px tall, a 6px radius (`--geist-radius`),
-// 12px of horizontal padding and 16px text. The radius is the giveaway — 8px
-// reads as a card, 6px reads as a control.
-const CONTROL =
-  'h-10 w-full rounded-md px-3 text-[16px] font-medium transition-all duration-150'
-
-const FIELD =
-  `${CONTROL} bg-surface font-normal text-ink outline-none placeholder:text-muted ` +
-  'shadow-[0_0_0_1px_var(--color-field)] hover:shadow-[0_0_0_1px_var(--color-field-hover)] ' +
-  'focus:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)]'
-
-const FIELD_ERROR =
-  `${CONTROL} bg-surface font-normal text-ink outline-none placeholder:text-muted ` +
-  'shadow-[0_0_0_1px_var(--color-danger)] focus:shadow-[0_0_0_1px_var(--color-danger),0_0_0_4px_var(--color-field-halo)]'
-
 export default function LoginPage() {
   useRedirectIfAuthed()
 
@@ -213,7 +204,7 @@ export default function LoginPage() {
               type="button"
               onClick={handleRestore}
               disabled={isSubmitting}
-              className={`${CONTROL} mt-2.5 bg-surface text-ink shadow-[0_0_0_1px_var(--color-field-hover)] hover:bg-ink/6 hover:shadow-[0_0_0_1px_var(--color-field-focus)] disabled:cursor-not-allowed disabled:opacity-60`}
+              className={`${BUTTON_SECONDARY} mt-2.5`}
             >
               Восстановить аккаунт и войти
             </button>
@@ -222,7 +213,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`${CONTROL} mt-2.5 bg-accent text-surface hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60`}
+            className={`${BUTTON_PRIMARY} mt-2.5`}
           >
             {isSubmitting ? 'Входим…' : 'Войти'}
           </button>
@@ -239,7 +230,7 @@ export default function LoginPage() {
         <div className="flex flex-col gap-2.5">
           <button
             type="button"
-            className={`${CONTROL} flex items-center justify-center gap-2 bg-surface text-ink shadow-[0_0_0_1px_var(--color-field-hover)] hover:bg-ink/6 hover:shadow-[0_0_0_1px_var(--color-field-focus)]`}
+            className={`${BUTTON_SECONDARY} flex items-center justify-center gap-2`}
           >
             <img src="/google_logo.svg" alt="" className="h-4 w-4" aria-hidden="true" />
             Продолжить с Google
@@ -247,7 +238,7 @@ export default function LoginPage() {
 
           <button
             type="button"
-            className={`${CONTROL} flex items-center justify-center gap-2 bg-surface text-ink shadow-[0_0_0_1px_var(--color-field-hover)] hover:bg-ink/6 hover:shadow-[0_0_0_1px_var(--color-field-focus)]`}
+            className={`${BUTTON_SECONDARY} flex items-center justify-center gap-2`}
           >
             {/* Apple's mark is solid black, so it disappears on the dark
                 theme's black button — the white cut is the same file inverted.

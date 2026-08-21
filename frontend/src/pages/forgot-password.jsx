@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { forgotPassword } from '../lib/api'
 import { useRedirectIfAuthed } from '../lib/auth'
+import { BUTTON_PRIMARY, FIELD, FIELD_ERROR } from '../components/controls'
 import styles from '../styles/ForgotPassword.module.css'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -42,53 +43,52 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <>
-      <div className={styles.page} aria-label="Страница восстановления пароля">
-        <div className="mx-auto flex max-w-[400px] flex-col gap-6 px-4 py-16 sm:px-6">
-          <div className="flex flex-col items-center gap-2 text-center">
-            <h1 className="font-display text-[26px] font-semibold tracking-[-0.02em] text-ink">
-              Восстановление пароля
-            </h1>
-            <p className="text-[14px] text-muted">
-              Введите email — мы отправим 6-значный код.
-            </p>
+    <div className={styles.page} aria-label="Страница восстановления пароля">
+      <div className="m-auto flex w-full max-w-[360px] flex-col px-4 py-10 sm:py-16">
+        <h1 className="text-center font-display text-[32px] leading-10 font-semibold tracking-[-0.04em] text-ink">
+          Восстановление пароля
+        </h1>
+        {/* The one line of explanation this flow needs, under the heading rather
+            than beside the field: it describes what pressing the button does,
+            not what to type. */}
+        <p className="mt-2 text-center text-[14px] text-muted">
+          Введите email — мы отправим 6-значный код.
+        </p>
+
+        <form onSubmit={handleSubmit} noValidate className="mt-7 flex flex-col gap-2.5">
+          <div>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Email"
+              autoComplete="email"
+              autoFocus
+              className={emailHasSpace ? FIELD_ERROR : FIELD}
+            />
+            {emailHasSpace && (
+              <p className="mt-1.5 text-[13px] text-danger">Пробелы недопустимы.</p>
+            )}
           </div>
 
-          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="Email"
-                autoComplete="email"
-                autoFocus
-                className={`rounded-lg border bg-surface px-3.5 py-2 text-[14px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent ${emailHasSpace ? 'border-danger' : 'border-line-strong'}`}
-              />
-              {emailHasSpace && (
-                <p className="text-[13px] text-danger">Пробелы недопустимы.</p>
-              )}
-            </div>
+          {error && (
+            <p role="alert" className="mt-1 text-[13px] text-danger">
+              {error}
+            </p>
+          )}
 
-            {error && <p className="text-[13px] text-danger">{error}</p>}
+          <button type="submit" disabled={isSubmitting} className={`${BUTTON_PRIMARY} mt-2.5`}>
+            {isSubmitting ? 'Отправляем…' : 'Отправить код'}
+          </button>
+        </form>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-lg bg-ink px-5 py-2 text-[14px] font-medium text-surface transition-colors hover:bg-ink/85 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSubmitting ? 'Отправляем…' : 'Отправить код'}
-            </button>
-          </form>
-
-          <p className="text-center text-[15px] text-muted">
-            Вспомнили пароль?{' '}
-            <Link to="/login" className="font-medium text-accent hover:underline">
-              Войти
-            </Link>
-          </p>
-        </div>
+        <p className="mt-8 text-center text-[14px] text-muted">
+          Вспомнили пароль?{' '}
+          <Link to="/login" className="text-ink underline-offset-2 hover:underline">
+            Войти
+          </Link>
+        </p>
       </div>
-    </>
+    </div>
   )
 }

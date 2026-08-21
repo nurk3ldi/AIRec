@@ -18,11 +18,14 @@ const BARE_ON_MOBILE = new Set(['/', '/login', '/signup'])
 
 /**
  * Routes where the header keeps its logo and buttons but drops the rule under
- * it. On `/login` the page below is a single narrow column centred in an empty
+ * it. On all three the page below is a single narrow column centred in an empty
  * field — a full-width line across the top cuts that field in two and gives the
  * header a weight the page it sits on does not have.
+ *
+ * `/forgot-password` and `/reset-password` keep the rule: they are mid-flow,
+ * and there the header is the way back out rather than a place to leave from.
  */
-const RULELESS = new Set(['/login'])
+const RULELESS = new Set(['/', '/login', '/signup'])
 
 /**
  * The marketing shell: header, then the page.

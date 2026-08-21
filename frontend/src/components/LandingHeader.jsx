@@ -3,8 +3,9 @@ import { Link, useLocation } from 'react-router-dom'
 /**
  * The public header: the mark on the left, the way in on the right.
  *
- * On `/login` it drops «Войти» and keeps only «Регистрация» — a button offering
- * the page you are already standing on is a control that cannot do anything.
+ * Each auth page drops the button pointing at itself — a control offering the
+ * page you are already standing on cannot do anything. `/login` keeps only
+ * «Регистрация», `/signup` keeps only «Войти».
  *
  * «Регистрация» keeps the **filled** style everywhere, matching the reference's
  * Sign Up: the inverted button, ink-on-surface flipped, which on a black page
@@ -40,6 +41,7 @@ const PRIMARY =
 export default function LandingHeader({ className = '' }) {
   const { pathname } = useLocation()
   const onLogin = pathname === '/login'
+  const onSignup = pathname === '/signup'
 
   return (
     <header
@@ -75,9 +77,11 @@ export default function LandingHeader({ className = '' }) {
             Войти
           </Link>
         )}
-        <Link to="/signup" className={`${SIZE} ${PRIMARY}`}>
-          Регистрация
-        </Link>
+        {!onSignup && (
+          <Link to="/signup" className={`${SIZE} ${PRIMARY}`}>
+            Регистрация
+          </Link>
+        )}
       </div>
     </header>
   )

@@ -60,7 +60,15 @@ export default function OtpInput({ value, onChange, hasError, autoFocus }) {
           value={digit}
           onChange={handleChange(index)}
           onKeyDown={handleKeyDown(index)}
-          className={`h-14 w-11 rounded-lg border bg-surface text-center text-[20px] font-semibold text-ink outline-none transition-colors focus:border-accent ${hasError ? 'border-danger' : 'border-line-strong'}`}
+          // The same three-step ring the text fields wear, so a box here reads
+          // as the same kind of object — resting, hover, focus with a halo. The
+          // edge is a `box-shadow`, so focus thickens it without the box
+          // growing and shunting the other five along the row.
+          className={`h-14 w-11 rounded-md bg-surface text-center text-[20px] font-semibold text-ink outline-none transition-all duration-150 ${
+            hasError
+              ? 'shadow-[0_0_0_1px_var(--color-danger)] focus:shadow-[0_0_0_1px_var(--color-danger),0_0_0_4px_var(--color-field-halo)]'
+              : 'shadow-[0_0_0_1px_var(--color-field)] hover:shadow-[0_0_0_1px_var(--color-field-hover)] focus:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)]'
+          }`}
         />
       ))}
     </div>
