@@ -27,16 +27,12 @@ const SIZE =
 // themes. The edge brightens with it, which is what the reference does.
 const SECONDARY =
   'border border-line-strong bg-surface text-ink hover:border-field-focus hover:bg-ink/8'
-// Black in *both* themes, which no role token can say on its own — `accent` and
-// `ink` both flip to white on the dark side. `rail` is the pair that already
-// means "dark whatever the theme", because the sidebar is, so it is the one to
-// borrow rather than hardcoding a hex here.
-//
-// On the dark theme that puts a black button on a black page, so it carries an
-// edge as well: the fill says what it is, the hairline says where it ends —
-// which is exactly how the reference's Sign Up is drawn.
-const PRIMARY =
-  'border border-line-strong bg-rail text-rail-ink hover:border-field-focus hover:bg-rail/85'
+// The inverted button: `accent` is white on the dark theme and black on the
+// light one, and the label takes `surface`, which is the opposite of whichever
+// it is. Not a fixed white — a white button on a white page would be a shape
+// nobody can see. It needs no edge; the fill is already the strongest contrast
+// the page has.
+const PRIMARY = 'bg-accent text-surface hover:bg-accent-strong'
 
 export default function LandingHeader({ className = '' }) {
   const { pathname } = useLocation()
