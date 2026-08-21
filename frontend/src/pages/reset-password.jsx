@@ -14,16 +14,20 @@ const RESEND_COOLDOWN_SECONDS = 30
  * The address the code was sent to comes from `?email=`, and without it this
  * page has nothing to confirm — so it sends you back to ask for one.
  *
- * This used to be `getServerSideProps`, and the reason was specific to Next:
- * for a page with no data fetching it deferred `router.query` until after
- * hydration, so reading the address on the client rendered a blank frame on
- * every hard load. A router that only ever runs in the browser has the search
- * string on the first render, so the guard is simply an early return now — and
- * the page no longer needs a server to render at all.
+ * **The address is captured once, on mount, and that is load-bearing.**
+ * `PageTransition` runs `mode="wait"`, so when you leave this page it stays
+ * mounted for the length of its fade — and by then the location is already the
+ * route you asked for. Re-reading `?email=` at that moment returns null, the
+ * guard below fires, and a `<Navigate>` redirects to `/forgot-password` right
+ * over the top of the navigation you just made. That is what made "Вспомнили
+ * пароль? Войти" land on the wrong page.
+ *
+ * A `useState` initialiser runs exactly once, so the captured value survives
+ * every re-render the exit animation causes.
  */
 export default function ResetPasswordPage() {
   const [params] = useSearchParams()
-  const email = params.get('email')
+  const [email] = useState(() => params.get('email'))
 
   useRedirectIfAuthed()
   const navigate = useNavigate()
