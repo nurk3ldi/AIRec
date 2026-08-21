@@ -142,15 +142,15 @@ export default function SessionsSettings({ user }) {
   const otherCount = sessions ? sessions.filter((s) => !s.is_current).length : 0
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-2 pb-6">
-      <p className="text-[14px] text-muted">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-2 pb-6">
+      <p className="shrink-0 text-[14px] text-muted">
         {t('security.lead')}
       </p>
 
       {error && (
         <p
           role="alert"
-          className="mt-4 inline-flex items-center gap-1.5 text-[13px] text-danger"
+          className="mt-4 inline-flex shrink-0 items-center gap-1.5 text-[13px] text-danger"
         >
           <HugeiconsIcon
             icon={Alert02Icon}
@@ -164,9 +164,9 @@ export default function SessionsSettings({ user }) {
       )}
 
       {sessions === null ? (
-        <p className="mt-4 text-[14px] text-muted">{t('security.loading')}</p>
+        <p className="mt-4 shrink-0 text-[14px] text-muted">{t('security.loading')}</p>
       ) : (
-        <div className="mt-4 flex flex-col gap-2">
+        <div className="mt-4 flex shrink-0 flex-col gap-2">
           {sessions.map((session) => (
             <div
               key={session.id}
@@ -227,114 +227,127 @@ export default function SessionsSettings({ user }) {
         </div>
       )}
 
-      {/* Kept behind a disclosure and visually separated: this is the one
-          action on the page that isn't undoable by clicking again. */}
-      <div className="mt-8 rounded-xl border border-danger/25 bg-danger/4 p-4">
-        <h3 className="text-[14px] font-semibold text-danger">
-          {t('security.deleteTitle')}
-        </h3>
+      {/* Kept behind a disclosure and held to the bottom edge: this is the one
+          action on the page that isn't undoable by clicking again, and the run
+          of empty panel above it is what keeps a cursor travelling down the
+          session list from arriving on it.
 
-        {!isDeleteOpen ? (
-          <>
-            <p className="mt-1 text-[13px] text-ink/70">
-              {t('security.deleteLead', { days: GRACE_DAYS })}
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setIsDeleteOpen(true)
-                setDeleteError('')
-              }}
-              className="mt-3 ml-auto block rounded-xl border border-danger/40 px-4 py-2 text-[13px] font-medium text-danger outline-none transition-colors hover:bg-danger/8 focus-visible:bg-danger/8"
-            >
-              {t('security.deleteAction')}
-            </button>
-          </>
-        ) : (
-          <form onSubmit={handleDelete} noValidate className="mt-3 flex flex-col gap-3">
-            <p className="text-[13px] text-ink/70">
-              {t('security.deleteWarning', { days: GRACE_DAYS })}
-            </p>
+          `mt-auto` over a `pt-8` floor, the same pair `/profile` uses for its
+          sign-out — the auto margin alone collapses the moment the sessions
+          list is long enough to scroll, and the two blocks would touch.
 
-            <div className="relative flex items-center">
-              <input
-                type={showDeletePassword ? 'text' : 'password'}
-                value={deletePassword}
-                onChange={(event) => {
-                  setDeletePassword(event.target.value)
-                  setDeleteError('')
-                }}
-                placeholder={t('security.currentPassword')}
-                autoComplete="current-password"
-                className="w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2 pr-11 text-[14px] text-ink outline-none transition-colors placeholder:text-muted focus:border-danger"
-              />
-              <button
-                type="button"
-                onClick={() => setShowDeletePassword((prev) => !prev)}
-                aria-label={t(showDeletePassword ? 'form.hidePassword' : 'form.showPassword')}
-                className="absolute right-3 grid place-items-center text-muted transition-colors hover:text-ink"
-              >
-                <HugeiconsIcon
-                  icon={showDeletePassword ? EyeIcon : EyeOffIcon}
-                  size={18}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.8}
-                />
-              </button>
-            </div>
+          The `shrink-0` on every top-level child here is what makes that column
+          scroll rather than squash: a flex item defaults to `flex-shrink: 1`,
+          so a long session list would be compressed toward its min-content
+          height inside the fixed panel instead of overflowing it. */}
+      <div className="mt-auto shrink-0 pt-8">
+        <div className="rounded-xl border border-danger/25 bg-danger/4 p-4">
+          <h3 className="text-[14px] font-semibold text-danger">
+            {t('security.deleteTitle')}
+          </h3>
 
-            <div className="flex flex-col gap-1.5">
-              <label
-                htmlFor="delete-confirmation"
-                className="text-[13px] text-ink/70"
-              >
-                {t('security.confirmBefore')}{' '}
-                <span className="font-semibold">{user?.username}</span>
-                {t('security.confirmAfter')}
-              </label>
-              <input
-                id="delete-confirmation"
-                type="text"
-                value={confirmation}
-                onChange={(event) => {
-                  setConfirmation(event.target.value)
-                  setDeleteError('')
-                }}
-                autoComplete="off"
-                className="w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2 text-[14px] text-ink outline-none transition-colors placeholder:text-muted focus:border-danger"
-              />
-            </div>
-
-            {deleteError && (
-              <p role="alert" className="text-[13px] text-danger">
-                {deleteError}
+          {!isDeleteOpen ? (
+            <>
+              <p className="mt-1 text-[13px] text-ink/70">
+                {t('security.deleteLead', { days: GRACE_DAYS })}
               </p>
-            )}
-
-            <div className="flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => {
-                  setIsDeleteOpen(false)
-                  setDeletePassword('')
-                  setConfirmation('')
+                  setIsDeleteOpen(true)
                   setDeleteError('')
                 }}
-                className="rounded-xl border border-line px-4 py-2 text-[13px] font-medium text-ink outline-none transition-colors hover:bg-ink/5 focus-visible:bg-ink/5"
+                className="mt-3 ml-auto block rounded-xl border border-danger/40 px-4 py-2 text-[13px] font-medium text-danger outline-none transition-colors hover:bg-danger/8 focus-visible:bg-danger/8"
               >
-                {t('form.cancel')}
+                {t('security.deleteAction')}
               </button>
-              <button
-                type="submit"
-                disabled={!deletePassword || !confirmation || isDeleting}
-                className="rounded-xl bg-danger px-4 py-2 text-[13px] font-medium text-white outline-none transition-colors hover:bg-[#B91C1C] focus-visible:bg-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                {t(isDeleting ? 'security.deleting' : 'security.deleteAction')}
-              </button>
-            </div>
-          </form>
-        )}
+            </>
+          ) : (
+            <form onSubmit={handleDelete} noValidate className="mt-3 flex flex-col gap-3">
+              <p className="text-[13px] text-ink/70">
+                {t('security.deleteWarning', { days: GRACE_DAYS })}
+              </p>
+
+              <div className="relative flex items-center">
+                <input
+                  type={showDeletePassword ? 'text' : 'password'}
+                  value={deletePassword}
+                  onChange={(event) => {
+                    setDeletePassword(event.target.value)
+                    setDeleteError('')
+                  }}
+                  placeholder={t('security.currentPassword')}
+                  autoComplete="current-password"
+                  className="w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2 pr-11 text-[14px] text-ink outline-none transition-colors placeholder:text-muted focus:border-danger"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowDeletePassword((prev) => !prev)}
+                  aria-label={t(showDeletePassword ? 'form.hidePassword' : 'form.showPassword')}
+                  className="absolute right-3 grid place-items-center text-muted transition-colors hover:text-ink"
+                >
+                  <HugeiconsIcon
+                    icon={showDeletePassword ? EyeIcon : EyeOffIcon}
+                    size={18}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.8}
+                  />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="delete-confirmation"
+                  className="text-[13px] text-ink/70"
+                >
+                  {t('security.confirmBefore')}{' '}
+                  <span className="font-semibold">{user?.username}</span>
+                  {t('security.confirmAfter')}
+                </label>
+                <input
+                  id="delete-confirmation"
+                  type="text"
+                  value={confirmation}
+                  onChange={(event) => {
+                    setConfirmation(event.target.value)
+                    setDeleteError('')
+                  }}
+                  autoComplete="off"
+                  className="w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2 text-[14px] text-ink outline-none transition-colors placeholder:text-muted focus:border-danger"
+                />
+              </div>
+
+              {deleteError && (
+                <p role="alert" className="text-[13px] text-danger">
+                  {deleteError}
+                </p>
+              )}
+
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDeleteOpen(false)
+                    setDeletePassword('')
+                    setConfirmation('')
+                    setDeleteError('')
+                  }}
+                  className="rounded-xl border border-line px-4 py-2 text-[13px] font-medium text-ink outline-none transition-colors hover:bg-ink/5 focus-visible:bg-ink/5"
+                >
+                  {t('form.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={!deletePassword || !confirmation || isDeleting}
+                  className="rounded-xl bg-danger px-4 py-2 text-[13px] font-medium text-white outline-none transition-colors hover:bg-[#B91C1C] focus-visible:bg-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  {t(isDeleting ? 'security.deleting' : 'security.deleteAction')}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   )
