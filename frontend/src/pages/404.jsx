@@ -19,7 +19,7 @@ export default function NotFoundPage() {
         </p>
         <Link
           to="/"
-          className="mt-8 inline-block rounded-lg bg-accent px-5 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-accent-strong"
+          className="mt-8 inline-block rounded-lg bg-accent px-5 py-2.5 text-[14px] font-medium text-surface transition-colors hover:bg-accent-strong"
         >
           На главную
         </Link>

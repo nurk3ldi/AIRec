@@ -25,6 +25,14 @@
      not the same line. Both are tokens rather than `muted` at an alpha: grey at
      25% reads clearly on white and all but vanishes on a near-black ground, so
      the *colour* has to change with the theme, not only its opacity. */
+  /* Field rings. Taken from Vercel's login page, where an input's edge is a
+     `box-shadow: 0 0 0 1px`, not a border — that keeps it out of the box model,
+     so focus can thicken it without the field growing and shifting the form.
+     Three steps: resting, hover, focus, plus the halo focus adds outside. */
+  --color-field: var(--field);
+  --color-field-hover: var(--field-hover);
+  --color-field-focus: var(--field-focus);
+  --color-field-halo: var(--field-halo);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
   /* The dark rail is dark in *both* themes — it is the one surface whose colour
@@ -44,12 +52,19 @@
 }
 
 :root {
-  --accent: #3248f2;
-  --accent-strong: #2839c9;
+  /* The accent is monochrome: black on a light ground, white on a dark one.
+     There is no brand hue any more — the project runs on #000000 and #FFFFFF,
+     and emphasis comes from contrast and weight rather than from colour. */
+  --accent: #000000;
+  --accent-strong: #333333;
   --ink: #171215;
   --muted: #999999;
   --ground: #f6f8fa;
   --surface: #ffffff;
+  --field: rgb(0 0 0 / 0.08);
+  --field-hover: rgb(0 0 0 / 0.21);
+  --field-focus: rgb(0 0 0 / 0.34);
+  --field-halo: rgb(0 0 0 / 0.16);
   --line: rgb(153 153 153 / 0.24);
   --line-strong: rgb(153 153 153 / 0.4);
   --rail: #171215;
@@ -75,23 +90,20 @@
 /**
  * Dark values for the same roles.
  *
- * Not an inversion: the ground stays *below* the surface in lightness, the way
- * it is in light mode, so a card still reads as sitting on the page rather than
- * cut out of it. The accent lifts to `#7086ff` because `#3248f2` on a near-black
- * ground is about 1.9:1 — legible as a shape, not as text.
+ * The project runs on two colours, #000000 and #FFFFFF, so most of these are
+ * the same pair swapping roles. The accent is one of them: black on a light
+ * ground, white on a dark one — emphasis comes from contrast and weight, not
+ * from a hue.
  *
  * `[data-theme]` is set by `lib/theme.js`, and by the inline script in
  * `index.html` before first paint so the page never flashes the wrong theme.
  */
 [data-theme='dark'] {
-  /* The accent does not move. It is the brand colour and it should be the same
-     blue in both themes — a deliberate choice over the contrast one: `#3248f2`
-     on this ground is about 1.9:1, which is fine for a *fill* you tap and thin
-     for a *label* you read. If accent-coloured text ever becomes hard to read
-     here, split it — keep this for fills and add a lighter token for text —
-     rather than lifting this one and changing the brand in half the app. */
-  --accent: #3248f2;
-  --accent-strong: #2839c9;
+  /* Inverted, like everything else here: on a black ground the accent is white.
+     `text-surface` is what goes on top of it in both themes — never
+     `text-white`, which would vanish on the light-on-dark side. */
+  --accent: #ffffff;
+  --accent-strong: #d9d9d9;
   --ink: #ffffff;
   --muted: #8b8588;
   /* Pure black for the page, the cards and the dialogs — and the rail below
@@ -117,6 +129,10 @@
      surfaces are close enough in lightness that a divider and an input edge
      want different weights, and it never shows as a mismatch. Splitting them
      again is one value, not a refactor. */
+  --field: rgb(255 255 255 / 0.14);
+  --field-hover: rgb(255 255 255 / 0.24);
+  --field-focus: rgb(255 255 255 / 0.51);
+  --field-halo: rgb(255 255 255 / 0.24);
   --line: #454545;
   --line-strong: #454545;
   --rail: #000000;
@@ -199,6 +215,9 @@ a {
 }
 
 ::selection {
-  color: #ffffff;
-  background: #3248f2;
+  /* Follows the theme rather than a fixed colour: on a light page the highlight
+     is ink with the surface showing through the letters, and on a dark one the
+     two swap. */
+  color: var(--surface);
+  background: var(--ink);
 }

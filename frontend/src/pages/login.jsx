@@ -6,6 +6,34 @@ import { saveTokens, useRedirectIfAuthed } from '../lib/auth'
 import styles from '../styles/Login.module.css'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
+/**
+ * Sizes, spacing and field behaviour are measured off `vercel.com/login`.
+ *
+ * The one worth understanding is the field's edge: it is a
+ * **`box-shadow: 0 0 0 1px`, not a `border`**. A shadow sits outside the box
+ * model, so focus can thicken the ring and add a halo without the input growing
+ * a pixel — with a real border every focus would nudge the whole form. Three
+ * steps, each a token: resting, hover, focus, plus the 4px halo focus adds.
+ *
+ * The other measured values: a 320px column, a 32px heading at `-1.28px`
+ * tracking, 40px controls, 16px text inside them, 12px of horizontal padding
+ * and an 8px radius. 16px is also what keeps iOS Safari from zooming the page
+ * when a field takes focus, so it is doing two jobs at once.
+ */
+
+// One recipe for every control on this page, so the inputs, the submit and the
+// social buttons are the same object at different weights.
+const CONTROL = 'h-10 w-full rounded-lg px-3 text-[16px] transition-all duration-150'
+
+const FIELD =
+  `${CONTROL} bg-surface text-ink outline-none placeholder:text-muted ` +
+  'shadow-[0_0_0_1px_var(--color-field)] hover:shadow-[0_0_0_1px_var(--color-field-hover)] ' +
+  'focus:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)]'
+
+const FIELD_ERROR =
+  `${CONTROL} bg-surface text-ink outline-none placeholder:text-muted ` +
+  'shadow-[0_0_0_1px_var(--color-danger)] focus:shadow-[0_0_0_1px_var(--color-danger),0_0_0_4px_var(--color-field-halo)]'
+
 export default function LoginPage() {
   useRedirectIfAuthed()
 
@@ -61,166 +89,172 @@ export default function LoginPage() {
   }
 
   return (
-    <>
-      <div className={styles.page} aria-label="Страница входа">
-        <div className="m-auto flex w-full max-w-[400px] flex-col gap-6 px-4 py-10 sm:px-6 sm:py-16">
-          <h1 className="text-center font-display text-[26px] font-semibold tracking-[-0.02em] text-ink">
-            Вход в AIRec
-          </h1>
+    <div className={styles.page} aria-label="Страница входа">
+      {/* 320px, centred — the reference's form width. Narrow on purpose: a
+          single column of short fields reads as one thing to fill in, where a
+          wide one reads as a page. */}
+      <div className="m-auto flex w-full max-w-[320px] flex-col px-4 py-10 sm:py-16">
+        <h1 className="text-center font-display text-[32px] leading-10 font-semibold tracking-[-0.04em] text-ink">
+          Вход в AIRec
+        </h1>
 
-          {resetSuccess && (
-            <p className="rounded-lg border border-ok/30 bg-ok/8 px-3.5 py-2.5 text-center text-[13px] text-ok">
-              Пароль изменён. Войдите с новым паролем.
-            </p>
-          )}
+        {resetSuccess && (
+          <p className="mt-6 rounded-lg px-3.5 py-2.5 text-center text-[14px] text-ok shadow-[0_0_0_1px_var(--color-ok)]">
+            Пароль изменён. Войдите с новым паролем.
+          </p>
+        )}
 
-          {justDeleted && (
-            <p className="rounded-lg border border-line bg-ground px-3.5 py-2.5 text-center text-[13px] text-ink/70">
-              Аккаунт удалён. В течение 30 дней его можно восстановить — просто
-              войдите снова.
-            </p>
-          )}
+        {justDeleted && (
+          <p className="mt-6 rounded-lg px-3.5 py-2.5 text-center text-[14px] text-muted shadow-[0_0_0_1px_var(--color-field)]">
+            Аккаунт удалён. В течение 30 дней его можно восстановить — просто
+            войдите снова.
+          </p>
+        )}
 
-          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
+        {/* 8px between the fields, 16px before anything that is not a field —
+            the reference's `gap-2` inside a group and `gap-4` between them. */}
+        <form onSubmit={handleSubmit} noValidate className="mt-6 flex flex-col gap-2">
+          <div>
+            <input
+              type="text"
+              value={identifier}
+              onChange={(event) => setIdentifier(event.target.value)}
+              placeholder="Email или логин"
+              autoComplete="username"
+              className={identifierHasSpace ? FIELD_ERROR : FIELD}
+            />
+            {identifierHasSpace && (
+              <p className="mt-1.5 text-[13px] text-danger">Пробелы недопустимы.</p>
+            )}
+          </div>
+
+          <div>
+            <div className="relative flex items-center">
               <input
-                type="text"
-                value={identifier}
-                onChange={(event) => setIdentifier(event.target.value)}
-                placeholder="Email или логин"
-                autoComplete="username"
-                className={`rounded-lg border bg-surface px-3.5 py-2.5 text-[16px] text-ink outline-none sm:py-2 sm:text-[14px] transition-colors placeholder:text-muted focus:border-accent ${identifierHasSpace ? 'border-danger' : 'border-line-strong'}`}
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Пароль"
+                autoComplete="current-password"
+                className={`${passwordHasSpace ? FIELD_ERROR : FIELD} pr-10`}
               />
-              {identifierHasSpace && (
-                <p className="text-[13px] text-danger">Пробелы недопустимы.</p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <div className="relative flex items-center">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Пароль"
-                  autoComplete="current-password"
-                  className={`w-full rounded-lg border bg-surface px-3.5 py-2.5 pr-11 text-[16px] text-ink outline-none sm:py-2 sm:text-[14px] transition-colors placeholder:text-muted focus:border-accent ${passwordHasSpace ? 'border-danger' : 'border-line-strong'}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
-                  className="absolute right-3 top-1/2 grid -translate-y-1/2 place-items-center text-muted transition-colors hover:text-ink"
-                >
-                  <HugeiconsIcon
-                    icon={showPassword ? EyeIcon : EyeOffIcon}
-                    size={18}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.8}
-                  />
-                </button>
-              </div>
-              {passwordHasSpace && (
-                <p className="text-[13px] text-danger">Пробелы недопустимы.</p>
-              )}
-            </div>
-
-            {/* One row, not two. The link already lived alone under the password
-                field and the checkbox carries the same weight, so pairing them
-                adds the control without adding a line. Both get `py-2.5 -my-2.5`:
-                the padding grows the tap target to 38px, the negative margin
-                takes it back out of the layout, so the row still measures 18px. */}
-            <div className="flex items-center justify-between gap-4">
-              <label className="-my-2.5 flex cursor-pointer items-center gap-2.5 py-2.5 select-none">
-                <span className="relative flex h-[18px] w-[18px] shrink-0">
-                  {/* A native checkbox with its own paint stripped off, rather
-                      than a Radix one: space-to-toggle, form semantics and
-                      focus are already correct here, and CLAUDE.md keeps Radix
-                      for behaviour that is genuinely hard, never for looks. */}
-                  <input
-                    type="checkbox"
-                    checked={remember}
-                    onChange={(event) => setRemember(event.target.checked)}
-                    className="peer h-full w-full cursor-pointer appearance-none rounded-[5px] border border-line-strong bg-surface transition-colors hover:border-line-strong checked:border-accent checked:bg-accent focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
-                  />
-                  <span className="pointer-events-none absolute inset-0 grid place-items-center text-white opacity-0 transition-opacity peer-checked:opacity-100">
-                    <HugeiconsIcon
-                      icon={Tick02Icon}
-                      size={12}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={3}
-                    />
-                  </span>
-                </span>
-                {/* #999999 on white is 2.9:1 — fine for a placeholder, not for
-                    a label someone has to read to make a decision. `font-medium`
-                    matches the "Забыли пароль?" link sharing this row: the two
-                    controls carry the same weight, so they should look it. */}
-                <span className="text-[13px] font-medium text-ink/70">
-                  Запомнить меня
-                </span>
-              </label>
-
-              <Link
-                to="/forgot-password"
-                className="-my-2.5 py-2.5 text-[13px] font-medium text-accent hover:underline"
-              >
-                Забыли пароль?
-              </Link>
-            </div>
-
-            {error && <p className="text-[13px] text-danger">{error}</p>}
-
-            {/* The password was already accepted — the only thing standing in
-                the way is the pending deletion, so undoing it is one click. */}
-            {canRestore && (
               <button
                 type="button"
-                onClick={handleRestore}
-                disabled={isSubmitting}
-                className="rounded-lg border border-accent/40 px-5 py-3 text-[15px] font-medium sm:py-2 sm:text-[14px] text-accent transition-colors hover:bg-accent/6 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                className="absolute right-2.5 grid h-7 w-7 place-items-center rounded-md text-muted transition-colors hover:text-ink"
               >
-                Восстановить аккаунт и войти
+                <HugeiconsIcon
+                  icon={showPassword ? EyeIcon : EyeOffIcon}
+                  size={17}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.8}
+                />
               </button>
+            </div>
+            {passwordHasSpace && (
+              <p className="mt-1.5 text-[13px] text-danger">Пробелы недопустимы.</p>
             )}
+          </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-lg bg-ink px-5 py-3 text-[15px] font-medium sm:py-2 sm:text-[14px] text-surface transition-colors hover:bg-ink/85 disabled:cursor-not-allowed disabled:opacity-60"
+          {/* One row, not two. Both controls carry `py-2 -my-2`: the padding
+              grows the tap target, the negative margin takes it back out of the
+              layout so the row stays its own height. */}
+          <div className="mt-2 flex items-center justify-between gap-4">
+            <label className="-my-2 flex cursor-pointer items-center gap-2.5 py-2 select-none">
+              <span className="relative flex h-[16px] w-[16px] shrink-0">
+                {/* A native checkbox with its paint stripped off rather than a
+                    Radix one: space-to-toggle, form semantics and focus are
+                    already right, and Radix is for behaviour that is hard. */}
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(event) => setRemember(event.target.checked)}
+                  className="peer h-full w-full cursor-pointer appearance-none rounded-[4px] bg-surface shadow-[0_0_0_1px_var(--color-field-hover)] transition-all checked:bg-accent checked:shadow-none focus-visible:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)]"
+                />
+                <span className="pointer-events-none absolute inset-0 grid place-items-center text-surface opacity-0 transition-opacity peer-checked:opacity-100">
+                  <HugeiconsIcon
+                    icon={Tick02Icon}
+                    size={11}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={3.2}
+                  />
+                </span>
+              </span>
+              <span className="text-[14px] text-muted">Запомнить меня</span>
+            </label>
+
+            <Link
+              to="/forgot-password"
+              className="-my-2 py-2 text-[14px] text-muted transition-colors hover:text-ink"
             >
-              {isSubmitting ? 'Входим…' : 'Войти'}
-            </button>
-
-            <hr className="border-t border-line" />
-
-            <button
-              type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-line-strong bg-surface px-3.5 py-3 text-[15px] font-semibold sm:py-2 sm:text-[14px] text-ink transition-colors hover:bg-ground"
-            >
-              <img src="/google_logo.svg" alt="" className="h-[18px] w-[18px]" aria-hidden="true" />
-              Продолжить с Google
-            </button>
-
-            <button
-              type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-line-strong bg-surface px-3.5 py-3 text-[15px] font-semibold sm:py-2 sm:text-[14px] text-ink transition-colors hover:bg-ground"
-            >
-              <img src="/apple_logo.svg" alt="" className="h-[18px] w-[18px]" aria-hidden="true" />
-              Продолжить с Apple
-            </button>
-          </form>
-
-          <p className="text-center text-[15px] text-muted">
-            Нет аккаунта?{' '}
-            <Link to="/signup" className="font-medium text-accent hover:underline">
-              Зарегистрироваться
+              Забыли пароль?
             </Link>
-          </p>
+          </div>
+
+          {error && (
+            <p role="alert" className="mt-2 text-[13px] text-danger">
+              {error}
+            </p>
+          )}
+
+          {/* The password was already accepted — the only thing standing in the
+              way is the pending deletion, so undoing it is one click. */}
+          {canRestore && (
+            <button
+              type="button"
+              onClick={handleRestore}
+              disabled={isSubmitting}
+              className={`${CONTROL} mt-2 bg-surface text-[14px] font-medium text-ink shadow-[0_0_0_1px_var(--color-field-hover)] hover:shadow-[0_0_0_1px_var(--color-field-focus)] disabled:cursor-not-allowed disabled:opacity-60`}
+            >
+              Восстановить аккаунт и войти
+            </button>
+          )}
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className={`${CONTROL} mt-2 bg-accent text-[14px] font-medium text-surface hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60`}
+          >
+            {isSubmitting ? 'Входим…' : 'Войти'}
+          </button>
+        </form>
+
+        {/* A labelled rule rather than a bare one: it says *why* the list below
+            is separate instead of just separating it. */}
+        <div className="my-6 flex items-center gap-3">
+          <span className="h-px flex-1 bg-line" />
+          <span className="text-[13px] text-muted">или</span>
+          <span className="h-px flex-1 bg-line" />
         </div>
+
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            className={`${CONTROL} flex items-center justify-center gap-2 bg-surface text-[14px] font-medium text-ink shadow-[0_0_0_1px_var(--color-field-hover)] hover:shadow-[0_0_0_1px_var(--color-field-focus)]`}
+          >
+            <img src="/google_logo.svg" alt="" className="h-4 w-4" aria-hidden="true" />
+            Продолжить с Google
+          </button>
+
+          <button
+            type="button"
+            className={`${CONTROL} flex items-center justify-center gap-2 bg-surface text-[14px] font-medium text-ink shadow-[0_0_0_1px_var(--color-field-hover)] hover:shadow-[0_0_0_1px_var(--color-field-focus)]`}
+          >
+            <img src="/apple_logo.svg" alt="" className="h-4 w-4" aria-hidden="true" />
+            Продолжить с Apple
+          </button>
+        </div>
+
+        <p className="mt-8 text-center text-[14px] text-muted">
+          Нет аккаунта?{' '}
+          <Link to="/signup" className="text-ink underline-offset-2 hover:underline">
+            Зарегистрироваться
+          </Link>
+        </p>
       </div>
-    </>
+    </div>
   )
 }

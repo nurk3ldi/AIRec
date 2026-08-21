@@ -71,7 +71,7 @@ Every Next.js primitive has one replacement, and mixing them back in is the thin
 `*` is caught by `pages/404.jsx` inside the public shell.
 
 - `/` — public landing page (`pages/index.jsx`). **On a phone it is a splash and on a desktop it is still empty**, and that asymmetry is deliberate rather than unfinished: below `sm` it shows the wordmark, one line of what AIRec is, «Открыть AIRec» and a «Войти или зарегистрироваться» pair, centred in the viewport; above `sm` the desktop landing is being designed separately and the phone screen is not a draft of it. The old hero (heading, paragraph, «Начать» / «Подробнее») was removed on 2026-08-19 and is in git history.
-- `/dashboard` — authenticated home. Not `/` — that's the landing page.
+- `/dashboard` — «Главная»: empty. An analytics screen built to `design/main_page.png` — week bar chart, a 2×2 of metrics, a funnel, a category donut and a bookings table, all on invented figures since there are no aggregate endpoints — was put here and taken out again on 2026-08-21; it is in git history, charts and all (hand-written SVG, no library). Not `/` — that's the landing page.
 - `/inbox` — «Диалоги»: empty. This is where the assistant's WhatsApp conversations will go; there is no channel and no message table behind it yet.
 - `/appointments` — «Записи»: **an empty page on purpose.** Two designs were built and each was taken down whole rather than edited, so the next inherits nothing from the last — v1 (a 24-hour time grid) is in commit `1e0c045`, v2 (a month calendar) was archived under `src/archive/` and that folder has since been deleted; both are in git history.
 - `/business` — «Бизнес»: **also empty, for the same reason.** Its first version — a 30/70 identity card, a price list and a working-week table, all under `components/business/` — was removed on 2026-08-19 and is in git history.
@@ -84,6 +84,7 @@ Every Next.js primitive has one replacement, and mixing them back in is the thin
 
   **The backends are finished and untouched by any of this** — see **The business behind an account** and **Bookings** below.
 - `/profile` — the account **as a screen, for phones**. The bottom bar's fifth slot points here; the desktop rail opens a popup instead and never links to it. Not hidden on a desktop, just not linked — see "Profile overlay" below for why there are two shapes.
+- `/login` — **laid out from `vercel.com/login`**, measured rather than eyeballed: a 320px centred column, a 32px heading at `-0.04em` tracking, 40px controls, 16px text with 12px of horizontal padding and an 8px radius, 8px between fields. One `CONTROL` string sizes every input and button on the page, so they are the same object at different weights. `/signup` has not been brought across yet.
 - `/login` and `/signup` — built, intentionally near-identical: no `<label>`s (inputs use `placeholder` only); password field has a show/hide toggle (local `showPassword` state flips the `input type` between `password`/`text`); a `<hr>` sits below the submit button, followed by "Continue with Google" / "Continue with Apple" buttons (`public/google_logo.svg`, `public/apple_logo.svg`) — **UI only, not wired to real OAuth**; a bottom line cross-links to the other page (`Log In` / `Sign Up` in accent blue `#3248F2`). `login.jsx` also has a row the signup page has no counterpart for — a «Запомнить меня» checkbox on the left and the "Forgot password?" link on the right, paired onto one line because the link already sat alone there and the checkbox carries the same weight. It's a **native `<input type="checkbox">` with `appearance-none`**, not a Radix one: space-to-toggle, form semantics and focus are already right, and Radix is for behaviour that is hard, never for looks. Both controls carry `py-2.5 -my-2.5`, which grows the tap target to 38px while the negative margin keeps the row 18px in the layout. `login.jsx` also shows a green success banner when `?reset=success` is in the URL. Keep the two pages in sync when restyling one — they're meant to stay visual twins. Both submit to the backend (see the auth-wiring note above) and show inline errors — `login.jsx` a single message above the `<hr>`, `signup.jsx` per-field messages (from 422 `fields`) plus the same general-error line for 409s/network failures. Every text input across `login.jsx`/`signup.jsx`/`forgot-password.jsx`/`reset-password.jsx` blocks whitespace client-side (a `/\s/.test(value)` check turns the border red with a "No spaces allowed." message) — the backend also rejects it, this is just an earlier signal. All four forms set `noValidate` on the `<form>` so the browser's native validation bubble (e.g. Chrome's built-in "must contain @" tooltip on `type="email"`) never appears — every message shown is ours.
 - `/forgot-password` — email-only form; posts to `/auth/forgot-password` then pushes to `/reset-password?email=<email>` regardless of whether the address is registered (the backend response is deliberately identical either way).
 - `/reset-password` — the six-digit code screen. Reads `?email=` with `useSearchParams` and returns `<Navigate to="/forgot-password" replace/>` when it is missing. The code itself is entered via `components/OtpInput.jsx` — six boxes with auto-advance, backspace-to-previous-box, and paste-fill, shared with the profile's email-change step. A wrong code clears the boxes and shows a red message; "Resend code" re-calls `/auth/forgot-password` with a 30s client-side cooldown. On success it redirects to `/login?reset=success`.
@@ -159,13 +160,15 @@ Two layering details that are easy to break: the avatar cropper is a modal *insi
 
 Use the tokens (`bg-surface`, `text-ink`, `border-line`, `text-muted`, `bg-accent`) in anything new.
 
+**Field edges are a `box-shadow`, not a `border`** — `shadow-[0_0_0_1px_var(--color-field)]`, with `field-hover` and `field-focus` steps plus a 4px `field-halo` on focus. The values are measured off `vercel.com/login` (white 14 / 24 / 51% on dark, black 8 / 21 / 34% on light). A shadow sits outside the box model, so focus can thicken the ring without the input growing a pixel and nudging the whole form. **Use `var(--color-field)`, not `var(--field)`** — only the `@theme inline` names are registered, and Tailwind silently drops an arbitrary value referencing an unregistered variable.
+
 **Borders are `line` / `line-strong`, never `muted` at an alpha** — dividers take the first, the edges of inputs and outlined buttons the second. That is not tidiness: grey at 25% reads clearly on white and all but disappears on a near-black ground, so the *colour* has to change with the theme and not only its opacity. Dark uses **one solid grey for both** — `#454545`, from Vercel's `--ds-gray-500`. Two things there. *Solid* rather than white-at-an-alpha: an alpha line is a different colour on every surface it crosses (the page, a card, a dimmed backdrop), where a fixed grey is the same line everywhere. And *one tier*, because on a pure black ground the step down to `#2e2e2e` reads as a second kind of line rather than the same line at a lighter weight, so a header rule and a menu divider stop matching. Light keeps two distinct alphas — there the surfaces are close enough in lightness that the distinction helps and never shows as a mismatch. The header's rule vanishing in dark mode is exactly what this fixed. The old `bg-[#171215]` style still works and is light-only by construction — 281 of them were converted to get here.
 
 Three tokens are **not** flipped roles, and that is the part worth understanding:
 
-- **`rail` / `rail-ink`** — the sidebar is dark in *both* themes. Its colour is an identity, not a role, so it has its own pair rather than following `surface`.
+- **`rail` / `rail-ink`** — the sidebar is dark in *both* themes. Its colour is an identity, not a role, so it has its own pair rather than following `surface`. **Its active marker is `bg-rail-ink`, not `bg-accent`**: on a light page the accent is black, and a black marker on a near-black rail would disappear.
 - **`scrim`** — the wash behind a modal stays dark in both. `ink` at 50% becomes a *light haze* once ink is near-white, which is the opposite of dimming.
-- **`accent`** is `#3248f2` in *both*, deliberately: it is the brand colour and the same blue either way. That costs contrast — about 1.9:1 on the dark ground, which is fine for a fill you tap and thin for a label you read. If accent text becomes hard to read there, **split the token** (this one for fills, a lighter one for text) rather than lifting it and changing the brand across half the app. `danger` and `ok` *do* lift, since those are signals rather than identity.
+- **`accent` is monochrome** — `#000000` on light, `#FFFFFF` on dark. **There is no brand hue in this project any more**: it runs on those two colours, and emphasis comes from contrast and weight rather than from a colour. Anything sitting *on* a solid accent takes `text-surface`, never `text-white` — on the dark side the accent is white and white-on-white vanishes. `danger` and `ok` stay coloured, since those are signals rather than identity.
 
 A `bg-ink` button (the inverted primary on the auth pages) must carry `text-surface`, not `text-white` — in dark mode it becomes a light button, and white text on it would vanish. An accent button keeps `text-white`, since the accent is blue in both.
 
@@ -190,7 +193,7 @@ it. These five are the **base** every screen is built out of:
 
 | Token | Hex | What it is for |
 | --- | --- | --- |
-| accent | `#3248F2` | the colour that means *this one* |
+| accent | ink / surface | the colour that means *this one* — monochrome, see Theming |
 | ink | `#171215` | text, dark surfaces, tooltips |
 | muted | `#999999` | borders (at 15–30%), secondary text |
 | ground | `#F6F8FA` | the page behind the cards |
@@ -291,9 +294,10 @@ rather than a drift:
   left, `⌘K` right in muted) is simply not built. A breadcrumb was tried there
   and taken out: with a flat route table the trail is always Главная › <page>,
   and a path that never branches is chrome.
-- **Nothing carries elevation yet.** The one card component that had the
-  resting shadow went with `/business`; the surviving screens were written
-  under the old no-elevation rule and pick it up as they are rebuilt.
+- **Cards will need a hairline, not a shadow.** In dark mode `surface` and
+  `ground` are both `#000000`, so a border is the only thing that can give a
+  card an edge; the reference's resting shadow is invisible there. The pattern
+  to use is `rounded-2xl border border-line bg-surface`.
 
 ### Mobile
 

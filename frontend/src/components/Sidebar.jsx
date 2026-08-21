@@ -44,7 +44,7 @@ export default function Sidebar({ user = null, isMenuOpen, onToggleMenu }) {
                 aria-label={item.label}
                 aria-current={isActive ? 'page' : undefined}
                 className={`group relative grid h-9 w-9 place-items-center rounded-[10px] transition-colors duration-200 ${
-                  isActive ? 'text-rail-ink' : 'text-rail-ink hover:bg-rail-ink/10'
+                  isActive ? 'text-rail' : 'text-rail-ink hover:bg-rail-ink/10'
                 }`}
               >
                 {/* One marker for the whole rail, not a background on each item:
@@ -56,7 +56,10 @@ export default function Sidebar({ user = null, isMenuOpen, onToggleMenu }) {
                 {isActive && (
                   <m.span
                     layoutId="sidebar-active"
-                    className="absolute inset-0 rounded-[10px] bg-accent shadow-[0_8px_22px_rgba(50,72,242,0.38)]"
+                    // `rail-ink`, not `accent`: the rail is dark in both themes, and the
+                    // accent is black on a light ground — a black marker on a
+                    // near-black rail would disappear. The glow went with the blue.
+                    className="absolute inset-0 rounded-[10px] bg-rail-ink"
                     // A spring rather than a duration: the distance between items
                     // varies, and a spring covers a long move and a short one in
                     // times that both feel right. Damped just short of a visible

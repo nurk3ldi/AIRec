@@ -302,7 +302,7 @@ export default function AvatarCropper({
             type="button"
             onClick={handleSave}
             disabled={!image || isSaving}
-            className="flex-1 rounded-lg bg-accent px-4 py-2 text-[14px] font-medium text-white transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex-1 rounded-lg bg-accent px-4 py-2 text-[14px] font-medium text-surface transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving ? 'Сохраняем…' : 'Сохранить'}
           </button>

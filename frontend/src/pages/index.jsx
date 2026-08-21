@@ -25,12 +25,13 @@ export default function LandingPage() {
           AIRec
         </p>
 
-        <h1 className="mt-6 text-[21px] leading-[1.35] font-semibold tracking-[-0.01em] text-ink">
+        {/* With a monochrome palette an accent hue cannot pick words out — the
+            accent *is* the ink. So the sentence is muted and the four words
+            that are the product are at full contrast: the emphasis is the same,
+            carried by the two colours the project actually has. */}
+        <h1 className="mt-6 text-[21px] leading-[1.35] font-semibold tracking-[-0.01em] text-muted">
           ИИ-администратор отвечает клиентам и{' '}
-          {/* The accent lands on the four words that are the product. Colour
-              here is doing what colour is for — pointing — rather than
-              decorating a headline that would read the same in black. */}
-          <span className="text-accent">записывает их на приём</span>.
+          <span className="text-ink">записывает их на приём</span>.
         </h1>
 
         {/* Full width and fully round: the primary action on a phone should be
@@ -38,7 +39,7 @@ export default function LandingPage() {
             room to spare. */}
         <Link
           to="/login"
-          className="mt-9 w-full rounded-full bg-accent py-[15px] text-[16px] font-semibold text-white transition-colors hover:bg-accent-strong active:bg-accent-strong"
+          className="mt-9 w-full rounded-full bg-accent py-[15px] text-[16px] font-semibold text-surface transition-colors hover:bg-accent-strong active:bg-accent-strong"
         >
           Открыть AIRec
         </Link>

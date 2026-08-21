@@ -828,7 +828,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
               !confirmPassword ||
               isChangingPassword
             }
-            className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-white outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
+            className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-surface outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
           >
             {isChangingPassword ? 'Сохраняем…' : 'Сохранить'}
           </button>
@@ -897,7 +897,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
             type="submit"
             form={EMAIL_FORM_ID}
             disabled={!newEmail.trim() || isSaving}
-            className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-white outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
+            className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-surface outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
           >
             {isSaving ? 'Отправляем…' : 'Отправить код'}
           </button>
@@ -970,7 +970,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
             type="button"
             onClick={handleConfirmEmail}
             disabled={code.length !== 6 || isConfirming}
-            className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-white outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
+            className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-surface outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
           >
             {isConfirming ? 'Проверяем…' : 'Подтвердить'}
           </button>
@@ -1160,7 +1160,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
           type="submit"
           form={FORM_ID}
           disabled={!isDirty || isSaving}
-          className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-white outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
+          className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-surface outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
         >
           {isSaving ? 'Сохраняем…' : 'Сохранить'}
         </button>

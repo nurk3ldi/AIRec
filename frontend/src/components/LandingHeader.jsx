@@ -23,7 +23,7 @@ export default function LandingHeader({ className = '' }) {
         </Link>
         <Link
           to="/signup"
-          className="rounded-lg bg-accent px-4 py-2.5 text-[14px] font-semibold sm:px-[15px] sm:py-[7px] sm:text-[13px] text-white transition-colors hover:bg-accent-strong"
+          className="rounded-lg bg-accent px-4 py-2.5 text-[14px] font-semibold sm:px-[15px] sm:py-[7px] sm:text-[13px] text-surface transition-colors hover:bg-accent-strong"
         >
           Регистрация
         </Link>
