@@ -17,6 +17,14 @@ import PageTransition from './PageTransition'
 const BARE_ON_MOBILE = new Set(['/', '/login', '/signup'])
 
 /**
+ * Routes where the header keeps its logo and buttons but drops the rule under
+ * it. On `/login` the page below is a single narrow column centred in an empty
+ * field — a full-width line across the top cuts that field in two and gives the
+ * header a weight the page it sits on does not have.
+ */
+const RULELESS = new Set(['/login'])
+
+/**
  * The marketing shell: header, then the page.
  *
  * The transition matters most here — `/login` and `/signup` are deliberately
@@ -32,7 +40,9 @@ export default function PublicLayout() {
       {/* Hidden, not unmounted: `display` is what the page modules measure
           against, and they add the 64px back at the same breakpoint. */}
       <LandingHeader
-        className={BARE_ON_MOBILE.has(pathname) ? 'hidden sm:flex' : 'flex'}
+        className={`${BARE_ON_MOBILE.has(pathname) ? 'hidden sm:flex' : 'flex'} ${
+          RULELESS.has(pathname) ? 'border-b-0' : ''
+        }`}
       />
       <PageTransition />
     </div>

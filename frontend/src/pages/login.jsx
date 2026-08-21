@@ -90,30 +90,32 @@ export default function LoginPage() {
 
   return (
     <div className={styles.page} aria-label="Страница входа">
-      {/* 320px, centred — the reference's form width. Narrow on purpose: a
-          single column of short fields reads as one thing to fill in, where a
-          wide one reads as a page. */}
-      <div className="m-auto flex w-full max-w-[320px] flex-col px-4 py-10 sm:py-16">
+      {/* 360px — wider than the reference's 320. Vercel's login is one email field —
+          ours carries a login, a password with a toggle inside it, and a row of
+          two controls under them, and at 320 that row runs out of room. */}
+      <div className="m-auto flex w-full max-w-[360px] flex-col px-4 py-10 sm:py-16">
         <h1 className="text-center font-display text-[32px] leading-10 font-semibold tracking-[-0.04em] text-ink">
           Вход в AIRec
         </h1>
 
         {resetSuccess && (
-          <p className="mt-6 rounded-lg px-3.5 py-2.5 text-center text-[14px] text-ok shadow-[0_0_0_1px_var(--color-ok)]">
+          <p className="mt-8 rounded-lg px-3.5 py-2.5 text-center text-[14px] text-ok shadow-[0_0_0_1px_var(--color-ok)]">
             Пароль изменён. Войдите с новым паролем.
           </p>
         )}
 
         {justDeleted && (
-          <p className="mt-6 rounded-lg px-3.5 py-2.5 text-center text-[14px] text-muted shadow-[0_0_0_1px_var(--color-field)]">
+          <p className="mt-8 rounded-lg px-3.5 py-2.5 text-center text-[14px] text-muted shadow-[0_0_0_1px_var(--color-field)]">
             Аккаунт удалён. В течение 30 дней его можно восстановить — просто
             войдите снова.
           </p>
         )}
 
         {/* 8px between the fields, 16px before anything that is not a field —
-            the reference's `gap-2` inside a group and `gap-4` between them. */}
-        <form onSubmit={handleSubmit} noValidate className="mt-6 flex flex-col gap-2">
+            opened up from the reference's `gap-2`: our form has more rows in it
+            than a single email field, and at 8px they read as one block rather
+            than as separate things to fill in. */}
+        <form onSubmit={handleSubmit} noValidate className="mt-7 flex flex-col gap-2.5">
           <div>
             <input
               type="text"
@@ -161,7 +163,7 @@ export default function LoginPage() {
           {/* One row, not two. Both controls carry `py-2 -my-2`: the padding
               grows the tap target, the negative margin takes it back out of the
               layout so the row stays its own height. */}
-          <div className="mt-2 flex items-center justify-between gap-4">
+          <div className="mt-1 flex items-center justify-between gap-4">
             <label className="-my-2 flex cursor-pointer items-center gap-2.5 py-2 select-none">
               <span className="relative flex h-[16px] w-[16px] shrink-0">
                 {/* A native checkbox with its paint stripped off rather than a
@@ -195,7 +197,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <p role="alert" className="mt-2 text-[13px] text-danger">
+            <p role="alert" className="mt-1 text-[13px] text-danger">
               {error}
             </p>
           )}
@@ -207,7 +209,7 @@ export default function LoginPage() {
               type="button"
               onClick={handleRestore}
               disabled={isSubmitting}
-              className={`${CONTROL} mt-2 bg-surface text-[14px] font-medium text-ink shadow-[0_0_0_1px_var(--color-field-hover)] hover:shadow-[0_0_0_1px_var(--color-field-focus)] disabled:cursor-not-allowed disabled:opacity-60`}
+              className={`${CONTROL} mt-2.5 bg-surface text-[14px] font-medium text-ink shadow-[0_0_0_1px_var(--color-field-hover)] hover:shadow-[0_0_0_1px_var(--color-field-focus)] disabled:cursor-not-allowed disabled:opacity-60`}
             >
               Восстановить аккаунт и войти
             </button>
@@ -216,7 +218,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`${CONTROL} mt-2 bg-accent text-[14px] font-medium text-surface hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60`}
+            className={`${CONTROL} mt-2.5 bg-accent text-[14px] font-medium text-surface hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60`}
           >
             {isSubmitting ? 'Входим…' : 'Войти'}
           </button>
@@ -230,7 +232,7 @@ export default function LoginPage() {
           <span className="h-px flex-1 bg-line" />
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2.5">
           <button
             type="button"
             className={`${CONTROL} flex items-center justify-center gap-2 bg-surface text-[14px] font-medium text-ink shadow-[0_0_0_1px_var(--color-field-hover)] hover:shadow-[0_0_0_1px_var(--color-field-focus)]`}
