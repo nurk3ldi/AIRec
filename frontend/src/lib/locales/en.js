@@ -101,15 +101,10 @@ export default {
     'Your plan, usage limits, payment method and invoice history will live here.',
 
   'settings.theme': 'Theme',
-  'settings.themeLead': 'How the app looks. The choice is kept in this browser.',
   'settings.theme.system': 'System',
-  'settings.theme.systemHint': 'Match the device and follow it',
   'settings.theme.light': 'Light',
-  'settings.theme.lightHint': 'Always light',
   'settings.theme.dark': 'Dark',
-  'settings.theme.darkHint': 'Always dark',
   'settings.language': 'Language',
-  'settings.languageLead': 'Interface language. The choice is kept in this browser.',
 
   'notifications.aria': 'Notifications page',
   'notifications.empty': 'No notifications yet',

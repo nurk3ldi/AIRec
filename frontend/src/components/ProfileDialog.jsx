@@ -10,6 +10,10 @@ import { PROFILE_SECTIONS, SECTION_PLACEHOLDERS } from './profile/sections'
 import ComingSoon from './ComingSoon'
 import { useT } from '../lib/i18n'
 
+// Sections that are a column rather than a page: narrow, and as tall as their
+// content. Everything else takes the fixed 728x580 box.
+const NARROW_SECTIONS = new Set(['account', 'settings'])
+
 /**
  * Settings dialog opened from `ProfileMenu`, showing exactly the section the
  * menu picked — switching sections means going back to the menu, so there is
@@ -21,11 +25,12 @@ import { useT } from '../lib/i18n'
  * the trigger on close. Escape, the scroll lock and the outside-click dismissal
  * come with it. The styling is entirely ours — Radix ships behaviour, not looks.
  *
- * Every section shares one fixed panel size, so the window never jumps as you
- * move between them. The account section is the exception: it's a single narrow
- * column of controls, and a wide panel would leave it stranded in the middle —
- * it gets its own narrower box that grows downward with its content instead.
- * The max-* pairs only kick in on viewports smaller than the panel itself.
+ * Sections share one fixed panel size, so the window never jumps as you move
+ * between them. `NARROW_SECTIONS` is the exception: a section that is a single
+ * narrow column of controls — the account form, the two settings rows — would
+ * be stranded in the middle of a wide box, so it gets a narrower one that grows
+ * downward with its content instead. The max-* pairs only kick in on viewports
+ * smaller than the panel itself.
  *
  * Sections own their own padding and scrolling: the account form pins its Save
  * button to a footer that must sit *outside* the scroll area, which it can't do
@@ -38,6 +43,7 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
   const t = useT()
   const active = PROFILE_SECTIONS.find((s) => s.id === section) ?? PROFILE_SECTIONS[0]
   const isAccount = active.id === 'account'
+  const isNarrow = NARROW_SECTIONS.has(active.id)
 
   // The avatar cropper is a modal *inside* this one. It lives in the dialog's
   // own subtree, so the focus trap already covers it and a click on its backdrop
@@ -150,7 +156,7 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
             // one is floating over the other. On a phone the sheet fills the
             // screen and has no outside to be edged against.
             className={`flex h-full w-full flex-col overflow-hidden border-line bg-surface pb-[env(safe-area-inset-bottom)] outline-none sm:max-h-[calc(100vh-2rem)] sm:border sm:max-w-[calc(100vw-2rem)] sm:rounded-2xl sm:pb-0 sm:shadow-[0_24px_60px_-12px_rgba(23,18,21,0.35)] ${
-              isAccount ? 'sm:h-auto sm:w-[520px]' : 'sm:h-[580px] sm:w-[728px]'
+              isNarrow ? 'sm:h-auto sm:w-[520px]' : 'sm:h-[580px] sm:w-[728px]'
             }`}
           >
             <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-[calc(1.25rem+env(safe-area-inset-top))] pb-3 sm:pt-5">

@@ -101,15 +101,10 @@ export default {
     'Мұнда тарифіңіз, қолдану лимиттері, төлем әдісі және шоттар тарихы болады.',
 
   'settings.theme': 'Тақырып',
-  'settings.themeLead': 'Қосымшаның безендірілуі. Таңдау осы браузерде сақталады.',
   'settings.theme.system': 'Жүйелік',
-  'settings.theme.systemHint': 'Құрылғыдағыдай — онымен бірге ауысады',
   'settings.theme.light': 'Ашық',
-  'settings.theme.lightHint': 'Әрқашан ашық',
   'settings.theme.dark': 'Қараңғы',
-  'settings.theme.darkHint': 'Әрқашан қараңғы',
   'settings.language': 'Тіл',
-  'settings.languageLead': 'Интерфейс тілі. Таңдау осы браузерде сақталады.',
 
   'notifications.aria': 'Хабарламалар беті',
   'notifications.empty': 'Әзірге хабарлама жоқ',

@@ -116,15 +116,10 @@ export default {
 
   // ── Settings: appearance and language ─────────────────────────────────────
   'settings.theme': 'Тема',
-  'settings.themeLead': 'Оформление приложения. Выбор сохраняется в этом браузере.',
   'settings.theme.system': 'Системная',
-  'settings.theme.systemHint': 'Как на устройстве — переключится вместе с ним',
   'settings.theme.light': 'Светлая',
-  'settings.theme.lightHint': 'Всегда светлая',
   'settings.theme.dark': 'Тёмная',
-  'settings.theme.darkHint': 'Всегда тёмная',
   'settings.language': 'Язык',
-  'settings.languageLead': 'Язык интерфейса. Выбор сохраняется в этом браузере.',
 
   // ── Notifications, empty states, errors ───────────────────────────────────
   'notifications.aria': 'Страница уведомлений',
