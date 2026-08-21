@@ -46,7 +46,7 @@ export default function LandingHeader({ className = '' }) {
 
   return (
     <header
-      className={`sticky top-0 z-40 h-16 items-center justify-between border-b border-line bg-surface px-4 sm:px-6 lg:px-8 ${className}`}
+      className={`sticky top-0 z-40 h-16 items-center justify-between border-b border-line bg-ground px-4 sm:px-6 lg:px-8 ${className}`}
     >
       {/* Two files, one shown at a time. A theme cannot swap an `<img src>` in
           CSS, and the mark is a bitmap rather than a glyph that could inherit

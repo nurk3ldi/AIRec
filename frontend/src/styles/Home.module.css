@@ -7,7 +7,7 @@
      rather than `justify-center`, which clips the top of anything taller than
      the viewport instead of letting it scroll. */
   min-height: 100vh;
-  background: var(--surface);
+  background: var(--ground);
 }
 
 @media (min-width: 640px) {
