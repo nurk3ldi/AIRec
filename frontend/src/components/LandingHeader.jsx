@@ -38,6 +38,11 @@ export default function LandingHeader({ className = '' }) {
   const { pathname } = useLocation()
   const onLogin = pathname === '/login'
   const onSignup = pathname === '/signup'
+  // On the auth pages the filled button is not the point — the form is. There
+  // it takes the plain outlined style, so it sits beside the logo instead of
+  // pulling the eye away from the thing you came to fill in. Everywhere else
+  // «Регистрация» *is* the point, and it is filled.
+  const onAuthPage = onLogin || onSignup
 
   return (
     <header
@@ -74,7 +79,10 @@ export default function LandingHeader({ className = '' }) {
           </Link>
         )}
         {!onSignup && (
-          <Link to="/signup" className={`${SIZE} ${PRIMARY}`}>
+          <Link
+            to="/signup"
+            className={`${SIZE} ${onAuthPage ? SECONDARY : PRIMARY}`}
+          >
             Регистрация
           </Link>
         )}
