@@ -45,12 +45,27 @@ export default function LandingHeader({ className = '' }) {
     <header
       className={`sticky top-0 z-40 h-16 items-center justify-between border-b border-line bg-surface px-4 sm:px-6 lg:px-8 ${className}`}
     >
+      {/* Two files, one shown at a time. A theme cannot swap an `<img src>` in
+          CSS, and the mark is a bitmap rather than a glyph that could inherit
+          `currentColor` — so both are rendered and the variant picks.
+
+          `white_logo_icon.png` was cut to `black_logo_icon.png`'s exact canvas
+          and padding, so both take the same classes. The white master
+          (`airec_logo.png`) is 1024² with the mark off-centre inside it, which
+          rendered a third smaller and sat 14px low; correcting that in CSS
+          would have meant two sets of offsets to keep in step forever. */}
       <Link to="/" className="flex h-full items-center" aria-label="AIRec — главная">
         <img
           src="/black_logo_icon.png?v=2"
           alt=""
-          className="h-[50px] w-auto shrink-0 self-center translate-y-1.5"
           aria-hidden="true"
+          className="h-[50px] w-auto shrink-0 translate-y-2.5 self-center dark:hidden"
+        />
+        <img
+          src="/white_logo_icon.png"
+          alt=""
+          aria-hidden="true"
+          className="hidden h-[50px] w-auto shrink-0 translate-y-2.5 self-center dark:block"
         />
       </Link>
 

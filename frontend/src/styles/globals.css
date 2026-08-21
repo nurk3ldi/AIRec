@@ -1,6 +1,20 @@
 @import 'tailwindcss';
 
 /**
+ * `dark:` keyed on our own attribute, not on `prefers-color-scheme`.
+ *
+ * Tailwind's built-in variant follows the OS, which is only one of the three
+ * things a user can pick here — «Системная», «Светлая», «Тёмная». `data-theme`
+ * is what `lib/theme.js` actually writes and what every token is keyed on, so
+ * the variant has to read the same thing or a pinned theme and a `dark:` class
+ * would disagree.
+ *
+ * Reach for a token first. This is for the cases a token cannot express — an
+ * `<img src>` that has to be a different file per theme, say.
+ */
+@custom-variant dark ([data-theme='dark'] &);
+
+/**
  * Semantic tokens, and `inline` is what makes them themeable.
  *
  * A plain `@theme` block bakes its values into the utilities at build time, so
