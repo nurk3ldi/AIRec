@@ -249,7 +249,21 @@ export default function LoginPage() {
             type="button"
             className={`${CONTROL} flex items-center justify-center gap-2 bg-surface text-ink shadow-[0_0_0_1px_var(--color-field-hover)] hover:bg-ink/6 hover:shadow-[0_0_0_1px_var(--color-field-focus)]`}
           >
-            <img src="/apple_logo.svg" alt="" className="h-4 w-4" aria-hidden="true" />
+            {/* Apple's mark is solid black, so it disappears on the dark
+                theme's black button — the white cut is the same file inverted.
+                Google's is multicoloured and needs no counterpart. */}
+            <img
+              src="/apple_logo.svg"
+              alt=""
+              aria-hidden="true"
+              className="h-4 w-4 dark:hidden"
+            />
+            <img
+              src="/apple_logo_white.svg"
+              alt=""
+              aria-hidden="true"
+              className="hidden h-4 w-4 dark:block"
+            />
             Продолжить с Apple
           </button>
         </div>
