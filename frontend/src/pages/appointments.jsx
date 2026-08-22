@@ -72,7 +72,7 @@ export default function AppointmentsPage() {
           Below `xl` it moves under the timetable at full width, and the divider
           moves to its top edge: at that width a 300px column beside a five-day
           grid leaves neither of them enough room. */}
-      <aside className="min-h-[300px] w-full shrink-0 border-t border-line xl:min-h-0 xl:w-[300px] xl:border-t-0 xl:border-l" />
+      <aside className="min-h-[300px] w-full shrink-0 border-t border-line xl:min-h-0 xl:w-[450px] xl:border-t-0 xl:border-l" />
     </div>
   )
 }
