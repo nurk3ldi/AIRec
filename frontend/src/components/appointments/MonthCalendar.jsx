@@ -128,15 +128,26 @@ export default function MonthCalendar({ value, onChange }) {
   )
 }
 
-/** One of the two month arrows. Round, because it does the same job in both
- *  directions and a circle has no direction of its own. */
+/**
+ * One of the two month arrows.
+ *
+ * Round, because it does the same job in both directions and a circle has no
+ * direction of its own — and **filled at rest**, not only under the cursor: a
+ * glyph alone reads as a label until you happen to hover it, and these two are
+ * the only things on the card you are meant to press repeatedly.
+ *
+ * The fill is an ink tint rather than `ground`, which on the dark theme is the
+ * same black as the surface and would show nothing at all. **12%, not the 6 it
+ * started at** — six reads as a smudge on a white card, and a circle you have to
+ * look for is not doing the job the circle was added for.
+ */
 function StepButton({ label, icon, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-ink outline-none transition-colors hover:bg-ink/6 focus-visible:bg-ink/6"
+      className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink/12 text-ink outline-none transition-colors hover:bg-ink/20 focus-visible:bg-ink/20"
     >
       <HugeiconsIcon
         icon={icon}
