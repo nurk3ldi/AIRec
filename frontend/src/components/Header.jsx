@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
@@ -106,10 +105,12 @@ export default function Header({ className = '' }) {
  * pressed is a dead control, while a field that accepts text and has nowhere to
  * send it yet is simply unfinished.
  *
- * **The shortcut badge is not decoration either.** ⌘K/Ctrl+K really does focus
- * the field, which is the whole of what the badge claims. And it names the key
- * the reader actually has: ⌘ shown to someone on Windows is a badge that lies,
- * so the platform decides the label.
+ * The reference carries a ⌘K badge on the right and this does not. A badge is a
+ * promise about a key, and there is nothing on the other side of that key worth
+ * opening yet — and binding one silently would be worse still, since Ctrl+K is
+ * the browser's own and taking it without saying so is a shortcut nobody can
+ * find and everybody trips over. It belongs here the day the field opens
+ * something.
  *
  * Hidden below `sm`. A 240px pill will not share a 375px row with a wordmark
  * and two icons, and a search that reaches nothing does not earn a screen of
@@ -118,29 +119,6 @@ export default function Header({ className = '' }) {
  */
 function HeaderSearch() {
   const t = useT()
-  const inputRef = useRef(null)
-  // Resolved once on mount rather than during render: `navigator` is a browser
-  // global, and reading it while rendering is the kind of thing that breaks the
-  // day this build gains prerendering.
-  const [isMac, setIsMac] = useState(false)
-
-  useEffect(() => {
-    const platform =
-      navigator.userAgentData?.platform || navigator.platform || navigator.userAgent
-    setIsMac(/mac|iphone|ipad|ipod/i.test(platform))
-  }, [])
-
-  useEffect(() => {
-    const onKeyDown = (event) => {
-      // Both modifiers accepted whatever the badge says — someone on a Mac
-      // keyboard plugged into Windows should not have to care which is which.
-      if (event.key?.toLowerCase() !== 'k' || !(event.metaKey || event.ctrlKey)) return
-      event.preventDefault()
-      inputRef.current?.focus()
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [])
 
   return (
     <div className="relative hidden h-9 w-[240px] items-center sm:flex">
@@ -163,16 +141,11 @@ function HeaderSearch() {
           own, so the pill sits straight on the page ground, and a pill the
           colour of the ground would be a shape you cannot see. */}
       <input
-        ref={inputRef}
         type="search"
         placeholder={t('header.search')}
         aria-label={t('header.search')}
-        className="h-full w-full appearance-none rounded-xl bg-surface pr-16 pl-9 text-[14px] text-ink shadow-[0_0_0_1px_var(--color-field)] outline-none transition-all duration-150 placeholder:text-muted hover:shadow-[0_0_0_1px_var(--color-field-hover)] focus:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)] [&::-webkit-search-cancel-button]:appearance-none"
+        className="h-full w-full appearance-none rounded-xl bg-surface pr-3 pl-9 text-[14px] text-ink shadow-[0_0_0_1px_var(--color-field)] outline-none transition-all duration-150 placeholder:text-muted hover:shadow-[0_0_0_1px_var(--color-field-hover)] focus:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)] [&::-webkit-search-cancel-button]:appearance-none"
       />
-
-      <kbd className="pointer-events-none absolute right-3 font-sans text-[11px] font-medium text-muted">
-        {isMac ? '⌘ K' : 'Ctrl K'}
-      </kbd>
     </div>
   )
 }
