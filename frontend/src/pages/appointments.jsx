@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import MonthCalendar from '../components/appointments/MonthCalendar'
+import WeekTimetable from '../components/appointments/WeekTimetable'
 import { useT } from '../lib/i18n'
 import styles from '../styles/Appointments.module.css'
 
@@ -59,6 +60,14 @@ export default function AppointmentsPage() {
           </div>
           <EmptyCard />
           <EmptyCard />
+        </div>
+
+        {/* Full width, under the row rather than beside it: a week is seven
+            columns of hours, and squeezing it into what is left of a line that
+            already carries three cards would make every column too narrow to
+            put a booking in. */}
+        <div className="mt-4">
+          <WeekTimetable selected={selected} />
         </div>
       </div>
     </div>

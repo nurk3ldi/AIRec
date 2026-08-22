@@ -14,6 +14,8 @@ export default {
   'nav.notifications': 'Уведомления',
   'nav.wallet': 'Кошелёк',
 
+  'appointments.week': 'Неделя',
+
   'calendar.prevMonth': 'Предыдущий месяц',
   'calendar.nextMonth': 'Следующий месяц',
   'nav.main': 'Основная навигация',

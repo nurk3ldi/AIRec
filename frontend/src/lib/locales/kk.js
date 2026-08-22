@@ -8,6 +8,8 @@ export default {
   'nav.notifications': 'Хабарламалар',
   'nav.wallet': 'Әмиян',
 
+  'appointments.week': 'Апта',
+
   'calendar.prevMonth': 'Алдыңғы ай',
   'calendar.nextMonth': 'Келесі ай',
   'nav.main': 'Негізгі навигация',

@@ -1,0 +1,189 @@
+import { useEffect, useState } from 'react'
+import { fromMinutes } from '../../lib/appointments'
+import { sameDay, weekDays, weekdayLabels } from '../../lib/dates'
+import { getLocale, useT } from '../../lib/i18n'
+
+// The window of the day the grid draws. A guess for now, and an honest one:
+// the real answer is the business's own working hours, which `/business`
+// already stores and `lib/schedule.js` already knows how to read — this becomes
+// `openSpans()` the moment the page fetches them.
+const START_HOUR = 8
+const END_HOUR = 21
+const ROW_HEIGHT = 56
+
+/**
+ * The week the selected day falls in, as a timetable.
+ *
+ * **It draws no bookings yet.** There is no fetch behind it — what exists is
+ * the grid they will be positioned in. That is deliberate rather than
+ * unfinished-looking: an empty week is also what a real account sees before
+ * anyone books anything, so this is the shape either way, and the backend it
+ * will read from (`GET /appointments?from=&to=`) is finished and untouched.
+ *
+ * **The calendar above is its navigation.** There is no Today/Week/Month/Year
+ * switcher of the kind the reference carries, because three of those four
+ * segments would do nothing — and a segmented control where most segments are
+ * dead is worse than none. Picking a day upstairs moves the week down here,
+ * which is one control doing one job instead of two competing for it.
+ *
+ * The now-line is `accent`, not the reference's red. Red is the usual
+ * convention for it, but in this app `danger` means something — a cancelled
+ * booking, a failed save — and a permanent red rule across the busiest surface
+ * in the product spends that meaning on a clock. Accent is what this palette
+ * says "look here" with.
+ */
+export default function WeekTimetable({ selected }) {
+  const t = useT()
+  const days = weekDays(selected)
+  const labels = weekdayLabels()
+  const hours = Array.from(
+    { length: END_HOUR - START_HOUR },
+    (_, index) => START_HOUR + index
+  )
+
+  const now = useNow()
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const withinGrid = nowMinutes >= START_HOUR * 60 && nowMinutes < END_HOUR * 60
+  const showNow = withinGrid && days.some((day) => sameDay(day, now))
+  const nowOffset = ((nowMinutes - START_HOUR * 60) / 60) * ROW_HEIGHT
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-line bg-surface">
+      <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
+        <h2 className="font-display text-[15px] font-semibold text-ink">
+          {t('appointments.week')}
+        </h2>
+        <span className="text-[13px] text-muted">{weekRange(days)}</span>
+      </header>
+
+      {/* The scroll lives here and not on the page: thirteen hours is 728px of
+          grid, and a page that scrolls the whole screen to reach 19:00 takes
+          the calendar and the cards with it. */}
+      <div className="max-h-[560px] overflow-y-auto">
+        <div className="grid min-w-[720px] grid-cols-[56px_repeat(7,minmax(0,1fr))]">
+          {/* Column headings. Sticky, because scrolling to the evening with no
+              idea which column is Thursday is scrolling blind. */}
+          <div className="sticky top-0 z-20 border-b border-line bg-surface" />
+          {days.map((day, index) => {
+            const isToday = sameDay(day, now)
+
+            return (
+              <div
+                key={day.toISOString()}
+                // **Opaque, always.** The selected column's tint is an ink alpha
+                // and this heading is what the grid scrolls underneath — a
+                // translucent fill here would let 15:00 show through the word
+                // "THU". The selection is marked on the column below instead,
+                // which starts directly under the heading and points at it.
+                className="sticky top-0 z-20 border-b border-l border-line bg-surface px-2 py-2.5 text-center"
+              >
+                <span
+                  className={`block text-[11px] font-medium tracking-wide ${
+                    isToday ? 'text-ink' : 'text-muted'
+                  }`}
+                >
+                  {labels[index]}
+                </span>
+                <span
+                  className={`mt-0.5 block font-display text-[15px] ${
+                    isToday ? 'font-bold text-ink' : 'font-medium text-ink'
+                  }`}
+                >
+                  {String(day.getDate()).padStart(2, '0')}
+                </span>
+              </div>
+            )
+          })}
+
+          {/* The hour gutter. Labels sit *on* the line they name rather than
+              inside the row below it, so the eye reads "this line is 10:00"
+              instead of guessing which edge the number belongs to — which is
+              why they are nudged up by half their own height. */}
+          <div className="relative">
+            {hours.map((hour) => (
+              <div key={hour} className="relative h-14">
+                <span className="absolute -top-2 right-2 text-[11px] text-muted">
+                  {fromMinutes(hour * 60)}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {days.map((day) => (
+            <div
+              key={day.toISOString()}
+              className={`relative border-l border-line ${
+                sameDay(day, selected) ? 'bg-ink/[0.04]' : ''
+              }`}
+            >
+              {hours.map((hour) => (
+                <div key={hour} className="h-14 border-t border-line" />
+              ))}
+            </div>
+          ))}
+
+          {/* Spans every column, so the current time can be read against any
+              day rather than only against today's. Which column *is* today is
+              said by the bold heading above it. */}
+          {showNow && (
+            <div
+              className="pointer-events-none relative col-start-1 col-end-9 row-start-2 h-0"
+              style={{ top: nowOffset }}
+            >
+              <div className="ml-14 h-px bg-accent" />
+              <span className="absolute top-0 left-0 -translate-y-1/2 rounded bg-accent px-1 py-px font-display text-[10px] font-semibold text-surface">
+                {fromMinutes(nowMinutes)}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/** "18 — 24 августа" — the span the grid is showing, in the interface language. */
+function weekRange(days) {
+  const locale = getLocale()
+  const first = days[0]
+  const last = days[6]
+  const sameMonth = first.getMonth() === last.getMonth()
+
+  const day = (date) => date.toLocaleDateString(locale, { day: 'numeric' })
+  const dayMonth = (date) =>
+    date.toLocaleDateString(locale, { day: 'numeric', month: 'long' })
+
+  return sameMonth
+    ? `${day(first)} — ${dayMonth(last)}`
+    : `${dayMonth(first)} — ${dayMonth(last)}`
+}
+
+/**
+ * The current time, refreshed on the minute.
+ *
+ * On the minute rather than every second: the line moves by a pixel a minute at
+ * this row height, so a per-second tick would be 59 re-renders of the whole
+ * grid that change nothing on screen.
+ */
+function useNow() {
+  const [now, setNow] = useState(() => new Date())
+
+  useEffect(() => {
+    const tick = () => setNow(new Date())
+    // Line up with the wall clock first, then settle into a steady minute, so
+    // the line moves when the minute changes rather than 40 seconds after it.
+    const toNextMinute = 60_000 - (Date.now() % 60_000)
+    let interval
+    const timeout = setTimeout(() => {
+      tick()
+      interval = setInterval(tick, 60_000)
+    }, toNextMinute)
+
+    return () => {
+      clearTimeout(timeout)
+      clearInterval(interval)
+    }
+  }, [])
+
+  return now
+}
