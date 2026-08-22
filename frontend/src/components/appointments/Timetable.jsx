@@ -77,15 +77,14 @@ export default function Timetable({ selected, onSelect }) {
   const nowOffset = ((nowMinutes - START_HOUR * 60) / 60) * ROW_HEIGHT
 
   return (
-    // **Not a card.** No radius, no fill, no box drawn around it — only the
-    // rules above and below, running the full width of its column. A rounded
-    // white block would have made the busiest surface in the product one more
-    // thing lying on the page; square and edge to edge makes it part of the
-    // shell, and its top rule reads as the rail's own line turning the corner.
-    <section className="border-y border-line">
-      {/* No rule under it. The day names below carry their own, and two lines
-          twelve pixels apart read as a mistake — the title needs air, not a
-          box. */}
+    <section>
+      {/* **Outside the grid's border, above its top rule.** The heading and the
+          controls are what you steer the grid *with*, not part of it, so the
+          line belongs between them — inside the box the toolbar read as a
+          caption trapped under a lid.
+
+          It carries no rule of its own either: the day names below already have
+          one, and two lines twelve pixels apart read as a mistake. */}
       <header className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
         <h2 className="font-display text-[22px] font-bold tracking-[-0.02em] text-ink">
           {t('nav.appointments')}
@@ -138,10 +137,16 @@ export default function Timetable({ selected, onSelect }) {
         </div>
       </header>
 
-      {/* The scroll lives here and not on the page: thirteen hours is 728px of
+      {/* **Not a card.** No radius, no fill, no box — only the rules above and
+          below, running the full width of the column. A rounded white block
+          would have made the busiest surface in the product one more thing
+          lying on the page; square and edge to edge makes it part of the shell,
+          and the top rule reads as the rail's own line turning the corner.
+
+          The scroll lives here and not on the page: thirteen hours is 728px of
           grid, and a page that scrolls the whole screen to reach 19:00 takes
           the calendar and the cards with it. */}
-      <div className="max-h-[560px] overflow-y-auto">
+      <div className="max-h-[560px] overflow-y-auto border-y border-line">
         {/* The gutter plus one column per day. `min-w` is what keeps a column
             wide enough to hold a booking on a narrow window — below it the
             grid scrolls sideways instead of squeezing five days into nothing. */}
