@@ -27,10 +27,10 @@ export default function AppointmentsPage() {
   const [selected, setSelected] = useState(() => new Date())
 
   return (
-    // A flex row *on the page element itself*, so `items-stretch` measures
-    // against the module's `min-height` and the right panel really is the full
-    // height of the page. Wrapped in a plain div instead it would only be as
-    // tall as its own contents, which for an empty panel is nothing at all.
+    // The flex row is *on the page element itself*, so `items-stretch` has the
+    // page's own height to measure against and the right panel really is full
+    // height. Wrapped in a plain div instead it would be as tall as its
+    // contents, which for an empty panel is nothing at all.
     <div
       // **A definite `height`, not just the module's `min-height`** — this is
       // the whole fix, and it is not interchangeable. A flex container whose
@@ -59,19 +59,13 @@ export default function AppointmentsPage() {
             to the first card is the same 16px as the gap from the rail across
             to it. An even margin is what makes the row read as set into the
             corner rather than placed near it. */}
+        {/* `shrink-0`, so the calendar keeps its size and the difference comes
+            out of the grid below instead. 300px is what its seven cells want,
+            and full width below `sm` — a 300px card on a 343px phone is a card
+            with a margin down one side only. */}
         <div className="shrink-0 p-4">
-          {/* A wrapping row of fixed 300px cards — the browser puts as many on
-              a line as fit and moves the rest down, which is the same answer at
-              every viewport without a breakpoint doing arithmetic about how
-              many clear a 1024px screen. Heights match for free: flex items
-              stretch to their row, so the empty two take the calendar's height
-              whenever they share its line. */}
-          <div className="flex flex-wrap gap-4">
-            <div className="w-full sm:w-[300px]">
-              <MonthCalendar value={selected} onChange={setSelected} />
-            </div>
-            <EmptyCard />
-            <EmptyCard />
+          <div className="w-full sm:w-[300px]">
+            <MonthCalendar value={selected} onChange={setSelected} />
           </div>
         </div>
 
@@ -93,28 +87,5 @@ export default function AppointmentsPage() {
           grid leaves neither of them enough room. */}
       <aside className="min-h-[300px] w-full shrink-0 border-t border-line xl:min-h-0 xl:w-[450px] xl:border-t-0 xl:border-l" />
     </div>
-  )
-}
-
-/**
- * A card with nothing in it yet.
- *
- * Two of these sit to the right of the calendar holding the space their
- * contents will need. They are deliberately bare — no heading, no icon, no
- * «скоро» — because a label would be a claim about what goes here, and that has
- * not been decided. An empty surface says "something is coming" without saying
- * what.
- *
- * The 302px floor is the calendar's own height, and it is arithmetic rather
- * than a guess: 32 padding + 32 header + 12 gap + 24 weekday row + 202 of grid
- * (six 32px rows and five 2px gaps). It only applies when a card is alone on
- * its line — sharing one with the calendar, the flex row matches them itself.
- */
-function EmptyCard() {
-  return (
-    <div
-      aria-hidden="true"
-      className="min-h-[302px] w-full rounded-2xl border border-line bg-surface sm:w-[300px]"
-    />
   )
 }

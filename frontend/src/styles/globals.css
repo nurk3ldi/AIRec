@@ -60,6 +60,7 @@
   --color-scrim: var(--scrim);
   --color-danger: var(--danger);
   --color-ok: var(--ok);
+  --color-now: var(--now);
 
   --font-sans: 'Roboto Variable', Roboto, sans-serif;
   --font-display: Poppins, 'Roboto Variable', sans-serif;
@@ -86,6 +87,16 @@
   --scrim: rgb(23 18 21 / 0.5);
   --danger: #dc2626;
   --ok: #16a34a;
+  /* The line marking the current time on a timetable.
+     Its own colour rather than `danger`, which every calendar reaches for and
+     which means "something is wrong" everywhere else in this app — a permanent
+     red rule across the busiest screen in the product would spend that meaning
+     on a clock. Orange is `#EA6A1E` from `BOOKING_COLORS`, so it is a hue the
+     project already owns rather than a sixth one invented here, and it sits in
+     the same saturation band as the rest.
+     One value for both themes: it carries enough contrast on white and on
+     black, and "now" is not a role that flips. */
+  --now: #ea6a1e;
 
   color-scheme: light;
   font-family: 'Roboto Variable', Roboto, sans-serif;

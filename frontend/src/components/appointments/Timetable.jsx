@@ -45,11 +45,11 @@ const VIEWS = [
  * two views that exist. A segment that does nothing is worse than a segment
  * that is missing, and Month is already the calendar.
  *
- * The now-line is `accent`, not the reference's red. Red is the usual
- * convention for it, but in this app `danger` means something — a cancelled
+ * The now-line has **its own colour**, `--now`, and not `danger`. Red is what
+ * every calendar reaches for, but in this app red means something — a cancelled
  * booking, a failed save — and a permanent red rule across the busiest surface
- * in the product spends that meaning on a clock. Accent is what this palette
- * says "look here" with.
+ * in the product would spend that meaning on a clock. Orange is close enough to
+ * carry the same urgency and is already a hue the project owns.
  */
 export default function Timetable({ selected, onSelect }) {
   const t = useT()
@@ -73,7 +73,17 @@ export default function Timetable({ selected, onSelect }) {
   const now = useNow()
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
   const withinGrid = nowMinutes >= START_HOUR * 60 && nowMinutes < END_HOUR * 60
-  const showNow = withinGrid && days.some((day) => sameDay(day, now))
+  // **The week, not the five columns drawn from it.** The line spans every
+  // column because it marks a time of day rather than a date — so the question
+  // it answers is "is the week on screen this week", and asking instead whether
+  // today is one of the five *drawn* days hid it every Saturday and Sunday, on
+  // a work-week view that by definition never contains them. The day view still
+  // asks about the day, because there it is the same question.
+  const showNow =
+    withinGrid &&
+    (view === 'day'
+      ? sameDay(selected, now)
+      : weekDays(selected).some((day) => sameDay(day, now)))
   const nowOffset = ((nowMinutes - START_HOUR * 60) / 60) * ROW_HEIGHT
 
   return (
@@ -230,7 +240,11 @@ export default function Timetable({ selected, onSelect }) {
           <div className="relative">
             {hours.map((hour) => (
               <div key={hour} className="relative h-14">
-                <span className="absolute top-1 right-2 text-[11px] text-muted">
+                {/* Centred across the gutter rather than pushed against the
+                    grid, and at the day headings' 13px — the times are the
+                    column's whole content, so hugging one edge of it left the
+                    other looking like padding nobody claimed. */}
+                <span className="absolute inset-x-0 top-1 text-center text-[13px] text-muted">
                   {fromMinutes(hour * 60)}
                 </span>
               </div>
@@ -261,10 +275,21 @@ export default function Timetable({ selected, onSelect }) {
               // columns and therefore seven lines.
               style={{ top: nowOffset, gridColumn: `1 / ${days.length + 2}` }}
             >
-              <div className="ml-14 h-px bg-accent" />
-              <span className="absolute top-0 left-0 -translate-y-1/2 rounded bg-accent px-1 py-px font-display text-[10px] font-semibold text-surface">
+              {/* The time in the gutter, centred in it exactly as the hours
+                  above and below are, so the column reads as one list with one
+                  of its entries lit. Orange text rather than a filled chip: a
+                  chip is a block among lines and pulls harder than a clock
+                  should. */}
+              <span className="absolute top-0 left-0 w-14 -translate-y-1/2 text-center text-[13px] font-semibold text-now">
                 {fromMinutes(nowMinutes)}
               </span>
+
+              {/* A dot where the line begins. One pixel of rule is easy to lose
+                  against the hour rules it crosses; the dot is what makes the
+                  eye find the line's height at a glance. */}
+              <span className="absolute top-0 left-14 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-now" />
+
+              <div className="ml-14 h-px bg-now" />
             </div>
           )}
         </div>
