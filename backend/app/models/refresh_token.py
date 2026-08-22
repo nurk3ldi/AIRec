@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, func, true
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, func, text, true
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -22,6 +22,27 @@ class RefreshToken(Base):
     """
 
     __tablename__ = "refresh_tokens"
+
+    __table_args__ = (
+        # "One live token per session" is what the whole sessions feature rests
+        # on — it is why `/auth/me/sessions` can be a plain query instead of a
+        # grouping over families. It used to be a convention the refresh path
+        # was trusted to keep, and a race broke it: two refreshes in the same
+        # millisecond left one family with two live rows. The conditional UPDATE
+        # in `RefreshTokenRepository.revoke` is what prevents that; this index is
+        # what makes it impossible, including for any path written later.
+        #
+        # A partial unique *index* rather than a constraint, because PostgreSQL
+        # has no partial UNIQUE constraint — and the predicate is essential:
+        # revoked rows pile up per family by design, so the uniqueness can only
+        # apply to the live one.
+        Index(
+            "uq_refresh_tokens_live_family",
+            "family_id",
+            unique=True,
+            postgresql_where=text("revoked_at IS NULL"),
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4

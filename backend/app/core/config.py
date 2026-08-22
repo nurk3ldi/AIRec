@@ -72,6 +72,23 @@ class Settings(BaseSettings):
     # a live credential nobody is holding.
     refresh_token_ttl_days: int = 30
     refresh_token_session_ttl_hours: int = 12
+    # How long after a token is rotated away a *second* request carrying it is
+    # still read as the same client asking twice rather than as a stolen token
+    # being replayed.
+    #
+    # Rotation is only safe to police strictly if a client can never send the
+    # same token twice, and it can: two tabs share one `localStorage`, and a
+    # single page can start two checks at once. The second request's *read* then
+    # lands after the first has committed, so the token it holds is already
+    # revoked — indistinguishable from a replay by inspection alone. Without
+    # this window that benign double-send ended every session the user had,
+    # which is far worse than the theft it was defending against.
+    #
+    # Seconds, not minutes: it only has to cover requests that were genuinely in
+    # flight together. Anything later really is someone replaying an old token,
+    # and gets the full response. It is also only half the test — the family
+    # must still hold a live token, see `AuthService.refresh`.
+    refresh_token_reuse_grace_seconds: int = 10
 
     # --- Password reset ---
     password_reset_code_ttl_minutes: int = 10

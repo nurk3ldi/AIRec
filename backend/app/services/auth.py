@@ -249,10 +249,27 @@ class AuthService:
             raise InvalidRefreshToken
 
         if stored.revoked_at is not None:
-            # This token was already rotated away, so whoever just sent it is
-            # replaying an old one. Treat it as theft and end every session.
-            await self._tokens.revoke_all_for_user(stored.user_id, now)
-            await self._session.commit()
+            # This token has already been rotated away. That is either the same
+            # client asking twice at once, or someone replaying a stolen token,
+            # and the row alone cannot tell you which — so ask two questions.
+            #
+            # Was it rotated moments ago, and is the session it belonged to
+            # still signed in? Then a concurrent request from this same client
+            # already did the rotation and holds the replacement; this call has
+            # simply lost a race it never knew it was in. Refuse it and change
+            # nothing.
+            #
+            # Otherwise the token is old, or its session is already over, and a
+            # replay is the only explanation left: end every session the user
+            # has, because the one thing worse than an unnecessary sign-out is
+            # leaving a stolen credential working.
+            age = (now - stored.revoked_at).total_seconds()
+            raced = age <= settings.refresh_token_reuse_grace_seconds and (
+                await self._tokens.has_live_in_family(stored.family_id, now)
+            )
+            if not raced:
+                await self._tokens.revoke_all_for_user(stored.user_id, now)
+                await self._session.commit()
             raise InvalidRefreshToken
 
         if stored.expires_at <= now:
@@ -267,7 +284,15 @@ class AuthService:
         # Rotation: one refresh token is good for exactly one use. The
         # replacement inherits the session — same family, same sign-in time,
         # same device label — so refreshing doesn't look like a new login.
-        await self._tokens.revoke(stored, now)
+        if not await self._tokens.revoke(stored, now):
+            # Lost a race: another request rotated this same token while we were
+            # deciding. Deliberately *not* the theft response above — that one
+            # is for a token we read as already revoked, meaning an old one is
+            # being replayed. Here we read it live, so this is two calls sharing
+            # a valid token in the same instant, the replacement already exists,
+            # and there is nothing left for this call to rotate. Killing every
+            # session over it would log a user out for double-clicking.
+            raise InvalidRefreshToken
         tokens = await self._issue_tokens(
             user,
             # Carried, not re-decided: the answer was given once at sign-in and

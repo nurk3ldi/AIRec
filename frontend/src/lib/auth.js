@@ -78,8 +78,29 @@ export function clearTokens() {
  *
  * Returns the current user on success, or `null` (after clearing whatever
  * tokens turned out to be dead) when there is no valid session.
+ *
+ * **Single-flight, and that is load-bearing.** A refresh token is good for
+ * exactly one use, so two overlapping checks would send the same one twice.
+ * There are two easy ways to get there: `<StrictMode>` double-invokes every
+ * effect in development, and `useRequireAuth` re-runs on each route change, so
+ * a quick navigation can start a second check before the first has answered.
+ * The backend now refuses the loser of that race outright — before it did, both
+ * won, and one session ended up with two live tokens showing as two identical
+ * devices in «Активные сессии». Sharing one in-flight promise means the
+ * question is only ever asked once.
  */
-export async function verifySession() {
+let inFlight = null
+
+export function verifySession() {
+  if (!inFlight) {
+    inFlight = runVerify().finally(() => {
+      inFlight = null
+    })
+  }
+  return inFlight
+}
+
+async function runVerify(isRetry = false) {
   const accessToken = getAccessToken()
   if (accessToken) {
     try {
@@ -101,6 +122,15 @@ export async function verifySession() {
     saveTokens(tokens)
     return user
   } catch {
+    // The in-flight promise above is per tab, and `localStorage` is not: a
+    // second tab can rotate the token while this request is on the wire, so
+    // ours comes back rejected on a token that really is spent — while the
+    // session is alive and its replacement is already in storage. Clearing here
+    // would sign both tabs out over a race neither of them lost. Once only: if
+    // the stored token has not moved, the session is genuinely gone.
+    const stored = getRefreshToken()
+    if (!isRetry && stored && stored !== refreshToken) return runVerify(true)
+
     clearTokens()
     return null
   }
