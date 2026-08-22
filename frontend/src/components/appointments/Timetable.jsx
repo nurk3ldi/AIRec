@@ -123,7 +123,7 @@ export default function Timetable({ selected, onSelect }) {
                   type="button"
                   onClick={() => setView(item.id)}
                   aria-pressed={isActive}
-                  className={`rounded-full px-3 py-1 text-[13px] font-medium outline-none transition-colors ${
+                  className={`grid h-8 place-items-center rounded-full px-4 text-[14px] font-medium outline-none transition-colors ${
                     isActive
                       ? 'bg-accent text-surface'
                       : 'text-muted hover:text-ink focus-visible:text-ink'
@@ -284,11 +284,11 @@ function StepButton({ label, icon, onClick }) {
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-ink/12 text-ink outline-none transition-colors hover:bg-ink/20 focus-visible:bg-ink/20"
+      className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/12 text-ink outline-none transition-colors hover:bg-ink/20 focus-visible:bg-ink/20"
     >
       <HugeiconsIcon
         icon={icon}
-        size={15}
+        size={17}
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={2.2}
