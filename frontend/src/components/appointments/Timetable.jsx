@@ -77,7 +77,7 @@ export default function Timetable({ selected, onSelect }) {
   const nowOffset = ((nowMinutes - START_HOUR * 60) / 60) * ROW_HEIGHT
 
   return (
-    <section>
+    <section className="flex min-h-0 flex-1 flex-col">
       {/* **Outside the grid's border, above its top rule.** The heading and the
           controls are what you steer the grid *with*, not part of it, so the
           line belongs between them — inside the box the toolbar read as a
@@ -143,27 +143,35 @@ export default function Timetable({ selected, onSelect }) {
           lying on the page; square and edge to edge makes it part of the shell,
           and the top rule reads as the rail's own line turning the corner.
 
-          The scroll lives here and not on the page: thirteen hours is 728px of
-          grid, and a page that scrolls the whole screen to reach 19:00 takes
-          the calendar and the cards with it. */}
-      <div className="max-h-[560px] overflow-y-auto border-y border-line">
-        {/* The gutter plus one column per day. `min-w` is what keeps a column
-            wide enough to hold a booking on a narrow window — below it the
-            grid scrolls sideways instead of squeezing five days into nothing. */}
+          **This is the only thing on the page that scrolls**, and its height is
+          whatever the page has left after the cards above it — `flex-1` for the
+          leftover, `min-h-0` so it may actually take less than its 13 hours of
+          content. Without that second class a flex item refuses to shrink below
+          what it holds, and the overflow lands on the document instead: the
+          page grows past the viewport and Chrome puts a scrollbar down the side
+          of the whole app. Scrolling belongs to the grid, not to the screen. */}
+      <div className="min-h-0 flex-1 overflow-auto border-y border-line">
+        {/* The gutter plus one column per day. `minWidth` keeps a column wide
+            enough to hold a booking: below it the grid scrolls sideways rather
+            than squeezing five days into nothing. A single day needs no floor —
+            one column of whatever is left is always wider than one of five. */}
         <div
           className="grid"
           style={{
             gridTemplateColumns: `56px repeat(${days.length}, minmax(0, 1fr))`,
-            // Wide enough that a column can hold a booking; below it the grid
-            // scrolls sideways rather than squeezing five days into nothing. A
-            // single day needs no floor — one column of whatever is left is
-            // always wider than one of five.
             minWidth: days.length > 1 ? 56 + days.length * 120 : undefined,
           }}
         >
-          {/* Column headings. Sticky, because scrolling to the evening with no
-              idea which column is Thursday is scrolling blind. */}
-          <div className="sticky top-0 z-20 border-b border-line bg-ground" />
+          {/* Sticky, because scrolling to the evening with no idea which
+              column is Thursday is scrolling blind — and opaque, because the
+              hours pass underneath rather than beside.
+
+              The corner above the gutter carries **no rule**, which is what
+              stops it reading as an empty cell: the line under the day names
+              belongs to the days, and the gutter is not one of them. It keeps
+              the fill regardless — that is the mask the hour labels slide
+              under. */}
+          <div className="sticky top-0 z-20 bg-ground" />
           {days.map((day, index) => {
             const isToday = sameDay(day, now)
 
@@ -171,23 +179,37 @@ export default function Timetable({ selected, onSelect }) {
               <div
                 key={day.toISOString()}
                 // **Opaque, always**, and `ground` rather than `surface`: the
-                // section has no fill of its own now, so the page's own colour
-                // is what sits behind these. The grid scrolls underneath them,
-                // and a translucent heading would let 15:00 show through the
-                // word "THU" — which is also why the selected column's tint is
+                // grid has no fill of its own, so the page's colour is what
+                // sits behind these. The rows scroll underneath them, and a
+                // translucent heading would let 15:00 show through the word
+                // "ЧТ" — which is also why the selected column's tint is
                 // marked on the body below rather than up here.
-                className="sticky top-0 z-20 border-b border-l border-line bg-ground px-2 py-2.5 text-center"
+                className="sticky top-0 z-20 flex items-baseline gap-1.5 border-b border-l border-line bg-ground px-3 py-2"
               >
+                {/* Weekday and date on one line, aligned left rather than
+                    stacked and centred. Stacked, the row was two lines tall for
+                    six characters of information and the eye had to travel down
+                    a column to read one date; side by side it reads as a label,
+                    and the height it gives back goes to the grid — which is the
+                    part of this screen that actually needs it.
+
+                    One size for both, so the pair reads as a single label
+                    rather than a caption with a heading stuck to it. The
+                    hierarchy is carried by weight and colour instead — muted
+                    medium against ink semibold — which is enough at this
+                    distance and costs no height. Baselines rather than centres
+                    all the same: the two faces have different cap heights even
+                    at the same size. */}
                 <span
-                  className={`block text-[11px] font-medium tracking-wide ${
+                  className={`text-[13px] font-medium tracking-wide ${
                     isToday ? 'text-ink' : 'text-muted'
                   }`}
                 >
                   {labels[index]}
                 </span>
                 <span
-                  className={`mt-0.5 block font-display text-[15px] ${
-                    isToday ? 'font-bold text-ink' : 'font-medium text-ink'
+                  className={`font-display text-[13px] ${
+                    isToday ? 'font-bold text-ink' : 'font-semibold text-ink'
                   }`}
                 >
                   {String(day.getDate()).padStart(2, '0')}
@@ -196,14 +218,19 @@ export default function Timetable({ selected, onSelect }) {
             )
           })}
 
-          {/* The hour gutter. Labels sit *on* the line they name rather than
-              inside the row below it, so the eye reads "this line is 10:00"
-              instead of guessing which edge the number belongs to — which is
-              why they are nudged up by half their own height. */}
+          {/* The hour gutter. Labels sit at the **top of the hour they name**
+              rather than straddling the rule above it.
+
+              Straddling reads slightly better mid-grid — the number centres on
+              its own line — but it puts the first label half above the grid,
+              where the sticky corner paints over it and 08:00 arrives sliced in
+              half. Sitting inside the row costs a couple of pixels of precision
+              and makes the column start where the times start, which is what
+              the gutter is for. */}
           <div className="relative">
             {hours.map((hour) => (
               <div key={hour} className="relative h-14">
-                <span className="absolute -top-2 right-2 text-[11px] text-muted">
+                <span className="absolute top-1 right-2 text-[11px] text-muted">
                   {fromMinutes(hour * 60)}
                 </span>
               </div>

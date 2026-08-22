@@ -32,15 +32,34 @@ export default function AppointmentsPage() {
     // height of the page. Wrapped in a plain div instead it would only be as
     // tall as its own contents, which for an empty panel is nothing at all.
     <div
-      className={`${styles.page} flex flex-col items-stretch xl:flex-row`}
+      // **A definite `height`, not just the module's `min-height`** — this is
+      // the whole fix, and it is not interchangeable. A flex container whose
+      // height is `auto` has an *indefinite* cross size however large a
+      // `min-height` clamps it to afterwards, so `flex-1` children inside it
+      // never get a leftover to fill: every one of them sizes to its own
+      // content, the grid renders all thirteen of its 56px hours, the column
+      // adds up past the viewport, and Chrome puts a scrollbar down the side of
+      // the whole app — with `overflow-hidden` powerless, because that clips
+      // content, it does not cap a box that grew.
+      //
+      // With a real height the chain resolves: the page is the viewport, the
+      // grid gets what is left, and the only scrollbar on the screen is the one
+      // inside it. The numbers match the module's own — 68px of header, and
+      // below `sm` the 50px bottom bar and the home indicator under it.
+      className={`${styles.page} flex h-[calc(100vh-118px-env(safe-area-inset-bottom))] flex-col items-stretch overflow-hidden sm:h-[calc(100vh-68px)] xl:flex-row`}
       aria-label={t('nav.appointments')}
     >
-      <div className="min-w-0 flex-1">
+      {/* A column, so the timetable can take everything the cards above it do
+          not. `min-h-0` on both this and the timetable is what lets it: a flex
+          item defaults to its content's size and will not shrink past it
+          otherwise, which is exactly how a "no scrolling" page ends up
+          scrolling. */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {/* `p-4`, one value on every side: the gap from the header's rule down
             to the first card is the same 16px as the gap from the rail across
             to it. An even margin is what makes the row read as set into the
             corner rather than placed near it. */}
-        <div className="p-4">
+        <div className="shrink-0 p-4">
           {/* A wrapping row of fixed 300px cards — the browser puts as many on
               a line as fit and moves the rest down, which is the same answer at
               every viewport without a breakpoint doing arithmetic about how
