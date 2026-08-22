@@ -6,6 +6,7 @@ export default {
   'nav.business': 'Бизнес',
   'nav.profile': 'Профиль',
   'nav.notifications': 'Хабарламалар',
+  'nav.wallet': 'Әмиян',
   'nav.main': 'Негізгі навигация',
   'nav.home': 'AIRec — басты бет',
 
@@ -106,6 +107,11 @@ export default {
   'settings.theme.light': 'Ашық',
   'settings.theme.dark': 'Қараңғы',
   'settings.language': 'Тіл',
+
+  'wallet.aria': 'Әмиян',
+  'wallet.empty': 'Әмиян әзірге бос',
+  'wallet.emptyLead':
+    'Мұнда баланс, толықтыру және жазылым төлемі болады.',
 
   'notifications.aria': 'Хабарламалар беті',
   'notifications.empty': 'Әзірге хабарлама жоқ',

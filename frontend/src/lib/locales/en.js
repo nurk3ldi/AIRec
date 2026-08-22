@@ -6,6 +6,7 @@ export default {
   'nav.business': 'Business',
   'nav.profile': 'Profile',
   'nav.notifications': 'Notifications',
+  'nav.wallet': 'Wallet',
   'nav.main': 'Main navigation',
   'nav.home': 'AIRec — home',
 
@@ -106,6 +107,11 @@ export default {
   'settings.theme.light': 'Light',
   'settings.theme.dark': 'Dark',
   'settings.language': 'Language',
+
+  'wallet.aria': 'Wallet',
+  'wallet.empty': 'The wallet is empty for now',
+  'wallet.emptyLead':
+    'Your balance, top-ups and subscription payments will live here.',
 
   'notifications.aria': 'Notifications page',
   'notifications.empty': 'No notifications yet',

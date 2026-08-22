@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Notification01Icon } from '@hugeicons/core-free-icons'
+import { Notification01Icon, Wallet01Icon } from '@hugeicons/core-free-icons'
 import { useT } from '../lib/i18n'
 
 // Translation keys rather than titles: this map is built once at import, so a
@@ -17,6 +17,7 @@ const PAGE_TITLE_KEYS = {
   '/business': 'nav.business',
   '/profile': 'nav.profile',
   '/notifications': 'nav.notifications',
+  '/wallet': 'nav.wallet',
 }
 
 export default function Header({ className = '' }) {
@@ -25,6 +26,7 @@ export default function Header({ className = '' }) {
   const titleKey = PAGE_TITLE_KEYS[pathname]
   const title = titleKey ? t(titleKey) : 'AIRec'
   const isOnNotifications = pathname === '/notifications'
+  const isOnWallet = pathname === '/wallet'
 
   return (
     // No fill, but a rule. Dropping the white strip was right — a filled bar is
@@ -56,29 +58,57 @@ export default function Header({ className = '' }) {
         {title}
       </h1>
 
-      {/* Lives in the header rather than the sidebar rail: notifications are
-          about *right now*, so they belong next to the page you're on rather
-          than in the list of places you can go. */}
-      <Link
-        to="/notifications"
-        aria-label={t('nav.notifications')}
-        aria-current={isOnNotifications ? 'page' : undefined}
-        className={`grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-ink outline-none transition-colors ${
-          isOnNotifications
-            ? 'bg-accent/8'
-            : 'hover:bg-accent/8 focus-visible:bg-accent/8'
-        }`}
-      >
-        {/* Same size and stroke weight as the sidebar rail icons, so the two
-            sets of navigation read as one family. */}
-        <HugeiconsIcon
-          icon={Notification01Icon}
-          size={18}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2.15}
+      {/* Both live in the header rather than the sidebar rail, and for the
+          same reason: these are things you *check*, not places you work. The
+          four screens in the rail are where the day is spent; the wallet and
+          the bell are glanced at and left.
+
+          They are also why neither is in `NAVIGATION` — the bottom bar's five
+          slots are full, and this row is present on a phone too, so both stay
+          reachable there without a sixth glyph squeezing the others. */}
+      <div className="flex shrink-0 items-center gap-1">
+        <HeaderLink
+          to="/wallet"
+          label={t('nav.wallet')}
+          icon={Wallet01Icon}
+          isActive={isOnWallet}
         />
-      </Link>
+        <HeaderLink
+          to="/notifications"
+          label={t('nav.notifications')}
+          icon={Notification01Icon}
+          isActive={isOnNotifications}
+        />
+      </div>
     </header>
+  )
+}
+
+/**
+ * One of the header's icon buttons.
+ *
+ * Same 18px glyph at the same stroke weight as the sidebar rail, so the two
+ * sets of navigation read as one family, and the active page keeps the tint
+ * rather than gaining an outline — an icon in a row of icons says "you are
+ * here" with a filled ground more quietly than a border does.
+ */
+function HeaderLink({ to, label, icon, isActive }) {
+  return (
+    <Link
+      to={to}
+      aria-label={label}
+      aria-current={isActive ? 'page' : undefined}
+      className={`grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-ink outline-none transition-colors ${
+        isActive ? 'bg-accent/8' : 'hover:bg-accent/8 focus-visible:bg-accent/8'
+      }`}
+    >
+      <HugeiconsIcon
+        icon={icon}
+        size={18}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2.15}
+      />
+    </Link>
   )
 }
