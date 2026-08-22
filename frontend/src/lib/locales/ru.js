@@ -13,6 +13,9 @@ export default {
   'nav.profile': 'Профиль',
   'nav.notifications': 'Уведомления',
   'nav.wallet': 'Кошелёк',
+
+  'calendar.prevMonth': 'Предыдущий месяц',
+  'calendar.nextMonth': 'Следующий месяц',
   'nav.main': 'Основная навигация',
   'nav.home': 'AIRec — главная',
 

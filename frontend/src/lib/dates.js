@@ -1,12 +1,20 @@
 /**
- * Russian date names and the small amount of calendar arithmetic that goes
- * with them.
+ * Date names and the small amount of calendar arithmetic that goes with them.
  *
- * Written out rather than taken from `Intl`, which returns "авг.",
- * "24 августа 2026 г." and a lowercase "апрель" — every one of which would
- * have to be trimmed or capitalised by hand, and the trimming is the part that
- * breaks quietly when a locale changes shape.
+ * **Two kinds of label live here, and the split is deliberate.** The tables
+ * below are Russian, written out rather than taken from `Intl`, which returns
+ * "авг.", "24 августа 2026 г." and a lowercase "апрель" — every one of which
+ * would need trimming or capitalising by hand, and the trimming is the part
+ * that breaks quietly when a locale changes shape. They predate the UI speaking
+ * three languages and are still used where the copy is Russian anyway.
+ *
+ * Anything a *reader* sees goes through `Intl` instead, keyed on `getLocale()`,
+ * because the alternative is three hand-written tables of month names to keep
+ * in step by hand. `monthLabel` and `weekdayLabels` are those, and both are
+ * functions rather than constants: a module constant is evaluated once at
+ * import and would freeze in whichever language happened to load first.
  */
+import { getLocale } from './i18n'
 
 export const MONTHS_SHORT = [
   'ЯНВ', 'ФЕВ', 'МАР', 'АПР', 'МАЙ', 'ИЮН',
@@ -135,3 +143,44 @@ export const sameDay = (a, b) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&
   a.getDate() === b.getDate()
+
+/**
+ * "Март 2024" — the month and year, in the interface language.
+ *
+ * `formatToParts` rather than the formatted string, so Russian's trailing
+ * " г." never has to be stripped: the era is simply a part we do not take.
+ */
+export function monthLabel(date) {
+  const parts = new Intl.DateTimeFormat(getLocale(), {
+    month: 'long',
+    year: 'numeric',
+  }).formatToParts(date)
+
+  // The *month* is capitalised, not the first character of the result: ru and
+  // kk both lowercase their month names, and kk puts the year first — so
+  // raising position zero would capitalise a digit and leave «наурыз» as it
+  // was.
+  return parts
+    .filter((part) => part.type === 'month' || part.type === 'year')
+    .map((part) =>
+      part.type === 'month'
+        ? part.value.charAt(0).toUpperCase() + part.value.slice(1)
+        : part.value
+    )
+    .join(' ')
+}
+
+/**
+ * The seven column headings, Monday first, in the interface language.
+ *
+ * Built from a real week rather than a table — 2024-01-01 was a Monday, and any
+ * Monday would do; what matters is that the order matches `weekStart` and the
+ * backend's `weekday`, where 0 is Monday.
+ */
+export function weekdayLabels() {
+  const format = new Intl.DateTimeFormat(getLocale(), { weekday: 'short' })
+  return Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(2024, 0, 1 + index)
+    return format.format(day).replace(/\.$/, '').toUpperCase()
+  })
+}

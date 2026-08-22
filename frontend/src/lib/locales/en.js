@@ -7,6 +7,9 @@ export default {
   'nav.profile': 'Profile',
   'nav.notifications': 'Notifications',
   'nav.wallet': 'Wallet',
+
+  'calendar.prevMonth': 'Previous month',
+  'calendar.nextMonth': 'Next month',
   'nav.main': 'Main navigation',
   'nav.home': 'AIRec — home',
 

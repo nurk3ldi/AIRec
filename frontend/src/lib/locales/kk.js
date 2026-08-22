@@ -7,6 +7,9 @@ export default {
   'nav.profile': 'Профиль',
   'nav.notifications': 'Хабарламалар',
   'nav.wallet': 'Әмиян',
+
+  'calendar.prevMonth': 'Алдыңғы ай',
+  'calendar.nextMonth': 'Келесі ай',
   'nav.main': 'Негізгі навигация',
   'nav.home': 'AIRec — басты бет',
 
