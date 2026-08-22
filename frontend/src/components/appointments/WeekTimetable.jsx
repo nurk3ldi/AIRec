@@ -48,7 +48,13 @@ export default function WeekTimetable({ selected }) {
   const nowOffset = ((nowMinutes - START_HOUR * 60) / 60) * ROW_HEIGHT
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-line bg-surface">
+    // **Not a card.** No radius, no fill, no box drawn around it — only the
+    // rules above and below, running the full width from the rail to the
+    // window edge. A rounded white block would have made the busiest surface in
+    // the product one more thing lying on the page; square and full-bleed makes
+    // it part of the shell, and its top rule reads as the rail's own line
+    // turning the corner.
+    <section className="border-y border-line">
       <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
         <h2 className="font-display text-[15px] font-semibold text-ink">
           {t('appointments.week')}
@@ -63,19 +69,20 @@ export default function WeekTimetable({ selected }) {
         <div className="grid min-w-[720px] grid-cols-[56px_repeat(7,minmax(0,1fr))]">
           {/* Column headings. Sticky, because scrolling to the evening with no
               idea which column is Thursday is scrolling blind. */}
-          <div className="sticky top-0 z-20 border-b border-line bg-surface" />
+          <div className="sticky top-0 z-20 border-b border-line bg-ground" />
           {days.map((day, index) => {
             const isToday = sameDay(day, now)
 
             return (
               <div
                 key={day.toISOString()}
-                // **Opaque, always.** The selected column's tint is an ink alpha
-                // and this heading is what the grid scrolls underneath — a
-                // translucent fill here would let 15:00 show through the word
-                // "THU". The selection is marked on the column below instead,
-                // which starts directly under the heading and points at it.
-                className="sticky top-0 z-20 border-b border-l border-line bg-surface px-2 py-2.5 text-center"
+                // **Opaque, always**, and `ground` rather than `surface`: the
+                // section has no fill of its own now, so the page's own colour
+                // is what sits behind these. The grid scrolls underneath them,
+                // and a translucent heading would let 15:00 show through the
+                // word "THU" — which is also why the selected column's tint is
+                // marked on the body below rather than up here.
+                className="sticky top-0 z-20 border-b border-l border-line bg-ground px-2 py-2.5 text-center"
               >
                 <span
                   className={`block text-[11px] font-medium tracking-wide ${
