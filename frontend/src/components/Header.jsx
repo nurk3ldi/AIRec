@@ -1,6 +1,11 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Notification01Icon, Wallet01Icon } from '@hugeicons/core-free-icons'
+import {
+  Notification01Icon,
+  Search01Icon,
+  Wallet01Icon,
+} from '@hugeicons/core-free-icons'
 import { useT } from '../lib/i18n'
 
 // Translation keys rather than titles: this map is built once at import, so a
@@ -58,29 +63,117 @@ export default function Header({ className = '' }) {
         {title}
       </h1>
 
-      {/* Both live in the header rather than the sidebar rail, and for the
-          same reason: these are things you *check*, not places you work. The
-          four screens in the rail are where the day is spent; the wallet and
-          the bell are glanced at and left.
+      {/* Search and the two icon links travel as one group, so the space
+          between the title and the controls is a single gap rather than two
+          competing ones. */}
+      <div className="flex shrink-0 items-center gap-3">
+        <HeaderSearch />
 
-          They are also why neither is in `NAVIGATION` — the bottom bar's five
-          slots are full, and this row is present on a phone too, so both stay
-          reachable there without a sixth glyph squeezing the others. */}
-      <div className="flex shrink-0 items-center gap-1">
-        <HeaderLink
-          to="/wallet"
-          label={t('nav.wallet')}
-          icon={Wallet01Icon}
-          isActive={isOnWallet}
-        />
-        <HeaderLink
-          to="/notifications"
-          label={t('nav.notifications')}
-          icon={Notification01Icon}
-          isActive={isOnNotifications}
-        />
+        {/* Both live in the header rather than the sidebar rail, and for the
+            same reason: these are things you *check*, not places you work. The
+            four screens in the rail are where the day is spent; the wallet and
+            the bell are glanced at and left.
+
+            They are also why neither is in `NAVIGATION` — the bottom bar's five
+            slots are full, and this row is present on a phone too, so both stay
+            reachable there without a sixth glyph squeezing the others. */}
+        <div className="flex shrink-0 items-center gap-1">
+          <HeaderLink
+            to="/wallet"
+            label={t('nav.wallet')}
+            icon={Wallet01Icon}
+            isActive={isOnWallet}
+          />
+          <HeaderLink
+            to="/notifications"
+            label={t('nav.notifications')}
+            icon={Notification01Icon}
+            isActive={isOnNotifications}
+          />
+        </div>
       </div>
     </header>
+  )
+}
+
+/**
+ * The header's search field.
+ *
+ * **It searches nothing yet, and nothing here pretends otherwise.** There is no
+ * index and no endpoint behind it; what exists is the field, so you can click
+ * it, focus it and type. It is a real `<input>` rather than a button styled to
+ * look like one for exactly that reason — a button that does nothing when
+ * pressed is a dead control, while a field that accepts text and has nowhere to
+ * send it yet is simply unfinished.
+ *
+ * **The shortcut badge is not decoration either.** ⌘K/Ctrl+K really does focus
+ * the field, which is the whole of what the badge claims. And it names the key
+ * the reader actually has: ⌘ shown to someone on Windows is a badge that lies,
+ * so the platform decides the label.
+ *
+ * Hidden below `sm`. A 240px pill will not share a 375px row with a wordmark
+ * and two icons, and a search that reaches nothing does not earn a screen of
+ * its own on a phone — when it does something, that is the moment to give it
+ * one.
+ */
+function HeaderSearch() {
+  const t = useT()
+  const inputRef = useRef(null)
+  // Resolved once on mount rather than during render: `navigator` is a browser
+  // global, and reading it while rendering is the kind of thing that breaks the
+  // day this build gains prerendering.
+  const [isMac, setIsMac] = useState(false)
+
+  useEffect(() => {
+    const platform =
+      navigator.userAgentData?.platform || navigator.platform || navigator.userAgent
+    setIsMac(/mac|iphone|ipad|ipod/i.test(platform))
+  }, [])
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      // Both modifiers accepted whatever the badge says — someone on a Mac
+      // keyboard plugged into Windows should not have to care which is which.
+      if (event.key?.toLowerCase() !== 'k' || !(event.metaKey || event.ctrlKey)) return
+      event.preventDefault()
+      inputRef.current?.focus()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
+
+  return (
+    <div className="relative hidden h-9 w-[240px] items-center sm:flex">
+      <span className="pointer-events-none absolute left-3 grid place-items-center text-muted">
+        <HugeiconsIcon
+          icon={Search01Icon}
+          size={16}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+        />
+      </span>
+
+      {/* The same three-step ring every other input in the app wears, so this
+          reads as the same kind of object — resting, hover, focus with a halo.
+          A `box-shadow` and not a border: it sits outside the box model, so
+          focus can thicken the edge without the pill growing a pixel and
+          shunting the icons beside it along the row.
+          `bg-surface`, not the reference's grey — the header has no fill of its
+          own, so the pill sits straight on the page ground, and a pill the
+          colour of the ground would be a shape you cannot see. */}
+      <input
+        ref={inputRef}
+        type="search"
+        placeholder={t('header.search')}
+        aria-label={t('header.search')}
+        className="h-full w-full appearance-none rounded-xl bg-surface pr-16 pl-9 text-[14px] text-ink shadow-[0_0_0_1px_var(--color-field)] outline-none transition-all duration-150 placeholder:text-muted hover:shadow-[0_0_0_1px_var(--color-field-hover)] focus:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)] [&::-webkit-search-cancel-button]:appearance-none"
+      />
+
+      <kbd className="pointer-events-none absolute right-3 font-sans text-[11px] font-medium text-muted">
+        {isMac ? '⌘ K' : 'Ctrl K'}
+      </kbd>
+    </div>
   )
 }
 

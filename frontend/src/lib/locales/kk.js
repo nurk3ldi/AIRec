@@ -12,6 +12,7 @@ export default {
 
   'header.login': 'Кіру',
   'header.signup': 'Тіркелу',
+  'header.search': 'Іздеу…',
 
   'landing.aria': 'Басты бет',
   'landing.leadStart': 'ЖИ-администратор клиенттерге жауап беріп,',

@@ -12,6 +12,7 @@ export default {
 
   'header.login': 'Log in',
   'header.signup': 'Sign up',
+  'header.search': 'Search…',
 
   'landing.aria': 'Home page',
   'landing.leadStart': 'An AI receptionist that answers your clients',
