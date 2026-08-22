@@ -41,14 +41,49 @@ export default function AppointmentsPage() {
           it, the card a filled block, and the same offset looks like more under
           a solid edge. */}
       <div className="w-full p-4">
-        {/* One column on a phone, calendar-and-day from `lg`. 300px is what the
-            grid wants: seven cells plus their gaps at a size a finger can hit,
-            and no wider, because every pixel here is one the day beside it does
-            not get. */}
-        <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <MonthCalendar value={selected} onChange={setSelected} />
+        {/* A wrapping row, not a grid of named columns. Every card is 300px —
+            the width the calendar's seven cells want — and the browser puts as
+            many on a line as fit and moves the rest down. That is the same
+            answer at every viewport without a breakpoint anywhere doing
+            arithmetic about how many 300px cards clear a 1024px screen.
+
+            Below `sm` each card takes the full width instead, because a 300px
+            card on a 343px phone is a card with a margin down one side only.
+
+            Heights match for free: flex items stretch to their row, so the two
+            empty cards take the calendar's height whenever they share its line.
+            `min-h` on them is the floor for when they do not. */}
+        <div className="flex flex-wrap gap-4">
+          <div className="w-full sm:w-[300px]">
+            <MonthCalendar value={selected} onChange={setSelected} />
+          </div>
+          <EmptyCard />
+          <EmptyCard />
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * A card with nothing in it yet.
+ *
+ * Two of these sit to the right of the calendar holding the space their
+ * contents will need. They are deliberately bare — no heading, no icon, no
+ * «скоро» — because a label would be a claim about what goes here, and that has
+ * not been decided. An empty surface says "something is coming" without saying
+ * what.
+ *
+ * The 302px floor is the calendar's own height, and it is arithmetic rather
+ * than a guess: 32 padding + 32 header + 12 gap + 24 weekday row + 202 of grid
+ * (six 32px rows and five 2px gaps). It only applies when a card is alone on
+ * its line — sharing one with the calendar, the flex row matches them itself.
+ */
+function EmptyCard() {
+  return (
+    <div
+      aria-hidden="true"
+      className="min-h-[302px] w-full rounded-2xl border border-line bg-surface sm:w-[300px]"
+    />
   )
 }
