@@ -58,11 +58,10 @@ export default function WeekTimetable({ selected }) {
 
   return (
     // **Not a card.** No radius, no fill, no box drawn around it — only the
-    // rules above and below, running the full width from the rail to the
-    // window edge. A rounded white block would have made the busiest surface in
-    // the product one more thing lying on the page; square and full-bleed makes
-    // it part of the shell, and its top rule reads as the rail's own line
-    // turning the corner.
+    // rules above and below, running the full width of its column. A rounded
+    // white block would have made the busiest surface in the product one more
+    // thing lying on the page; square and edge to edge makes it part of the
+    // shell, and its top rule reads as the rail's own line turning the corner.
     <section className="border-y border-line">
       <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
         <h2 className="font-display text-[15px] font-semibold text-ink">

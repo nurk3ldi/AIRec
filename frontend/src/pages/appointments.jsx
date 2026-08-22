@@ -27,36 +27,52 @@ export default function AppointmentsPage() {
   const [selected, setSelected] = useState(() => new Date())
 
   return (
-    <div className={styles.page} aria-label={t('nav.appointments')}>
-      {/* `p-4`, one value on every side: the gap from the header's rule down to
-          the first card is the same 16px as the gap from the rail across to it.
-          An even margin is what makes the row read as set into the corner
-          rather than placed near it. */}
-      <div className="w-full p-4">
-        {/* A wrapping row of fixed 300px cards — the browser puts as many on a
-            line as fit and moves the rest down, which is the same answer at
-            every viewport without a breakpoint doing arithmetic about how many
-            clear a 1024px screen. Heights match for free: flex items stretch to
-            their row, so the empty two take the calendar's height whenever they
-            share its line. */}
-        <div className="flex flex-wrap gap-4">
-          <div className="w-full sm:w-[300px]">
-            <MonthCalendar value={selected} onChange={setSelected} />
+    // A flex row *on the page element itself*, so `items-stretch` measures
+    // against the module's `min-height` and the right panel really is the full
+    // height of the page. Wrapped in a plain div instead it would only be as
+    // tall as its own contents, which for an empty panel is nothing at all.
+    <div
+      className={`${styles.page} flex flex-col items-stretch xl:flex-row`}
+      aria-label={t('nav.appointments')}
+    >
+      <div className="min-w-0 flex-1">
+        {/* `p-4`, one value on every side: the gap from the header's rule down
+            to the first card is the same 16px as the gap from the rail across
+            to it. An even margin is what makes the row read as set into the
+            corner rather than placed near it. */}
+        <div className="p-4">
+          {/* A wrapping row of fixed 300px cards — the browser puts as many on
+              a line as fit and moves the rest down, which is the same answer at
+              every viewport without a breakpoint doing arithmetic about how
+              many clear a 1024px screen. Heights match for free: flex items
+              stretch to their row, so the empty two take the calendar's height
+              whenever they share its line. */}
+          <div className="flex flex-wrap gap-4">
+            <div className="w-full sm:w-[300px]">
+              <MonthCalendar value={selected} onChange={setSelected} />
+            </div>
+            <EmptyCard />
+            <EmptyCard />
           </div>
-          <EmptyCard />
-          <EmptyCard />
         </div>
 
-        {/* `-mx-4` cancels this container's padding, so the timetable runs from
-            the rail to the window edge instead of sitting inside the margin the
-            cards keep. It is not a card: no radius, no box — its top rule is a
-            horizontal line beginning exactly where the rail's vertical one
-            ends, which is what ties it to the shell rather than laying it on
-            top of the page. */}
-        <div className="-mx-4 mt-4">
-          <WeekTimetable selected={selected} />
-        </div>
+        {/* Outside the padding rather than negatively margined out of it, so it
+            runs the full width of this column on its own terms. It is not a
+            card: its top rule is a horizontal line beginning exactly where the
+            rail's vertical one ends. */}
+        <WeekTimetable selected={selected} />
       </div>
+
+      {/* The right panel: full height, empty, and flush rather than rounded.
+          A card with a radius cannot be 100% of anything without margins to
+          float in, and margins are the opposite of what "full height" asks
+          for — so it takes the same treatment the rail and the timetable have,
+          a hairline and no box.
+
+          Below `xl` it moves under the timetable at full width, and the divider
+          moves to its top edge: at that width a 300px column beside a five-day
+          grid leaves neither of them enough room. */}
+      <aside className="min-h-[300px] w-full shrink-0 border-t border-line xl:min-h-0 xl:w-[300px] xl:border-t-0 xl:border-l" />
     </div>
   )
 }
