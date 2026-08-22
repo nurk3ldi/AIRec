@@ -78,18 +78,28 @@ export default function MonthCalendar({ value, onChange }) {
 
       {/* The column headings take the same 11px uppercase muted step the tables
           elsewhere use for their heads, so a heading is a heading throughout. */}
-      <div className="mt-4 grid grid-cols-7 gap-1">
+      <div className="mt-3 grid grid-cols-7 gap-x-1">
         {weekdays.map((label) => (
           <span
             key={label}
-            className="grid h-7 place-items-center text-[11px] font-medium tracking-wide text-muted"
+            className="grid h-6 place-items-center text-[11px] font-medium tracking-wide text-muted"
           >
             {label}
           </span>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
+      {/* Rows are a fixed height rather than `aspect-square`, and that is
+          what makes the card short. A square cell is as tall as the column is
+          wide, so six rows inherited the card's width and the whole thing grew
+          past 330px for a control that only has to be glanced at. Cells wider
+          than they are tall is what nearly every calendar does; the number
+          still sits in the middle of a target a cursor cannot miss.
+
+          `gap-y-0.5` for the same reason — horizontally the gap separates seven
+          columns and is worth its 4px, vertically it is only air between rows
+          that are already spaced by their own height. */}
+      <div className="grid grid-cols-7 gap-x-1 gap-y-0.5">
         {days.map((day) => {
           const outside = !sameMonth(day, month)
           const isToday = sameDay(day, today)
@@ -109,7 +119,7 @@ export default function MonthCalendar({ value, onChange }) {
               // `aria-current` is what tells a screen reader which cell is
               // today; the tint alone says it only to someone who can see it.
               aria-current={isToday ? 'date' : undefined}
-              className={`grid aspect-square place-items-center rounded-lg font-display text-[13px] font-medium outline-none transition-colors ${
+              className={`grid h-8 place-items-center rounded-lg font-display text-[13px] font-medium outline-none transition-colors ${
                 isSelected
                   ? 'bg-accent text-surface'
                   : outside
