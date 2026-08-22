@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import MonthCalendar from '../components/appointments/MonthCalendar'
-import WeekTimetable from '../components/appointments/WeekTimetable'
+import Timetable from '../components/appointments/Timetable'
 import { useT } from '../lib/i18n'
 import styles from '../styles/Appointments.module.css'
 
@@ -60,7 +60,7 @@ export default function AppointmentsPage() {
             runs the full width of this column on its own terms. It is not a
             card: its top rule is a horizontal line beginning exactly where the
             rail's vertical one ends. */}
-        <WeekTimetable selected={selected} />
+        <Timetable selected={selected} onSelect={setSelected} />
       </div>
 
       {/* The right panel: full height, empty, and flush rather than rounded.

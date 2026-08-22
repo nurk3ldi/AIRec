@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons'
 import { fromMinutes } from '../../lib/appointments'
-import { sameDay, weekDays, weekdayLabels } from '../../lib/dates'
-import { getLocale, useT } from '../../lib/i18n'
+import { sameDay, shiftDate, weekDays, weekdayLabels } from '../../lib/dates'
+import { useT } from '../../lib/i18n'
 
 // The window of the day the grid draws. A guess for now, and an honest one:
 // the real answer is the business's own working hours, which `/business`
@@ -15,13 +17,18 @@ const ROW_HEIGHT = 56
 // of it, so Saturday and Sunday are dropped rather than reordered — `weekDays`
 // is Monday-first for the same reason the backend's `weekday` is, and slicing
 // the tail off keeps both agreeing about which day is which.
-//
-// One number, because it is the only thing that decides the shape: the grid's
-// column count, the now-line's span and the range label all read it.
-const DAYS_SHOWN = 5
+const WORK_DAYS = 5
+
+// Two views, and both do something — a switcher whose segments are decoration
+// is worse than no switcher, which is why the reference's Today/Month/Year are
+// not here. `step` is what an arrow moves by in each: one day, or one work week.
+const VIEWS = [
+  { id: 'day', labelKey: 'appointments.viewDay', step: 'day' },
+  { id: 'week', labelKey: 'appointments.viewWeek', step: 'week' },
+]
 
 /**
- * The week the selected day falls in, as a timetable.
+ * One day or one work week, as a timetable.
  *
  * **It draws no bookings yet.** There is no fetch behind it — what exists is
  * the grid they will be positioned in. That is deliberate rather than
@@ -29,11 +36,14 @@ const DAYS_SHOWN = 5
  * anyone books anything, so this is the shape either way, and the backend it
  * will read from (`GET /appointments?from=&to=`) is finished and untouched.
  *
- * **The calendar above is its navigation.** There is no Today/Week/Month/Year
- * switcher of the kind the reference carries, because three of those four
- * segments would do nothing — and a segmented control where most segments are
- * dead is worse than none. Picking a day upstairs moves the week down here,
- * which is one control doing one job instead of two competing for it.
+ * **The toolbar moves the page's selection, not a copy of it.** The arrows call
+ * `onSelect`, which is the same state the calendar above is bound to — so
+ * stepping a week here moves the month up there, and clicking a day up there
+ * moves the grid down here. Two controls, one answer to "which day".
+ *
+ * The reference's switcher offers Today/Week/Month/Year; this one offers the
+ * two views that exist. A segment that does nothing is worse than a segment
+ * that is missing, and Month is already the calendar.
  *
  * The now-line is `accent`, not the reference's red. Red is the usual
  * convention for it, but in this app `danger` means something — a cancelled
@@ -41,10 +51,20 @@ const DAYS_SHOWN = 5
  * in the product spends that meaning on a clock. Accent is what this palette
  * says "look here" with.
  */
-export default function WeekTimetable({ selected }) {
+export default function Timetable({ selected, onSelect }) {
   const t = useT()
-  const days = weekDays(selected).slice(0, DAYS_SHOWN)
-  const labels = weekdayLabels()
+  const [view, setView] = useState('week')
+
+  const step = VIEWS.find((item) => item.id === view)?.step ?? 'week'
+  const days =
+    view === 'day' ? [selected] : weekDays(selected).slice(0, WORK_DAYS)
+  // `weekdayLabels()` is Monday-first, so a week view can index it directly.
+  // A single day has to be looked up by its own weekday instead, and
+  // `getDay()` is Sunday-first — hence the shift.
+  const labels =
+    view === 'day'
+      ? [weekdayLabels()[(selected.getDay() + 6) % 7]]
+      : weekdayLabels()
   const hours = Array.from(
     { length: END_HOUR - START_HOUR },
     (_, index) => START_HOUR + index
@@ -63,11 +83,59 @@ export default function WeekTimetable({ selected }) {
     // thing lying on the page; square and edge to edge makes it part of the
     // shell, and its top rule reads as the rail's own line turning the corner.
     <section className="border-y border-line">
-      <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
-        <h2 className="font-display text-[15px] font-semibold text-ink">
-          {t('appointments.week')}
+      {/* No rule under it. The day names below carry their own, and two lines
+          twelve pixels apart read as a mistake — the title needs air, not a
+          box. */}
+      <header className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <h2 className="font-display text-[22px] font-bold tracking-[-0.02em] text-ink">
+          {t('nav.appointments')}
         </h2>
-        <span className="text-[13px] text-muted">{weekRange(days)}</span>
+
+        {/* Arrows and views travel together against the right edge: both answer
+            "which days am I looking at", and splitting them across the bar
+            would put one of them next to a heading it has nothing to do
+            with. */}
+        <div className="flex items-center gap-2">
+          <StepButton
+            label={t('appointments.prev')}
+            icon={ArrowLeft01Icon}
+            onClick={() => onSelect?.(shiftDate(selected, step, -1))}
+          />
+          <StepButton
+            label={t('appointments.next')}
+            icon={ArrowRight01Icon}
+            onClick={() => onSelect?.(shiftDate(selected, step, 1))}
+          />
+
+          {/* The active segment takes the accent fill the calendar's selected
+              day takes, so "this one" looks the same wherever the app says it.
+              The track is an ink tint rather than `ground`, which on the dark
+              theme is the same black as everything behind it. */}
+          <div
+            role="group"
+            className="flex items-center gap-0.5 rounded-full bg-ink/6 p-0.5"
+          >
+            {VIEWS.map((item) => {
+              const isActive = item.id === view
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setView(item.id)}
+                  aria-pressed={isActive}
+                  className={`rounded-full px-3 py-1 text-[13px] font-medium outline-none transition-colors ${
+                    isActive
+                      ? 'bg-accent text-surface'
+                      : 'text-muted hover:text-ink focus-visible:text-ink'
+                  }`}
+                >
+                  {t(item.labelKey)}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </header>
 
       {/* The scroll lives here and not on the page: thirteen hours is 728px of
@@ -78,9 +146,14 @@ export default function WeekTimetable({ selected }) {
             wide enough to hold a booking on a narrow window — below it the
             grid scrolls sideways instead of squeezing five days into nothing. */}
         <div
-          className="grid min-w-[640px]"
+          className="grid"
           style={{
-            gridTemplateColumns: `56px repeat(${DAYS_SHOWN}, minmax(0, 1fr))`,
+            gridTemplateColumns: `56px repeat(${days.length}, minmax(0, 1fr))`,
+            // Wide enough that a column can hold a booking; below it the grid
+            // scrolls sideways rather than squeezing five days into nothing. A
+            // single day needs no floor — one column of whatever is left is
+            // always wider than one of five.
+            minWidth: days.length > 1 ? 56 + days.length * 120 : undefined,
           }}
         >
           {/* Column headings. Sticky, because scrolling to the evening with no
@@ -151,10 +224,10 @@ export default function WeekTimetable({ selected }) {
           {showNow && (
             <div
               className="pointer-events-none relative row-start-2 h-0"
-              // Spans the gutter and every day column — `DAYS_SHOWN + 2` because
-              // grid lines are counted, not tracks: five days plus the gutter is
-              // six columns and therefore seven lines.
-              style={{ top: nowOffset, gridColumn: `1 / ${DAYS_SHOWN + 2}` }}
+              // Spans the gutter and every day column — `+ 2` because grid
+              // lines are counted, not tracks: five days plus the gutter is six
+              // columns and therefore seven lines.
+              style={{ top: nowOffset, gridColumn: `1 / ${days.length + 2}` }}
             >
               <div className="ml-14 h-px bg-accent" />
               <span className="absolute top-0 left-0 -translate-y-1/2 rounded bg-accent px-1 py-px font-display text-[10px] font-semibold text-surface">
@@ -166,22 +239,6 @@ export default function WeekTimetable({ selected }) {
       </div>
     </section>
   )
-}
-
-/** "18 — 22 августа" — the span the grid is showing, in the interface language. */
-function weekRange(days) {
-  const locale = getLocale()
-  const first = days[0]
-  const last = days[days.length - 1]
-  const sameMonth = first.getMonth() === last.getMonth()
-
-  const day = (date) => date.toLocaleDateString(locale, { day: 'numeric' })
-  const dayMonth = (date) =>
-    date.toLocaleDateString(locale, { day: 'numeric', month: 'long' })
-
-  return sameMonth
-    ? `${day(first)} — ${dayMonth(last)}`
-    : `${dayMonth(first)} — ${dayMonth(last)}`
 }
 
 /**
@@ -212,4 +269,25 @@ function useNow() {
   }, [])
 
   return now
+}
+
+/** One of the two step arrows, the same object the calendar's month arrows are
+ *  so the two toolbars read as one family. */
+function StepButton({ label, icon, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-ink/12 text-ink outline-none transition-colors hover:bg-ink/20 focus-visible:bg-ink/20"
+    >
+      <HugeiconsIcon
+        icon={icon}
+        size={15}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2.2}
+      />
+    </button>
+  )
 }

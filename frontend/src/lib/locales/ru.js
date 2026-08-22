@@ -14,7 +14,10 @@ export default {
   'nav.notifications': 'Уведомления',
   'nav.wallet': 'Кошелёк',
 
-  'appointments.week': 'Неделя',
+  'appointments.viewDay': 'День',
+  'appointments.viewWeek': '5 дней',
+  'appointments.prev': 'Назад',
+  'appointments.next': 'Вперёд',
 
   'calendar.prevMonth': 'Предыдущий месяц',
   'calendar.nextMonth': 'Следующий месяц',

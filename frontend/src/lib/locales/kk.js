@@ -8,7 +8,10 @@ export default {
   'nav.notifications': 'Хабарламалар',
   'nav.wallet': 'Әмиян',
 
-  'appointments.week': 'Апта',
+  'appointments.viewDay': 'Күн',
+  'appointments.viewWeek': '5 күн',
+  'appointments.prev': 'Артқа',
+  'appointments.next': 'Алға',
 
   'calendar.prevMonth': 'Алдыңғы ай',
   'calendar.nextMonth': 'Келесі ай',

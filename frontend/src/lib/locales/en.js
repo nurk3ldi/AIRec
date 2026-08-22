@@ -8,7 +8,10 @@ export default {
   'nav.notifications': 'Notifications',
   'nav.wallet': 'Wallet',
 
-  'appointments.week': 'Week',
+  'appointments.viewDay': 'Day',
+  'appointments.viewWeek': '5 days',
+  'appointments.prev': 'Back',
+  'appointments.next': 'Forward',
 
   'calendar.prevMonth': 'Previous month',
   'calendar.nextMonth': 'Next month',
