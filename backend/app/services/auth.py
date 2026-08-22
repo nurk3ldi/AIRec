@@ -698,7 +698,8 @@ def _account_deleted_error(user: User) -> AccountDeleted:
     if due is None:
         return AccountDeleted()
     return AccountDeleted(
-        f"Аккаунт удалён. Восстановить можно до {due.strftime('%d.%m.%Y')}."
+        "Аккаунт удалён. Восстановить можно до {date}.",
+        date=due.strftime("%d.%m.%Y"),
     )
 
 

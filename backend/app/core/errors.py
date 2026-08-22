@@ -14,10 +14,16 @@ class AppError(Exception):
     code: str = "app_error"
     message: str = "Не удалось обработать запрос."
 
-    def __init__(self, message: str | None = None) -> None:
+    def __init__(self, message: str | None = None, **params: object) -> None:
         super().__init__(message or self.message)
         if message:
             self.message = message
+        # `message` is a Russian `str.format` template and `params` are what
+        # fills it. They stay apart until the response is rendered, because by
+        # then the request's language is known and the same values have to go
+        # into whichever wording won — an f-string here would bake the Russian
+        # in and leave nothing to translate. See `app/core/i18n.py`.
+        self.params = params
 
 
 class EmailAlreadyRegistered(AppError):

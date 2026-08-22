@@ -63,6 +63,12 @@ No test suite yet.
 
 All routes are under `/api/v1`. Interactive docs at `/docs`.
 
+**Every route honours `Accept-Language`** (`ru` / `kk` / `en`, Russian by
+default and whenever the header names nothing we speak). It only affects error
+messages — both the top-level `{"error": {"code", "message"}}` and each entry in
+a 422 `fields` array. Codes never change, so a client may safely key off those
+instead. Emails are still Russian only; see `app/core/i18n.py`.
+
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `POST` | `/auth/register` | Create an account, returns user + token pair (201) |

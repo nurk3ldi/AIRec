@@ -73,7 +73,7 @@ async def save_image(store: ImageStore, raw: bytes) -> str:
         raise InvalidImage("Загруженный файл пуст.")
     if len(raw) > settings.image_max_bytes:
         megabytes = settings.image_max_bytes // (1024 * 1024)
-        raise InvalidImage(f"Изображение должно быть меньше {megabytes} МБ.")
+        raise InvalidImage("Изображение должно быть меньше {size} МБ.", size=megabytes)
     return await to_thread.run_sync(_process_and_save_sync, store, raw)
 
 

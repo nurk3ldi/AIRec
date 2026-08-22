@@ -16,6 +16,7 @@ from sqlalchemy import text
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.errors import AppError
+from app.core.i18n import negotiate, translate
 from app.db.session import engine
 
 logger = logging.getLogger(__name__)
@@ -98,8 +99,18 @@ def _error_body(code: str, message: str, **extra: object) -> dict[str, object]:
     return {"error": {"code": code, "message": message, **extra}}
 
 
+def _language(request: Request) -> str:
+    """The language to answer this request in.
+
+    Read per request rather than held anywhere: the API is stateless and two
+    callers of the same account can be reading different languages — the owner
+    on their laptop and the assistant's own calls, later on.
+    """
+    return negotiate(request.headers.get("accept-language"))
+
+
 @app.exception_handler(AppError)
-async def handle_app_error(_: Request, exc: AppError) -> JSONResponse:
+async def handle_app_error(request: Request, exc: AppError) -> JSONResponse:
     headers = (
         {"WWW-Authenticate": "Bearer"}
         if exc.status_code == HTTPStatus.UNAUTHORIZED
@@ -107,7 +118,9 @@ async def handle_app_error(_: Request, exc: AppError) -> JSONResponse:
     )
     return JSONResponse(
         status_code=exc.status_code,
-        content=_error_body(exc.code, exc.message),
+        content=_error_body(
+            exc.code, translate(exc.message, _language(request), **exc.params)
+        ),
         headers=headers,
     )
 
@@ -127,37 +140,40 @@ _PYDANTIC_MESSAGES_RU = {
 _EMAIL_ERROR_PREFIX = "value is not a valid email address"
 
 
-def _field_message(err: dict[str, object]) -> str:
+def _field_message(err: dict[str, object], language: str) -> str:
     message = str(err["msg"])
     error_type = str(err["type"])
 
     # EmailStr reports through "value_error" like our own validators do, so it
     # has to be matched on text rather than type.
     if message.startswith(_EMAIL_ERROR_PREFIX):
-        return "Некорректный email."
+        return translate("Некорректный email.", language)
 
     # A `raise ValueError(...)` inside a field_validator comes back as a
     # "value_error" with that prefix glued on — strip it so custom messages
     # (e.g. the password charset rule) read the way they were written.
     if error_type == "value_error" and message.startswith(_PYDANTIC_VALUE_ERROR_PREFIX):
-        return message[len(_PYDANTIC_VALUE_ERROR_PREFIX) :]
+        # Our own validators raise Russian prose, which is exactly what the
+        # catalogue is keyed by — so the same lookup covers them.
+        return translate(message[len(_PYDANTIC_VALUE_ERROR_PREFIX) :], language)
 
-    return _PYDANTIC_MESSAGES_RU.get(error_type, message)
+    return translate(_PYDANTIC_MESSAGES_RU.get(error_type, message), language)
 
 
 @app.exception_handler(RequestValidationError)
 async def handle_validation_error(
-    _: Request, exc: RequestValidationError
+    request: Request, exc: RequestValidationError
 ) -> JSONResponse:
+    language = _language(request)
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content=_error_body(
             "validation_error",
-            "Некоторые поля заполнены неверно.",
+            translate("Некоторые поля заполнены неверно.", language),
             fields=[
                 {
                     "field": ".".join(str(part) for part in err["loc"][1:]),
-                    "message": _field_message(err),
+                    "message": _field_message(err, language),
                 }
                 for err in exc.errors()
             ],
@@ -166,12 +182,15 @@ async def handle_validation_error(
 
 
 @app.exception_handler(Exception)
-async def handle_unexpected_error(_: Request, exc: Exception) -> JSONResponse:
+async def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
     # Log the detail, return none of it — internals must not leak to clients.
     logger.exception("Unhandled error", exc_info=exc)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content=_error_body("internal_error", "Что-то пошло не так."),
+        content=_error_body(
+            "internal_error",
+            translate("Что-то пошло не так.", _language(request)),
+        ),
     )
 
 

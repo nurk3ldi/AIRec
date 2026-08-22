@@ -1,4 +1,4 @@
-import { translate } from './i18n'
+import { getLanguage, translate } from './i18n'
 
 /**
  * Where the backend is.
@@ -57,6 +57,11 @@ async function request(path, { method = 'GET', body, formData, accessToken } = {
         // Never set Content-Type for FormData — the browser has to add its own
         // multipart boundary, and setting it by hand breaks the upload.
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        // The backend words its own errors, so it has to be told which language
+        // to word them in — otherwise a reader on Kazakh or English gets the
+        // whole UI translated and every failure in Russian. Read at call time,
+        // not at import: the language can change while the tab is open.
+        'Accept-Language': getLanguage(),
       },
       body: formData ?? (body ? JSON.stringify(body) : undefined),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
