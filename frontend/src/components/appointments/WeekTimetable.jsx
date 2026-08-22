@@ -11,6 +11,15 @@ const START_HOUR = 8
 const END_HOUR = 21
 const ROW_HEIGHT = 56
 
+// Monday to Friday. The week helper hands back seven and this takes the front
+// of it, so Saturday and Sunday are dropped rather than reordered — `weekDays`
+// is Monday-first for the same reason the backend's `weekday` is, and slicing
+// the tail off keeps both agreeing about which day is which.
+//
+// One number, because it is the only thing that decides the shape: the grid's
+// column count, the now-line's span and the range label all read it.
+const DAYS_SHOWN = 5
+
 /**
  * The week the selected day falls in, as a timetable.
  *
@@ -34,7 +43,7 @@ const ROW_HEIGHT = 56
  */
 export default function WeekTimetable({ selected }) {
   const t = useT()
-  const days = weekDays(selected)
+  const days = weekDays(selected).slice(0, DAYS_SHOWN)
   const labels = weekdayLabels()
   const hours = Array.from(
     { length: END_HOUR - START_HOUR },
@@ -66,7 +75,15 @@ export default function WeekTimetable({ selected }) {
           grid, and a page that scrolls the whole screen to reach 19:00 takes
           the calendar and the cards with it. */}
       <div className="max-h-[560px] overflow-y-auto">
-        <div className="grid min-w-[720px] grid-cols-[56px_repeat(7,minmax(0,1fr))]">
+        {/* The gutter plus one column per day. `min-w` is what keeps a column
+            wide enough to hold a booking on a narrow window — below it the
+            grid scrolls sideways instead of squeezing five days into nothing. */}
+        <div
+          className="grid min-w-[640px]"
+          style={{
+            gridTemplateColumns: `56px repeat(${DAYS_SHOWN}, minmax(0, 1fr))`,
+          }}
+        >
           {/* Column headings. Sticky, because scrolling to the evening with no
               idea which column is Thursday is scrolling blind. */}
           <div className="sticky top-0 z-20 border-b border-line bg-ground" />
@@ -134,8 +151,11 @@ export default function WeekTimetable({ selected }) {
               said by the bold heading above it. */}
           {showNow && (
             <div
-              className="pointer-events-none relative col-start-1 col-end-9 row-start-2 h-0"
-              style={{ top: nowOffset }}
+              className="pointer-events-none relative row-start-2 h-0"
+              // Spans the gutter and every day column — `DAYS_SHOWN + 2` because
+              // grid lines are counted, not tracks: five days plus the gutter is
+              // six columns and therefore seven lines.
+              style={{ top: nowOffset, gridColumn: `1 / ${DAYS_SHOWN + 2}` }}
             >
               <div className="ml-14 h-px bg-accent" />
               <span className="absolute top-0 left-0 -translate-y-1/2 rounded bg-accent px-1 py-px font-display text-[10px] font-semibold text-surface">
@@ -149,11 +169,11 @@ export default function WeekTimetable({ selected }) {
   )
 }
 
-/** "18 — 24 августа" — the span the grid is showing, in the interface language. */
+/** "18 — 22 августа" — the span the grid is showing, in the interface language. */
 function weekRange(days) {
   const locale = getLocale()
   const first = days[0]
-  const last = days[6]
+  const last = days[days.length - 1]
   const sameMonth = first.getMonth() === last.getMonth()
 
   const day = (date) => date.toLocaleDateString(locale, { day: 'numeric' })
