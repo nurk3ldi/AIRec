@@ -19,6 +19,7 @@ import {
   weekdayLabels,
 } from '../../lib/dates'
 import { closedRanges } from '../../lib/schedule'
+import BookingPopover from './BookingPopover'
 import { useT } from '../../lib/i18n'
 
 // The window of the day the grid draws. A guess for now, and an honest one:
@@ -93,7 +94,9 @@ export default function Timetable({
   onSelect,
   week,
   bookings,
-  onCreate,
+  services,
+  timeZone,
+  onCreated,
 }) {
   const t = useT()
   const [view, setView] = useState('week')
@@ -110,7 +113,7 @@ export default function Timetable({
       : weekdayLabels()
   const hours = Array.from(
     { length: END_HOUR - START_HOUR },
-    (_, index) => START_HOUR + index
+    (_, index) => START_HOUR + index,
   )
 
   /**
@@ -149,7 +152,9 @@ export default function Timetable({
   const bookingsFor = (day) => {
     const key = dayKey(day)
     const sorted = (bookings ?? []).filter((b) => b.day === key).sort(byStart)
-    const colors = new Map(sorted.map((b, index) => [b.id, bookingColor(index)]))
+    const colors = new Map(
+      sorted.map((b, index) => [b.id, bookingColor(index)]),
+    )
     return layoutDay(sorted).map((block) => ({
       ...block,
       color: colors.get(block.id),
@@ -276,21 +281,33 @@ export default function Timetable({
               Below `sm` the glyph carries it alone — three words in a bar that
               also holds a heading, two arrows and a two-way switch is a bar
               that wraps. */}
-          <button
-            type="button"
-            onClick={onCreate}
-            aria-label={t('appointments.create')}
-            className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-surface-chip pr-4 pl-3 text-[14px] font-medium text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85 max-sm:w-8 max-sm:justify-center max-sm:px-0"
+          {/* The panel is anchored to this button and rendered from here for
+              that reason: Radix positions and traps focus against the element
+              that opened it, so the trigger and its popover cannot live in
+              different components. The day it writes for is `selected` — the
+              same state the calendar and these arrows share. */}
+          <BookingPopover
+            day={selected}
+            onDayChange={onSelect}
+            services={services}
+            timeZone={timeZone}
+            onCreated={onCreated}
           >
-            <HugeiconsIcon
-              icon={Add01Icon}
-              size={17}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2.2}
-            />
-            <span className="max-sm:sr-only">{t('appointments.create')}</span>
-          </button>
+            <button
+              type="button"
+              aria-label={t('appointments.create')}
+              className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-surface-chip pr-4 pl-3 text-[14px] font-medium text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85 max-sm:w-8 max-sm:justify-center max-sm:px-0"
+            >
+              <HugeiconsIcon
+                icon={Add01Icon}
+                size={17}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2.2}
+              />
+              <span className="max-sm:sr-only">{t('appointments.create')}</span>
+            </button>
+          </BookingPopover>
         </div>
       </header>
 

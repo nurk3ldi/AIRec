@@ -265,19 +265,16 @@ a {
   background: var(--ink);
 }
 
-/* The two the booking dialog enters on. Radix mounts and unmounts its content,
-   so the arrival has to be an animation rather than a transition — there is no
-   previous value to transition from. `dialog-in` carries the centring transform
-   through, or the panel would snap to the corner for the length of it. */
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-}
+/* The booking panel's arrival. Radix mounts and unmounts its content, so this
+   has to be an animation rather than a transition — there is no previous value
+   to transition from.
 
-@keyframes dialog-in {
+   It scales from `--radix-popover-content-transform-origin`, the corner Radix
+   works out from where the panel actually landed, so it grows out of the button
+   that opened it whichever side it had room on. */
+@keyframes popover-in {
   from {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.97);
+    transform: scale(0.96);
   }
 }

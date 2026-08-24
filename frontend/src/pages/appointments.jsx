@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import MonthCalendar from '../components/appointments/MonthCalendar'
 import Timetable from '../components/appointments/Timetable'
-import BookingDialog from '../components/appointments/BookingDialog'
 import {
   getBusiness,
   getServices,
@@ -75,7 +74,6 @@ export default function AppointmentsPage() {
   /* --- the bookings themselves --------------------------------------- */
 
   const [bookings, setBookings] = useState([])
-  const [creating, setCreating] = useState(false)
   // Bumped after a save. A counter rather than a boolean, because two bookings
   // made in a row have to be two reloads and `true → true` is no change at all.
   const [reload, setReload] = useState(0)
@@ -174,7 +172,9 @@ export default function AppointmentsPage() {
           onSelect={setSelected}
           week={week}
           bookings={bookings}
-          onCreate={() => setCreating(true)}
+          services={services}
+          timeZone={timeZone}
+          onCreated={() => setReload((n) => n + 1)}
         />
       </div>
 
@@ -211,19 +211,6 @@ export default function AppointmentsPage() {
       <aside className="min-h-[300px] w-full shrink-0 border-t border-line p-4 xl:min-h-0 xl:w-[calc(300px+2rem)] xl:border-t-0 xl:border-l">
         <MonthCalendar value={selected} onChange={setSelected} />
       </aside>
-
-      {/* Rendered from the page rather than from the toolbar that opens it: the
-          booking it writes belongs to the day the page is on, and the reload it
-          triggers is the page's own. */}
-      <BookingDialog
-        open={creating}
-        onOpenChange={setCreating}
-        day={selected}
-        onDayChange={setSelected}
-        services={services}
-        timeZone={timeZone}
-        onCreated={() => setReload((n) => n + 1)}
-      />
     </div>
   )
 }

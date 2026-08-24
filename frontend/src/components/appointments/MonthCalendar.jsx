@@ -158,6 +158,23 @@ export default function MonthCalendar({ value, onChange }) {
               // `aria-current` is what tells a screen reader which cell is
               // today; the tint alone says it only to someone who can see it.
               aria-current={isToday ? 'date' : undefined}
+              // **Today is a grey chip, the day in play is the orange fill.**
+              // The grey is `surface-chip`, the token the toolbar's chosen
+              // segment and the add button already wear — the app's own way of
+              // saying "this one is marked", so today is marked in the same
+              // voice as everything else rather than in a colour of its own.
+              //
+              // It was `bg-ink/8` before, which is a grey one step off a black
+              // page and one step off a white one: visible if you were told it
+              // was there and invisible otherwise. `surface-chip` is a real
+              // value in both themes — `#2a2a2a` on the dark side, white on the
+              // light — so it does not depend on the ground it happens to fall
+              // on. The number goes semibold with it, which is what carries the
+              // mark for anyone who cannot separate two greys.
+              //
+              // On the common day, when today *is* the selection, the orange
+              // fill wins and nothing is lost: you are looking straight at it.
+              //
               // 36px tall and `rounded-[10px]`: the header's icon links and
               // the rail's nav items are exactly this square, so a day cell is
               // one of them rather than a shape of its own. 13px semibold in
@@ -182,7 +199,7 @@ export default function MonthCalendar({ value, onChange }) {
                 isSelected
                   ? 'bg-now text-white'
                   : isToday
-                    ? `bg-ink/8 hover:bg-ink/12 ${dim ? 'text-muted/80' : 'text-ink'}`
+                    ? 'bg-surface-chip font-semibold text-ink'
                     : dim
                       ? 'text-muted/80 hover:bg-ink/4'
                       : 'text-ink hover:bg-ink/6'

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import * as Dialog from '@radix-ui/react-dialog'
+import * as Popover from '@radix-ui/react-popover'
 import * as Select from '@radix-ui/react-select'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
@@ -20,7 +20,19 @@ import { useT } from '../../lib/i18n'
 import { FIELD, FIELD_ERROR } from '../controls'
 
 /**
- * Writing a booking down by hand.
+ * Writing a booking down by hand, in a panel hanging off the button that opens
+ * it.
+ *
+ * **A popover, not a centred modal.** The two are not interchangeable here: a
+ * modal dims the page and takes it away, which is the right shape for a form
+ * you went into on purpose and the wrong one for adding a booking, where the
+ * grid behind is the reason you know which day and hour you want. Anchored to
+ * the button, the calendar stays legible over your shoulder while you fill it
+ * in — the way every calendar app does this.
+ *
+ * It takes its trigger as `children`, so the button keeps living in the toolbar
+ * it belongs to and Radix gets the DOM relationship it needs to position and
+ * to trap focus.
  *
  * **The times come from the server, not from a picker.** `GET /appointments/slots`
  * has already applied opening hours, the break, everything else booked that day
@@ -49,9 +61,8 @@ import { FIELD, FIELD_ERROR } from '../controls'
  * beside this and is the control for choosing one; a second date picker inside
  * the dialog would be a second answer to a question already answered.
  */
-export default function BookingDialog({
-  open,
-  onOpenChange,
+export default function BookingPopover({
+  children,
   day,
   onDayChange,
   services,
@@ -59,6 +70,10 @@ export default function BookingDialog({
   onCreated,
 }) {
   const t = useT()
+  // The popover owns whether it is open: it is the button's own panel, and a
+  // page that had to hold a boolean for it would be a page that knows about a
+  // control two components down.
+  const [open, setOpen] = useState(false)
 
   const [date, setDate] = useState('')
   const [serviceId, setServiceId] = useState('')
@@ -162,7 +177,7 @@ export default function BookingDialog({
         note: note.trim() || null,
       })
       onCreated?.()
-      onOpenChange(false)
+      setOpen(false)
     } catch (err) {
       // The backend words its own errors, in the caller's language — showing
       // its message is more use than a generic one written here.
@@ -194,10 +209,25 @@ export default function BookingDialog({
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[60] bg-scrim data-[state=open]:animate-[fade-in_200ms_ease-out]" />
-        <Dialog.Content
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>{children}</Popover.Trigger>
+
+      <Popover.Portal>
+        {/* No scrim. The page behind stays readable *and* usable — that is the
+            difference between this and the modal it replaced, and dimming it
+            would take back the only reason to anchor the panel at all. */}
+        <Popover.Content
+          // Hangs under the button and lines its right edge up with it, so the
+          // panel grows back across the toolbar it came from rather than off
+          // the side of the window. Radix flips it above if there is no room
+          // below, which on a short screen there will not be.
+          align="end"
+          sideOffset={8}
+          collisionPadding={12}
+          // The panel has a heading but no `Dialog.Title` to point at any
+          // more — a popover has no required label of its own, so it is named
+          // here for anyone arriving by screen reader.
+          aria-label={t('appointments.newTitle')}
           // The time list is a Radix Select rendered into a portal, so Escape
           // is the one dismissal it does not already handle by nesting: without
           // this guard a single press would close the list *and* the dialog
@@ -207,13 +237,13 @@ export default function BookingDialog({
               event.preventDefault()
             }
           }}
-          className="fixed top-1/2 left-1/2 z-[60] flex max-h-[min(560px,calc(100vh-3rem))] w-[calc(100vw-2rem)] max-w-[400px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-line bg-surface outline-none data-[state=open]:animate-[dialog-in_240ms_cubic-bezier(0.32,0.72,0,1)]"
+          className="z-[60] flex origin-[var(--radix-popover-content-transform-origin)] max-h-[min(560px,var(--radix-popover-content-available-height))] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none data-[state=open]:animate-[popover-in_180ms_cubic-bezier(0.32,0.72,0,1)]"
         >
           <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-3">
-            <Dialog.Title className="font-display text-[19px] font-semibold tracking-[-0.02em] text-ink">
+            <p className="font-display text-[17px] font-semibold tracking-[-0.02em] text-ink">
               {t('appointments.newTitle')}
-            </Dialog.Title>
-            <Dialog.Close asChild>
+            </p>
+            <Popover.Close asChild>
               <button
                 type="button"
                 aria-label={t('appointments.close')}
@@ -221,7 +251,7 @@ export default function BookingDialog({
               >
                 <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
               </button>
-            </Dialog.Close>
+            </Popover.Close>
           </div>
 
           <form
@@ -453,14 +483,14 @@ export default function BookingDialog({
                 40: this dialog sits over a toolbar of 32px controls, not on a
                 page of its own. */}
             <div className="mt-1 flex shrink-0 justify-end gap-2">
-              <Dialog.Close asChild>
+              <Popover.Close asChild>
                 <button
                   type="button"
                   className="h-9 rounded-full px-4 text-[14px] font-medium text-muted outline-none transition-colors hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6"
                 >
                   {t('appointments.cancel')}
                 </button>
-              </Dialog.Close>
+              </Popover.Close>
               <button
                 type="submit"
                 disabled={saving}
@@ -470,9 +500,9 @@ export default function BookingDialog({
               </button>
             </div>
           </form>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   )
 }
 
