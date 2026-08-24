@@ -7,13 +7,14 @@ import {
   Cancel01Icon,
   Tick02Icon,
 } from '@hugeicons/core-free-icons'
-import { createAppointment, getSlots } from '../../lib/api'
+import { createAppointment } from '../../lib/api'
 import { getAccessToken } from '../../lib/auth'
 import {
-  clockOf,
-  endClock,
   formatDuration,
   formatPrice,
+  fromMinutes,
+  instantAt,
+  parseClock,
 } from '../../lib/appointments'
 import { dayKey } from '../../lib/dates'
 import { useT } from '../../lib/i18n'
@@ -34,20 +35,22 @@ import { FIELD, FIELD_ERROR } from '../controls'
  * it belongs to and Radix gets the DOM relationship it needs to position and
  * to trap focus.
  *
- * **The times come from the server, not from a picker.** `GET /appointments/slots`
- * has already applied opening hours, the break, everything else booked that day
- * and the business's capacity, so the only start times this offers are ones
- * `POST /appointments` will actually accept. Building a clock face here would
- * mean writing those rules a second time and being wrong about them
- * separately — the panel would offer 13:00 through lunch and the server would
- * refuse it, which reads as a broken form rather than as a closed hour.
+ * **The time is chosen freely and the service only names the booking.** They
+ * were tied together at first: the service decided how long the booking was,
+ * and `GET /appointments/slots` returned the exact starts that length still
+ * fitted into. That is the right pairing for a client picking a time out of
+ * what is left. It is the wrong one for the owner, who is writing down
+ * something already agreed — often something that already happened — and needs
+ * the hour it actually is, not the nearest one the calendar approves of.
  *
- * It asks for the slots **without a `source`**, which the endpoint reads as
- * `manual` — the same default `POST` takes. That pair has to stay in step: with
- * `manual` the whole day is offered, this morning included, because the owner
- * writing down someone who walked in twenty minutes ago is recording something
- * that already happened. A picker that hid those times while the endpoint
- * accepted them would be a picker that lies.
+ * So the picker offers every quarter hour of the day and the service is a
+ * label with a length attached: the label is what the booking is called, the
+ * length is what fills in the end time beside it.
+ *
+ * The server has not stopped checking. Opening hours are enforced whatever the
+ * source, and so is capacity — a booking outside the working day, or into a
+ * full hour, comes back refused and the message lands under the form. What
+ * changed is that the panel no longer pre-empts that answer.
  *
  * **It is capped at 560px and scrolls inside itself.** Two of its blocks are
  * lists that grow with the business — a price list, and a quarter-hour grid
@@ -82,7 +85,6 @@ export default function BookingPopover({
   const [clientPhone, setClientPhone] = useState('')
   const [note, setNote] = useState('')
 
-  const [slots, setSlots] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [fields, setFields] = useState({})
@@ -106,7 +108,9 @@ export default function BookingPopover({
    */
   const endsAt =
     startsAt && service
-      ? endClock(startsAt, service.duration_minutes, timeZone)
+      ? fromMinutes(
+          (parseClock(startsAt) + service.duration_minutes) % (24 * 60),
+        )
       : ''
 
   // Opening is what resets the form: keeping the last booking's client in the
@@ -120,7 +124,6 @@ export default function BookingPopover({
     setClientName('')
     setClientPhone('')
     setNote('')
-    setSlots(null)
     setError('')
     setFields({})
     // `open` alone: this is "the dialog was opened", not "the services
@@ -131,30 +134,28 @@ export default function BookingPopover({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
-  // Slots depend on both the service (its length decides what fits) and the
-  // day, so the answer is re-asked whenever either moves.
-  useEffect(() => {
-    if (!open || !serviceId || !date) return
-
-    let alive = true
-    setSlots(null)
-    setStartsAt('')
-
-    getSlots(getAccessToken(), { serviceId, day: date })
-      .then((data) => {
-        if (alive) setSlots(data.slots ?? [])
-      })
-      .catch(() => {
-        // An empty list and a failed request look the same on screen, and the
-        // difference is not one the owner can act on: either way there is
-        // nothing to pick and Save will say why.
-        if (alive) setSlots([])
-      })
-
-    return () => {
-      alive = false
-    }
-  }, [open, serviceId, date])
+  /**
+   * Every quarter hour of the day, offered whole.
+   *
+   * **The picker used to list only what `GET /appointments/slots` returned** —
+   * the times the service still fitted into, with opening hours, the break and
+   * everything already booked taken out. That is the right list for a client
+   * choosing a time. It is the wrong one for the owner writing a booking down,
+   * who is recording something that has already been agreed and sometimes
+   * already happened, and who needs to be able to put it at the hour it
+   * actually is rather than at the nearest hour the calendar approves of.
+   *
+   * A quarter hour because `SLOT_MINUTES` is 15 on the server and every time in
+   * this product sits on that grid; a list that offered 14:07 would be offering
+   * a value the schema rejects.
+   *
+   * The server still has the last word on where a booking may go — opening
+   * hours are checked whatever the source, and so is capacity. What changed is
+   * that this stopped pre-empting that check and now lets it answer.
+   */
+  const times = Array.from({ length: (24 * 60) / 15 }, (_, i) =>
+    fromMinutes(i * 15),
+  )
 
   const submit = async (event) => {
     event.preventDefault()
@@ -173,7 +174,7 @@ export default function BookingPopover({
         service_id: serviceId,
         client_name: clientName.trim(),
         client_phone: clientPhone.trim() || null,
-        starts_at: startsAt,
+        starts_at: instantAt(date, startsAt, timeZone),
         note: note.trim() || null,
       })
       onCreated?.()
@@ -217,13 +218,25 @@ export default function BookingPopover({
             difference between this and the modal it replaced, and dimming it
             would take back the only reason to anchor the panel at all. */}
         <Popover.Content
-          // Hangs under the button and lines its right edge up with it, so the
-          // panel grows back across the toolbar it came from rather than off
-          // the side of the window. Radix flips it above if there is no room
-          // below, which on a short screen there will not be.
-          align="end"
-          sideOffset={8}
-          collisionPadding={12}
+          // **Beside the button, not under it.** Under it there is only the
+          // distance from the toolbar down to the bottom of the window, and a
+          // form of seven fields does not fit in that — the panel arrived
+          // capped, with a scrollbar down its own side. To the left it has the
+          // whole height of the page and opens at its natural size.
+          //
+          // `align="center"` hangs it level with the button; Radix slides it
+          // along that edge if either end would fall off the screen, and only
+          // flips it to the other side if the left has no room at all.
+          side="left"
+          align="center"
+          sideOffset={10}
+          // **80px of it at the top: the 68px header plus the usual 12.** The
+          // panel is `z-[60]` and the header `z-40`, so nothing stops it
+          // painting straight over the page title — it has to be told where the
+          // page really begins. Radix takes this as the edge of the space it
+          // may use, so it bounds `--radix-popover-content-available-height`
+          // too: the panel shortens rather than sliding under the bar.
+          collisionPadding={{ top: 80, right: 12, bottom: 12, left: 12 }}
           // The panel has a heading but no `Dialog.Title` to point at any
           // more — a popover has no required label of its own, so it is named
           // here for anyone arriving by screen reader.
@@ -237,7 +250,7 @@ export default function BookingPopover({
               event.preventDefault()
             }
           }}
-          className="z-[60] flex origin-[var(--radix-popover-content-transform-origin)] max-h-[min(560px,var(--radix-popover-content-available-height))] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none data-[state=open]:animate-[popover-in_180ms_cubic-bezier(0.32,0.72,0,1)]"
+          className="z-[60] flex origin-[var(--radix-popover-content-transform-origin)] max-h-[var(--radix-popover-content-available-height)] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none data-[state=open]:animate-[popover-in_180ms_cubic-bezier(0.32,0.72,0,1)]"
         >
           <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-3">
             <p className="font-display text-[17px] font-semibold tracking-[-0.02em] text-ink">
@@ -327,112 +340,80 @@ export default function BookingPopover({
             </Group>
 
             <Group label={t('appointments.time')} error={fields.time}>
-              {!serviceId ? (
-                <p className="text-[13px] text-muted">
-                  {t('appointments.pickServiceFirst')}
-                </p>
-              ) : slots === null ? (
-                <p className="text-[13px] text-muted">
-                  {t('appointments.loadingSlots')}
-                </p>
-              ) : slots.length === 0 ? (
-                <p className="text-[13px] text-muted">
-                  {t('appointments.noSlots')}
-                </p>
-              ) : (
-                // **A picker, not a wall of chips.** The chips were honest —
-                // every free time at once — but a day on a quarter-hour grid is
-                // dozens of them, and dozens of identical two-digit boxes is a
-                // block of noise in the middle of a short form. A picker says
-                // the same thing in one line and opens onto the same list.
-                //
-                // The options are still only what the server offered, which is
-                // the whole point of not using `<input type="time">`: a clock
-                // face would let someone pick an hour the business is shut and
-                // learn about it from a rejected save.
-                <div className="flex items-center gap-2">
-                  <Select.Root value={startsAt} onValueChange={setStartsAt}>
-                    <Select.Trigger
-                      aria-label={t('appointments.start')}
-                      className={`${FIELD} flex h-9 flex-1 items-center justify-between gap-2 text-[14px] outline-none`}
+              <div className="flex items-center gap-2">
+                <Select.Root value={startsAt} onValueChange={setStartsAt}>
+                  <Select.Trigger
+                    aria-label={t('appointments.start')}
+                    className={`${FIELD} flex h-9 flex-1 items-center justify-between gap-2 text-[14px] outline-none`}
+                  >
+                    <Select.Value
+                      // `--:--` rather than "Выберите время": the trigger is
+                      // half of a two-field row, and a three-word placeholder
+                      // wrapped onto two lines inside a 36px box. The group
+                      // above it already reads ВРЕМЯ.
+                      placeholder={<span className="text-muted">--:--</span>}
                     >
-                      <Select.Value
-                        placeholder={
-                          <span className="text-muted">
-                            {t('appointments.pickTime')}
-                          </span>
-                        }
-                      >
-                        {/* Guarded, and not defensively: JSX children are built
-                          before Radix decides whether to show them, so this
-                          runs on every render including the ones where nothing
-                          is chosen yet — and `clockOf('')` parses an invalid
-                          date and throws, which would take the dialog down the
-                          moment it opened. */}
-                        <span className="font-display font-medium">
-                          {startsAt ? clockOf(startsAt, timeZone) : ''}
-                        </span>
-                      </Select.Value>
-                      <Select.Icon asChild>
-                        <HugeiconsIcon
-                          icon={ArrowDown01Icon}
-                          size={16}
-                          strokeWidth={2}
-                          className="shrink-0 text-muted"
-                        />
-                      </Select.Icon>
-                    </Select.Trigger>
+                      <span className="font-display font-medium">
+                        {startsAt}
+                      </span>
+                    </Select.Value>
+                    <Select.Icon asChild>
+                      <HugeiconsIcon
+                        icon={ArrowDown01Icon}
+                        size={16}
+                        strokeWidth={2}
+                        className="shrink-0 text-muted"
+                      />
+                    </Select.Icon>
+                  </Select.Trigger>
 
-                    <Select.Portal>
-                      <Select.Content
-                        position="popper"
-                        sideOffset={6}
-                        // Above the dialog's own `z-[60]`, and tagged so one
-                        // Escape closes this list rather than the dialog too.
-                        data-nested-overlay
-                        className="z-[70] max-h-[240px] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)]"
-                      >
-                        <Select.Viewport>
-                          {slots.map((slot) => (
-                            <Select.Item
-                              key={slot}
-                              value={slot}
-                              className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 font-display text-[14px] text-ink outline-none select-none data-[highlighted]:bg-ink/6"
-                            >
-                              <Select.ItemText>
-                                {clockOf(slot, timeZone)}
-                              </Select.ItemText>
-                              <Select.ItemIndicator className="ml-auto text-ink">
-                                <HugeiconsIcon
-                                  icon={Tick02Icon}
-                                  size={15}
-                                  strokeWidth={2.4}
-                                />
-                              </Select.ItemIndicator>
-                            </Select.Item>
-                          ))}
-                        </Select.Viewport>
-                      </Select.Content>
-                    </Select.Portal>
-                  </Select.Root>
+                  <Select.Portal>
+                    <Select.Content
+                      position="popper"
+                      sideOffset={6}
+                      // Above the dialog's own `z-[60]`, and tagged so one
+                      // Escape closes this list rather than the dialog too.
+                      data-nested-overlay
+                      className="z-[70] max-h-[240px] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)]"
+                    >
+                      <Select.Viewport>
+                        {times.map((clock) => (
+                          <Select.Item
+                            key={clock}
+                            value={clock}
+                            className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 font-display text-[14px] text-ink outline-none select-none data-[highlighted]:bg-ink/6"
+                          >
+                            <Select.ItemText>{clock}</Select.ItemText>
+                            <Select.ItemIndicator className="ml-auto text-ink">
+                              <HugeiconsIcon
+                                icon={Tick02Icon}
+                                size={15}
+                                strokeWidth={2.4}
+                              />
+                            </Select.ItemIndicator>
+                          </Select.Item>
+                        ))}
+                      </Select.Viewport>
+                    </Select.Content>
+                  </Select.Portal>
+                </Select.Root>
 
-                  <span aria-hidden="true" className="shrink-0 text-muted">
-                    –
-                  </span>
+                <span aria-hidden="true" className="shrink-0 text-muted">
+                  –
+                </span>
 
-                  {/* Read-only, and looking it: the field ring is there so the
+                {/* Read-only, and looking it: the field ring is there so the
                       pair reads as one control, and the muted fill is what says
                       the second half is an answer rather than a question. A
                       disabled `<input>` would be the same picture with a
                       keyboard stop nobody needs. */}
-                  <output
-                    aria-label={t('appointments.end')}
-                    className="flex h-9 flex-1 items-center rounded-md bg-ink/[0.03] px-3 font-display text-[14px] font-medium text-muted shadow-[0_0_0_1px_var(--color-field)]"
-                  >
-                    {endsAt}
-                  </output>
-                </div>
-              )}
+                <output
+                  aria-label={t('appointments.end')}
+                  className="flex h-9 flex-1 items-center rounded-md bg-ink/[0.03] px-3 font-display text-[14px] font-medium text-muted shadow-[0_0_0_1px_var(--color-field)]"
+                >
+                  {endsAt}
+                </output>
+              </div>
             </Group>
 
             <Group

@@ -26,7 +26,6 @@ export default {
   'appointments.time': 'Время',
   'appointments.start': 'Начало',
   'appointments.end': 'Конец',
-  'appointments.pickTime': 'Выберите время',
   'appointments.clientName': 'Имя клиента',
   'appointments.clientPhone': 'Телефон',
   'appointments.note': 'Комментарий',
@@ -34,10 +33,7 @@ export default {
   'appointments.saving': 'Сохраняем…',
   'appointments.cancel': 'Отмена',
   'appointments.required': 'Заполните это поле',
-  'appointments.noSlots': 'На этот день свободного времени нет',
   'appointments.noServices': 'Сначала добавьте услуги на странице «Бизнес»',
-  'appointments.pickServiceFirst': 'Сначала выберите услугу',
-  'appointments.loadingSlots': 'Загружаем время…',
   'appointments.break': 'Перерыв',
   'appointments.dayOff': 'Выходной',
 

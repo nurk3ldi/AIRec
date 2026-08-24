@@ -20,7 +20,6 @@ export default {
   'appointments.time': 'Time',
   'appointments.start': 'Start',
   'appointments.end': 'End',
-  'appointments.pickTime': 'Pick a time',
   'appointments.clientName': 'Client name',
   'appointments.clientPhone': 'Phone',
   'appointments.note': 'Note',
@@ -28,10 +27,7 @@ export default {
   'appointments.saving': 'Saving…',
   'appointments.cancel': 'Cancel',
   'appointments.required': 'Fill in this field',
-  'appointments.noSlots': 'No free time on this day',
   'appointments.noServices': 'Add services on the Business page first',
-  'appointments.pickServiceFirst': 'Pick a service first',
-  'appointments.loadingSlots': 'Loading times…',
   'appointments.break': 'Break',
   'appointments.dayOff': 'Day off',
 

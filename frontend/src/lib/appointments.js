@@ -166,6 +166,58 @@ export const byStart = (a, b) => a.start - b.start || a.id.localeCompare(b.id)
 export const sameInstant = (a, b) =>
   Boolean(a) && Boolean(b) && new Date(a).getTime() === new Date(b).getTime()
 
+/**
+ * The instant at which a wall-clock time on a given day falls, in a named zone.
+ *
+ * The inverse of `partsIn`, and the harder direction: a browser can read any
+ * zone but can only *construct* dates in its own, so "14:30 in Asia/Almaty" has
+ * to be worked out rather than asked for. The method is to guess that the wall
+ * clock is UTC, ask what that instant looks like in the target zone, and shift
+ * by the difference — then do it once more, because the offset that applies is
+ * the one at the *answer*, not at the guess, and near a daylight-saving change
+ * those differ by an hour. Kazakhstan has no such change and one pass would do;
+ * the second costs nothing and makes this correct anywhere.
+ *
+ * `day` is `YYYY-MM-DD` and `clock` is `HH:MM` — the two shapes every caller
+ * here already holds. Returns an ISO string with a real offset on it, which is
+ * what the API needs: a naive datetime would be read against whatever clock the
+ * *server* keeps.
+ */
+export function instantAt(day, clock, timeZone) {
+  const [year, month, date] = day.split('-').map(Number)
+  const [hours, minutes] = clock.split(':').map(Number)
+  const guess = Date.UTC(year, month - 1, date, hours, minutes)
+
+  const offsetAt = (ms) => {
+    const at = Object.fromEntries(
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+      })
+        .formatToParts(new Date(ms))
+        .map((part) => [part.type, part.value])
+    )
+    const shown = Date.UTC(
+      Number(at.year),
+      Number(at.month) - 1,
+      Number(at.day),
+      Number(at.hour),
+      Number(at.minute),
+      Number(at.second)
+    )
+    return shown - ms
+  }
+
+  const first = guess - offsetAt(guess)
+  return new Date(guess - offsetAt(first)).toISOString()
+}
+
 /** "12:15", in the business's zone — the same zone `toBlock` reads. */
 export const clockOf = (iso, timeZone) => partsIn(iso, timeZone).clock
 

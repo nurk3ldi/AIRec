@@ -20,7 +20,6 @@ export default {
   'appointments.time': 'Уақыт',
   'appointments.start': 'Басталуы',
   'appointments.end': 'Аяқталуы',
-  'appointments.pickTime': 'Уақытты таңдаңыз',
   'appointments.clientName': 'Клиенттің аты',
   'appointments.clientPhone': 'Телефон',
   'appointments.note': 'Ескертпе',
@@ -28,10 +27,7 @@ export default {
   'appointments.saving': 'Сақталуда…',
   'appointments.cancel': 'Болдырмау',
   'appointments.required': 'Бұл өрісті толтырыңыз',
-  'appointments.noSlots': 'Бұл күні бос уақыт жоқ',
   'appointments.noServices': '«Бизнес» бетінде алдымен қызмет қосыңыз',
-  'appointments.pickServiceFirst': 'Алдымен қызметті таңдаңыз',
-  'appointments.loadingSlots': 'Уақыт жүктелуде…',
   'appointments.break': 'Үзіліс',
   'appointments.dayOff': 'Демалыс',
 
