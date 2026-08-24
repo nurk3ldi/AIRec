@@ -198,12 +198,18 @@ export default function Timetable({ selected, onSelect, week, onCreate }) {
             })}
           </div>
 
-          {/* **36px, the height of the arrows and of the segment track beside
-              it** — the row is one band and a control half a step off it reads
-              as misaligned rather than as smaller. What is kept short is the
-              word: «Добавить», not «Новая запись», because the object is
-              already named by the heading at the other end of this bar and a
-              button does not have to repeat the noun to say what it does.
+          {/* **32px, matching the filled pill beside it rather than the box
+              around it.** The track next door is 36px, but 2px of it is gutter
+              on each side and what you actually see is a 32px pill — so a 36px
+              button here sat a step taller than the only other filled shape in
+              the row, which is the comparison the eye makes. The circles on the
+              far side are 36 and stay so; a circle and a pill are not read
+              against each other the way two pills are.
+
+              What is kept short is the word: «Добавить», not «Новая запись»,
+              because the object is already named by the heading at the other
+              end of this bar and a button does not have to repeat the noun to
+              say what it does.
 
               The accent fill is the point of it: everything to its left changes
               *what you are looking at*, this is the one control that changes
@@ -216,7 +222,7 @@ export default function Timetable({ selected, onSelect, week, onCreate }) {
             type="button"
             onClick={onCreate}
             aria-label={t('appointments.create')}
-            className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-accent pr-4 pl-3 text-[14px] font-medium text-surface outline-none transition-opacity hover:opacity-90 focus-visible:opacity-90 max-sm:w-9 max-sm:justify-center max-sm:px-0"
+            className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-accent pr-4 pl-3 text-[14px] font-medium text-surface outline-none transition-opacity hover:opacity-90 focus-visible:opacity-90 max-sm:w-8 max-sm:justify-center max-sm:px-0"
           >
             <HugeiconsIcon
               icon={Add01Icon}
