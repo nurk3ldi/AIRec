@@ -85,12 +85,20 @@ export default function AppointmentsPage() {
           `p-4`, one value on every side, so the card reads as set into the
           corner of the panel rather than placed near it.
 
+          **Its width is the calendar's width plus that padding, written as the
+          sum rather than as the total it comes to.** The two have to agree —
+          any slack shows as the panel's rule standing off from the month by a
+          few pixels, which reads as a mistake rather than as a margin — and
+          written as `332px` they would agree only until one of them was next
+          edited. `2rem` is the `p-4` on both sides; 300px is the cap on
+          `MonthCalendar`, and that is the one number to change.
+
           Below `xl` it moves under the timetable at full width and the divider
           moves to its top edge. That is also where this layout is still
           unfinished: the page does not scroll, so on a narrow screen the
           calendar is below the fold rather than reachable. A small-screen
           layout is still to be designed — see the note on the page element. */}
-      <aside className="min-h-[300px] w-full shrink-0 border-t border-line p-4 xl:min-h-0 xl:w-[400px] xl:border-t-0 xl:border-l">
+      <aside className="min-h-[300px] w-full shrink-0 border-t border-line p-4 xl:min-h-0 xl:w-[calc(300px+2rem)] xl:border-t-0 xl:border-l">
         <MonthCalendar value={selected} onChange={setSelected} />
       </aside>
     </div>
