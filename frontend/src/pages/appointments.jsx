@@ -8,7 +8,7 @@ import {
   listAppointments,
 } from '../lib/api'
 import { toBlock } from '../lib/appointments'
-import { getAccessToken } from '../lib/auth'
+import { authed } from '../lib/auth'
 import { dayKey, weekDays } from '../lib/dates'
 import { useT } from '../lib/i18n'
 import styles from '../styles/Appointments.module.css'
@@ -54,15 +54,14 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     let alive = true
-    const token = getAccessToken()
 
-    getWorkingHours(token)
+    authed(getWorkingHours)
       .then((rows) => alive && setWeek(rows))
       .catch(() => {})
-    getServices(token)
+    authed(getServices)
       .then((rows) => alive && setServices(rows))
       .catch(() => {})
-    getBusiness(token)
+    authed(getBusiness)
       .then((row) => alive && setTimeZone(row.timezone))
       .catch(() => {})
 
@@ -89,7 +88,7 @@ export default function AppointmentsPage() {
 
   useEffect(() => {
     let alive = true
-    listAppointments(getAccessToken(), { from, to })
+    authed((token) => listAppointments(token, { from, to }))
       .then((rows) => {
         // Read in the *business's* zone, not the browser's — a booking near
         // midnight lands on the wrong day of the grid otherwise. Before

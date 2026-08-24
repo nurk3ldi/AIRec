@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { me, refresh } from './api'
+import { ApiError, me, refresh } from './api'
 
 const ACCESS_TOKEN_KEY = 'airec_access_token'
 const REFRESH_TOKEN_KEY = 'airec_refresh_token'
@@ -31,7 +31,9 @@ function tokenStore(remember) {
 }
 
 function currentStore() {
-  return sessionStorage.getItem(REFRESH_TOKEN_KEY) ? sessionStorage : localStorage
+  return sessionStorage.getItem(REFRESH_TOKEN_KEY)
+    ? sessionStorage
+    : localStorage
 }
 
 function read(key) {
@@ -134,6 +136,64 @@ async function runVerify(isRetry = false) {
     clearTokens()
     return null
   }
+}
+
+/**
+ * Runs an authenticated call, and renews the session once if the token has died
+ * under it.
+ *
+ * **The access token lives fifteen minutes and nothing was renewing it.**
+ * `verifySession()` runs when the dashboard shell mounts and on every route
+ * change, which covers arriving at a page and covers nothing after that: leave
+ * a screen open through lunch and the next request it makes — a booking being
+ * saved, a week being reloaded — comes back «Access token is invalid or
+ * expired.» with a live session sitting in storage behind it. The refresh token
+ * is good for thirty days; only the fifteen-minute half was ever being used.
+ *
+ * So every data call goes through here: try it, and on the *one* error that
+ * means "this token specifically", renew and try again.
+ *
+ * **It renews through `verifySession()` rather than calling `refresh()` itself,
+ * and that is the load-bearing part.** A page makes several of these at once —
+ * the week, the price list, the business — so several will hit the wall in the
+ * same instant. `verifySession()` is single-flight, so they share one renewal;
+ * calling `refresh()` from each would send the same refresh token three times,
+ * and a replayed refresh token is treated as theft and revokes every session
+ * the user has. The grace window on the server forgives that, but a client that
+ * needs forgiving is a client waiting to be caught out.
+ *
+ * Only `not_authenticated` is retried. A 404, a 409 or a validation error means
+ * the call itself was wrong, and running it twice would not make it right.
+ */
+export async function authed(call) {
+  const token = getAccessToken()
+  let failure = null
+
+  if (token) {
+    try {
+      return await call(token)
+    } catch (error) {
+      if (error.code !== 'not_authenticated') throw error
+      failure = error
+    }
+  }
+
+  const user = await verifySession()
+  if (!user) {
+    // `verifySession` has already cleared the tokens; the shell's own check
+    // takes the visitor to /login on its next run. What matters here is that
+    // the caller hears about it rather than seeing an empty screen.
+    throw (
+      failure ??
+      new ApiError({
+        code: 'not_authenticated',
+        message: 'Требуется вход в систему.',
+        status: 401,
+      })
+    )
+  }
+
+  return call(getAccessToken())
 }
 
 /**

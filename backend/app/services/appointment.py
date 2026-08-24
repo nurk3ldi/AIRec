@@ -181,7 +181,12 @@ class AppointmentService:
 
         service = await self._find_service(user, data.service_id)
         starts_at = data.starts_at.astimezone(UTC)
-        ends_at = starts_at + timedelta(minutes=service.duration_minutes)
+        # The booking's own length where one was given, the service's otherwise.
+        # The service names what was done and prices it; how long it actually
+        # took is a fact about the day, and the two disagree often enough that
+        # the panel offers both ends of the booking as fields.
+        minutes = data.duration_minutes or service.duration_minutes
+        ends_at = starts_at + timedelta(minutes=minutes)
         # Notice and horizon constrain *clients*, not the business. The owner
         # writing down someone who walked in twenty minutes ago is recording
         # something that already happened, and refusing it would be refusing
@@ -201,7 +206,7 @@ class AppointmentService:
             # Copied, not looked up later: correcting a price tomorrow must not
             # rewrite what this booking cost today.
             service_name=service.name,
-            duration_minutes=service.duration_minutes,
+            duration_minutes=minutes,
             price=service.price,
             client_name=data.client_name,
             client_phone=data.client_phone,

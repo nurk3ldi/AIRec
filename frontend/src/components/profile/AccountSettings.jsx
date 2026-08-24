@@ -24,7 +24,7 @@ import {
   updateProfile,
   uploadAvatar,
 } from '../../lib/api'
-import { getAccessToken, saveTokens, verifySession } from '../../lib/auth'
+import { authed, saveTokens, verifySession } from '../../lib/auth'
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 const FORM_ID = 'account-settings-form'
@@ -149,7 +149,9 @@ function ActionRow({
     <div className="mt-4 flex flex-col gap-1.5">
       <span className="text-[13px] font-medium text-muted">{label}</span>
       <div className="flex items-center justify-between gap-3 rounded-lg border border-line-strong bg-surface px-3.5 py-2">
-        <span className={`min-w-0 truncate text-[14px] text-ink ${valueClassName}`}>
+        <span
+          className={`min-w-0 truncate text-[14px] text-ink ${valueClassName}`}
+        >
           {value}
         </span>
         <button
@@ -287,7 +289,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
       applyUser(me)
       // An unconfirmed change from an earlier visit has to resurface here —
       // otherwise it would sit invisible until it silently expired.
-      getPendingEmailChange(getAccessToken())
+      authed(getPendingEmailChange)
         .then(({ pending_email }) => {
           if (!cancelled) setPendingEmail(pending_email || '')
         })
@@ -314,7 +316,9 @@ export default function AccountSettings({ onUserChange, onClose }) {
     setUsernameStatus('checking')
     const timer = setTimeout(() => {
       checkUsernameAvailability(value)
-        .then(({ available }) => setUsernameStatus(available ? 'available' : 'taken'))
+        .then(({ available }) =>
+          setUsernameStatus(available ? 'available' : 'taken'),
+        )
         .catch(() => setUsernameStatus('idle'))
     }, 400)
 
@@ -323,13 +327,19 @@ export default function AccountSettings({ onUserChange, onClose }) {
 
   useEffect(() => {
     if (resendCooldown <= 0) return undefined
-    const timer = setTimeout(() => setResendCooldown((seconds) => seconds - 1), 1000)
+    const timer = setTimeout(
+      () => setResendCooldown((seconds) => seconds - 1),
+      1000,
+    )
     return () => clearTimeout(timer)
   }, [resendCooldown])
 
   useEffect(() => {
     if (pwResendCooldown <= 0) return undefined
-    const timer = setTimeout(() => setPwResendCooldown((seconds) => seconds - 1), 1000)
+    const timer = setTimeout(
+      () => setPwResendCooldown((seconds) => seconds - 1),
+      1000,
+    )
     return () => clearTimeout(timer)
   }, [pwResendCooldown])
 
@@ -365,27 +375,29 @@ export default function AccountSettings({ onUserChange, onClose }) {
       // saved against a photo that never made it.
       setAvatarError('')
       if (pendingAvatar) {
-        await uploadAvatar(getAccessToken(), pendingAvatar.blob)
+        await authed((token) => uploadAvatar(token, pendingAvatar.blob))
         setPendingAvatar(null)
         setAvatarRemoved(false)
       } else if (avatarRemoved) {
-        await deleteAvatar(getAccessToken())
+        await authed(deleteAvatar)
         setAvatarRemoved(false)
       }
 
       // The email is *not* part of this PATCH — the backend refuses it there —
       // because moving to a new address has to be proved by receiving a code
       // at it. That lives in its own step.
-      const updated = await updateProfile(getAccessToken(), {
-        first_name: form.first_name.trim() || null,
-        last_name: form.last_name.trim() || null,
-        username: form.username.trim(),
-      })
+      const updated = await authed((token) =>
+        updateProfile(token, {
+          first_name: form.first_name.trim() || null,
+          last_name: form.last_name.trim() || null,
+          username: form.username.trim(),
+        }),
+      )
       applyUser(updated)
     } catch (err) {
       if (err.fields?.length) {
         setFieldErrors(
-          Object.fromEntries(err.fields.map((f) => [f.field, f.message]))
+          Object.fromEntries(err.fields.map((f) => [f.field, f.message])),
         )
       } else {
         setError(err.message)
@@ -414,7 +426,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
     setEmailError('')
     setIsSaving(true)
     try {
-      await requestEmailChange(getAccessToken(), address)
+      await authed((token) => requestEmailChange(token, address))
       setPendingEmail(address)
       setCode('')
       setCodeError('')
@@ -438,7 +450,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
 
     setIsConfirming(true)
     try {
-      const updated = await confirmEmailChange(getAccessToken(), code)
+      const updated = await authed((token) => confirmEmailChange(token, code))
       applyUser(updated)
       setPendingEmail('')
       setEmailStep(null)
@@ -469,7 +481,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
     setPwError('')
     setIsSaving(true)
     try {
-      await requestPasswordChange(getAccessToken())
+      await authed(requestPasswordChange)
       setCurrentPassword('')
       setPwCode('')
       setPwResendCooldown(RESEND_COOLDOWN_SECONDS)
@@ -492,7 +504,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
     setPwError('')
     setPwCode('')
     try {
-      await requestPasswordChange(getAccessToken())
+      await authed(requestPasswordChange)
       setPwResendCooldown(RESEND_COOLDOWN_SECONDS)
     } catch (err) {
       setPwError(err.message)
@@ -522,10 +534,12 @@ export default function AccountSettings({ onUserChange, onClose }) {
 
     setIsChangingPassword(true)
     try {
-      const { tokens } = await confirmPasswordChange(getAccessToken(), {
-        ...(pwMode === 'code' ? { code: pwCode } : { currentPassword }),
-        newPassword,
-      })
+      const { tokens } = await authed((token) =>
+        confirmPasswordChange(token, {
+          ...(pwMode === 'code' ? { code: pwCode } : { currentPassword }),
+          newPassword,
+        }),
+      )
       // The change revoked every session including this one; without saving the
       // pair it hands back, the next request would 401 the user out.
       saveTokens(tokens)
@@ -564,7 +578,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
     setError('')
     setIsSaving(true)
     try {
-      await requestEmailChange(getAccessToken(), user.email)
+      await authed((token) => requestEmailChange(token, user.email))
       setCode('')
       setCodeError('')
       setResendCooldown(RESEND_COOLDOWN_SECONDS)
@@ -584,7 +598,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
     try {
       // Same endpoint as the first send — it invalidates the previous code, so
       // resending can never leave two codes live at once.
-      await requestEmailChange(getAccessToken(), pendingEmail)
+      await authed((token) => requestEmailChange(token, pendingEmail))
       setResendCooldown(RESEND_COOLDOWN_SECONDS)
     } catch (err) {
       setCodeError(err.message)
@@ -605,7 +619,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
   const handleCancelEmailChange = async () => {
     setError('')
     try {
-      await cancelEmailChange(getAccessToken())
+      await authed(cancelEmailChange)
       setPendingEmail('')
       setEmailStep(null)
       setCode('')
@@ -683,7 +697,11 @@ export default function AccountSettings({ onUserChange, onClose }) {
       return (
         <StatusRow tone="warning" label={t('account.unconfirmed')}>
           <StatusAction
-            onClick={pendingEmail ? () => setEmailStep('code') : handleVerifyCurrentEmail}
+            onClick={
+              pendingEmail
+                ? () => setEmailStep('code')
+                : handleVerifyCurrentEmail
+            }
             disabled={isSaving}
           >
             {t('account.confirm')}
@@ -771,7 +789,10 @@ export default function AccountSettings({ onUserChange, onClose }) {
           </form>
 
           {pwError && (
-            <p role="alert" className="mt-3 text-center text-[13px] text-danger">
+            <p
+              role="alert"
+              className="mt-3 text-center text-[13px] text-danger"
+            >
               {pwError}
             </p>
           )}
@@ -804,7 +825,11 @@ export default function AccountSettings({ onUserChange, onClose }) {
                 disabled={isSaving}
                 className="text-[13px] font-medium text-accent outline-none hover:underline disabled:text-muted disabled:no-underline"
               >
-                {t(isSaving ? 'account.sendingMailCode' : 'account.forgotPassword')}
+                {t(
+                  isSaving
+                    ? 'account.sendingMailCode'
+                    : 'account.forgotPassword',
+                )}
               </button>
             )}
           </div>
@@ -932,7 +957,10 @@ export default function AccountSettings({ onUserChange, onClose }) {
           </form>
 
           {codeError && (
-            <p role="alert" className="mt-3 text-center text-[13px] text-danger">
+            <p
+              role="alert"
+              className="mt-3 text-center text-[13px] text-danger"
+            >
               {codeError}
             </p>
           )}
@@ -990,7 +1018,11 @@ export default function AccountSettings({ onUserChange, onClose }) {
           <div className="relative">
             <div className="grid h-[185px] w-[185px] place-items-center overflow-hidden rounded-full bg-ground">
               {avatarSrc ? (
-                <img src={avatarSrc} alt="" className="h-full w-full object-cover" />
+                <img
+                  src={avatarSrc}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 <HugeiconsIcon
                   icon={User02Icon}
@@ -1009,7 +1041,9 @@ export default function AccountSettings({ onUserChange, onClose }) {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isSaving}
-              aria-label={t(avatarSrc ? 'account.replacePhoto' : 'account.uploadPhoto')}
+              aria-label={t(
+                avatarSrc ? 'account.replacePhoto' : 'account.uploadPhoto',
+              )}
               className="absolute right-1.5 bottom-1.5 grid h-10 w-10 place-items-center rounded-full border border-line bg-surface text-ink shadow-[0_4px_12px_rgba(23,18,21,0.14)] outline-none transition-colors hover:bg-ground focus-visible:bg-ground disabled:cursor-not-allowed disabled:opacity-60"
             >
               <HugeiconsIcon
@@ -1085,7 +1119,9 @@ export default function AccountSettings({ onUserChange, onClose }) {
               fieldErrors.username ||
               (usernameStatus === 'taken' ? t('account.usernameTaken') : '')
             }
-            hint={usernameStatus === 'available' ? t('account.usernameFree') : ''}
+            hint={
+              usernameStatus === 'available' ? t('account.usernameFree') : ''
+            }
             hintTone="success"
             adornment={
               usernameStatus === 'available' ? (

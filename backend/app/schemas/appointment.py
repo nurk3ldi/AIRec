@@ -6,7 +6,6 @@ from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.appointment import AppointmentSource, AppointmentStatus
-from app.schemas.service import SLOT_MINUTES
 
 MAX_NOTE_LENGTH = 500
 
@@ -16,13 +15,22 @@ def _require_aware(value: datetime) -> datetime:
 
     Rejected rather than assumed to be UTC or business-local: both guesses are
     silently wrong for half the callers, and the client already knows which one
-    it meant. Seconds are dropped — bookings live on a 15-minute grid, and a
-    stray `:00.123` would only ever come from a serialiser.
+    it meant. Seconds are dropped, since a stray `:00.123` would only ever come
+    from a serialiser.
+
+    **A booking no longer has to start on the quarter hour.** It did, and
+    `SLOT_MINUTES` still governs everything the *client* is offered — working
+    hours, breaks, and the starts `available_slots` generates — because that is
+    the arithmetic of fitting durations into gaps, and it stays exact only while
+    both sides share one unit.
+
+    A booking written down by the owner is not that. It is a record of when
+    somebody actually sat down, which is 14:07 as often as it is 14:00, and
+    rounding it to keep a generator tidy would be filing the day wrong to make
+    the maths pretty. Overlap checks are range comparisons and do not care.
     """
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError("Укажите время вместе с часовым поясом.")
-    if value.minute % SLOT_MINUTES:
-        raise ValueError("Время должно быть кратно 15 минутам.")
     return value.replace(second=0, microsecond=0)
 
 
@@ -48,11 +56,30 @@ class AppointmentPublic(BaseModel):
     created_at: datetime
 
 
+MAX_DURATION_MINUTES = 24 * 60
+
+
 class CreateAppointmentRequest(BaseModel):
     service_id: uuid.UUID
     client_name: str = Field(max_length=120)
     client_phone: str | None = Field(default=None, max_length=32)
     starts_at: datetime
+    # How long this particular booking runs, when it is not the service's usual
+    # length. Optional, and omitting it keeps the old behaviour exactly: the
+    # service decides.
+    #
+    # It exists because the panel lets the owner set both ends of a booking by
+    # hand. A service is a price-list entry — "стрижка, 30 минут" — and what
+    # actually happened on the day is regularly not that: the client came for
+    # two things, or it ran long, and the owner is writing down the hour that
+    # was used rather than the hour that was quoted. Refusing that would make
+    # the calendar a record of the price list instead of a record of the day.
+    #
+    # The snapshot on the row takes this value, so a booking still carries the
+    # length it was actually made for — see the note on `service_name`.
+    duration_minutes: int | None = Field(
+        default=None, ge=1, le=MAX_DURATION_MINUTES
+    )
     note: str | None = Field(default=None, max_length=MAX_NOTE_LENGTH)
     # The owner adding a booking by hand may write it down as already agreed;
     # the assistant leaves it pending for the owner to look at.

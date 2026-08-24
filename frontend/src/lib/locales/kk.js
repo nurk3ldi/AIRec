@@ -20,6 +20,7 @@ export default {
   'appointments.time': 'Уақыт',
   'appointments.start': 'Басталуы',
   'appointments.end': 'Аяқталуы',
+  'appointments.sameTime': 'Басталуы мен аяқталуы бірдей бола алмайды',
   'appointments.clientName': 'Клиенттің аты',
   'appointments.clientPhone': 'Телефон',
   'appointments.note': 'Ескертпе',

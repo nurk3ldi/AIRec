@@ -20,6 +20,7 @@ export default {
   'appointments.time': 'Time',
   'appointments.start': 'Start',
   'appointments.end': 'End',
+  'appointments.sameTime': 'Start and end cannot be the same',
   'appointments.clientName': 'Client name',
   'appointments.clientPhone': 'Phone',
   'appointments.note': 'Note',

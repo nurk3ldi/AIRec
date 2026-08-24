@@ -1,14 +1,9 @@
 import { useEffect, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
-import * as Select from '@radix-ui/react-select'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  ArrowDown01Icon,
-  Cancel01Icon,
-  Tick02Icon,
-} from '@hugeicons/core-free-icons'
+import { Cancel01Icon } from '@hugeicons/core-free-icons'
 import { createAppointment } from '../../lib/api'
-import { getAccessToken } from '../../lib/auth'
+import { authed } from '../../lib/auth'
 import {
   formatDuration,
   formatPrice,
@@ -19,6 +14,7 @@ import {
 import { dayKey } from '../../lib/dates'
 import { useT } from '../../lib/i18n'
 import { FIELD, FIELD_ERROR } from '../controls'
+import TimeField from './TimeField'
 
 /**
  * Writing a booking down by hand, in a panel hanging off the button that opens
@@ -81,6 +77,7 @@ export default function BookingPopover({
   const [date, setDate] = useState('')
   const [serviceId, setServiceId] = useState('')
   const [startsAt, setStartsAt] = useState('')
+  const [endsAt, setEndsAt] = useState('')
   const [clientName, setClientName] = useState('')
   const [clientPhone, setClientPhone] = useState('')
   const [note, setNote] = useState('')
@@ -106,12 +103,25 @@ export default function BookingPopover({
    * when the chair is free again — which is the question the grid beside this
    * is entirely about.
    */
-  const endsAt =
-    startsAt && service
-      ? fromMinutes(
-          (parseClock(startsAt) + service.duration_minutes) % (24 * 60),
-        )
-      : ''
+  /**
+   * The end follows the start, until it is moved on its own.
+   *
+   * **Both ends are fields, and the service only proposes the second one.** A
+   * service is a price-list entry — "стрижка, 30 минут" — and what happened on
+   * the day regularly is not that: the client came for two things, or it ran
+   * long. The panel writes down the hour that was used, not the hour that was
+   * quoted, so the length travels to the API as `duration_minutes` and is
+   * snapshotted onto the booking.
+   *
+   * Re-proposing it whenever the start or the service changes is what keeps the
+   * common case free — pick a service, pick a start, the end is already right —
+   * and nothing overwrites a hand-set end until one of those two moves again.
+   */
+  const duration = service?.duration_minutes
+  useEffect(() => {
+    if (!startsAt || !duration) return
+    setEndsAt(fromMinutes((parseClock(startsAt) + duration) % (24 * 60)))
+  }, [startsAt, duration])
 
   // Opening is what resets the form: keeping the last booking's client in the
   // boxes would be a saved draft nobody asked for, and the second booking of a
@@ -121,6 +131,7 @@ export default function BookingPopover({
     setDate(day ? dayKey(day) : '')
     setServiceId(active.length === 1 ? active[0].id : '')
     setStartsAt('')
+    setEndsAt('')
     setClientName('')
     setClientPhone('')
     setNote('')
@@ -134,35 +145,14 @@ export default function BookingPopover({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
-  /**
-   * Every quarter hour of the day, offered whole.
-   *
-   * **The picker used to list only what `GET /appointments/slots` returned** —
-   * the times the service still fitted into, with opening hours, the break and
-   * everything already booked taken out. That is the right list for a client
-   * choosing a time. It is the wrong one for the owner writing a booking down,
-   * who is recording something that has already been agreed and sometimes
-   * already happened, and who needs to be able to put it at the hour it
-   * actually is rather than at the nearest hour the calendar approves of.
-   *
-   * A quarter hour because `SLOT_MINUTES` is 15 on the server and every time in
-   * this product sits on that grid; a list that offered 14:07 would be offering
-   * a value the schema rejects.
-   *
-   * The server still has the last word on where a booking may go — opening
-   * hours are checked whatever the source, and so is capacity. What changed is
-   * that this stopped pre-empting that check and now lets it answer.
-   */
-  const times = Array.from({ length: (24 * 60) / 15 }, (_, i) =>
-    fromMinutes(i * 15),
-  )
-
   const submit = async (event) => {
     event.preventDefault()
 
     const problems = {}
     if (!serviceId) problems.service = t('appointments.required')
-    if (!startsAt) problems.time = t('appointments.required')
+    if (!startsAt || !endsAt) problems.time = t('appointments.required')
+    else if (parseClock(startsAt) === parseClock(endsAt))
+      problems.time = t('appointments.sameTime')
     if (!clientName.trim()) problems.clientName = t('appointments.required')
     setFields(problems)
     if (Object.keys(problems).length > 0) return
@@ -170,13 +160,21 @@ export default function BookingPopover({
     setSaving(true)
     setError('')
     try {
-      await createAppointment(getAccessToken(), {
-        service_id: serviceId,
-        client_name: clientName.trim(),
-        client_phone: clientPhone.trim() || null,
-        starts_at: instantAt(date, startsAt, timeZone),
-        note: note.trim() || null,
-      })
+      await authed((token) =>
+        createAppointment(token, {
+          service_id: serviceId,
+          client_name: clientName.trim(),
+          client_phone: clientPhone.trim() || null,
+          starts_at: instantAt(date, startsAt, timeZone),
+          // Wrapped through midnight rather than clamped: an end before the start
+          // is the ordinary way to write a booking that runs past twelve, and
+          // refusing it would be refusing the one shape a night shift can take in
+          // two clock fields.
+          duration_minutes:
+            (parseClock(endsAt) - parseClock(startsAt) + 24 * 60) % (24 * 60),
+          note: note.trim() || null,
+        }),
+      )
       onCreated?.()
       setOpen(false)
     } catch (err) {
@@ -241,15 +239,6 @@ export default function BookingPopover({
           // more — a popover has no required label of its own, so it is named
           // here for anyone arriving by screen reader.
           aria-label={t('appointments.newTitle')}
-          // The time list is a Radix Select rendered into a portal, so Escape
-          // is the one dismissal it does not already handle by nesting: without
-          // this guard a single press would close the list *and* the dialog
-          // behind it. Same tag, same check as `ProfileDialog`.
-          onEscapeKeyDown={(event) => {
-            if (document.querySelector('[data-nested-overlay]')) {
-              event.preventDefault()
-            }
-          }}
           className="z-[60] flex origin-[var(--radix-popover-content-transform-origin)] max-h-[var(--radix-popover-content-available-height)] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none data-[state=open]:animate-[popover-in_180ms_cubic-bezier(0.32,0.72,0,1)]"
         >
           <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-3">
@@ -339,80 +328,28 @@ export default function BookingPopover({
               )}
             </Group>
 
+            {/* **Two clocks, not a clock and a readout.** The second one was
+                derived and disabled, which is the right shape only while a
+                booking is exactly as long as its service — and it often is
+                not. Both are the same control, so neither reads as the more
+                real of the two. */}
             <Group label={t('appointments.time')} error={fields.time}>
               <div className="flex items-center gap-2">
-                <Select.Root value={startsAt} onValueChange={setStartsAt}>
-                  <Select.Trigger
-                    aria-label={t('appointments.start')}
-                    className={`${FIELD} flex h-9 flex-1 items-center justify-between gap-2 text-[14px] outline-none`}
-                  >
-                    <Select.Value
-                      // `--:--` rather than "Выберите время": the trigger is
-                      // half of a two-field row, and a three-word placeholder
-                      // wrapped onto two lines inside a 36px box. The group
-                      // above it already reads ВРЕМЯ.
-                      placeholder={<span className="text-muted">--:--</span>}
-                    >
-                      <span className="font-display font-medium">
-                        {startsAt}
-                      </span>
-                    </Select.Value>
-                    <Select.Icon asChild>
-                      <HugeiconsIcon
-                        icon={ArrowDown01Icon}
-                        size={16}
-                        strokeWidth={2}
-                        className="shrink-0 text-muted"
-                      />
-                    </Select.Icon>
-                  </Select.Trigger>
-
-                  <Select.Portal>
-                    <Select.Content
-                      position="popper"
-                      sideOffset={6}
-                      // Above the dialog's own `z-[60]`, and tagged so one
-                      // Escape closes this list rather than the dialog too.
-                      data-nested-overlay
-                      className="z-[70] max-h-[240px] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)]"
-                    >
-                      <Select.Viewport>
-                        {times.map((clock) => (
-                          <Select.Item
-                            key={clock}
-                            value={clock}
-                            className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 font-display text-[14px] text-ink outline-none select-none data-[highlighted]:bg-ink/6"
-                          >
-                            <Select.ItemText>{clock}</Select.ItemText>
-                            <Select.ItemIndicator className="ml-auto text-ink">
-                              <HugeiconsIcon
-                                icon={Tick02Icon}
-                                size={15}
-                                strokeWidth={2.4}
-                              />
-                            </Select.ItemIndicator>
-                          </Select.Item>
-                        ))}
-                      </Select.Viewport>
-                    </Select.Content>
-                  </Select.Portal>
-                </Select.Root>
+                <TimeField
+                  value={startsAt}
+                  onChange={setStartsAt}
+                  label={t('appointments.start')}
+                />
 
                 <span aria-hidden="true" className="shrink-0 text-muted">
                   –
                 </span>
 
-                {/* Read-only, and looking it: the field ring is there so the
-                      pair reads as one control, and the muted fill is what says
-                      the second half is an answer rather than a question. A
-                      disabled `<input>` would be the same picture with a
-                      keyboard stop nobody needs. */}
-                <output
-                  aria-label={t('appointments.end')}
-                  className="flex h-9 flex-1 items-center rounded-md bg-ink/[0.03] px-3 font-display text-[14px] font-medium text-muted shadow-[0_0_0_1px_var(--color-field)]"
-                >
-                  {endsAt}
-                </output>
+                <TimeField
+                  value={endsAt}
+                  onChange={setEndsAt}
+                  label={t('appointments.end')}
+                />
               </div>
             </Group>
 

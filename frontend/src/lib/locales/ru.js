@@ -26,6 +26,7 @@ export default {
   'appointments.time': 'Время',
   'appointments.start': 'Начало',
   'appointments.end': 'Конец',
+  'appointments.sameTime': 'Начало и конец не могут совпадать',
   'appointments.clientName': 'Имя клиента',
   'appointments.clientPhone': 'Телефон',
   'appointments.note': 'Комментарий',

@@ -13,7 +13,7 @@ import {
   revokeOtherSessions,
   revokeSession,
 } from '../../lib/api'
-import { clearTokens, getAccessToken } from '../../lib/auth'
+import { authed, clearTokens } from '../../lib/auth'
 import { getLocale, translate, useT } from '../../lib/i18n'
 
 // Mirrors `account_deletion_grace_days` on the backend. Only used for copy —
@@ -43,7 +43,8 @@ function formatMoment(iso) {
 
   const yesterday = new Date(today)
   yesterday.setDate(today.getDate() - 1)
-  if (isSameDay(value, yesterday)) return translate('security.yesterday', { time })
+  if (isSameDay(value, yesterday))
+    return translate('security.yesterday', { time })
 
   return value.toLocaleDateString(locale, {
     day: 'numeric',
@@ -74,13 +75,13 @@ export default function SessionsSettings({ user }) {
   const [isDeleting, setIsDeleting] = useState(false)
 
   const load = () =>
-    listSessions(getAccessToken())
+    authed(listSessions)
       .then(setSessions)
       .catch((err) => setError(err.message))
 
   useEffect(() => {
     let cancelled = false
-    listSessions(getAccessToken())
+    authed(listSessions)
       .then((rows) => {
         if (!cancelled) setSessions(rows)
       })
@@ -96,7 +97,7 @@ export default function SessionsSettings({ user }) {
     setError('')
     setBusyId(id)
     try {
-      await revokeSession(getAccessToken(), id)
+      await authed((token) => revokeSession(token, id))
       // Re-read rather than splicing locally: the server is the authority on
       // what's still live, and something may have expired meanwhile.
       await load()
@@ -111,7 +112,7 @@ export default function SessionsSettings({ user }) {
     setError('')
     setIsRevokingOthers(true)
     try {
-      await revokeOtherSessions(getAccessToken())
+      await authed(revokeOtherSessions)
       await load()
     } catch (err) {
       setError(err.message)
@@ -125,10 +126,12 @@ export default function SessionsSettings({ user }) {
     setDeleteError('')
     setIsDeleting(true)
     try {
-      await deleteAccount(getAccessToken(), {
-        currentPassword: deletePassword,
-        confirmation,
-      })
+      await authed((token) =>
+        deleteAccount(token, {
+          currentPassword: deletePassword,
+          confirmation,
+        }),
+      )
       // Every session is gone server-side; drop the local copies too and leave
       // for the public side rather than letting the shell 401 its way out.
       clearTokens()
@@ -143,9 +146,7 @@ export default function SessionsSettings({ user }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-2 pb-6">
-      <p className="shrink-0 text-[14px] text-muted">
-        {t('security.lead')}
-      </p>
+      <p className="shrink-0 text-[14px] text-muted">{t('security.lead')}</p>
 
       {error && (
         <p
@@ -164,7 +165,9 @@ export default function SessionsSettings({ user }) {
       )}
 
       {sessions === null ? (
-        <p className="mt-4 shrink-0 text-[14px] text-muted">{t('security.loading')}</p>
+        <p className="mt-4 shrink-0 text-[14px] text-muted">
+          {t('security.loading')}
+        </p>
       ) : (
         <div className="mt-4 flex shrink-0 flex-col gap-2">
           {sessions.map((session) => (
@@ -185,8 +188,9 @@ export default function SessionsSettings({ user }) {
                 </div>
                 <p className="mt-0.5 truncate text-[13px] text-muted">
                   {session.ip_address ? `${session.ip_address} · ` : ''}
-                  {t('security.signedIn')}: {formatMoment(session.signed_in_at)} ·{' '}
-                  {t('security.lastActive')}: {formatMoment(session.last_active_at)}
+                  {t('security.signedIn')}: {formatMoment(session.signed_in_at)}{' '}
+                  · {t('security.lastActive')}:{' '}
+                  {formatMoment(session.last_active_at)}
                 </p>
               </div>
 
@@ -263,7 +267,11 @@ export default function SessionsSettings({ user }) {
               </button>
             </>
           ) : (
-            <form onSubmit={handleDelete} noValidate className="mt-3 flex flex-col gap-3">
+            <form
+              onSubmit={handleDelete}
+              noValidate
+              className="mt-3 flex flex-col gap-3"
+            >
               <p className="text-[13px] text-ink/70">
                 {t('security.deleteWarning', { days: GRACE_DAYS })}
               </p>
@@ -283,7 +291,11 @@ export default function SessionsSettings({ user }) {
                 <button
                   type="button"
                   onClick={() => setShowDeletePassword((prev) => !prev)}
-                  aria-label={t(showDeletePassword ? 'form.hidePassword' : 'form.showPassword')}
+                  aria-label={t(
+                    showDeletePassword
+                      ? 'form.hidePassword'
+                      : 'form.showPassword',
+                  )}
                   className="absolute right-3 grid place-items-center text-muted transition-colors hover:text-ink"
                 >
                   <HugeiconsIcon
@@ -342,7 +354,9 @@ export default function SessionsSettings({ user }) {
                   disabled={!deletePassword || !confirmation || isDeleting}
                   className="rounded-xl bg-danger px-4 py-2 text-[13px] font-medium text-white outline-none transition-colors hover:bg-[#B91C1C] focus-visible:bg-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-45"
                 >
-                  {t(isDeleting ? 'security.deleting' : 'security.deleteAction')}
+                  {t(
+                    isDeleting ? 'security.deleting' : 'security.deleteAction',
+                  )}
                 </button>
               </div>
             </form>
