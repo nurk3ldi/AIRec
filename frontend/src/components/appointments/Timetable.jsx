@@ -438,7 +438,8 @@ function useNow() {
  * thing to do, and the shading is information, not a wall.
  *
  * The label hides on a short span: a word in a 15-minute block is a word
- * clipped by its own box.
+ * clipped by its own box. Where it shows, it is centred down the span with a
+ * dot before it, the way the reference tags its own blocks.
  */
 function ClosedSpan({ range, label }) {
   const top = ((range.from - WINDOW_FROM) / 60) * ROW_HEIGHT
@@ -450,7 +451,17 @@ function ClosedSpan({ range, label }) {
       style={{ top, height, backgroundImage: HATCH }}
     >
       {label && height >= 28 && (
-        <span className="absolute top-1.5 left-2 text-[12px] text-muted">
+        // **Centred down the block, not pinned to its top.** A word at the top
+        // edge belongs to the line above it — the hour rule — where one in the
+        // middle belongs to the span, which is the thing being named. The dot
+        // is the reference's own: it marks the label as a *tag on a block*
+        // rather than a stray word floating on the grid, which is exactly what
+        // it read as without it.
+        <span className="absolute inset-y-0 left-2 flex items-center gap-2 text-[12px] text-muted">
+          <span
+            className="h-1.5 w-1.5 shrink-0 rounded-full bg-muted"
+            aria-hidden="true"
+          />
           {label}
         </span>
       )}
