@@ -87,7 +87,15 @@ export default function Timetable({ selected, onSelect }) {
   const nowOffset = ((nowMinutes - START_HOUR * 60) / 60) * ROW_HEIGHT
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col">
+    // **60% of the page, a definite share rather than `flex-1`.** Filling every
+    // pixel the column had left made the grid the tallest thing on screen by a
+    // long way, and the 40% it gives up is not spare room — it is where the
+    // cards above it go. The page element carries a *definite* height, which is
+    // the only reason a percentage resolves here at all; see the note on it.
+    //
+    // `min-h-0` stays: without it the grid inside refuses to shrink below its
+    // thirteen 56px hours and the overflow lands on the document instead.
+    <section className="flex h-[60%] min-h-0 flex-col">
       {/* **Outside the grid's border, above its top rule.** The heading and the
           controls are what you steer the grid *with*, not part of it, so the
           line belongs between them — inside the box the toolbar read as a

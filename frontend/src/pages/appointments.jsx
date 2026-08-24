@@ -54,10 +54,17 @@ export default function AppointmentsPage() {
           item defaults to its content's size and will not shrink past it
           otherwise, which is exactly how a "no scrolling" page ends up
           scrolling. */}
-      {/* The timetable now has this column to itself. It is not a card: its
-          top rule is a horizontal line beginning exactly where the rail's
-          vertical one ends. */}
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      {/* **`justify-end`: the timetable is held to the bottom of the column,
+          not laid out from the top of it.** It takes 60% of the height (see
+          `Timetable`), and the 40% above is left empty on purpose — that is
+          where the cards go. Pinning it down rather than letting it sit under
+          whatever happens to be above means the grid stays where the eye last
+          found it: add a card, remove one, change their height, and the hours
+          do not move.
+
+          It is not a card either: its top rule is a horizontal line beginning
+          exactly where the rail's vertical one ends. */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-end">
         <Timetable selected={selected} onSelect={setSelected} />
       </div>
 
