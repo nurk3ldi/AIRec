@@ -196,13 +196,42 @@ export default function Timetable({ selected, onSelect }) {
             return (
               <div
                 key={day.toISOString()}
-                // **Opaque, always**, and `ground` rather than `surface`: the
-                // grid has no fill of its own, so the page's colour is what
-                // sits behind these. The rows scroll underneath them, and a
+                // **Opaque, always.** The rows scroll underneath these, and a
                 // translucent heading would let 15:00 show through the word
                 // "ЧТ" — which is also why the selected column's tint is
                 // marked on the body below rather than up here.
-                className="sticky top-0 z-20 flex items-baseline gap-1.5 border-b border-l border-line bg-ground px-3 py-2"
+                //
+                // **A grey, and only on the cells that carry a day name.** The
+                // strip is a different thing from the grid under it, and one
+                // flat colour across both left it reading as the first empty
+                // row of the day. The gutter corner beside them is deliberately
+                // not part of it — nothing is written there, so it stays the
+                // page's own colour and the grey begins where the days do.
+                //
+                // Mixed from `ink` rather than taken as `bg-ink/7`, for the
+                // same reason the today tint is mixed: these headings cannot be
+                // translucent. 7% lands on a grey in both themes — a step up
+                // from black, a step down from white — instead of a value that
+                // only reads as grey on one of them.
+                //
+                // **Today is `--now`, the colour this product already uses for
+                // "the present moment"** — the same orange as the line that
+                // crosses the grid, so the column and the line say the same
+                // thing in the same voice. Not a new hue, and not `danger`: red
+                // means a cancelled booking here, and it would say so about
+                // every Wednesday.
+                //
+                // The tint is a `color-mix` rather than `bg-now/12`, because an
+                // alpha would be exactly the transparency this heading cannot
+                // have — it is mixed into the opaque fill instead, so it stays
+                // a solid colour and still tracks both themes. The top rule is
+                // an inset shadow, which costs no layout: a real border would
+                // make this one cell 2px taller than its neighbours.
+                className={`sticky top-0 z-20 flex items-baseline gap-1.5 border-b border-l border-line px-3 py-2 ${
+                  isToday
+                    ? 'bg-[color-mix(in_oklab,var(--color-now)_12%,var(--color-surface-raised))] shadow-[inset_0_2px_0_var(--color-now)]'
+                    : 'bg-[color-mix(in_oklab,var(--color-ink)_7%,var(--color-surface-raised))]'
+                }`}
               >
                 {/* Weekday and date on one line, aligned left rather than
                     stacked and centred. Stacked, the row was two lines tall for
@@ -220,7 +249,7 @@ export default function Timetable({ selected, onSelect }) {
                     at the same size. */}
                 <span
                   className={`text-[13px] font-medium tracking-wide ${
-                    isToday ? 'text-ink' : 'text-muted'
+                    isToday ? 'text-now' : 'text-muted'
                   }`}
                 >
                   {labels[index]}
