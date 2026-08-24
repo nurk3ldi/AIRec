@@ -36,6 +36,7 @@
   --color-ground: var(--ground);
   --color-surface: var(--surface);
   --color-surface-raised: var(--surface-raised);
+  --color-surface-chip: var(--surface-chip);
   /* Two weights, because a divider between rows and the edge of an input are
      not the same line. Both are tokens rather than `muted` at an alpha: grey at
      25% reads clearly on white and all but vanishes on a near-black ground, so
@@ -83,6 +84,12 @@
      from the ground on its own — white here, a step up from black there — and
      it exists so that a card may be edgeless rather than only shadowless. */
   --surface-raised: #ffffff;
+  /* The pill that marks the chosen segment of a switch, sitting on a track
+     that is a tint of `ink`. It cannot be one alpha for both themes: the chosen
+     pill has to be *lighter* than its track, and lighter means less ink here
+     and more ink on the dark side — opposite directions from the same value.
+     Two literals is what that costs. */
+  --surface-chip: #ffffff;
   --field: rgb(0 0 0 / 0.08);
   --field-hover: rgb(0 0 0 / 0.21);
   --field-focus: rgb(0 0 0 / 0.34);
@@ -147,6 +154,7 @@
   /* Lifted off the page by ~5% rather than by a line. Low enough that the
      unbroken-black look survives, high enough to read as a block. */
   --surface-raised: #0e0e0e;
+  --surface-chip: #2a2a2a;
   /* Solid greys, not white at an alpha — taken from Vercel's dark theme, where
      `--ds-gray-400` (#2e2e2e) is the workhorse border and `--ds-gray-500`
      (#454545) is the step up from it.

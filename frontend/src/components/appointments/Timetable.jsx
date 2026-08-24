@@ -169,10 +169,18 @@ export default function Timetable({ selected, onSelect, week, onCreate }) {
             onClick={() => onSelect?.(shiftDate(selected, step, 1))}
           />
 
-          {/* The active segment takes the accent fill the calendar's selected
-              day takes, so "this one" looks the same wherever the app says it.
-              The track is an ink tint rather than `ground`, which on the dark
-              theme is the same black as everything behind it. */}
+          {/* **The chosen segment is a raised chip, not the accent.** The
+              accent is pure white on the dark theme, so marking the current
+              view with it put a solid white block in the middle of a black
+              toolbar — the loudest thing on the page, for a switch that only
+              says how many days are on screen. A switch is not an action.
+
+              `surface-chip` is a step *up* from the track in either theme —
+              white on the light one, `#2a2a2a` on the dark — which is how a
+              segmented control has always shown its choice: the pill lifts, it
+              does not light up. The track stays an ink tint rather than
+              `ground`, which on the dark theme is the same black as everything
+              behind it. */}
           <div
             role="group"
             className="flex items-center gap-0.5 rounded-full bg-ink/6 p-0.5"
@@ -188,7 +196,7 @@ export default function Timetable({ selected, onSelect, week, onCreate }) {
                   aria-pressed={isActive}
                   className={`grid h-8 place-items-center rounded-full px-4 text-[14px] font-medium outline-none transition-colors ${
                     isActive
-                      ? 'bg-accent text-surface'
+                      ? 'bg-surface-chip text-ink'
                       : 'text-muted hover:text-ink focus-visible:text-ink'
                   }`}
                 >
@@ -211,9 +219,18 @@ export default function Timetable({ selected, onSelect, week, onCreate }) {
               end of this bar and a button does not have to repeat the noun to
               say what it does.
 
-              The accent fill is the point of it: everything to its left changes
-              *what you are looking at*, this is the one control that changes
-              what is there, and it is the only filled thing on the page.
+              **`surface-chip`, the same lift the chosen segment takes**, not
+              the accent it wore before. On the dark theme the accent is pure
+              white, and a solid white pill in a black toolbar was the loudest
+              thing on the page — bright enough to read as a warning rather than
+              as an invitation. The chip is a step up from the bar in either
+              theme, which is enough to say "this is pressable" without
+              shouting it.
+
+              It gives up being visibly the *primary* action, which the accent
+              was doing. That is a fair trade here: there is one button in this
+              bar that adds anything, it carries a plus, and nothing else in the
+              row is competing to be pressed.
 
               Below `sm` the glyph carries it alone — three words in a bar that
               also holds a heading, two arrows and a two-way switch is a bar
@@ -222,7 +239,7 @@ export default function Timetable({ selected, onSelect, week, onCreate }) {
             type="button"
             onClick={onCreate}
             aria-label={t('appointments.create')}
-            className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-accent pr-4 pl-3 text-[14px] font-medium text-surface outline-none transition-opacity hover:opacity-90 focus-visible:opacity-90 max-sm:w-8 max-sm:justify-center max-sm:px-0"
+            className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-surface-chip pr-4 pl-3 text-[14px] font-medium text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85 max-sm:w-8 max-sm:justify-center max-sm:px-0"
           >
             <HugeiconsIcon
               icon={Add01Icon}
