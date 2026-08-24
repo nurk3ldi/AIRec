@@ -83,7 +83,7 @@ export default function AppointmentsPage() {
           unfinished: the page does not scroll, so on a narrow screen the
           calendar is below the fold rather than reachable. A small-screen
           layout is still to be designed — see the note on the page element. */}
-      <aside className="min-h-[300px] w-full shrink-0 border-t border-line p-4 xl:min-h-0 xl:w-[450px] xl:border-t-0 xl:border-l">
+      <aside className="min-h-[300px] w-full shrink-0 border-t border-line p-4 xl:min-h-0 xl:w-[400px] xl:border-t-0 xl:border-l">
         <MonthCalendar value={selected} onChange={setSelected} />
       </aside>
     </div>
