@@ -191,6 +191,11 @@ export default function BookingDialog({
                 // and a price, and the two numbers are most of what decides
                 // which one this booking is. A select shows one line at a time
                 // and hides exactly the part being compared.
+                //
+                // **The chosen row lifts rather than colours** — `surface-chip`
+                // and a ring, the same pair the toolbar's segment uses. A hue
+                // was tried here and taken out: orange means "now" everywhere
+                // else on this screen, and a service is not a time.
                 <div className="flex max-h-[152px] flex-col gap-1.5 overflow-y-auto">
                   {active.map((service) => {
                     const chosen = service.id === serviceId
@@ -202,7 +207,7 @@ export default function BookingDialog({
                         aria-pressed={chosen}
                         className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left outline-none transition-colors ${
                           chosen
-                            ? 'bg-now/12 shadow-[0_0_0_1px_var(--color-now)]'
+                            ? 'bg-surface-chip shadow-[0_0_0_1px_var(--color-field-focus)]'
                             : 'bg-ink/[0.04] hover:bg-ink/[0.07] focus-visible:bg-ink/[0.07]'
                         }`}
                       >
@@ -249,7 +254,7 @@ export default function BookingDialog({
                         aria-pressed={chosen}
                         className={`h-8 rounded-lg px-3 font-display text-[13px] font-medium outline-none transition-colors ${
                           chosen
-                            ? 'bg-now text-white'
+                            ? 'bg-surface-chip text-ink shadow-[0_0_0_1px_var(--color-field-focus)]'
                             : 'bg-ink/[0.06] text-ink hover:bg-ink/12 focus-visible:bg-ink/12'
                         }`}
                       >
