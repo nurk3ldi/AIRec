@@ -55,8 +55,8 @@ export default function AppointmentsPage() {
           otherwise, which is exactly how a "no scrolling" page ends up
           scrolling. */}
       {/* **`justify-end`: the timetable is held to the bottom of the column,
-          not laid out from the top of it.** It takes 60% of the height (see
-          `Timetable`), and the 40% above is left empty on purpose — that is
+          not laid out from the top of it.** It takes 65% of the height (see
+          `Timetable`), and the 35% above is left empty on purpose — that is
           where the cards go. Pinning it down rather than letting it sit under
           whatever happens to be above means the grid stays where the eye last
           found it: add a card, remove one, change their height, and the hours
