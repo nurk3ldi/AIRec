@@ -33,17 +33,25 @@ export default function Header({ className = '' }) {
   const isOnWallet = pathname === '/wallet'
 
   return (
-    // No fill, but a rule. Dropping the white strip was right — a filled bar is
+    // No white strip, but a rule. Dropping the fill was right — a filled bar is
     // a box drawn around a title and one icon — and dropping the line with it
     // was not: without it the header and the page are one flat field, which is
     // most obvious in dark mode, where there is no shadow doing the work
     // either.
     //
-    // It is still `sticky`, so it will need something behind it once a page can
-    // actually scroll — the ground colour, or a blur — or content will run
-    // underneath and show through.
+    // **`bg-ground`, though, and that is not a fill in the visual sense.** It
+    // is the colour the page behind it already is, so the header looks exactly
+    // as it did with nothing behind it — until something scrolls up to it, and
+    // then it is opaque instead of letting rows slide through the title. That
+    // was the one thing left to do here: `sticky` without a background only
+    // works while nothing beneath it can move.
+    //
+    // A blur (`bg-ground/80 backdrop-blur`) is the other way to do it and the
+    // one to reach for if this should ever read as glass; it costs a
+    // compositing layer and says "there is something under here", which is a
+    // claim this header does not need to make.
     <header
-      className={`sticky top-0 z-40 h-[68px] items-center justify-between gap-4 border-b border-line-strong px-4 sm:px-6 lg:px-8 ${className}`}
+      className={`sticky top-0 z-40 h-[68px] items-center justify-between gap-4 border-b border-line-strong bg-ground px-4 sm:px-6 lg:px-8 ${className}`}
     >
       {/* On a phone the wordmark, because the rail that normally carries it is
           not there and a screen with the product's name nowhere on it reads as
