@@ -164,15 +164,23 @@ export default function MonthCalendar({ value, onChange }) {
               // the display face is what the timetable sets its own dates in —
               // the same data, so the same step.
               //
-              // **`#3178F4` is the reference's blue, hard-coded and the same in
-              // both themes**, like `--now` on the timetable. It is a departure
-              // from this project's rule that the selection wears `accent`,
-              // which is monochrome — taken deliberately, because the ask was
-              // for this drawing exactly. Swap the one class back to
-              // `bg-accent text-surface` to undo it.
+              // **The selected day is `--now`, the orange this product already
+              // owns**, not the reference's blue and not `accent`. The blue was
+              // copied from the drawing and was the one thing in it that this
+              // project has no place for — there is no brand hue here, so a
+              // blue would have been a sixth colour invented for one pill.
+              //
+              // The orange is already the answer to "which day is in play": it
+              // is the now-line across the grid and the tint on today's column.
+              // A calendar whose selection wears the same colour is the same
+              // sentence in the same voice, and on the common day — today, the
+              // day you are looking at — all three agree instead of arguing.
+              //
+              // `text-white`, not `text-surface`: this fill is a real colour in
+              // both themes, so the text on it does not flip with them.
               className={`grid h-9 place-items-center rounded-[10px] font-display text-[13px] font-semibold outline-none transition-colors ${
                 isSelected
-                  ? 'bg-[#3178F4] text-white'
+                  ? 'bg-now text-white'
                   : isToday
                     ? `bg-ink/8 hover:bg-ink/12 ${dim ? 'text-muted/80' : 'text-ink'}`
                     : dim
