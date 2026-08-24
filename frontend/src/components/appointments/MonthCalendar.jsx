@@ -62,30 +62,34 @@ export default function MonthCalendar({ value, onChange }) {
     // It carries no padding of its own either: the space around it belongs to
     // whatever holds it, so the gap from the edge is set in one place instead
     // of being the sum of two.
-    // **`w-full`, and the proportions carried by ratios rather than by fixed
-    // sizes.** It was pinned to the reference's own 282px so the measurements
-    // taken off `design/calendar.png` meant something; now it fills whatever
-    // panel holds it, and what is preserved from those measurements is the
-    // *shape* — a cell 36 wide to every 40 tall, the gaps and the type scaled
-    // with it. That is what lets the panel be resized without this needing a
-    // new set of numbers each time.
+    // **Sized like the rest of the page, not like the picture it was copied
+    // from.** Every number here used to come from `design/calendar.png` —
+    // 36 × 40 cells, a 5 / 8 gap, 16px numbers — and held at that scale because
+    // a measurement only means anything at the size it was taken at. That is
+    // true and it was the wrong thing to optimise: the reference is a different
+    // product, and a calendar that agrees with a screenshot while disagreeing
+    // with the header, the toolbar and the rail beside it is the odd one out on
+    // its own page.
     //
-    // No card: no radius, no fill, no border, and no padding of its own — the
-    // month sits straight on the page ground, exactly as it does there, and
-    // the gap from the edge belongs to whatever holds it.
-    <section className="w-full">
-      {/* Circles centred over the first and last column: `justify-between`
-          puts each one's centre half its own width in from the end, which is
-          where those two columns are centred as long as the circle is about as
-          wide as a cell. */}
-      <header className="flex h-11 items-center justify-between gap-2">
+    // So the sizes come from this app now. There are only two facts to know:
+    // **every square control on this page is 36px** — a rail item, a header
+    // icon, the toolbar's arrows — and **the timetable's dates are 13px**. The
+    // calendar is dates in squares, so it is those two numbers and nothing new.
+    //
+    // `max-w-[300px]` because seven 36px rows across a 368px panel would leave
+    // cells half again as wide as they are tall; capped, a cell is about 39 × 36
+    // and reads as the square it is meant to be.
+    <section className="w-full max-w-[300px]">
+      {/* The same arrows the timetable's toolbar has, at the same size, because
+          they are the same control: step the date by one. */}
+      <header className="flex h-9 items-center justify-between gap-2">
         <StepButton
           label={t('calendar.prevMonth')}
           icon={ArrowLeft01Icon}
           onClick={() => setMonth(shiftMonth(month, -1))}
         />
 
-        <h2 className="min-w-0 truncate font-display text-[20px] font-semibold text-ink">
+        <h2 className="min-w-0 truncate font-display text-[22px] font-bold tracking-[-0.02em] text-ink">
           {monthLabel(month)}
         </h2>
 
@@ -105,11 +109,11 @@ export default function MonthCalendar({ value, onChange }) {
           `muted/80`, not plain `muted`: the reference greys these to the same
           value it greys a day outside the month, and ours was a step lighter
           than both. */}
-      <div className="mt-[22px] grid h-6 grid-cols-7 gap-x-[2px]">
+      <div className="mt-4 grid h-6 grid-cols-7 gap-x-1">
         {weekdays.map((label) => (
           <span
             key={label}
-            className="grid place-items-center text-[13px] font-medium tracking-wide text-muted/80"
+            className="grid place-items-center text-[13px] font-medium tracking-wide text-muted"
           >
             {label}
           </span>
@@ -125,7 +129,7 @@ export default function MonthCalendar({ value, onChange }) {
           `gap-x-[5px]` / `gap-y-[8px]` are those pitches minus the cells. The
           uneven pair is the point — horizontally the gap only has to keep two
           numbers apart, vertically it has to keep two *weeks* apart. */}
-      <div className="mt-[9px] grid grid-cols-7 gap-x-[2px] gap-y-[2px]">
+      <div className="mt-2 grid grid-cols-7 gap-1">
         {days.map((day) => {
           const outside = !sameMonth(day, month)
           const isToday = sameDay(day, today)
@@ -154,18 +158,11 @@ export default function MonthCalendar({ value, onChange }) {
               // `aria-current` is what tells a screen reader which cell is
               // today; the tint alone says it only to someone who can see it.
               aria-current={isToday ? 'date' : undefined}
-              // **Square, and the gaps down to 2px** — the numbers were too
-              // far apart once the calendar was scaled up. The reference's
-              // 36 × 40 cell on a 5 / 8 gap is right at its own size; enlarged
-              // by a third it carried the spacing up with it, and a month
-              // whose rows are 62px apart reads as a list rather than a grid.
-              //
-              // Horizontal spacing is what is left over: seven columns share
-              // the panel's width, so the only way to close the numbers up
-              // sideways is a narrower calendar, not a smaller gap.
-              //
-              // `rounded-xl` rather than `lg`: 8px on a 36px pill and 8px on a
-              // 47px one are not the same corner.
+              // 36px tall and `rounded-[10px]`: the header's icon links and
+              // the rail's nav items are exactly this square, so a day cell is
+              // one of them rather than a shape of its own. 13px semibold in
+              // the display face is what the timetable sets its own dates in —
+              // the same data, so the same step.
               //
               // **`#3178F4` is the reference's blue, hard-coded and the same in
               // both themes**, like `--now` on the timetable. It is a departure
@@ -173,7 +170,7 @@ export default function MonthCalendar({ value, onChange }) {
               // which is monochrome — taken deliberately, because the ask was
               // for this drawing exactly. Swap the one class back to
               // `bg-accent text-surface` to undo it.
-              className={`grid aspect-square place-items-center rounded-xl font-display text-[20px] font-medium outline-none transition-colors ${
+              className={`grid h-9 place-items-center rounded-[10px] font-display text-[13px] font-semibold outline-none transition-colors ${
                 isSelected
                   ? 'bg-[#3178F4] text-white'
                   : isToday
@@ -215,11 +212,11 @@ function StepButton({ label, icon, onClick }) {
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink/[0.09] text-ink outline-none transition-colors hover:bg-ink/20 focus-visible:bg-ink/20"
+      className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/12 text-ink outline-none transition-colors hover:bg-ink/20 focus-visible:bg-ink/20"
     >
       <HugeiconsIcon
         icon={icon}
-        size={22}
+        size={17}
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={2.2}
