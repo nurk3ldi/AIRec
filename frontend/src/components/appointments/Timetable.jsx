@@ -5,8 +5,19 @@ import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
 } from '@hugeicons/core-free-icons'
-import { fromMinutes } from '../../lib/appointments'
-import { sameDay, shiftDate, weekDays, weekdayLabels } from '../../lib/dates'
+import {
+  bookingColor,
+  byStart,
+  fromMinutes,
+  layoutDay,
+} from '../../lib/appointments'
+import {
+  dayKey,
+  sameDay,
+  shiftDate,
+  weekDays,
+  weekdayLabels,
+} from '../../lib/dates'
 import { closedRanges } from '../../lib/schedule'
 import { useT } from '../../lib/i18n'
 
@@ -77,7 +88,13 @@ const VIEWS = [
  * in the product would spend that meaning on a clock. Orange is close enough to
  * carry the same urgency and is already a hue the project owns.
  */
-export default function Timetable({ selected, onSelect, week, onCreate }) {
+export default function Timetable({
+  selected,
+  onSelect,
+  week,
+  bookings,
+  onCreate,
+}) {
   const t = useT()
   const [view, setView] = useState('week')
 
@@ -113,6 +130,30 @@ export default function Timetable({ selected, onSelect, week, onCreate }) {
         to: Math.min(range.to, WINDOW_TO),
       }))
       .filter((range) => range.to > range.from)
+  }
+
+  /**
+   * What is booked on `day`, positioned and coloured.
+   *
+   * The colour is handed out by **position within the day**, not hashed from
+   * the id: a hash collides, and two bookings an hour apart wearing the same
+   * colour is the one thing this is meant to prevent. `byStart` is a total
+   * order — it breaks a tie on the id — so the same booking comes out the same
+   * colour every time it is drawn, here and anywhere else that sorts a day.
+   *
+   * `layoutDay` is what makes two bookings at the same hour sit side by side
+   * rather than one behind the other. A business with `capacity` above one is
+   * expected to have them, and hiding the second would make the day look
+   * emptier than it is.
+   */
+  const bookingsFor = (day) => {
+    const key = dayKey(day)
+    const sorted = (bookings ?? []).filter((b) => b.day === key).sort(byStart)
+    const colors = new Map(sorted.map((b, index) => [b.id, bookingColor(index)]))
+    return layoutDay(sorted).map((block) => ({
+      ...block,
+      color: colors.get(block.id),
+    }))
   }
 
   const now = useNow()
@@ -413,6 +454,10 @@ export default function Timetable({ selected, onSelect, week, onCreate }) {
                   }
                 />
               ))}
+
+              {bookingsFor(day).map((block) => (
+                <BookingBlock key={block.id} block={block} />
+              ))}
             </div>
           ))}
 
@@ -478,6 +523,59 @@ function useNow() {
   }, [])
 
   return now
+}
+
+/**
+ * One booking, drawn where it sits.
+ *
+ * **The colour marks *which* booking, not what became of it.** Status picked it
+ * once and the result was a screen of one colour: almost every booking is an
+ * ordinary live one, so a status palette paints them all the same and says
+ * nothing you could not already see. What differs from row to row is identity,
+ * so identity is what gets the hue — see `BOOKING_COLORS`.
+ *
+ * The fill is that hue mixed into the surface rather than the hue itself: a
+ * solid block of colour every hour of a busy day is a wall, and the text on it
+ * would need its own contrast rule per hue. Mixed, one text colour works on all
+ * eight, and the bar down the left edge carries the identity at full strength.
+ *
+ * A cancelled booking fades rather than disappearing: it gave its hour back —
+ * `BLOCKING_STATUSES` — but it is still what happened there, and the assistant
+ * has already spoken to that client about that time.
+ */
+function BookingBlock({ block }) {
+  const top = ((block.start - WINDOW_FROM) / 60) * ROW_HEIGHT
+  // A floor, so a fifteen-minute service is still a block you can read a name
+  // out of rather than a coloured line.
+  const height = Math.max(((block.end - block.start) / 60) * ROW_HEIGHT, 20)
+  const cancelled = block.status === 'cancelled'
+
+  return (
+    <div
+      className={`absolute overflow-hidden rounded-lg py-1 pr-1.5 pl-2 ${
+        cancelled ? 'opacity-45' : ''
+      }`}
+      style={{
+        top,
+        height,
+        // 2px of air either side, so two lanes do not touch and a single
+        // booking does not sit flush against the column rule.
+        left: `calc(${(block.lane / block.lanes) * 100}% + 2px)`,
+        width: `calc(${100 / block.lanes}% - 4px)`,
+        backgroundColor: `color-mix(in oklab, ${block.color} 16%, var(--color-surface))`,
+        boxShadow: `inset 3px 0 0 ${block.color}`,
+      }}
+    >
+      <p className="truncate text-[12px] leading-tight font-medium text-ink">
+        {block.client}
+      </p>
+      {height >= 38 && (
+        <p className="truncate text-[11px] leading-tight text-muted">
+          {block.from} · {block.service}
+        </p>
+      )}
+    </div>
+  )
 }
 
 /**

@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react'
 import MonthCalendar from '../components/appointments/MonthCalendar'
 import Timetable from '../components/appointments/Timetable'
-import { getWorkingHours } from '../lib/api'
+import BookingDialog from '../components/appointments/BookingDialog'
+import {
+  getBusiness,
+  getServices,
+  getWorkingHours,
+  listAppointments,
+} from '../lib/api'
+import { toBlock } from '../lib/appointments'
 import { getAccessToken } from '../lib/auth'
+import { dayKey, weekDays } from '../lib/dates'
 import { useT } from '../lib/i18n'
 import styles from '../styles/Appointments.module.css'
 
@@ -39,17 +47,66 @@ export default function AppointmentsPage() {
   // because a *shading* request failed would be the louder mistake.
   const [week, setWeek] = useState(null)
 
+  // The price list, and the zone the business keeps its hours in. Both are
+  // settings rather than content: they are read once and do not change while
+  // the page is open.
+  const [services, setServices] = useState(null)
+  const [timeZone, setTimeZone] = useState(undefined)
+
   useEffect(() => {
     let alive = true
-    getWorkingHours(getAccessToken())
-      .then((rows) => {
-        if (alive) setWeek(rows)
-      })
+    const token = getAccessToken()
+
+    getWorkingHours(token)
+      .then((rows) => alive && setWeek(rows))
       .catch(() => {})
+    getServices(token)
+      .then((rows) => alive && setServices(rows))
+      .catch(() => {})
+    getBusiness(token)
+      .then((row) => alive && setTimeZone(row.timezone))
+      .catch(() => {})
+
     return () => {
       alive = false
     }
   }, [])
+
+  /* --- the bookings themselves --------------------------------------- */
+
+  const [bookings, setBookings] = useState([])
+  const [creating, setCreating] = useState(false)
+  // Bumped after a save. A counter rather than a boolean, because two bookings
+  // made in a row have to be two reloads and `true → true` is no change at all.
+  const [reload, setReload] = useState(0)
+
+  // **The whole week, whichever view is showing.** The timetable switches
+  // between one day and five without telling the page, and re-fetching on that
+  // switch would trade a request for nothing: seven days of one business is a
+  // small answer, and stepping between the two views is instant when both are
+  // already here.
+  const span = weekDays(selected)
+  const from = dayKey(span[0])
+  const to = dayKey(span[6])
+
+  useEffect(() => {
+    let alive = true
+    listAppointments(getAccessToken(), { from, to })
+      .then((rows) => {
+        // Read in the *business's* zone, not the browser's — a booking near
+        // midnight lands on the wrong day of the grid otherwise. Before
+        // `GET /business` answers, `undefined` means the browser's own zone,
+        // which is right for everyone using this from inside the country and
+        // is corrected a moment later for everyone else.
+        if (alive) setBookings(rows.map((row) => toBlock(row, timeZone)))
+      })
+      .catch(() => {
+        if (alive) setBookings([])
+      })
+    return () => {
+      alive = false
+    }
+  }, [from, to, timeZone, reload])
 
   return (
     // The flex row is *on the page element itself*, so `items-stretch` has the
@@ -116,7 +173,8 @@ export default function AppointmentsPage() {
           selected={selected}
           onSelect={setSelected}
           week={week}
-          onCreate={() => {}}
+          bookings={bookings}
+          onCreate={() => setCreating(true)}
         />
       </div>
 
@@ -153,6 +211,18 @@ export default function AppointmentsPage() {
       <aside className="min-h-[300px] w-full shrink-0 border-t border-line p-4 xl:min-h-0 xl:w-[calc(300px+2rem)] xl:border-t-0 xl:border-l">
         <MonthCalendar value={selected} onChange={setSelected} />
       </aside>
+
+      {/* Rendered from the page rather than from the toolbar that opens it: the
+          booking it writes belongs to the day the page is on, and the reload it
+          triggers is the page's own. */}
+      <BookingDialog
+        open={creating}
+        onOpenChange={setCreating}
+        day={selected}
+        services={services}
+        timeZone={timeZone}
+        onCreated={() => setReload((n) => n + 1)}
+      />
     </div>
   )
 }

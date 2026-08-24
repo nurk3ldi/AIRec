@@ -264,3 +264,20 @@ a {
   color: var(--surface);
   background: var(--ink);
 }
+
+/* The two the booking dialog enters on. Radix mounts and unmounts its content,
+   so the arrival has to be an animation rather than a transition — there is no
+   previous value to transition from. `dialog-in` carries the centring transform
+   through, or the panel would snap to the corner for the length of it. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.97);
+  }
+}
