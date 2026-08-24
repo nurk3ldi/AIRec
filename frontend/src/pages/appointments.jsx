@@ -65,6 +65,28 @@ export default function AppointmentsPage() {
           It is not a card either: its top rule is a horizontal line beginning
           exactly where the rail's vertical one ends. */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-end">
+        {/* **Three cards, empty, and edgeless.** They hold the 35% above the
+            grid — see the note on `justify-end`. Empty because what goes in
+            them is not decided; drawn anyway because the shape of the row is,
+            and a blank gap tells the next reader nothing about what belongs
+            there.
+
+            **`bg-surface-raised`, not `bg-surface` with a border.** In dark
+            mode `surface` and `ground` are the same black, so a card without a
+            hairline drawn in it is invisible — which is why the project's card
+            pattern carries `border border-line`. The token is the other way to
+            separate a block from the page: a fill a step off the ground,
+            white on light and #0e0e0e on dark. No line, no shadow, no ring.
+
+            `flex-1` rather than a second percentage: the grid below states its
+            share and this takes what is left, so the two cannot add up to
+            anything but the column. */}
+        <div className="grid min-h-0 flex-1 grid-cols-3 gap-4 p-4">
+          <div className="rounded-2xl bg-surface-raised" />
+          <div className="rounded-2xl bg-surface-raised" />
+          <div className="rounded-2xl bg-surface-raised" />
+        </div>
+
         <Timetable selected={selected} onSelect={setSelected} />
       </div>
 
