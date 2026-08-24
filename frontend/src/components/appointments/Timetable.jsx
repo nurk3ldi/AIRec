@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons'
+import {
+  Add01Icon,
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+} from '@hugeicons/core-free-icons'
 import { fromMinutes } from '../../lib/appointments'
 import { sameDay, shiftDate, weekDays, weekdayLabels } from '../../lib/dates'
 import { closedRanges } from '../../lib/schedule'
@@ -73,7 +77,7 @@ const VIEWS = [
  * in the product would spend that meaning on a clock. Orange is close enough to
  * carry the same urgency and is already a hue the project owns.
  */
-export default function Timetable({ selected, onSelect, week }) {
+export default function Timetable({ selected, onSelect, week, onCreate }) {
   const t = useT()
   const [view, setView] = useState('week')
 
@@ -193,6 +197,36 @@ export default function Timetable({ selected, onSelect, week }) {
               )
             })}
           </div>
+
+          {/* **36px, the height of the arrows and of the segment track beside
+              it** — the row is one band and a control half a step off it reads
+              as misaligned rather than as smaller. What is kept short is the
+              word: «Добавить», not «Новая запись», because the object is
+              already named by the heading at the other end of this bar and a
+              button does not have to repeat the noun to say what it does.
+
+              The accent fill is the point of it: everything to its left changes
+              *what you are looking at*, this is the one control that changes
+              what is there, and it is the only filled thing on the page.
+
+              Below `sm` the glyph carries it alone — three words in a bar that
+              also holds a heading, two arrows and a two-way switch is a bar
+              that wraps. */}
+          <button
+            type="button"
+            onClick={onCreate}
+            aria-label={t('appointments.create')}
+            className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-accent pr-4 pl-3 text-[14px] font-medium text-surface outline-none transition-opacity hover:opacity-90 focus-visible:opacity-90 max-sm:w-9 max-sm:justify-center max-sm:px-0"
+          >
+            <HugeiconsIcon
+              icon={Add01Icon}
+              size={17}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2.2}
+            />
+            <span className="max-sm:sr-only">{t('appointments.create')}</span>
+          </button>
         </div>
       </header>
 

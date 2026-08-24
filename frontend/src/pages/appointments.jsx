@@ -112,7 +112,12 @@ export default function AppointmentsPage() {
           <div className="rounded-2xl bg-surface-raised" />
         </div>
 
-        <Timetable selected={selected} onSelect={setSelected} week={week} />
+        <Timetable
+          selected={selected}
+          onSelect={setSelected}
+          week={week}
+          onCreate={() => {}}
+        />
       </div>
 
       {/* The right panel: full height, flush rather than rounded, and now the
