@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import MonthCalendar from '../components/appointments/MonthCalendar'
 import Timetable from '../components/appointments/Timetable'
+import { getWorkingHours } from '../lib/api'
+import { getAccessToken } from '../lib/auth'
 import { useT } from '../lib/i18n'
 import styles from '../styles/Appointments.module.css'
 
@@ -25,6 +27,29 @@ import styles from '../styles/Appointments.module.css'
 export default function AppointmentsPage() {
   const t = useT()
   const [selected, setSelected] = useState(() => new Date())
+
+  // **The week the business actually works**, so the grid can shade the hours
+  // nobody is there. Seven rows keyed by `weekday`, `0 = Monday`, straight from
+  // `GET /business/working-hours`; the backend creates them on first read, so
+  // this never comes back short.
+  //
+  // A failure is swallowed on purpose. Nothing here is the point of the page —
+  // without the week the grid draws every hour as ordinary, which is exactly
+  // what it did before this existed. An error banner over a booking calendar
+  // because a *shading* request failed would be the louder mistake.
+  const [week, setWeek] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    getWorkingHours(getAccessToken())
+      .then((rows) => {
+        if (alive) setWeek(rows)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
 
   return (
     // The flex row is *on the page element itself*, so `items-stretch` has the
@@ -87,7 +112,7 @@ export default function AppointmentsPage() {
           <div className="rounded-2xl bg-surface-raised" />
         </div>
 
-        <Timetable selected={selected} onSelect={setSelected} />
+        <Timetable selected={selected} onSelect={setSelected} week={week} />
       </div>
 
       {/* The right panel: full height, flush rather than rounded, and now the

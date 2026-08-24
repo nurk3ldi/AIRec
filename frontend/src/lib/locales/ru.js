@@ -18,6 +18,8 @@ export default {
   'appointments.viewWeek': '5 дней',
   'appointments.prev': 'Назад',
   'appointments.next': 'Вперёд',
+  'appointments.break': 'Перерыв',
+  'appointments.dayOff': 'Выходной',
 
   'calendar.prevMonth': 'Предыдущий месяц',
   'calendar.nextMonth': 'Следующий месяц',

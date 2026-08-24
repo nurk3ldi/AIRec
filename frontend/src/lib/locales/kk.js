@@ -12,6 +12,8 @@ export default {
   'appointments.viewWeek': '5 күн',
   'appointments.prev': 'Артқа',
   'appointments.next': 'Алға',
+  'appointments.break': 'Үзіліс',
+  'appointments.dayOff': 'Демалыс',
 
   'calendar.prevMonth': 'Алдыңғы ай',
   'calendar.nextMonth': 'Келесі ай',

@@ -12,6 +12,8 @@ export default {
   'appointments.viewWeek': '5 days',
   'appointments.prev': 'Back',
   'appointments.next': 'Forward',
+  'appointments.break': 'Break',
+  'appointments.dayOff': 'Day off',
 
   'calendar.prevMonth': 'Previous month',
   'calendar.nextMonth': 'Next month',

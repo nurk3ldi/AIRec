@@ -87,7 +87,7 @@ export const isDayOff = (row) =>
   Boolean(row) && !row.is_24h && !row.opens_at
 
 /**
- * The stretches of a day the business is shut, as `[fromMinute, toMinute]`.
+ * The stretches of a day the business is shut, as `{from, to, kind}`.
  *
  * The inverse of what `WorkingHours` stores, because that is what the calendar
  * has to draw: a grid of twenty-four identical hours cannot say that Sunday is
@@ -100,24 +100,34 @@ export const isDayOff = (row) =>
  * A missing row shades nothing rather than everything: it means the week has
  * not arrived yet, and greying out a day the business may well be open is the
  * worse of the two wrong answers.
+ *
+ * **`kind` is what the caller labels the block with**, and the three are not
+ * interchangeable. `off` is a day the business does not work at all, `break` is
+ * the hour nobody is there in the middle of one, and `shut` is simply the time
+ * either side of opening hours. Only the first two are worth writing a word on
+ * the grid for — "closed before 10:00" is what the empty grid already says —
+ * so the distinction has to survive out of this function rather than being
+ * re-derived from the times by whoever draws it.
  */
 export function closedRanges(row) {
   if (!row || row.is_24h) return []
-  if (!row.opens_at || !row.closes_at) return [[0, MINUTES_IN_DAY]]
+  if (!row.opens_at || !row.closes_at)
+    return [{ from: 0, to: MINUTES_IN_DAY, kind: 'off' }]
 
   const opens = toMinutes(row.opens_at)
   const closes = toMinutes(row.closes_at)
 
   const ranges = []
-  if (opens > 0) ranges.push([0, opens])
+  if (opens > 0) ranges.push({ from: 0, to: opens, kind: 'shut' })
 
   if (row.break_starts_at && row.break_ends_at) {
     const from = toMinutes(row.break_starts_at)
     const to = toMinutes(row.break_ends_at)
-    if (to > from) ranges.push([from, to])
+    if (to > from) ranges.push({ from, to, kind: 'break' })
   }
 
-  if (closes < MINUTES_IN_DAY) ranges.push([closes, MINUTES_IN_DAY])
+  if (closes < MINUTES_IN_DAY)
+    ranges.push({ from: closes, to: MINUTES_IN_DAY, kind: 'shut' })
   return ranges
 }
 

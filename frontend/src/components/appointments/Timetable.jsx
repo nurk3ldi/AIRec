@@ -3,6 +3,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons'
 import { fromMinutes } from '../../lib/appointments'
 import { sameDay, shiftDate, weekDays, weekdayLabels } from '../../lib/dates'
+import { closedRanges } from '../../lib/schedule'
 import { useT } from '../../lib/i18n'
 
 // The window of the day the grid draws. A guess for now, and an honest one:
@@ -18,6 +19,27 @@ const ROW_HEIGHT = 56
 // is Monday-first for the same reason the backend's `weekday` is, and slicing
 // the tail off keeps both agreeing about which day is which.
 const WORK_DAYS = 5
+
+/**
+ * The diagonal hatch a closed stretch wears.
+ *
+ * **A pattern rather than a flat grey, because a flat grey is a colour and this
+ * has to read as "nothing happens here".** A tint says the hour is *some* other
+ * kind of hour; hatching says it is struck out. It is also the one thing that
+ * survives a booking being drawn on top of it, which a fill would not.
+ *
+ * 6px on, 6px off at 135° — the reference's own period, measured off it. The
+ * contrast is deliberately tiny: this is the background of the grid, and a
+ * visible stripe across a fifth of the screen is a texture nobody asked to
+ * look at. `color-mix` rather than an alpha stop so the stripes track `ink`
+ * through a theme change.
+ */
+const HATCH =
+  'repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in oklab, var(--color-ink) 5%, transparent) 6px 12px)'
+
+/** The slice of the day the grid draws, in minutes. */
+const WINDOW_FROM = START_HOUR * 60
+const WINDOW_TO = END_HOUR * 60
 
 // Two views, and both do something — a switcher whose segments are decoration
 // is worse than no switcher, which is why the reference's Today/Month/Year are
@@ -51,7 +73,7 @@ const VIEWS = [
  * in the product would spend that meaning on a clock. Orange is close enough to
  * carry the same urgency and is already a hue the project owns.
  */
-export default function Timetable({ selected, onSelect }) {
+export default function Timetable({ selected, onSelect, week }) {
   const t = useT()
   const [view, setView] = useState('week')
 
@@ -69,6 +91,25 @@ export default function Timetable({ selected, onSelect }) {
     { length: END_HOUR - START_HOUR },
     (_, index) => START_HOUR + index
   )
+
+  /**
+   * The stretches of `day` the business is shut, clipped to the hours on
+   * screen.
+   *
+   * `(getDay() + 6) % 7` because the API counts weekdays from Monday — the same
+   * translation the day headings need, and the only place the two calendars
+   * disagree. A week that has not arrived yet shades nothing.
+   */
+  const closedFor = (day) => {
+    const row = week?.find((item) => item.weekday === (day.getDay() + 6) % 7)
+    return closedRanges(row)
+      .map((range) => ({
+        ...range,
+        from: Math.max(range.from, WINDOW_FROM),
+        to: Math.min(range.to, WINDOW_TO),
+      }))
+      .filter((range) => range.to > range.from)
+  }
 
   const now = useNow()
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
@@ -298,6 +339,23 @@ export default function Timetable({ selected, onSelect }) {
               {hours.map((hour) => (
                 <div key={hour} className="h-14 border-t border-line" />
               ))}
+
+              {/* Drawn after the hour rules so it lies over them, and before
+                  the now-line, which is a later child of the grid and so still
+                  crosses it. Bookings will land on top of both. */}
+              {closedFor(day).map((range) => (
+                <ClosedSpan
+                  key={`${range.kind}-${range.from}`}
+                  range={range}
+                  label={
+                    range.kind === 'off'
+                      ? t('appointments.dayOff')
+                      : range.kind === 'break'
+                        ? t('appointments.break')
+                        : null
+                  }
+                />
+              ))}
             </div>
           ))}
 
@@ -363,6 +421,41 @@ function useNow() {
   }, [])
 
   return now
+}
+
+/**
+ * An hour the business is shut — a day off, a break, or the time either side of
+ * opening hours.
+ *
+ * **Struck out rather than filled, and labelled only where the label says
+ * something.** "Выходной" and "Перерыв" are facts about the business; the
+ * stretch before 10:00 is not, it is simply outside the day, and writing
+ * "закрыто" across the top of every column would be the grid telling you what
+ * it has already shown you.
+ *
+ * `pointer-events-none`, so a closed hour stays a place a booking can be put
+ * later — the owner writing down someone who came at lunch is an ordinary
+ * thing to do, and the shading is information, not a wall.
+ *
+ * The label hides on a short span: a word in a 15-minute block is a word
+ * clipped by its own box.
+ */
+function ClosedSpan({ range, label }) {
+  const top = ((range.from - WINDOW_FROM) / 60) * ROW_HEIGHT
+  const height = ((range.to - range.from) / 60) * ROW_HEIGHT
+
+  return (
+    <div
+      className="pointer-events-none absolute inset-x-0 overflow-hidden bg-ink/[0.03]"
+      style={{ top, height, backgroundImage: HATCH }}
+    >
+      {label && height >= 28 && (
+        <span className="absolute top-1.5 left-2 text-[12px] text-muted">
+          {label}
+        </span>
+      )}
+    </div>
+  )
 }
 
 /** One of the two step arrows, the same object the calendar's month arrows are
