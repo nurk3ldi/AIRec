@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Add01Icon,
@@ -6,10 +6,12 @@ import {
   ArrowRight01Icon,
 } from '@hugeicons/core-free-icons'
 import {
-  bookingColor,
   byStart,
+  formatPrice,
   fromMinutes,
   layoutDay,
+  stateOf,
+  statusLabel,
 } from '../../lib/appointments'
 import {
   dayKey,
@@ -20,6 +22,7 @@ import {
 } from '../../lib/dates'
 import { closedRanges } from '../../lib/schedule'
 import BookingPopover from './BookingPopover'
+import StatusFilter from './StatusFilter'
 import { useT } from '../../lib/i18n'
 
 // The window of the day the grid draws. A guess for now, and an honest one:
@@ -28,13 +31,69 @@ import { useT } from '../../lib/i18n'
 // `openSpans()` the moment the page fetches them.
 const START_HOUR = 8
 const END_HOUR = 21
-const ROW_HEIGHT = 56
+/**
+ * **How much of the day is on screen at once — and the hour's height is derived
+ * from it, not the other way round.**
+ *
+ * It was a fixed 56, then 80, then 200, and every one of those was an answer to
+ * "how tall should an hour be?", which cannot be answered in pixels: the same
+ * number is a cramped grid on a laptop and a wasteful one on a monitor. What
+ * can be answered is how much of the day should be readable without scrolling,
+ * and three hours is enough to see what is coming while leaving the shortest
+ * booking a business can take room to be read.
+ *
+ * The hour is therefore whatever a third of the visible grid is, measured. A
+ * fifteen-minute booking is a twelfth of it, which on an ordinary window is
+ * comfortably a card rather than the 20px sliver it was at a fixed 80.
+ */
+const HOURS_ON_SCREEN = 3
 
 // Monday to Friday. The week helper hands back seven and this takes the front
 // of it, so Saturday and Sunday are dropped rather than reordered — `weekDays`
 // is Monday-first for the same reason the backend's `weekday` is, and slicing
 // the tail off keeps both agreeing about which day is which.
 const WORK_DAYS = 5
+
+/**
+ * How wide a booking is in the day view, and the air between two of them.
+ *
+ * **A fixed width, not a share of the column.** Across five days a booking gets
+ * a fifth of the grid whether it wants one or not, which is right — the columns
+ * are the days. One day is a different problem: a single booking stretched
+ * across the whole screen is a card holding four short lines and a metre of
+ * empty space, and two of them are half a screen each for the same reason.
+ *
+ * 240 is what the four lines actually want — a name, a service, a span and a
+ * price, none of them long. What is left over is not padding: it is where the
+ * *second* booking at that hour goes, and the third. Past what fits, the grid
+ * scrolls sideways rather than making every card narrower, because a column
+ * that thins as the day fills is one where a busy hour is the least readable.
+ */
+const LANE_WIDTH = 240
+const LANE_GAP = 8
+
+/**
+ * What colour a booking's status is said in.
+ *
+ * **Only two of the four get one, and that is the point.** Colour on a
+ * calendar is worth exactly what it is spent on: paint every card and it says
+ * nothing, paint the two that need looking at and they can be found from across
+ * the room.
+ *
+ * `confirmed` is almost every booking there is — the ordinary, expected case —
+ * so it takes the muted grey everything else on the card takes. `cancelled`
+ * already has a signal of its own: the whole card fades to 45%, which is a
+ * stronger statement than a coloured word and does not need repeating.
+ *
+ * That leaves the two that are worth spotting. `completed` is `ok`, the green
+ * this project already means "done" with; `no_show` is `danger`, the red it
+ * already means "this went wrong" with. Neither is a new hue and neither is
+ * being borrowed for decoration.
+ */
+const STATUS_TONE = {
+  completed: 'text-ok',
+  no_show: 'text-danger',
+}
 
 /**
  * The diagonal hatch a closed stretch wears.
@@ -100,6 +159,8 @@ export default function Timetable({
 }) {
   const t = useT()
   const [view, setView] = useState('week')
+  // Empty means "everything", not "nothing" — see the note on `StatusFilter`.
+  const [statuses, setStatuses] = useState(() => new Set())
 
   const step = VIEWS.find((item) => item.id === view)?.step ?? 'week'
   const days =
@@ -136,13 +197,18 @@ export default function Timetable({
   }
 
   /**
-   * What is booked on `day`, positioned and coloured.
+   * What is booked on `day`, positioned.
    *
-   * The colour is handed out by **position within the day**, not hashed from
-   * the id: a hash collides, and two bookings an hour apart wearing the same
-   * colour is the one thing this is meant to prevent. `byStart` is a total
-   * order — it breaks a tie on the id — so the same booking comes out the same
-   * colour every time it is drawn, here and anywhere else that sorts a day.
+   * **Every card is the same grey.** `BOOKING_COLORS` gave each booking of a
+   * day its own hue so one could be told from another at a glance, which is a
+   * real argument and lost to a plainer one: a week of coloured blocks is a
+   * week that looks like something is happening, and nothing here needs a
+   * colour to mean anything yet. When something does — a status worth spotting
+   * from across the room — it will have the whole surface to say it on.
+   *
+   * `byStart` still sorts, because `layoutDay` needs a *total* order: it breaks
+   * a tie on the id, so two bookings starting the same minute cannot swap lanes
+   * between renders.
    *
    * `layoutDay` is what makes two bookings at the same hour sit side by side
    * rather than one behind the other. A business with `capacity` above one is
@@ -151,15 +217,69 @@ export default function Timetable({
    */
   const bookingsFor = (day) => {
     const key = dayKey(day)
-    const sorted = (bookings ?? []).filter((b) => b.day === key).sort(byStart)
-    const colors = new Map(
-      sorted.map((b, index) => [b.id, bookingColor(index)]),
-    )
-    return layoutDay(sorted).map((block) => ({
-      ...block,
-      color: colors.get(block.id),
-    }))
+    const sorted = (bookings ?? [])
+      .filter(
+        (b) =>
+          b.day === key &&
+          (statuses.size === 0 || statuses.has(stateOf(b.status))),
+      )
+      .sort(byStart)
+    return layoutDay(sorted)
   }
+
+  /**
+   * The hour's height in pixels, measured rather than chosen.
+   *
+   * The grid's own box minus the day names sticking to its top — that strip
+   * scrolls over the hours rather than beside them, so counting it would make
+   * the four hours slightly less than four. A `ResizeObserver` because this
+   * changes with the window, with the `xl` breakpoint that restacks the page,
+   * and with the panel beside it; a one-off measurement would be right until
+   * the first time anything moved.
+   *
+   * **It starts at a real number, not at 0.** Everything on the grid is
+   * positioned by this, so a zero collapses the hour rows to nothing, stacks
+   * the gutter's labels on top of each other and leaves the columns blank — a
+   * grid that renders and then appears to vanish. That is the state between
+   * mount and the observer's first callback, and it is also what is left if the
+   * measurement never lands: a box that is not laid out yet, a browser without
+   * `ResizeObserver`. 120 is a plausible hour, so the worst case is a grid at
+   * the wrong scale rather than no grid at all.
+   *
+   * It is also why the rows below take this same value as a style rather than a
+   * class: were they `h-20` and this a measured number, the two would disagree
+   * on the first frame and on every frame after it.
+   */
+  const scroller = useRef(null)
+  const heading = useRef(null)
+  const [rowHeight, setRowHeight] = useState(120)
+
+  useEffect(() => {
+    const box = scroller.current
+    if (!box) return
+
+    const measure = () => {
+      const head = heading.current?.offsetHeight ?? 0
+      const usable = box.clientHeight - head
+      if (usable > 0) setRowHeight(usable / HOURS_ON_SCREEN)
+    }
+
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(box)
+    return () => observer.disconnect()
+  }, [])
+
+  // The widest cluster of the day, which is how many lanes the column has to
+  // be able to hold. Only the day view asks: the week view sizes its columns by
+  // the days, not by what is in them.
+  const dayLanes =
+    view === 'day'
+      ? bookingsFor(selected).reduce(
+          (most, block) => Math.max(most, block.lanes),
+          1,
+        )
+      : 1
 
   const now = useNow()
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
@@ -175,7 +295,7 @@ export default function Timetable({
     (view === 'day'
       ? sameDay(selected, now)
       : weekDays(selected).some((day) => sameDay(day, now)))
-  const nowOffset = ((nowMinutes - START_HOUR * 60) / 60) * ROW_HEIGHT
+  const nowOffset = ((nowMinutes - START_HOUR * 60) / 60) * rowHeight
 
   return (
     // **65% of the page, a definite share rather than `flex-1`.** Filling every
@@ -195,9 +315,15 @@ export default function Timetable({
           It carries no rule of its own either: the day names below already have
           one, and two lines twelve pixels apart read as a mistake. */}
       <header className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-        <h2 className="font-display text-[22px] font-bold tracking-[-0.02em] text-ink">
-          {t('nav.appointments')}
-        </h2>
+        {/* The heading and the filter travel together: one names what is in
+            the grid and the other decides it, where everything against the
+            right edge decides which days are on screen. */}
+        <div className="flex min-w-0 items-center gap-3">
+          <h2 className="font-display text-[22px] font-bold tracking-[-0.02em] text-ink">
+            {t('nav.appointments')}
+          </h2>
+          <StatusFilter value={statuses} onChange={setStatuses} />
+        </div>
 
         {/* Arrows and views travel together against the right edge: both answer
             "which days am I looking at", and splitting them across the bar
@@ -287,7 +413,11 @@ export default function Timetable({
               different components. The day it writes for is `selected` — the
               same state the calendar and these arrows share. */}
           <BookingPopover
-            day={selected}
+            // The panel starts with an empty date and reports the one that is
+            // chosen, so the page follows it rather than seeding it: a booking
+            // written for Thursday from a screen showing Monday would otherwise
+            // not appear anywhere, since the grid reloads the week around the
+            // page's own selection.
             onDayChange={onSelect}
             services={services}
             timeZone={timeZone}
@@ -324,7 +454,10 @@ export default function Timetable({
           what it holds, and the overflow lands on the document instead: the
           page grows past the viewport and Chrome puts a scrollbar down the side
           of the whole app. Scrolling belongs to the grid, not to the screen. */}
-      <div className="min-h-0 flex-1 overflow-auto border-y border-line">
+      <div
+        ref={scroller}
+        className="min-h-0 flex-1 overflow-auto border-y border-line"
+      >
         {/* The gutter plus one column per day. `minWidth` keeps a column wide
             enough to hold a booking: below it the grid scrolls sideways rather
             than squeezing five days into nothing. A single day needs no floor —
@@ -333,7 +466,13 @@ export default function Timetable({
           className="grid"
           style={{
             gridTemplateColumns: `56px repeat(${days.length}, minmax(0, 1fr))`,
-            minWidth: days.length > 1 ? 56 + days.length * 120 : undefined,
+            // A week needs room for five readable columns; a day needs room
+            // for however many bookings share its busiest hour. Either way the
+            // grid scrolls sideways rather than squeezing.
+            minWidth:
+              view === 'day'
+                ? 56 + dayLanes * (LANE_WIDTH + LANE_GAP)
+                : 56 + days.length * 120,
           }}
         >
           {/* Sticky, because scrolling to the evening with no idea which
@@ -345,7 +484,7 @@ export default function Timetable({
               belongs to the days, and the gutter is not one of them. It keeps
               the fill regardless — that is the mask the hour labels slide
               under. */}
-          <div className="sticky top-0 z-20 bg-ground" />
+          <div ref={heading} className="sticky top-0 z-20 bg-ground" />
           {days.map((day, index) => {
             const isToday = sameDay(day, now)
 
@@ -432,7 +571,16 @@ export default function Timetable({
               the gutter is for. */}
           <div className="relative">
             {hours.map((hour) => (
-              <div key={hour} className="relative h-14">
+              // Height from the constant, not from a class: every booking
+              // and the now-line are positioned by `rowHeight`, so a row of a
+              // different size puts the whole grid out by however much they
+              // differ. They were `h-14` and the constant was 56, which agreed
+              // only until one of them was changed.
+              <div
+                key={hour}
+                className="relative"
+                style={{ height: rowHeight }}
+              >
                 {/* Centred across the gutter rather than pushed against the
                     grid, and at the day headings' 13px — the times are the
                     column's whole content, so hugging one edge of it left the
@@ -452,7 +600,13 @@ export default function Timetable({
               }`}
             >
               {hours.map((hour) => (
-                <div key={hour} className="h-14 border-t border-line" />
+                // **No rule across the hour.** The gutter down the left says
+                // what time it is and the columns say which day; a line every
+                // eighty pixels across five columns was a grid drawn over a
+                // grid, and the cards on it have edges of their own to be read
+                // against. The rows stay — they are what gives the column its
+                // height — they simply draw nothing.
+                <div key={hour} style={{ height: rowHeight }} />
               ))}
 
               {/* Drawn after the hour rules so it lies over them, and before
@@ -462,6 +616,7 @@ export default function Timetable({
                 <ClosedSpan
                   key={`${range.kind}-${range.from}`}
                   range={range}
+                  rowHeight={rowHeight}
                   label={
                     range.kind === 'off'
                       ? t('appointments.dayOff')
@@ -473,7 +628,12 @@ export default function Timetable({
               ))}
 
               {bookingsFor(day).map((block) => (
-                <BookingBlock key={block.id} block={block} />
+                <BookingBlock
+                  key={block.id}
+                  block={block}
+                  rowHeight={rowHeight}
+                  laneWidth={view === 'day' ? LANE_WIDTH : null}
+                />
               ))}
             </div>
           ))}
@@ -560,35 +720,98 @@ function useNow() {
  * `BLOCKING_STATUSES` — but it is still what happened there, and the assistant
  * has already spoken to that client about that time.
  */
-function BookingBlock({ block }) {
-  const top = ((block.start - WINDOW_FROM) / 60) * ROW_HEIGHT
+function BookingBlock({ block, rowHeight, laneWidth }) {
+  const top = ((block.start - WINDOW_FROM) / 60) * rowHeight
   // A floor, so a fifteen-minute service is still a block you can read a name
   // out of rather than a coloured line.
-  const height = Math.max(((block.end - block.start) / 60) * ROW_HEIGHT, 20)
+  // A floor for the case where the grid is briefly too short to give a quarter
+  // hour any height at all — a narrow window, or the first frame before the
+  // measurement lands. A card below this is a coloured line, not a card.
+  const height = Math.max(((block.end - block.start) / 60) * rowHeight, 34)
   const cancelled = block.status === 'cancelled'
 
   return (
     <div
-      className={`absolute overflow-hidden rounded-lg py-1 pr-1.5 pl-2 ${
+      // `surface-chip` and a hairline: the grey the app already marks a chosen
+      // thing with, and a real value in both themes rather than a tint that
+      // depends on the ground under it. The border is what gives the card an
+      // edge in dark mode, where its fill and the page are close together.
+      className={`absolute flex flex-col gap-1.5 overflow-hidden rounded-lg border border-line bg-surface-chip px-2.5 py-2 ${
         cancelled ? 'opacity-45' : ''
       }`}
       style={{
         top,
         height,
-        // 2px of air either side, so two lanes do not touch and a single
-        // booking does not sit flush against the column rule.
-        left: `calc(${(block.lane / block.lanes) * 100}% + 2px)`,
-        width: `calc(${100 / block.lanes}% - 4px)`,
-        backgroundColor: `color-mix(in oklab, ${block.color} 16%, var(--color-surface))`,
-        boxShadow: `inset 3px 0 0 ${block.color}`,
+        // **Fixed lanes in the day view, shares of the column in the week.**
+        // A day has one column and as much of it as the bookings need; a week
+        // has five, and a booking belongs to the width of its own day.
+        //
+        // 2px of air either side in the week view, so two lanes do not touch
+        // and a single booking does not sit flush against the column rule.
+        ...(laneWidth
+          ? {
+              left: block.lane * (laneWidth + LANE_GAP),
+              width: laneWidth,
+            }
+          : {
+              left: `calc(${(block.lane / block.lanes) * 100}% + 2px)`,
+              width: `calc(${100 / block.lanes}% - 4px)`,
+            }),
       }}
     >
-      <p className="truncate text-[12px] leading-tight font-medium text-ink">
+      {/* **What is shown depends on how tall the booking is**, and the order is
+          what matters: the name first, because that is what the owner scans
+          for; then what they are here for; then the arithmetic. A card that
+          dropped the name to keep the price would be sorted the wrong way
+          round.
+
+          The thresholds are what actually fits, measured against the line
+          heights below rather than guessed — 28px holds the name, 54 holds the
+          service under it, 78 adds the footer and 104 the status strip. They
+          move with the type and with the padding; a threshold left behind a
+          size change is a card that clips the line it just decided to draw. */}
+      {height >= 104 && (
+        <p
+          className={`flex items-center gap-1.5 truncate text-[12px] leading-none font-medium ${
+            STATUS_TONE[stateOf(block.status)] ?? 'text-muted'
+          }`}
+        >
+          {/* `currentColor`, so the dot and the word are the same statement
+              rather than two things that have to be kept in step. */}
+          <span
+            aria-hidden="true"
+            className="h-1.5 w-1.5 shrink-0 rounded-full bg-current"
+          />
+          {statusLabel(block.status)}
+        </p>
+      )}
+
+      <p className="truncate text-[15px] leading-tight font-semibold text-ink">
         {block.client}
       </p>
-      {height >= 38 && (
-        <p className="truncate text-[11px] leading-tight text-muted">
-          {block.from} · {block.service}
+
+      {height >= 54 && (
+        // `ink`, not `muted`: on a grey card the muted grey was a second grey
+        // and the line disappeared into its own background. The hierarchy is
+        // carried by weight instead — the name is semibold, this is not — which
+        // survives being read at arm's length where a difference of two greys
+        // does not.
+        <p className="truncate text-[13px] leading-tight text-ink">
+          {block.service}
+        </p>
+      )}
+
+      {height >= 78 && (
+        // Pushed to the bottom edge: the head of the card is what it is, the
+        // foot is what it costs, and on a booking that runs three hours the
+        // two should not both be huddled at the top.
+        <p className="mt-auto flex items-center justify-between gap-2 truncate pt-2 text-[12px] leading-none">
+          <span className="font-display font-medium text-ink">
+            {block.range}
+          </span>
+          <span className="shrink-0 text-muted">
+            {formatPrice(block.price)}
+          </span>
         </p>
       )}
     </div>
@@ -613,9 +836,9 @@ function BookingBlock({ block }) {
  * clipped by its own box. Where it shows, it is centred down the span with a
  * dot before it, the way the reference tags its own blocks.
  */
-function ClosedSpan({ range, label }) {
-  const top = ((range.from - WINDOW_FROM) / 60) * ROW_HEIGHT
-  const height = ((range.to - range.from) / 60) * ROW_HEIGHT
+function ClosedSpan({ range, label, rowHeight }) {
+  const top = ((range.from - WINDOW_FROM) / 60) * rowHeight
+  const height = ((range.to - range.from) / 60) * rowHeight
 
   return (
     <div

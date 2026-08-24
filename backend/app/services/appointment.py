@@ -179,13 +179,30 @@ class AppointmentService:
         # it must not interleave with another booking for the same business.
         await self._businesses.lock(business)
 
-        service = await self._find_service(user, data.service_id)
+        # No service is a booking the owner described in the form — a one-off
+        # the price list does not carry. The schema has already made sure that
+        # such a request brought a name, a price and a length of its own.
+        service = (
+            await self._find_service(user, data.service_id)
+            if data.service_id is not None
+            else None
+        )
         starts_at = data.starts_at.astimezone(UTC)
-        # The booking's own length where one was given, the service's otherwise.
-        # The service names what was done and prices it; how long it actually
-        # took is a fact about the day, and the two disagree often enough that
-        # the panel offers both ends of the booking as fields.
-        minutes = data.duration_minutes or service.duration_minutes
+        # **What was given wins over what the price list says, field by field.**
+        # The service names and prices what is usually sold; a booking records
+        # what was actually done, and the two differ often enough — a discount,
+        # a visit that ran long, two things at once — that the panel offers all
+        # three as fields. Where a field was left alone it falls back, so
+        # choosing a service and touching nothing behaves exactly as before.
+        name = data.service_name or (service.name if service else None)
+        price = (
+            data.price
+            if data.price is not None
+            else (service.price if service else None)
+        )
+        minutes = data.duration_minutes or (
+            service.duration_minutes if service else None
+        )
         ends_at = starts_at + timedelta(minutes=minutes)
         # Notice and horizon constrain *clients*, not the business. The owner
         # writing down someone who walked in twenty minutes ago is recording
@@ -198,16 +215,23 @@ class AppointmentService:
             ends_at,
             enforce_notice=data.source is not AppointmentSource.MANUAL,
         )
-        await self._ensure_room(business, starts_at, ends_at)
+        # Same flag, same reason as the rules above: the owner records, the
+        # assistant is constrained.
+        await self._ensure_room(
+            business,
+            starts_at,
+            ends_at,
+            enforce=data.source is not AppointmentSource.MANUAL,
+        )
 
         appointment = Appointment(
             business_id=business.id,
-            service_id=service.id,
+            service_id=service.id if service else None,
             # Copied, not looked up later: correcting a price tomorrow must not
             # rewrite what this booking cost today.
-            service_name=service.name,
+            service_name=name,
             duration_minutes=minutes,
-            price=service.price,
+            price=price,
             client_name=data.client_name,
             client_phone=data.client_phone,
             starts_at=starts_at,
@@ -295,14 +319,17 @@ class AppointmentService:
                 enforce_notice=False,
             )
 
-        # Room, though, is re-checked whenever this booking starts occupying
-        # something it wasn't: a new time, or a cancellation being taken back.
+        # Room is re-checked whenever this booking starts occupying something it
+        # wasn't — a new time, or a cancellation being taken back — and against
+        # the source it was made from. A booking the owner wrote by hand does
+        # not become subject to capacity because it was later moved.
         if appointment.blocks_slot and (moved or not was_blocking):
             await self._ensure_room(
                 business,
                 appointment.starts_at,
                 appointment.ends_at,
                 exclude_id=appointment.id,
+                enforce=appointment.source != AppointmentSource.MANUAL.value,
             )
 
         await self._session.commit()
@@ -396,7 +423,27 @@ class AppointmentService:
         starts_at: datetime,
         ends_at: datetime,
         exclude_id: uuid.UUID | None = None,
+        *,
+        enforce: bool = True,
     ) -> None:
+        """Refuse a time the business has no room left in — unless the business
+        is the one asking.
+
+        **`capacity` constrains clients, not the owner**, the same way
+        `min_lead_minutes` and `booking_horizon_days` do. It exists so the
+        assistant cannot promise an hour that is already spoken for; it defaults
+        to 1 because an assistant that cannot tell a full hour from an empty one
+        has to assume the cautious answer.
+
+        None of that describes the owner writing a booking down. Two people at
+        half past is an ordinary afternoon — a second chair, a colleague helping
+        out, or simply what happened — and a panel that refuses to record it is
+        a calendar arguing with the day it is meant to be a record of. So a
+        `manual` booking is written and the count is left to mean what it can.
+        """
+        if not enforce:
+            return
+
         taken = [
             row
             for row in await self._appointments.list_blocking(

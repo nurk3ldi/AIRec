@@ -4,16 +4,11 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { Cancel01Icon } from '@hugeicons/core-free-icons'
 import { createAppointment } from '../../lib/api'
 import { authed } from '../../lib/auth'
-import {
-  formatDuration,
-  formatPrice,
-  fromMinutes,
-  instantAt,
-  parseClock,
-} from '../../lib/appointments'
-import { dayKey } from '../../lib/dates'
+import { fromMinutes, instantAt, parseClock } from '../../lib/appointments'
 import { useT } from '../../lib/i18n'
 import { FIELD, FIELD_ERROR } from '../controls'
+import DateField from './DateField'
+import ServiceField from './ServiceField'
 import TimeField from './TimeField'
 
 /**
@@ -62,7 +57,6 @@ import TimeField from './TimeField'
  */
 export default function BookingPopover({
   children,
-  day,
   onDayChange,
   services,
   timeZone,
@@ -76,6 +70,8 @@ export default function BookingPopover({
 
   const [date, setDate] = useState('')
   const [serviceId, setServiceId] = useState('')
+  const [serviceName, setServiceName] = useState('')
+  const [price, setPrice] = useState('')
   const [startsAt, setStartsAt] = useState('')
   const [endsAt, setEndsAt] = useState('')
   const [clientName, setClientName] = useState('')
@@ -88,6 +84,27 @@ export default function BookingPopover({
 
   const active = services?.filter((item) => item.is_active) ?? []
   const service = active.find((item) => item.id === serviceId)
+
+  /**
+   * Choosing from the price list fills the fields; the fields are still the
+   * truth.
+   *
+   * **Either pick or type, for the name and for the money both.** The list is
+   * what the business usually sells, and a day contains things it sells once —
+   * a one-off job, a favour, a price agreed on the phone. Making the list the
+   * only way in would mean inventing a permanent service to record a single
+   * afternoon.
+   *
+   * So the row is a shortcut into two ordinary inputs rather than a value of
+   * its own. `service_id` still travels with the booking when one was chosen,
+   * because that is the link to a living service — but the name and the price
+   * that get snapshotted are whatever is in the boxes.
+   */
+  const choose = (item) => {
+    setServiceId(item.id)
+    setServiceName(item.name)
+    setPrice(String(item.price))
+  }
 
   /**
    * When the booking ends, derived rather than asked for.
@@ -128,8 +145,14 @@ export default function BookingPopover({
   // day is rarely for the same person.
   useEffect(() => {
     if (!open) return
-    setDate(day ? dayKey(day) : '')
-    setServiceId(active.length === 1 ? active[0].id : '')
+    setDate('')
+    // **Everything starts blank, the date included.** Seeding the one service
+    // a new business happens to have was a value nobody entered, and the panel
+    // showing a price that had not been agreed is the kind of default that gets
+    // saved by accident.
+    setServiceId('')
+    setServiceName('')
+    setPrice('')
     setStartsAt('')
     setEndsAt('')
     setClientName('')
@@ -149,7 +172,8 @@ export default function BookingPopover({
     event.preventDefault()
 
     const problems = {}
-    if (!serviceId) problems.service = t('appointments.required')
+    if (!serviceName.trim()) problems.service = t('appointments.required')
+    if (price === '') problems.price = t('appointments.required')
     if (!startsAt || !endsAt) problems.time = t('appointments.required')
     else if (parseClock(startsAt) === parseClock(endsAt))
       problems.time = t('appointments.sameTime')
@@ -162,7 +186,12 @@ export default function BookingPopover({
     try {
       await authed((token) =>
         createAppointment(token, {
-          service_id: serviceId,
+          // Null when the name was typed rather than chosen: the booking
+          // still carries what it was called and what it cost, it simply has no
+          // living service to point at.
+          service_id: serviceId || null,
+          service_name: serviceName.trim(),
+          price: Number(price),
           client_name: clientName.trim(),
           client_phone: clientPhone.trim() || null,
           starts_at: instantAt(date, startsAt, timeZone),
@@ -216,6 +245,14 @@ export default function BookingPopover({
             difference between this and the modal it replaced, and dimming it
             would take back the only reason to anchor the panel at all. */}
         <Popover.Content
+          // The date and service fields open their own popovers into portals,
+          // so Escape has to be told which layer it is for: without this a
+          // press meant for an open month would close the whole panel with it.
+          onEscapeKeyDown={(event) => {
+            if (document.querySelector('[data-nested-overlay]')) {
+              event.preventDefault()
+            }
+          }}
           // **Beside the button, not under it.** Under it there is only the
           // distance from the toolbar down to the bottom of the window, and a
           // form of seven fields does not fit in that — the panel arrived
@@ -260,72 +297,56 @@ export default function BookingPopover({
             onSubmit={submit}
             className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-6"
           >
-            {/* **A native date input.** The calendar in the panel is the
-                nicer way to choose a day and it is right there — this is the
-                same value, spelled out, for the case the dialog is opened and
-                the day turns out to be wrong. Native because the browser's own
-                picker is keyboard-navigable, localised and already understood;
-                the alternative is a second month grid inside a dialog that is
-                capped at 560px, which is a lot of surface to spend on
-                agreeing with the one behind it. */}
             <Group label={t('appointments.date')} error={fields.starts_at}>
-              <input
-                type="date"
+              <DateField
                 value={date}
-                onChange={(event) => pickDate(event.target.value)}
-                className={`${FIELD} h-9 text-[14px]`}
+                onChange={pickDate}
+                label={t('appointments.date')}
               />
             </Group>
 
-            <Group label={t('appointments.service')} error={fields.service}>
-              {active.length === 0 ? (
-                <p className="text-[13px] text-muted">
-                  {t('appointments.noServices')}
-                </p>
-              ) : (
-                // Rows rather than a dropdown: a service is a name, a length
-                // and a price, and the two numbers are most of what decides
-                // which one this booking is. A select shows one line at a time
-                // and hides exactly the part being compared.
-                //
-                // **The chosen row lifts, and that is all it does** —
-                // `surface-chip`, the same fill the toolbar's chosen segment
-                // takes, with no ring around it. The ring was drawing a second
-                // edge inside a list that is already a stack of edges, and it
-                // read as an error state rather than as a choice. A hue was
-                // tried here too and taken out: orange means "now" everywhere
-                // else on this screen, and a service is not a time.
-                <div className="flex max-h-[152px] flex-col gap-1.5 overflow-y-auto">
-                  {active.map((service) => {
-                    const chosen = service.id === serviceId
-                    return (
-                      <button
-                        key={service.id}
-                        type="button"
-                        onClick={() => setServiceId(service.id)}
-                        aria-pressed={chosen}
-                        className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left outline-none transition-colors ${
-                          chosen
-                            ? 'bg-surface-chip'
-                            : 'bg-ink/[0.04] hover:bg-ink/[0.07] focus-visible:bg-ink/[0.07]'
-                        }`}
-                      >
-                        <span className="min-w-0">
-                          <span className="block truncate text-[14px] font-medium text-ink">
-                            {service.name}
-                          </span>
-                          <span className="block text-[12px] text-muted">
-                            {formatDuration(service.duration_minutes)}
-                          </span>
-                        </span>
-                        <span className="shrink-0 font-display text-[14px] font-semibold text-ink">
-                          {formatPrice(service.price)}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+            <Group
+              label={t('appointments.service')}
+              error={fields.service ?? fields.service_name}
+            >
+              <ServiceField
+                value={serviceName}
+                onChange={(next) => {
+                  setServiceName(next)
+                  // Typing a name unhooks the row: this is no longer that
+                  // service, it is one the owner is describing. The price is
+                  // deliberately *not* unhooked the same way — a different
+                  // amount for the same service is a discount, not a different
+                  // service.
+                  setServiceId('')
+                }}
+                onPick={choose}
+                services={active}
+                chosenId={serviceId}
+                invalid={Boolean(fields.service_name)}
+                label={t('appointments.service')}
+              />
+            </Group>
+
+            <Group label={t('appointments.price')} error={fields.price}>
+              {/* Digits only, and no thousands separators while it is being
+                  typed: a field that reformats under the caret is a field that
+                  moves the caret. The list above shows the formatted figure,
+                  which is where it is read rather than written. */}
+              <div className="relative">
+                <input
+                  value={price}
+                  onChange={(event) =>
+                    setPrice(event.target.value.replace(/\D/g, '').slice(0, 9))
+                  }
+                  inputMode="numeric"
+                  autoComplete="off"
+                  className={`${fields.price ? FIELD_ERROR : FIELD} h-9 pr-8 text-[14px]`}
+                />
+                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[14px] text-muted">
+                  ₸
+                </span>
+              </div>
             </Group>
 
             {/* **Two clocks, not a clock and a readout.** The second one was

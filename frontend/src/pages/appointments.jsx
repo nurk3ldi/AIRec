@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import MonthCalendar from '../components/appointments/MonthCalendar'
+import NowCard from '../components/appointments/NowCard'
+import FreeSlotCard from '../components/appointments/FreeSlotCard'
+import UpNextCard from '../components/appointments/UpNextCard'
 import Timetable from '../components/appointments/Timetable'
 import {
   getBusiness,
@@ -161,9 +164,12 @@ export default function AppointmentsPage() {
             share and this takes what is left, so the two cannot add up to
             anything but the column. */}
         <div className="grid min-h-0 flex-1 grid-cols-3 gap-4 p-4">
-          <div className="rounded-2xl bg-surface-raised" />
-          <div className="rounded-2xl bg-surface-raised" />
-          <div className="rounded-2xl bg-surface-raised" />
+          {/* Now, next, and where somebody could still be fitted in — the
+              three questions asked with a client on the phone, in the order
+              they come up. */}
+          <NowCard bookings={bookings} timeZone={timeZone} />
+          <UpNextCard bookings={bookings} timeZone={timeZone} />
+          <FreeSlotCard bookings={bookings} week={week} timeZone={timeZone} />
         </div>
 
         <Timetable

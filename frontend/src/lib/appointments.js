@@ -221,6 +221,16 @@ export function instantAt(day, clock, timeZone) {
 /** "12:15", in the business's zone — the same zone `toBlock` reads. */
 export const clockOf = (iso, timeZone) => partsIn(iso, timeZone).clock
 
+/**
+ * The calendar day an instant falls on in a named zone, as `YYYY-MM-DD`.
+ *
+ * The same string `toBlock` puts on a booking, so "is this happening today?" is
+ * a comparison rather than a second date calculation — and read in the
+ * business's zone, because near midnight the browser's answer and the
+ * business's are different days.
+ */
+export const dayOf = (iso, timeZone) => partsIn(iso, timeZone).day
+
 /** Where an instant falls in its own day, in minutes — for grouping slots. */
 export const minutesOf = (iso, timeZone) => partsIn(iso, timeZone).minutes
 

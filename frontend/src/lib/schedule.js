@@ -132,6 +132,49 @@ export function closedRanges(row) {
 }
 
 /**
+ * The stretches of a day that are open and unbooked, as `[from, to]` minutes.
+ *
+ * The complement of everything in the way: the hours the business is shut
+ * (`closedRanges` — before opening, the break, after closing) *and* the hours
+ * already taken. Both are subtracted in one pass rather than two, because they
+ * overlap constantly — a booking that runs up to the break leaves no gap
+ * between them, and treating the two lists separately would invent one.
+ *
+ * `busy` is `[from, to]` pairs in the same minute-of-day units, which is what
+ * `toBlock` already produces. Kept in this shape on purpose: this file knows
+ * about the week, not about bookings, and handing it a list of appointment
+ * objects would be the first thread of a knot.
+ *
+ * `notBefore` is where to start looking — the current minute, for "what is
+ * free from now". Passing 0 gives the whole day.
+ *
+ * A missing row means the week has not loaded, and reports the day as open
+ * rather than closed: the same choice `closedRanges` makes, for the same reason
+ * — telling an owner their working day is over because a request is in flight
+ * is the worse of the two wrong answers.
+ */
+export function freeWindows(row, busy, notBefore = 0) {
+  const blocked = [
+    ...closedRanges(row).map((range) => [range.from, range.to]),
+    ...busy,
+  ].sort((a, b) => a[0] - b[0])
+
+  const free = []
+  let cursor = notBefore
+
+  for (const [from, to] of blocked) {
+    // Already behind us, whole or in part: only the far edge can move the
+    // cursor, and it only moves forward.
+    if (to <= cursor) continue
+    if (from > cursor) free.push([cursor, from])
+    cursor = Math.max(cursor, to)
+  }
+  if (cursor < MINUTES_IN_DAY) free.push([cursor, MINUTES_IN_DAY])
+
+  return free
+}
+
+/**
  * What is wrong with this day, in Russian, or `null` if nothing is.
  *
  * Deliberately mirrors the checks `WorkingHoursInput` runs on the backend: the

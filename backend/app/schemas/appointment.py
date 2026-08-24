@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.appointment import AppointmentSource, AppointmentStatus
 
@@ -60,7 +60,21 @@ MAX_DURATION_MINUTES = 24 * 60
 
 
 class CreateAppointmentRequest(BaseModel):
-    service_id: uuid.UUID
+    # **Optional, because not every booking is a line from the price list.**
+    # The list is what the business usually sells; a day contains things it
+    # sells occasionally, and the owner writing one down should not have to
+    # invent a permanent service to record a one-off. Given, it names and prices
+    # the booking; omitted, `service_name` and `price` carry it instead and the
+    # row simply has no service to point at — which the column already allows,
+    # since a deleted service leaves exactly that.
+    service_id: uuid.UUID | None = None
+    # Overrides where a service was chosen, and the whole of it where one was
+    # not. A price that differs from the price list is ordinary — a discount, a
+    # regular, a round number agreed on the phone — and the booking has to
+    # record what was actually charged. These are the snapshot; see the note on
+    # `service_name` in the model.
+    service_name: str | None = Field(default=None, max_length=120)
+    price: int | None = Field(default=None, ge=0)
     client_name: str = Field(max_length=120)
     client_phone: str | None = Field(default=None, max_length=32)
     starts_at: datetime
@@ -96,12 +110,31 @@ class CreateAppointmentRequest(BaseModel):
             raise ValueError("Укажите имя клиента.")
         return stripped
 
-    @field_validator("client_phone", "note")
+    @field_validator("client_phone", "note", "service_name")
     @classmethod
     def _blank_to_none(cls, value: str | None) -> str | None:
         if value is None:
             return None
         return value.strip() or None
+
+    @model_validator(mode="after")
+    def _nameable(self) -> CreateAppointmentRequest:
+        """Without a service, the booking has to say what it is by itself.
+
+        The three fields a service would have supplied — name, price, length —
+        all become required at once rather than one at a time, because a booking
+        missing any of them is a row that cannot be shown in a calendar or
+        counted in a total.
+        """
+        if self.service_id is not None:
+            return self
+        if not self.service_name:
+            raise ValueError("Укажите услугу.")
+        if self.price is None:
+            raise ValueError("Укажите цену.")
+        if self.duration_minutes is None:
+            raise ValueError("Укажите длительность.")
+        return self
 
     @field_validator("starts_at")
     @classmethod
