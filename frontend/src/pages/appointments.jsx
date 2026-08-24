@@ -54,38 +54,38 @@ export default function AppointmentsPage() {
           item defaults to its content's size and will not shrink past it
           otherwise, which is exactly how a "no scrolling" page ends up
           scrolling. */}
+      {/* The timetable now has this column to itself. It is not a card: its
+          top rule is a horizontal line beginning exactly where the rail's
+          vertical one ends. */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        {/* `p-4`, one value on every side: the gap from the header's rule down
-            to the first card is the same 16px as the gap from the rail across
-            to it. An even margin is what makes the row read as set into the
-            corner rather than placed near it. */}
-        {/* `shrink-0`, so the calendar keeps its size and the difference comes
-            out of the grid below instead. 300px is what its seven cells want,
-            and full width below `sm` — a 300px card on a 343px phone is a card
-            with a margin down one side only. */}
-        <div className="shrink-0 p-4">
-          <div className="w-full sm:w-[300px]">
-            <MonthCalendar value={selected} onChange={setSelected} />
-          </div>
-        </div>
-
-        {/* Outside the padding rather than negatively margined out of it, so it
-            runs the full width of this column on its own terms. It is not a
-            card: its top rule is a horizontal line beginning exactly where the
-            rail's vertical one ends. */}
         <Timetable selected={selected} onSelect={setSelected} />
       </div>
 
-      {/* The right panel: full height, empty, and flush rather than rounded.
-          A card with a radius cannot be 100% of anything without margins to
-          float in, and margins are the opposite of what "full height" asks
-          for — so it takes the same treatment the rail and the timetable have,
-          a hairline and no box.
+      {/* The right panel: full height, flush rather than rounded, and now the
+          calendar's home. A card with a radius cannot be 100% of anything
+          without margins to float in, and margins are the opposite of what
+          "full height" asks for — so the panel itself takes the same treatment
+          the rail and the timetable have, a hairline and no box, and the card
+          inside it keeps its own radius.
 
-          Below `xl` it moves under the timetable at full width, and the divider
-          moves to its top edge: at that width a 300px column beside a five-day
-          grid leaves neither of them enough room. */}
-      <aside className="min-h-[300px] w-full shrink-0 border-t border-line xl:min-h-0 xl:w-[450px] xl:border-t-0 xl:border-l" />
+          **The picker moved off the grid's column, which is the point.** Beside
+          the timetable it was a 300px card sitting above thirteen hours of
+          grid, taking height the one scrolling thing on the page had to give
+          up; over here it costs the grid nothing, and the two controls that
+          answer "which day" — this and the toolbar's arrows — are no longer
+          stacked one above the other.
+
+          `p-4`, one value on every side, so the card reads as set into the
+          corner of the panel rather than placed near it.
+
+          Below `xl` it moves under the timetable at full width and the divider
+          moves to its top edge. That is also where this layout is still
+          unfinished: the page does not scroll, so on a narrow screen the
+          calendar is below the fold rather than reachable. A small-screen
+          layout is still to be designed — see the note on the page element. */}
+      <aside className="min-h-[300px] w-full shrink-0 border-t border-line p-4 xl:min-h-0 xl:w-[450px] xl:border-t-0 xl:border-l">
+        <MonthCalendar value={selected} onChange={setSelected} />
+      </aside>
     </div>
   )
 }
