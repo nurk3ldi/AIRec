@@ -219,6 +219,7 @@ export default function AppointmentsPage() {
         open={creating}
         onOpenChange={setCreating}
         day={selected}
+        onDayChange={setSelected}
         services={services}
         timeZone={timeZone}
         onCreated={() => setReload((n) => n + 1)}
