@@ -609,6 +609,29 @@ export default function Timetable({
                 <div key={hour} style={{ height: rowHeight }} />
               ))}
 
+              {/* **Lane rules, in the day view only.** With one column and
+                  fixed-width lanes, two bookings at the same hour sit side by
+                  side with nothing but 8px of gap between them — which reads as
+                  one wide card that happens to have a seam. A rule says they
+                  are two, and it runs the whole height because a lane is a lane
+                  all day, not only during the hour that filled it.
+
+                  `dayLanes - 1` of them: lines go *between* lanes, so a day
+                  that never doubles up draws none. Centred in the gap, drawn
+                  before everything else so the cards paint over them. */}
+              {view === 'day' &&
+                Array.from({ length: dayLanes - 1 }, (_, index) => (
+                  <div
+                    key={`lane-${index}`}
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-y-0 w-px bg-line"
+                    style={{
+                      left:
+                        (index + 1) * (LANE_WIDTH + LANE_GAP) - LANE_GAP / 2,
+                    }}
+                  />
+                ))}
+
               {/* Drawn after the hour rules so it lies over them, and before
                   the now-line, which is a later child of the grid and so still
                   crosses it. Bookings will land on top of both. */}
