@@ -401,18 +401,12 @@ export default function BookingPopover({
             onSubmit={submit}
             className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-6"
           >
-            <Group label={t('appointments.date')} error={fields.starts_at}>
-              <DateField
-                value={date}
-                onChange={pickDate}
-                label={t('appointments.date')}
-              />
-            </Group>
-
-            <Group
-              label={t('appointments.service')}
-              error={fields.service ?? fields.service_name}
-            >
+            {/* **What it is, first.** The reference opens with the event's own
+                name in a plain full-width field, and everything that is a
+                *setting about* it becomes a row underneath. The same split
+                works here: a booking is a service at a price, and the rest —
+                when, what colour, what became of it — are settings about that. */}
+            <Group error={fields.service ?? fields.service_name}>
               <ServiceField
                 value={serviceName}
                 onChange={(next) => {
@@ -432,7 +426,7 @@ export default function BookingPopover({
               />
             </Group>
 
-            <Group label={t('appointments.price')} error={fields.price}>
+            <Group error={fields.price}>
               {/* Digits only, and no thousands separators while it is being
                   typed: a field that reformats under the caret is a field that
                   moves the caret. The list above shows the formatted figure,
@@ -444,6 +438,7 @@ export default function BookingPopover({
                     setPrice(event.target.value.replace(/\D/g, '').slice(0, 9))
                   }
                   inputMode="numeric"
+                  placeholder={t('appointments.price')}
                   autoComplete="off"
                   className={`${fields.price ? FIELD_ERROR : FIELD} h-9 pr-8 text-[14px]`}
                 />
@@ -453,75 +448,45 @@ export default function BookingPopover({
               </div>
             </Group>
 
-            {/* **Two clocks, not a clock and a readout.** The second one was
-                derived and disabled, which is the right shape only while a
-                booking is exactly as long as its service — and it often is
-                not. Both are the same control, so neither reads as the more
-                real of the two. */}
-            <Group label={t('appointments.time')} error={fields.time}>
-              <div className="flex items-center gap-2">
-                <TimeField
-                  value={startsAt}
-                  onChange={setStartsAt}
-                  label={t('appointments.start')}
-                />
+            {/* **When, as two rows rather than three blocks.** The date and the
+                two clocks were a stack of separate fields, each with its own
+                line; the reference puts a start and an end on one line apiece,
+                which is how the two are actually thought about — a booking runs
+                *from* something *to* something.
 
-                <span aria-hidden="true" className="shrink-0 text-muted">
-                  –
-                </span>
+                The date sits on the start row only. This model has no end
+                *date*: a booking that runs past midnight is expressed by an end
+                clock earlier than its start, and the arithmetic wraps. Giving
+                the end a date field would be offering a value nothing reads. */}
+            <PanelRow label={t('appointments.start')}>
+              <DateField
+                value={date}
+                onChange={pickDate}
+                label={t('appointments.date')}
+              />
+              <TimeField
+                value={startsAt}
+                onChange={setStartsAt}
+                label={t('appointments.start')}
+              />
+            </PanelRow>
 
+            <Group error={fields.time ?? fields.starts_at}>
+              <PanelRow label={t('appointments.end')}>
                 <TimeField
                   value={endsAt}
                   onChange={setEndsAt}
                   label={t('appointments.end')}
                 />
-              </div>
+              </PanelRow>
             </Group>
 
-            <Group
-              label={t('appointments.clientName')}
-              error={fields.client_name ?? fields.clientName}
-            >
-              <input
-                value={clientName}
-                onChange={(event) => setClientName(event.target.value)}
-                maxLength={120}
-                autoComplete="off"
-                className={`${
-                  fields.client_name || fields.clientName ? FIELD_ERROR : FIELD
-                } h-9 text-[14px]`}
-              />
-            </Group>
-
-            <Group
-              label={t('appointments.clientPhone')}
-              error={fields.client_phone}
-            >
-              <input
-                value={clientPhone}
-                onChange={(event) => setClientPhone(event.target.value)}
-                type="tel"
-                maxLength={32}
-                autoComplete="off"
-                className={`${fields.client_phone ? FIELD_ERROR : FIELD} h-9 text-[14px]`}
-              />
-            </Group>
-
-            <Group label={t('appointments.note')} error={fields.note}>
-              <textarea
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-                rows={2}
-                className={`${FIELD} h-auto resize-none py-2 text-[14px] leading-snug`}
-              />
-            </Group>
-
-            {/* **Two rows, one shape.** Both answer a question with a small
-                closed set, which is a row rather than a field — see the note on
-                `PanelSelect`. The colour is offered when adding as well as when
-                editing; the status only when editing, because a booking being
-                written down has not happened yet and none of the four is a
-                thing anyone can say about it yet. */}
+            {/* Both answer a question with a small closed set, which is a row
+                rather than a field — see the note on `PanelSelect`. The colour
+                is offered when adding as well as when editing; the status only
+                when editing, because a booking being written down has not
+                happened yet and none of the four is a thing anyone can say
+                about it. */}
             <PanelSelect
               label={t('appointments.color')}
               // `'none'` on the wire and `''` in the form: Radix will not take
@@ -529,11 +494,7 @@ export default function BookingPopover({
               value={color || 'none'}
               onChange={(next) => setColor(next === 'none' ? '' : next)}
               options={[
-                {
-                  id: 'none',
-                  label: t('appointments.colorNone'),
-                  dot: null,
-                },
+                { id: 'none', label: t('appointments.colorNone'), dot: null },
                 ...Object.entries(BOOKING_TINTS).map(([name, tint]) => ({
                   id: name,
                   label: t(`color.${name}`),
@@ -554,25 +515,68 @@ export default function BookingPopover({
               />
             )}
 
+            {/* **Who, last.** The reference keeps its free text — the URL, the
+                notes — below the settings for the same reason: they are the
+                part nobody has to fill in, and putting them first makes a short
+                form look long. */}
+            <Group error={fields.client_name ?? fields.clientName}>
+              <input
+                value={clientName}
+                onChange={(event) => setClientName(event.target.value)}
+                maxLength={120}
+                placeholder={t('appointments.clientName')}
+                autoComplete="off"
+                className={`${
+                  fields.client_name || fields.clientName ? FIELD_ERROR : FIELD
+                } h-9 text-[14px]`}
+              />
+            </Group>
+
+            <Group error={fields.client_phone}>
+              <input
+                value={clientPhone}
+                onChange={(event) => setClientPhone(event.target.value)}
+                type="tel"
+                maxLength={32}
+                placeholder={t('appointments.clientPhone')}
+                autoComplete="off"
+                className={`${fields.client_phone ? FIELD_ERROR : FIELD} h-9 text-[14px]`}
+              />
+            </Group>
+
+            <Group error={fields.note}>
+              <textarea
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                rows={2}
+                placeholder={t('appointments.note')}
+                className={`${FIELD} h-auto resize-none py-2 text-[14px] leading-snug`}
+              />
+            </Group>
+
             {error && (
               <p className="mb-3 text-[13px] text-danger" role="alert">
                 {error}
               </p>
             )}
 
-            {/* Both buttons at the segment's 32px rather than the auth pages'
-                40: this dialog sits over a toolbar of 32px controls, not on a
-                page of its own. */}
-            {/* Delete sits at the far left, away from Save, with the two
-                pushed apart by `justify-between`. Beside it, one slip is the
-                difference between saving a booking and losing it. */}
-            <div className="mt-1 flex shrink-0 items-center justify-between gap-2">
-              {editing ? (
+            {/* **Buttons in a row, sharing the width evenly.** The reference
+                puts its two side by side across the foot of the panel rather
+                than huddled at one corner, which is what makes a 400px column
+                read as finished rather than as cut off. Delete joins the same
+                row when there is something to delete, and takes the width from
+                the other two rather than a corner of its own.
+
+                It is still the leftmost, and still two presses: beside Save,
+                one slip is the difference between keeping a booking and losing
+                it. */}
+            <div className="mt-1 flex shrink-0 items-center gap-2">
+              {editing && (
                 <button
                   type="button"
                   onClick={remove}
                   disabled={saving}
-                  className="h-9 rounded-full px-3 text-[14px] font-medium text-danger outline-none transition-colors hover:bg-danger/10 focus-visible:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="h-10 flex-1 rounded-xl bg-danger/10 px-3 text-[14px] font-medium text-danger outline-none transition-colors hover:bg-danger/20 focus-visible:bg-danger/20 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {t(
                     confirmingDelete
@@ -580,34 +584,51 @@ export default function BookingPopover({
                       : 'appointments.delete',
                   )}
                 </button>
-              ) : (
-                // A spacer, so Save stays at the right edge in both modes
-                // rather than sliding across when the panel changes purpose.
-                <span />
               )}
 
-              <span className="flex items-center gap-2">
-                <Popover.Close asChild>
-                  <button
-                    type="button"
-                    className="h-9 rounded-full px-4 text-[14px] font-medium text-muted outline-none transition-colors hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6"
-                  >
-                    {t('appointments.cancel')}
-                  </button>
-                </Popover.Close>
+              <Popover.Close asChild>
                 <button
-                  type="submit"
-                  disabled={saving}
-                  className="h-9 rounded-full bg-surface-chip px-5 text-[14px] font-medium text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85 disabled:cursor-not-allowed disabled:opacity-60"
+                  type="button"
+                  className="h-10 flex-1 rounded-xl bg-ink/[0.06] px-3 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/12 focus-visible:bg-ink/12"
                 >
-                  {saving ? t('appointments.saving') : t('appointments.save')}
+                  {t('appointments.cancel')}
                 </button>
-              </span>
+              </Popover.Close>
+
+              <button
+                type="submit"
+                disabled={saving}
+                className="h-10 flex-1 rounded-xl bg-surface-chip px-3 text-[14px] font-semibold text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {saving ? t('appointments.saving') : t('appointments.save')}
+              </button>
             </div>
           </form>
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
+  )
+}
+
+/**
+ * A label on the left and whatever controls it on the right.
+ *
+ * The shape the reference uses for everything that is a *setting about* the
+ * event rather than the event itself — and the shape «Настройки» already uses
+ * for the theme and the language. No hairline: there the rows are a list and
+ * the rules separate them, here they sit among form fields and a rule would be
+ * a divider drawn through the middle of a form.
+ */
+function PanelRow({ label, children }) {
+  return (
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <span className="shrink-0 text-[14px] text-ink">{label}</span>
+      {/* The controls share what is left, so a row with two of them and a row
+          with one line their right edges up. */}
+      <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+        {children}
+      </div>
+    </div>
   )
 }
 
@@ -709,13 +730,23 @@ const STATUS_KEYS = {
   cancelled: 'booking.cancelled',
 }
 
-/** A labelled block, with the field's message under it where there is one. */
-function Group({ label, error, children }) {
+/**
+ * A field and, under it, whatever is wrong with it.
+ *
+ * **It used to carry a label above the control; the placeholder carries it
+ * now.** Seven uppercase captions down a 400px panel was a second column of
+ * text to read past, and each one repeated a word the empty field could say
+ * itself. The label comes back the moment the field is cleared, which is the
+ * only time it was doing any work.
+ *
+ * The trade is real and worth naming: a placeholder disappears as soon as there
+ * is a value, so a filled field no longer says what it is. That is fine on this
+ * panel — seven fields in a fixed order that anyone adding a booking fills in
+ * every day — and would not be on a form somebody meets once.
+ */
+function Group({ error, children }) {
   return (
     <div className="mb-3">
-      <p className="mb-1.5 text-[12px] font-medium tracking-wide text-muted uppercase">
-        {label}
-      </p>
       {children}
       {error && <p className="mt-1 text-[12px] text-danger">{error}</p>}
     </div>

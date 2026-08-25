@@ -55,6 +55,7 @@ export default function ServiceField({
             }}
             onFocus={() => setOpen(true)}
             maxLength={120}
+            placeholder={label}
             autoComplete="off"
             aria-label={label}
             aria-expanded={open}

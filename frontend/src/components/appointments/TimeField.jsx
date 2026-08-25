@@ -86,10 +86,18 @@ export default function TimeField({ value, onChange, label }) {
       inputMode="numeric"
       // Five, because the colon this puts in counts toward it.
       maxLength={5}
-      placeholder="--:--"
+      // The label rather than `--:--`: the two fields are «Начало» and «Конец»,
+      // and a pair of identical dash patterns said which *shape* was wanted
+      // while leaving which of the two ends it was to be worked out.
+      placeholder={label}
       aria-label={label}
       autoComplete="off"
-      className={`${FIELD} h-9 flex-1 font-display text-[14px] font-medium`}
+      // A fixed 86px, not a share of the row: the start row pairs it with a
+      // date twice its length, and splitting evenly there would give four
+      // characters the same room as eighteen. Fixed, the two rows' clocks line
+      // their right edges up, which is the whole reason the end row reads as
+      // belonging to the start row above it.
+      className={`${FIELD} h-9 w-[86px] shrink-0 px-2.5 text-center font-display text-[14px] font-medium`}
     />
   )
 }

@@ -36,16 +36,19 @@ export default function DateField({ value, onChange, label }) {
       <Popover.Trigger
         type="button"
         aria-label={label}
-        className={`${FIELD} flex h-9 items-center justify-between gap-2 text-[14px] outline-none`}
+        className={`${FIELD} flex h-9 min-w-0 flex-1 items-center justify-between gap-2 text-[14px] outline-none`}
       >
-        <span className={selected ? 'text-ink' : 'text-muted'}>
+        {/* The label *is* the empty state: this is a button, not an input, so
+            there is no `placeholder` attribute to hand it — the word simply is
+            what it says while nothing is chosen. */}
+        <span className={`truncate ${selected ? 'text-ink' : 'text-muted'}`}>
           {selected
             ? selected.toLocaleDateString(getLocale(), {
                 day: '2-digit',
                 month: 'long',
                 year: 'numeric',
               })
-            : '--'}
+            : label}
         </span>
         <HugeiconsIcon
           icon={Calendar03Icon}
