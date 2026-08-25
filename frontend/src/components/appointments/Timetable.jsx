@@ -189,6 +189,12 @@ export default function Timetable({
   const [view, setView] = useState('week')
   // Empty means "everything", not "nothing" — see the note on `StatusFilter`.
   const [statuses, setStatuses] = useState(() => new Set())
+  // **Which way the last step went**, so the days can arrive from the side they
+  // came from. A week that simply replaces the one before it says the date
+  // changed; a week that slides in from the right says you went *forward*,
+  // which is the whole of what the two arrows mean.
+  const [direction, setDirection] = useState(0)
+  const reduce = useReducedMotion()
 
   const step = VIEWS.find((item) => item.id === view)?.step ?? 'week'
   const days =
@@ -409,12 +415,18 @@ export default function Timetable({
           <StepButton
             label={t('appointments.prev')}
             icon={ArrowLeft01Icon}
-            onClick={() => onSelect?.(shiftDate(selected, step, -1))}
+            onClick={() => {
+              setDirection(-1)
+              onSelect?.(shiftDate(selected, step, -1))
+            }}
           />
           <StepButton
             label={t('appointments.next')}
             icon={ArrowRight01Icon}
-            onClick={() => onSelect?.(shiftDate(selected, step, 1))}
+            onClick={() => {
+              setDirection(1)
+              onSelect?.(shiftDate(selected, step, 1))
+            }}
           />
 
           {/* **The chosen segment is a raised chip, not the accent.** The
@@ -565,8 +577,29 @@ export default function Timetable({
             const isToday = sameDay(day, now)
 
             return (
-              <div
+              // **Keyed on the day, and entering only.** Changing the key
+              // remounts the heading, so React swaps the old for the new in one
+              // frame and the arriving one animates in from the direction of
+              // travel. No exit, and no `AnimatePresence`: these are cells of a
+              // CSS grid, and a leaving heading would sit in the grid beside
+              // its replacement until it finished — ten columns where there are
+              // five, for the length of the animation.
+              //
+              // The bookings underneath already fade in on their own, since
+              // their keys change with the week too. Between the two, the whole
+              // grid reads as arriving.
+              <m.div
                 key={day.toISOString()}
+                initial={
+                  reduce || !direction
+                    ? false
+                    : { opacity: 0, x: direction * 12 }
+                }
+                animate={{ opacity: 1, x: 0 }}
+                transition={{
+                  duration: reduce ? 0 : 0.2,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
                 // **Opaque, always.** The rows scroll underneath these, and a
                 // translucent heading would let 15:00 show through the word
                 // "ЧТ" — which is also why the selected column's tint is
@@ -632,7 +665,7 @@ export default function Timetable({
                 >
                   {String(day.getDate()).padStart(2, '0')}
                 </span>
-              </div>
+              </m.div>
             )
           })}
 

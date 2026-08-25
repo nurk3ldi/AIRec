@@ -1,9 +1,17 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
+import {
+  AnimatePresence,
+  domMax,
+  LazyMotion,
+  m,
+  useReducedMotion,
+} from 'motion/react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons'
 import {
   dayKey,
   monthGrid,
+  monthIndex,
   monthLabel,
   sameDay,
   sameMonth,
@@ -41,6 +49,21 @@ export default function MonthCalendar({ value, onChange }) {
   // The month on screen, which is not the same thing as the day chosen: you
   // browse away from your selection and back without losing it.
   const [month, setMonth] = useState(() => new Date(value ?? Date.now()))
+  // **Which way the month last moved**, so the grid can leave the way it came.
+  // A cross-fade with no direction says the month changed; a direction says
+  // *forward* or *back*, which is the whole of what the two arrows mean.
+  const [direction, setDirection] = useState(0)
+  const reduce = useReducedMotion()
+  // **A layout id per instance.** `MonthCalendar` renders twice on this page —
+  // in the right panel and inside the booking panel's date field — and one
+  // shared id between them would make the marker fly across the screen from one
+  // calendar to the other the moment both were mounted.
+  const marker = useId()
+
+  const step = (by) => {
+    setDirection(by)
+    setMonth(shiftMonth(month, by))
+  }
 
   const today = new Date()
   const days = monthGrid(month)
@@ -49,7 +72,13 @@ export default function MonthCalendar({ value, onChange }) {
   const pick = (day) => {
     // Stepping onto a neighbouring month's day moves the view with it —
     // otherwise the day you just chose is the one cell you can no longer see.
-    if (!sameMonth(day, month)) setMonth(shiftMonth(day, 0))
+    if (!sameMonth(day, month)) {
+      // Clicking a greyed-out neighbour is a step in whichever direction that
+      // neighbour lies, so the grid travels the same way the arrows would have
+      // taken it.
+      setDirection(day < month ? -1 : 1)
+      setMonth(shiftMonth(day, 0))
+    }
     onChange?.(day)
   }
 
@@ -86,7 +115,7 @@ export default function MonthCalendar({ value, onChange }) {
         <StepButton
           label={t('calendar.prevMonth')}
           icon={ArrowLeft01Icon}
-          onClick={() => setMonth(shiftMonth(month, -1))}
+          onClick={() => step(-1)}
         />
 
         <h2 className="min-w-0 truncate font-display text-[22px] font-bold tracking-[-0.02em] text-ink">
@@ -96,7 +125,7 @@ export default function MonthCalendar({ value, onChange }) {
         <StepButton
           label={t('calendar.nextMonth')}
           icon={ArrowRight01Icon}
-          onClick={() => setMonth(shiftMonth(month, 1))}
+          onClick={() => step(1)}
         />
       </header>
 
@@ -129,87 +158,144 @@ export default function MonthCalendar({ value, onChange }) {
           `gap-x-[5px]` / `gap-y-[8px]` are those pitches minus the cells. The
           uneven pair is the point — horizontally the gap only has to keep two
           numbers apart, vertically it has to keep two *weeks* apart. */}
-      <div className="mt-2 grid grid-cols-7 gap-1">
-        {days.map((day) => {
-          const outside = !sameMonth(day, month)
-          const isToday = sameDay(day, today)
-          const isSelected = value ? sameDay(day, value) : false
-          // **The reference greys Saturday and Sunday**, and greys them to
-          // exactly the value it greys a day outside the month — one "not an
-          // ordinary working day" state, not two. Copied here because it was
-          // asked for; worth knowing it is a claim about the business: working
-          // hours are per-day on `/business`, and a barbershop's Saturday is
-          // its busiest day. If it ever reads wrong, `dim` is the one line to
-          // change.
-          const weekend = day.getDay() === 0 || day.getDay() === 6
-          const dim = outside || weekend
+      {/* **The month slides the way it was sent.** `mode="wait"` so the two
+          never overlap — six rows of dates on top of six more is unreadable —
+          and short enough either side that the pair still lands inside the
+          280ms the rest of the app changes things in.
 
-          return (
-            <button
-              key={dayKey(day)}
-              type="button"
-              onClick={() => pick(day)}
-              aria-label={day.toLocaleDateString(undefined, {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}
-              aria-pressed={isSelected}
-              // `aria-current` is what tells a screen reader which cell is
-              // today; the tint alone says it only to someone who can see it.
-              aria-current={isToday ? 'date' : undefined}
-              // **Today is a grey chip, the day in play is the orange fill.**
-              // The grey is `surface-chip`, the token the toolbar's chosen
-              // segment and the add button already wear — the app's own way of
-              // saying "this one is marked", so today is marked in the same
-              // voice as everything else rather than in a colour of its own.
-              //
-              // It was `bg-ink/8` before, which is a grey one step off a black
-              // page and one step off a white one: visible if you were told it
-              // was there and invisible otherwise. `surface-chip` is a real
-              // value in both themes — `#2a2a2a` on the dark side, white on the
-              // light — so it does not depend on the ground it happens to fall
-              // on. The number goes semibold with it, which is what carries the
-              // mark for anyone who cannot separate two greys.
-              //
-              // On the common day, when today *is* the selection, the orange
-              // fill wins and nothing is lost: you are looking straight at it.
-              //
-              // 36px tall and `rounded-[10px]`: the header's icon links and
-              // the rail's nav items are exactly this square, so a day cell is
-              // one of them rather than a shape of its own. 13px semibold in
-              // the display face is what the timetable sets its own dates in —
-              // the same data, so the same step.
-              //
-              // **The selected day is `--now`, the orange this product already
-              // owns**, not the reference's blue and not `accent`. The blue was
-              // copied from the drawing and was the one thing in it that this
-              // project has no place for — there is no brand hue here, so a
-              // blue would have been a sixth colour invented for one pill.
-              //
-              // The orange is already the answer to "which day is in play": it
-              // is the now-line across the grid and the tint on today's column.
-              // A calendar whose selection wears the same colour is the same
-              // sentence in the same voice, and on the common day — today, the
-              // day you are looking at — all three agree instead of arguing.
-              //
-              // `text-white`, not `text-surface`: this fill is a real colour in
-              // both themes, so the text on it does not flip with them.
-              className={`grid h-9 place-items-center rounded-[10px] font-display text-[13px] font-semibold outline-none transition-colors ${
-                isSelected
-                  ? 'bg-now text-white'
-                  : isToday
-                    ? 'bg-surface-chip font-semibold text-ink'
-                    : dim
-                      ? 'text-muted/80 hover:bg-ink/4'
-                      : 'text-ink hover:bg-ink/6'
-              } focus-visible:bg-ink/10`}
-            >
-              {String(day.getDate()).padStart(2, '0')}
-            </button>
-          )
-        })}
-      </div>
+          Keyed by the month, not by the day: picking a date inside the month on
+          screen must not re-run this, or every click would blink the grid. */}
+      {/* **`domMax`, not the `domAnimation` the rest of the app runs on.**
+          Layout projection — the thing that moves the selected fill from one
+          cell to another — is the one feature the smaller bundle leaves out.
+          It costs nothing extra here: the sidebar's active marker already pulls
+          `domMax` in, and every dashboard page renders the sidebar.
+
+          Nested inside the shell's own `LazyMotion`, which is allowed; the
+          inner features win for this subtree. */}
+      <LazyMotion features={domMax}>
+        <AnimatePresence mode="wait" initial={false} custom={direction}>
+          <m.div
+            key={monthIndex(month)}
+            custom={direction}
+            initial={reduce ? false : { opacity: 0, x: direction * 14 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, x: direction * -14 }}
+            transition={{
+              duration: reduce ? 0 : 0.18,
+              ease: [0.16, 1, 0.3, 1],
+            }}
+            className="mt-2 grid grid-cols-7 gap-1"
+          >
+            {days.map((day) => {
+              const outside = !sameMonth(day, month)
+              const isToday = sameDay(day, today)
+              const isSelected = value ? sameDay(day, value) : false
+              // **The reference greys Saturday and Sunday**, and greys them to
+              // exactly the value it greys a day outside the month — one "not an
+              // ordinary working day" state, not two. Copied here because it was
+              // asked for; worth knowing it is a claim about the business: working
+              // hours are per-day on `/business`, and a barbershop's Saturday is
+              // its busiest day. If it ever reads wrong, `dim` is the one line to
+              // change.
+              const weekend = day.getDay() === 0 || day.getDay() === 6
+              const dim = outside || weekend
+
+              return (
+                <button
+                  key={dayKey(day)}
+                  type="button"
+                  onClick={() => pick(day)}
+                  aria-label={day.toLocaleDateString(undefined, {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                  aria-pressed={isSelected}
+                  // `aria-current` is what tells a screen reader which cell is
+                  // today; the tint alone says it only to someone who can see it.
+                  aria-current={isToday ? 'date' : undefined}
+                  // **Today is a grey chip, the day in play is the orange fill.**
+                  // The grey is `surface-chip`, the token the toolbar's chosen
+                  // segment and the add button already wear — the app's own way of
+                  // saying "this one is marked", so today is marked in the same
+                  // voice as everything else rather than in a colour of its own.
+                  //
+                  // It was `bg-ink/8` before, which is a grey one step off a black
+                  // page and one step off a white one: visible if you were told it
+                  // was there and invisible otherwise. `surface-chip` is a real
+                  // value in both themes — `#2a2a2a` on the dark side, white on the
+                  // light — so it does not depend on the ground it happens to fall
+                  // on. The number goes semibold with it, which is what carries the
+                  // mark for anyone who cannot separate two greys.
+                  //
+                  // On the common day, when today *is* the selection, the orange
+                  // fill wins and nothing is lost: you are looking straight at it.
+                  //
+                  // 36px tall and `rounded-[10px]`: the header's icon links and
+                  // the rail's nav items are exactly this square, so a day cell is
+                  // one of them rather than a shape of its own. 13px semibold in
+                  // the display face is what the timetable sets its own dates in —
+                  // the same data, so the same step.
+                  //
+                  // **The selected day is `--now`, the orange this product already
+                  // owns**, not the reference's blue and not `accent`. The blue was
+                  // copied from the drawing and was the one thing in it that this
+                  // project has no place for — there is no brand hue here, so a
+                  // blue would have been a sixth colour invented for one pill.
+                  //
+                  // The orange is already the answer to "which day is in play": it
+                  // is the now-line across the grid and the tint on today's column.
+                  // A calendar whose selection wears the same colour is the same
+                  // sentence in the same voice, and on the common day — today, the
+                  // day you are looking at — all three agree instead of arguing.
+                  //
+                  // `text-white`, not `text-surface`: this fill is a real colour in
+                  // both themes, so the text on it does not flip with them.
+                  className={`relative grid h-9 place-items-center rounded-[10px] font-display text-[13px] font-semibold outline-none transition-colors ${
+                    isSelected
+                      ? 'text-white'
+                      : isToday
+                        ? 'bg-surface-chip font-semibold text-ink'
+                        : dim
+                          ? 'text-muted/80 hover:bg-ink/4'
+                          : 'text-ink hover:bg-ink/6'
+                  } focus-visible:bg-ink/10`}
+                >
+                  {/* **The orange travels; it is not repainted.** A shared
+                    `layoutId` is what lets Motion recognise the fill in the cell
+                    you left and the one you picked as the *same* object, so it
+                    moves between them — the trick the sidebar's active marker
+                    uses, and the reason a month reads as one selection changing
+                    place rather than two cells changing colour.
+
+                    A spring rather than a duration, for the same reason it is
+                    one there: the distance varies from one square to thirty-five
+                    of them, and a fixed time makes the short move sluggish or
+                    the long one frantic. */}
+                  {isSelected && (
+                    <m.span
+                      layoutId={marker}
+                      aria-hidden="true"
+                      className="absolute inset-0 rounded-[10px] bg-now"
+                      transition={
+                        reduce
+                          ? { duration: 0 }
+                          : { type: 'spring', stiffness: 520, damping: 42 }
+                      }
+                    />
+                  )}
+                  {/* Above the fill: an absolutely positioned sibling paints over
+                    static content whatever the DOM order says. */}
+                  <span className="relative z-10">
+                    {String(day.getDate()).padStart(2, '0')}
+                  </span>
+                </button>
+              )
+            })}
+          </m.div>
+        </AnimatePresence>
+      </LazyMotion>
     </section>
   )
 }
