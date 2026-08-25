@@ -298,7 +298,18 @@ export default function BookingPopover({
   }
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
+    // **`modal`, which is what stops the page scrolling underneath.** Radix
+    // locks scroll everywhere outside the panel while it is open — including
+    // the timetable's own scroll box, which is the one that matters: the edit
+    // panel is anchored to a *card inside that box*, so a wheel turn slides its
+    // anchor out from under it and the panel chases the card across the screen.
+    //
+    // It costs the half of "a popover, not a modal" that was about the page
+    // staying usable — outside content is inert while this is open. The other
+    // half is the one that mattered and it is kept: no scrim, so the grid
+    // behind is still legible, which is how you know which day and hour you are
+    // writing for.
+    <Popover.Root open={open} onOpenChange={setOpen} modal>
       {asAnchor ? (
         <Popover.Anchor asChild>{children}</Popover.Anchor>
       ) : (
