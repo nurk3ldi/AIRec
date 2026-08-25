@@ -779,7 +779,14 @@ function BookingBlock({ block, rowHeight, laneWidth }) {
       //
       // A booking is drawn *on* something, and that is the difference the token
       // records.
-      className={`absolute flex flex-col gap-1.5 overflow-hidden rounded-lg border border-line bg-surface-card px-2.5 py-2 ${
+      //
+      // **No border.** The fill is doing that job on its own now, and the
+      // hairline was doing it a second time — a stroked box on a grid that
+      // already has a rule down every column edge is an outline inside an
+      // outline. It also made the card read as a control rather than as a
+      // record, which is the wrong noun for something you look at rather than
+      // press.
+      className={`absolute flex flex-col gap-1.5 overflow-hidden rounded-lg bg-surface-card px-2.5 py-2 ${
         cancelled ? 'opacity-45' : ''
       }`}
       style={{
