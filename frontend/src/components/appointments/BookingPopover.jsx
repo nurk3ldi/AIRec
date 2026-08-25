@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
+import * as Select from '@radix-ui/react-select'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Cancel01Icon } from '@hugeicons/core-free-icons'
+import {
+  ArrowDown01Icon,
+  Cancel01Icon,
+  Tick02Icon,
+} from '@hugeicons/core-free-icons'
 import {
   createAppointment,
   deleteAppointment,
@@ -539,28 +544,78 @@ export default function BookingPopover({
               </div>
             </Group>
 
-            {/* Editing only: a booking being written down has not happened yet,
+            {/* **A row, not a field, and not the 2×2 of buttons it was.** A
+                setting with a small closed set of answers is a row — label on
+                the left, the answer and a chevron on the right — which is the
+                shape «Настройки» already uses for the theme and the language.
+                Four buttons spent a quarter of the panel showing three answers
+                nobody had chosen.
+
+                Outside `Group` on purpose: `Group` writes its label above the
+                control, and this one carries its own beside it. No hairlines
+                either, unlike the settings list — there the rows are a list and
+                the rules are what separate them, here it is one row among
+                fields and a rule would be a divider through the middle of a
+                form.
+
+                Editing only: a booking being written down has not happened yet,
                 so none of the four is a thing anyone can say about it. */}
             {editing && (
-              <Group label={t('appointments.status')} error={fields.status}>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {BOOKING_STATES.map((state) => (
-                    <button
-                      key={state.id}
-                      type="button"
-                      onClick={() => setStatus(state.id)}
-                      aria-pressed={status === state.id}
-                      className={`h-9 rounded-xl px-3 text-[13px] font-medium outline-none transition-colors ${
-                        status === state.id
-                          ? 'bg-surface-chip text-ink'
-                          : 'bg-ink/[0.04] text-muted hover:bg-ink/[0.07] hover:text-ink focus-visible:bg-ink/[0.07]'
-                      }`}
+              <div className="mb-3 flex items-center justify-between gap-4">
+                <span className="text-[14px] text-ink">
+                  {t('appointments.status')}
+                </span>
+
+                <Select.Root value={status} onValueChange={setStatus}>
+                  <Select.Trigger
+                    aria-label={t('appointments.status')}
+                    className="-my-2 flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2 py-2 text-[14px] text-ink outline-none transition-colors focus-visible:bg-ink/6"
+                  >
+                    <Select.Value />
+                    <Select.Icon asChild>
+                      <HugeiconsIcon
+                        icon={ArrowDown01Icon}
+                        size={15}
+                        strokeWidth={2}
+                        className="text-muted"
+                      />
+                    </Select.Icon>
+                  </Select.Trigger>
+
+                  <Select.Portal>
+                    <Select.Content
+                      position="popper"
+                      align="end"
+                      sideOffset={6}
+                      // Above the panel's own `z-[60]`, and tagged so one
+                      // Escape closes this list rather than the panel with it.
+                      data-nested-overlay
+                      className="z-[70] min-w-[168px] overflow-hidden rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)]"
                     >
-                      {t(STATUS_KEYS[state.id])}
-                    </button>
-                  ))}
-                </div>
-              </Group>
+                      <Select.Viewport>
+                        {BOOKING_STATES.map((state) => (
+                          <Select.Item
+                            key={state.id}
+                            value={state.id}
+                            className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-[14px] text-ink outline-none select-none data-[highlighted]:bg-ink/6"
+                          >
+                            <Select.ItemText>
+                              {t(STATUS_KEYS[state.id])}
+                            </Select.ItemText>
+                            <Select.ItemIndicator className="ml-auto text-ink">
+                              <HugeiconsIcon
+                                icon={Tick02Icon}
+                                size={15}
+                                strokeWidth={2.4}
+                              />
+                            </Select.ItemIndicator>
+                          </Select.Item>
+                        ))}
+                      </Select.Viewport>
+                    </Select.Content>
+                  </Select.Portal>
+                </Select.Root>
+              </div>
             )}
 
             {error && (
