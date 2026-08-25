@@ -61,7 +61,8 @@ export default function Header({ className = '' }) {
         AIRec
       </span>
 
-      {/* The page title, from `sm` up. Poppins, not the body face: setting
+      {/* The page title, from `sm` up. The display role, which is the same
+          face as the body now but still says what this line is: setting
           headings in the display family is most of what gives the reference its
           look. 24 rather than the reference's ~30 — our header bar is 68px
           where its is far taller, and a title near that size leaves no air

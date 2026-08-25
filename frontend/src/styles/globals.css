@@ -65,8 +65,15 @@
   --color-ok: var(--ok);
   --color-now: var(--now);
 
-  --font-sans: 'Roboto Variable', Roboto, sans-serif;
-  --font-display: Poppins, 'Roboto Variable', sans-serif;
+  /* **`sans` and `display` are the same face now.** Both names stay because
+     roughly a hundred elements are written in terms of them, and because the
+     *roles* are still real — `display` is what a heading or a number takes,
+     `sans` what a sentence takes. What is gone is the second typeface: Onest
+     answers both, so there is no longer a rule to remember about which numbers
+     belong in which font, and no way for the two to drift apart. Point one of
+     them somewhere else and the distinction comes back on its own. */
+  --font-sans: 'Onest Variable', Onest, sans-serif;
+  --font-display: 'Onest Variable', Onest, sans-serif;
 }
 
 :root {
@@ -129,7 +136,7 @@
   --now: #ea6a1e;
 
   color-scheme: light;
-  font-family: 'Roboto Variable', Roboto, sans-serif;
+  font-family: 'Onest Variable', Onest, sans-serif;
   color: var(--ink);
   background: var(--surface);
   font-synthesis: none;
@@ -217,7 +224,7 @@ body,
 }
 
 body {
-  font-family: 'Roboto Variable', Roboto, sans-serif;
+  font-family: 'Onest Variable', Onest, sans-serif;
 }
 
 h1,
@@ -226,7 +233,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: Poppins, 'Roboto Variable', sans-serif;
+  font-family: 'Onest Variable', Onest, sans-serif;
 }
 
 @layer base {

@@ -273,7 +273,7 @@ The rows sit under a **named group heading** («Интерфейс»), which is 
 - **Any plain (non-`@layer`) CSS rule in `globals.css` beats every Tailwind utility, regardless of specificity or source order** — `@import 'tailwindcss'` expands to named layers (`theme, base, components, utilities`), and per the cascade-layers spec, unlayered styles always outrank layered ones. `globals.css` learned this the hard way: a bare `button, input, textarea, select { font: inherit }` silently ate every `font-*`/`text-[…]` utility ever applied to a form control, project-wide, until it was moved inside `@layer base`. Any new global reset in this file must go in `@layer base` (or another named layer) or it will do the same thing again.
 - Brand tokens: `--color-brand-blue #3248f2` (accent/CTA), `--color-brand-black #171215` (text/dark surfaces), `--color-brand-gray #999999` (borders, typically at 20–45% opacity), `--color-brand-soft #f6f8fa` (page background), `--color-brand-white #ffffff`.
 - Components overwhelmingly reference these as raw Tailwind arbitrary values (`bg-[#171215]`, `border-[#999999]/25`) rather than the semantic `bg-brand-*` classes. Match that existing convention instead of switching styles mid-codebase.
-- Fonts: Poppins (`font-display`, headings) and Roboto Variable (`font-sans`, body), loaded via `@fontsource` imports in `src/main.jsx`.
+- Font: **Onest Variable**, one face for the whole product, loaded as a single `@fontsource-variable/onest/wght.css` import in `src/main.jsx`. `font-display` and `font-sans` both point at it — see **Palette** for why both names stay.
 - Each page pairs with a CSS Module in `src/styles/` for its root container — the convention is `min-height: calc(100vh - Npx)` plus a background color, and nothing else. `N` must match the actual current height of that layout's header component (`Header.jsx` or `LandingHeader.jsx`) — check the header's `h-*` class rather than assuming a fixed number, since header heights get tuned independently. All other styling is inline Tailwind utility classes.
 - Icons: `@hugeicons/react` + `@hugeicons/core-free-icons` via the `HugeiconsIcon` component — not emoji, not another icon set.
 - No UI component library (no shadcn/ui, MUI, Ant Design, etc.). Components are hand-built with Tailwind. **Radix primitives are the one exception, and only for behaviour** — `@radix-ui/react-dialog` backs `ProfileDialog`, and `@radix-ui/react-select` backs the two dropdowns in «Настройки». **Which primitive wins depends on the list, not on taste.** For a *fixed, tiny* set — three themes, three languages — a select is right: jump-to-letter is enough and there is nothing to search. For every closed-set field on `/business` — city, payment methods, languages, times, durations — it is wrong for exactly the reason it was tried and removed there: eighty-odd options need filtering, a select owns every keypress, and there is nowhere inside it for a search box to live. Those went through one `@radix-ui/react-popover` + `cmdk` combobox and will again; cmdk is the piece that supplies the filtering and arrow-key/ARIA wiring. Reach for one when a widget's *behaviour* is hard to get right (focus trapping, keyboard navigation, ARIA wiring: dialog, popover, select, dropdown, tabs), never for its looks. shadcn/ui was considered and deliberately not adopted: it is Radix plus a default Tailwind skin built on `--background`/`--foreground` CSS variables, and this project's design language is fixed and unusual enough that the skin would be discarded — leaving a second token system, a path alias and a TS-first codegen to maintain for nothing. Take a single shadcn source file (its `Calendar`, say) if it saves real work; don't adopt the system.
@@ -315,10 +315,24 @@ rather than a separate pastel hex, so a tint always tracks the colour it came
 from. Filled buttons darken on hover — `#2839C9` and `#B91C1C` — because
 lowering alpha would lighten them against white, the wrong direction.
 
-**Typefaces are `Poppins` (`font-display`) and `Roboto` (`font-sans`).** The
-reference sets every heading *and every number* in Poppins; that is most of what
-gives it its look, so a metric in the body face is off-style even when the size
-is right.
+**The typeface is `Onest Variable`, and it is the only one.** It was Poppins
+for headings and numbers over Roboto for text — two downloads, four weight
+files, and a rule to remember about which numbers belonged in which face. Onest
+carries both roles, so the rule is gone along with the way for the two to drift.
+
+`--font-sans` and `--font-display` both resolve to it. **Both names stay**,
+because about a hundred elements are written in terms of them and because the
+*roles* are still real — `display` is what a heading or a number takes, `sans`
+what a sentence takes. Point one of them at something else and the distinction
+comes back on its own.
+
+It was chosen over Inter, Manrope and Golos Text for having a geometric voice
+close to the Poppins it replaces while being drawn Cyrillic-first. **Geist, the
+obvious choice for a design measured off `vercel.com`, is impossible here: it
+ships `latin` only.** So does Jost, and `cyrillic` without `cyrillic-ext` is no
+better — that is the subset holding **ә ғ қ ң ө ұ ү һ**, which is to say most of
+written Kazakh. Check `cyrillic-ext` on the Fontsource API before considering
+any replacement.
 
 ### Type scale — measured off the reference
 
