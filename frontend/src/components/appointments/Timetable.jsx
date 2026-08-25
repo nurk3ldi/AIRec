@@ -71,6 +71,17 @@ const WORK_DAYS = 5
  */
 const LANE_WIDTH = 240
 const LANE_GAP = 8
+/**
+ * The margin between the column's own rule and the first lane.
+ *
+ * Without it a booking sits flush against that line and reads as welded to it.
+ * **Half the gap, because that is what every other edge on the grid gets:** the
+ * divider between two lanes is centred in `LANE_GAP`, so a card clears it by
+ * `LANE_GAP / 2` on the right. A full gap here made the left margin twice the
+ * right one, which is the kind of asymmetry that is only visible once you have
+ * seen it and then cannot be unseen.
+ */
+const LANE_INSET = LANE_GAP / 2
 
 /**
  * What colour a booking's status is said in.
@@ -471,7 +482,7 @@ export default function Timetable({
             // grid scrolls sideways rather than squeezing.
             minWidth:
               view === 'day'
-                ? 56 + dayLanes * (LANE_WIDTH + LANE_GAP)
+                ? 56 + LANE_INSET + dayLanes * (LANE_WIDTH + LANE_GAP)
                 : 56 + days.length * 120,
           }}
         >
@@ -627,7 +638,9 @@ export default function Timetable({
                     className="pointer-events-none absolute inset-y-0 w-px bg-line"
                     style={{
                       left:
-                        (index + 1) * (LANE_WIDTH + LANE_GAP) - LANE_GAP / 2,
+                        LANE_INSET +
+                        (index + 1) * (LANE_WIDTH + LANE_GAP) -
+                        LANE_GAP / 2,
                     }}
                   />
                 ))}
@@ -755,11 +768,18 @@ function BookingBlock({ block, rowHeight, laneWidth }) {
 
   return (
     <div
-      // `surface-chip` and a hairline: the grey the app already marks a chosen
-      // thing with, and a real value in both themes rather than a tint that
-      // depends on the ground under it. The border is what gives the card an
-      // edge in dark mode, where its fill and the page are close together.
-      className={`absolute flex flex-col gap-1.5 overflow-hidden rounded-lg border border-line bg-surface-chip px-2.5 py-2 ${
+      // **`surface-card`, its own fill, and it took three tries to land on
+      // one.** `surface-chip` was too loud — `#2a2a2a` on a black grid is a
+      // light grey box, and it is also what this app marks *the chosen thing*
+      // with, so spending it on every booking would leave nothing to say "this
+      // one" with when the grid finally has a selection. `surface-raised` was
+      // the other way: at `#0e0e0e` on a pure black ground it reads as no fill
+      // at all, which is right for a card sitting on the page and wrong for one
+      // sitting on the grid.
+      //
+      // A booking is drawn *on* something, and that is the difference the token
+      // records.
+      className={`absolute flex flex-col gap-1.5 overflow-hidden rounded-lg border border-line bg-surface-card px-2.5 py-2 ${
         cancelled ? 'opacity-45' : ''
       }`}
       style={{
@@ -769,16 +789,19 @@ function BookingBlock({ block, rowHeight, laneWidth }) {
         // A day has one column and as much of it as the bookings need; a week
         // has five, and a booking belongs to the width of its own day.
         //
-        // 2px of air either side in the week view, so two lanes do not touch
-        // and a single booking does not sit flush against the column rule.
+        // The week view uses the same `LANE_INSET` on each side, so a booking
+        // clears its column's rule by exactly what a day-view one does. It was
+        // 2px, which was symmetric but half the day view's — the two screens
+        // are the same grid seen at two widths and should not disagree about
+        // how far a card sits from an edge.
         ...(laneWidth
           ? {
-              left: block.lane * (laneWidth + LANE_GAP),
+              left: LANE_INSET + block.lane * (laneWidth + LANE_GAP),
               width: laneWidth,
             }
           : {
-              left: `calc(${(block.lane / block.lanes) * 100}% + 2px)`,
-              width: `calc(${100 / block.lanes}% - 4px)`,
+              left: `calc(${(block.lane / block.lanes) * 100}% + ${LANE_INSET}px)`,
+              width: `calc(${100 / block.lanes}% - ${LANE_INSET * 2}px)`,
             }),
       }}
     >
