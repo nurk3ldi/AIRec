@@ -179,7 +179,7 @@ export default function AppointmentsPage() {
           bookings={bookings}
           services={services}
           timeZone={timeZone}
-          onCreated={() => setReload((n) => n + 1)}
+          onSaved={() => setReload((n) => n + 1)}
         />
       </div>
 

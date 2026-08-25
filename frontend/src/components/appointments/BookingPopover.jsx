@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Cancel01Icon } from '@hugeicons/core-free-icons'
-import { createAppointment } from '../../lib/api'
+import {
+  createAppointment,
+  deleteAppointment,
+  updateAppointment,
+} from '../../lib/api'
 import { authed } from '../../lib/auth'
 import { fromMinutes, instantAt, parseClock } from '../../lib/appointments'
 import { useT } from '../../lib/i18n'
@@ -57,16 +61,28 @@ import TimeField from './TimeField'
  */
 export default function BookingPopover({
   children,
+  asAnchor = false,
+  open: openProp,
+  onOpenChange,
+  booking,
   onDayChange,
   services,
   timeZone,
-  onCreated,
+  onSaved,
 }) {
   const t = useT()
-  // The popover owns whether it is open: it is the button's own panel, and a
-  // page that had to hold a boolean for it would be a page that knows about a
-  // control two components down.
-  const [open, setOpen] = useState(false)
+  const editing = Boolean(booking)
+
+  // **Two ways in, and they need different plumbing.** The add button clicks,
+  // so it is a `Popover.Trigger` and the panel owns its own boolean — a page
+  // holding one for it would be a page that knows about a control two
+  // components down. A booking card opens on a *double* click, which no
+  // trigger listens for, so it is a `Popover.Anchor` and the boolean lives
+  // with the card. `??` rather than `||`, or a controlled `false` would fall
+  // through to the internal state and the panel would never close.
+  const [selfOpen, setSelfOpen] = useState(false)
+  const open = openProp ?? selfOpen
+  const setOpen = onOpenChange ?? setSelfOpen
 
   const [date, setDate] = useState('')
   const [serviceId, setServiceId] = useState('')
@@ -81,6 +97,7 @@ export default function BookingPopover({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [fields, setFields] = useState({})
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   const active = services?.filter((item) => item.is_active) ?? []
   const service = active.find((item) => item.id === serviceId)
@@ -140,24 +157,27 @@ export default function BookingPopover({
     setEndsAt(fromMinutes((parseClock(startsAt) + duration) % (24 * 60)))
   }, [startsAt, duration])
 
-  // Opening is what resets the form: keeping the last booking's client in the
-  // boxes would be a saved draft nobody asked for, and the second booking of a
-  // day is rarely for the same person.
+  // Opening is what fills the form — from the booking when there is one, from
+  // nothing when there is not. Keeping the last booking's client in the boxes
+  // would be a saved draft nobody asked for, and the second booking of a day is
+  // rarely for the same person.
+  //
+  // **Everything starts blank when adding, the date included.** Seeding the one
+  // service a new business happens to have was a value nobody entered, and a
+  // price that had not been agreed is the kind of default that gets saved by
+  // accident.
   useEffect(() => {
     if (!open) return
-    setDate('')
-    // **Everything starts blank, the date included.** Seeding the one service
-    // a new business happens to have was a value nobody entered, and the panel
-    // showing a price that had not been agreed is the kind of default that gets
-    // saved by accident.
-    setServiceId('')
-    setServiceName('')
-    setPrice('')
-    setStartsAt('')
-    setEndsAt('')
-    setClientName('')
-    setClientPhone('')
-    setNote('')
+    setDate(booking?.day ?? '')
+    setServiceId(booking?.serviceId ?? '')
+    setServiceName(booking?.service ?? '')
+    setPrice(booking ? String(booking.price) : '')
+    setStartsAt(booking?.from ?? '')
+    setEndsAt(booking?.to ?? '')
+    setClientName(booking?.client ?? '')
+    setClientPhone(booking?.phone ?? '')
+    setNote(booking?.note ?? '')
+    setConfirmingDelete(false)
     setError('')
     setFields({})
     // `open` alone: this is "the dialog was opened", not "the services
@@ -183,28 +203,37 @@ export default function BookingPopover({
 
     setSaving(true)
     setError('')
+
+    // **The same body either way.** A PATCH is a partial update, but the panel
+    // holds every field of the booking, so sending all of them says exactly
+    // what is on screen — and a form that sent only what it thought had changed
+    // would be a form deciding what "changed" means.
+    const body = {
+      // Null when the name was typed rather than chosen: the booking still
+      // carries what it was called and what it cost, it simply has no living
+      // service to point at.
+      service_id: serviceId || null,
+      service_name: serviceName.trim(),
+      price: Number(price),
+      client_name: clientName.trim(),
+      client_phone: clientPhone.trim() || null,
+      starts_at: instantAt(date, startsAt, timeZone),
+      // Wrapped through midnight rather than clamped: an end before the start
+      // is the ordinary way to write a booking that runs past twelve, and
+      // refusing it would be refusing the one shape a night shift can take in
+      // two clock fields.
+      duration_minutes:
+        (parseClock(endsAt) - parseClock(startsAt) + 24 * 60) % (24 * 60),
+      note: note.trim() || null,
+    }
+
     try {
       await authed((token) =>
-        createAppointment(token, {
-          // Null when the name was typed rather than chosen: the booking
-          // still carries what it was called and what it cost, it simply has no
-          // living service to point at.
-          service_id: serviceId || null,
-          service_name: serviceName.trim(),
-          price: Number(price),
-          client_name: clientName.trim(),
-          client_phone: clientPhone.trim() || null,
-          starts_at: instantAt(date, startsAt, timeZone),
-          // Wrapped through midnight rather than clamped: an end before the start
-          // is the ordinary way to write a booking that runs past twelve, and
-          // refusing it would be refusing the one shape a night shift can take in
-          // two clock fields.
-          duration_minutes:
-            (parseClock(endsAt) - parseClock(startsAt) + 24 * 60) % (24 * 60),
-          note: note.trim() || null,
-        }),
+        editing
+          ? updateAppointment(token, booking.id, body)
+          : createAppointment(token, body),
       )
-      onCreated?.()
+      onSaved?.()
       setOpen(false)
     } catch (err) {
       // The backend words its own errors, in the caller's language — showing
@@ -229,6 +258,38 @@ export default function BookingPopover({
    * Thursday from a screen showing Monday and then not appear anywhere, because
    * the grid behind reloads the week around the page's selection.
    */
+  /**
+   * Removing the booking outright, in two presses.
+   *
+   * **Not a status change.** Cancelling keeps the row, because it is what the
+   * owner looks back on to see how often bookings fall through; this is for one
+   * that should never have existed — a typo, a duplicate, a test. Leaving that
+   * as a cancellation would put a client in the history who was never booked.
+   *
+   * The two presses are the confirmation. A dialog inside a popover is a layer
+   * on a layer for a question with two words in it, and a single red button
+   * next to Save is one slip away from deleting somebody's afternoon.
+   */
+  const remove = async () => {
+    if (!confirmingDelete) {
+      setConfirmingDelete(true)
+      return
+    }
+
+    setSaving(true)
+    setError('')
+    try {
+      await authed((token) => deleteAppointment(token, booking.id))
+      onSaved?.()
+      setOpen(false)
+    } catch (err) {
+      setError(err.message)
+      setConfirmingDelete(false)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const pickDate = (value) => {
     setDate(value)
     // `T00:00:00` is load-bearing: a bare `YYYY-MM-DD` is parsed as UTC, which
@@ -238,7 +299,11 @@ export default function BookingPopover({
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger asChild>{children}</Popover.Trigger>
+      {asAnchor ? (
+        <Popover.Anchor asChild>{children}</Popover.Anchor>
+      ) : (
+        <Popover.Trigger asChild>{children}</Popover.Trigger>
+      )}
 
       <Popover.Portal>
         {/* No scrim. The page behind stays readable *and* usable — that is the
@@ -275,12 +340,14 @@ export default function BookingPopover({
           // The panel has a heading but no `Dialog.Title` to point at any
           // more — a popover has no required label of its own, so it is named
           // here for anyone arriving by screen reader.
-          aria-label={t('appointments.newTitle')}
+          aria-label={t(
+            editing ? 'appointments.editTitle' : 'appointments.newTitle',
+          )}
           className="z-[60] flex origin-[var(--radix-popover-content-transform-origin)] max-h-[var(--radix-popover-content-available-height)] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none data-[state=open]:animate-[popover-in_180ms_cubic-bezier(0.32,0.72,0,1)]"
         >
           <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-3">
             <p className="font-display text-[17px] font-semibold tracking-[-0.02em] text-ink">
-              {t('appointments.newTitle')}
+              {t(editing ? 'appointments.editTitle' : 'appointments.newTitle')}
             </p>
             <Popover.Close asChild>
               <button
@@ -421,22 +488,46 @@ export default function BookingPopover({
             {/* Both buttons at the segment's 32px rather than the auth pages'
                 40: this dialog sits over a toolbar of 32px controls, not on a
                 page of its own. */}
-            <div className="mt-1 flex shrink-0 justify-end gap-2">
-              <Popover.Close asChild>
+            {/* Delete sits at the far left, away from Save, with the two
+                pushed apart by `justify-between`. Beside it, one slip is the
+                difference between saving a booking and losing it. */}
+            <div className="mt-1 flex shrink-0 items-center justify-between gap-2">
+              {editing ? (
                 <button
                   type="button"
-                  className="h-9 rounded-full px-4 text-[14px] font-medium text-muted outline-none transition-colors hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6"
+                  onClick={remove}
+                  disabled={saving}
+                  className="h-9 rounded-full px-3 text-[14px] font-medium text-danger outline-none transition-colors hover:bg-danger/10 focus-visible:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {t('appointments.cancel')}
+                  {t(
+                    confirmingDelete
+                      ? 'appointments.deleteConfirm'
+                      : 'appointments.delete',
+                  )}
                 </button>
-              </Popover.Close>
-              <button
-                type="submit"
-                disabled={saving}
-                className="h-9 rounded-full bg-surface-chip px-5 text-[14px] font-medium text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {saving ? t('appointments.saving') : t('appointments.save')}
-              </button>
+              ) : (
+                // A spacer, so Save stays at the right edge in both modes
+                // rather than sliding across when the panel changes purpose.
+                <span />
+              )}
+
+              <span className="flex items-center gap-2">
+                <Popover.Close asChild>
+                  <button
+                    type="button"
+                    className="h-9 rounded-full px-4 text-[14px] font-medium text-muted outline-none transition-colors hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6"
+                  >
+                    {t('appointments.cancel')}
+                  </button>
+                </Popover.Close>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="h-9 rounded-full bg-surface-chip px-5 text-[14px] font-medium text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {saving ? t('appointments.saving') : t('appointments.save')}
+                </button>
+              </span>
             </div>
           </form>
         </Popover.Content>

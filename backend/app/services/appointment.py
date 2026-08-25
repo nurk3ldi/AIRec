@@ -263,17 +263,35 @@ class AppointmentService:
         # did: a new start, a new length, or both.
         moved = False
 
-        service_id = changes.get("service_id")
-        if service_id is not None and service_id != appointment.service_id:
-            service = await self._find_service(user, service_id)
-            # Re-snapshotted, not merely re-pointed. The name, the length and
-            # the price are what this booking *is*; leaving yesterday's copy
-            # beside a new `service_id` would make the row disagree with itself.
-            appointment.service_id = service.id
-            appointment.service_name = service.name
-            appointment.duration_minutes = service.duration_minutes
-            appointment.price = service.price
-            moved = True
+        # `in changes` rather than `is not None`, because `null` is a value
+        # here: it unhooks a booking from the price list, which is what happens
+        # when the owner types over the service's name.
+        if "service_id" in changes:
+            service_id = changes["service_id"]
+            if service_id is None:
+                appointment.service_id = None
+            elif service_id != appointment.service_id:
+                service = await self._find_service(user, service_id)
+                # Re-snapshotted, not merely re-pointed. The name, the length
+                # and the price are what this booking *is*; leaving yesterday's
+                # copy beside a new `service_id` would make the row disagree
+                # with itself.
+                appointment.service_id = service.id
+                appointment.service_name = service.name
+                appointment.duration_minutes = service.duration_minutes
+                appointment.price = service.price
+                moved = True
+
+        # Applied *after* the service, so an explicit value wins over whatever
+        # the price list just supplied — and before `ends_at` is recomputed,
+        # because a new length moves the booking exactly as a new start does.
+        if changes.get("service_name") is not None:
+            appointment.service_name = changes["service_name"]
+        if changes.get("price") is not None:
+            appointment.price = changes["price"]
+        if changes.get("duration_minutes") is not None:
+            moved = moved or changes["duration_minutes"] != appointment.duration_minutes
+            appointment.duration_minutes = changes["duration_minutes"]
 
         if changes.get("starts_at") is not None:
             starts_at = changes["starts_at"].astimezone(UTC)

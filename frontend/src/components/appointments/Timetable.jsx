@@ -166,7 +166,7 @@ export default function Timetable({
   bookings,
   services,
   timeZone,
-  onCreated,
+  onSaved,
 }) {
   const t = useT()
   const [view, setView] = useState('week')
@@ -432,7 +432,7 @@ export default function Timetable({
             onDayChange={onSelect}
             services={services}
             timeZone={timeZone}
-            onCreated={onCreated}
+            onSaved={onSaved}
           >
             <button
               type="button"
@@ -669,6 +669,10 @@ export default function Timetable({
                   block={block}
                   rowHeight={rowHeight}
                   laneWidth={view === 'day' ? LANE_WIDTH : null}
+                  services={services}
+                  timeZone={timeZone}
+                  onDayChange={onSelect}
+                  onSaved={onSaved}
                 />
               ))}
             </div>
@@ -756,7 +760,16 @@ function useNow() {
  * `BLOCKING_STATUSES` — but it is still what happened there, and the assistant
  * has already spoken to that client about that time.
  */
-function BookingBlock({ block, rowHeight, laneWidth }) {
+function BookingBlock({
+  block,
+  rowHeight,
+  laneWidth,
+  services,
+  timeZone,
+  onDayChange,
+  onSaved,
+}) {
+  const [open, setOpen] = useState(false)
   const top = ((block.start - WINDOW_FROM) / 60) * rowHeight
   // A floor, so a fifteen-minute service is still a block you can read a name
   // out of rather than a coloured line.
@@ -767,52 +780,70 @@ function BookingBlock({ block, rowHeight, laneWidth }) {
   const cancelled = block.status === 'cancelled'
 
   return (
-    <div
-      // **`surface-card`, its own fill, and it took three tries to land on
-      // one.** `surface-chip` was too loud — `#2a2a2a` on a black grid is a
-      // light grey box, and it is also what this app marks *the chosen thing*
-      // with, so spending it on every booking would leave nothing to say "this
-      // one" with when the grid finally has a selection. `surface-raised` was
-      // the other way: at `#0e0e0e` on a pure black ground it reads as no fill
-      // at all, which is right for a card sitting on the page and wrong for one
-      // sitting on the grid.
-      //
-      // A booking is drawn *on* something, and that is the difference the token
-      // records.
-      //
-      // **No border.** The fill is doing that job on its own now, and the
-      // hairline was doing it a second time — a stroked box on a grid that
-      // already has a rule down every column edge is an outline inside an
-      // outline. It also made the card read as a control rather than as a
-      // record, which is the wrong noun for something you look at rather than
-      // press.
-      className={`absolute flex flex-col gap-1.5 overflow-hidden rounded-lg bg-surface-card px-2.5 py-2 ${
-        cancelled ? 'opacity-45' : ''
-      }`}
-      style={{
-        top,
-        height,
-        // **Fixed lanes in the day view, shares of the column in the week.**
-        // A day has one column and as much of it as the bookings need; a week
-        // has five, and a booking belongs to the width of its own day.
-        //
-        // The week view uses the same `LANE_INSET` on each side, so a booking
-        // clears its column's rule by exactly what a day-view one does. It was
-        // 2px, which was symmetric but half the day view's — the two screens
-        // are the same grid seen at two widths and should not disagree about
-        // how far a card sits from an edge.
-        ...(laneWidth
-          ? {
-              left: LANE_INSET + block.lane * (laneWidth + LANE_GAP),
-              width: laneWidth,
-            }
-          : {
-              left: `calc(${(block.lane / block.lanes) * 100}% + ${LANE_INSET}px)`,
-              width: `calc(${100 / block.lanes}% - ${LANE_INSET * 2}px)`,
-            }),
-      }}
+    // **Double click, not click.** A single click on a booking will eventually
+    // select it — the grid needs a lighter gesture for "look at this one" — and
+    // spending it on opening a form would leave nothing for that. Double click
+    // is also what every calendar on a desktop uses to open an event, so it is
+    // a habit rather than a thing to learn. `select-none` because a double
+    // click on text selects a word first, and a highlighted name behind an open
+    // panel looks like a bug.
+    <BookingPopover
+      asAnchor
+      open={open}
+      onOpenChange={setOpen}
+      booking={block}
+      onDayChange={onDayChange}
+      services={services}
+      timeZone={timeZone}
+      onSaved={onSaved}
     >
-      {/* **What is shown depends on how tall the booking is**, and the order is
+      <div
+        onDoubleClick={() => setOpen(true)}
+        // **`surface-card`, its own fill, and it took three tries to land on
+        // one.** `surface-chip` was too loud — `#2a2a2a` on a black grid is a
+        // light grey box, and it is also what this app marks *the chosen thing*
+        // with, so spending it on every booking would leave nothing to say "this
+        // one" with when the grid finally has a selection. `surface-raised` was
+        // the other way: at `#0e0e0e` on a pure black ground it reads as no fill
+        // at all, which is right for a card sitting on the page and wrong for one
+        // sitting on the grid.
+        //
+        // A booking is drawn *on* something, and that is the difference the token
+        // records.
+        //
+        // **No border.** The fill is doing that job on its own now, and the
+        // hairline was doing it a second time — a stroked box on a grid that
+        // already has a rule down every column edge is an outline inside an
+        // outline. It also made the card read as a control rather than as a
+        // record, which is the wrong noun for something you look at rather than
+        // press.
+        className={`absolute flex cursor-pointer flex-col gap-1.5 overflow-hidden rounded-lg bg-surface-card px-2.5 py-2 select-none ${
+          cancelled ? 'opacity-45' : ''
+        }`}
+        style={{
+          top,
+          height,
+          // **Fixed lanes in the day view, shares of the column in the week.**
+          // A day has one column and as much of it as the bookings need; a week
+          // has five, and a booking belongs to the width of its own day.
+          //
+          // The week view uses the same `LANE_INSET` on each side, so a booking
+          // clears its column's rule by exactly what a day-view one does. It was
+          // 2px, which was symmetric but half the day view's — the two screens
+          // are the same grid seen at two widths and should not disagree about
+          // how far a card sits from an edge.
+          ...(laneWidth
+            ? {
+                left: LANE_INSET + block.lane * (laneWidth + LANE_GAP),
+                width: laneWidth,
+              }
+            : {
+                left: `calc(${(block.lane / block.lanes) * 100}% + ${LANE_INSET}px)`,
+                width: `calc(${100 / block.lanes}% - ${LANE_INSET * 2}px)`,
+              }),
+        }}
+      >
+        {/* **What is shown depends on how tall the booking is**, and the order is
           what matters: the name first, because that is what the owner scans
           for; then what they are here for; then the arithmetic. A card that
           dropped the name to keep the price would be sorted the wrong way
@@ -823,51 +854,52 @@ function BookingBlock({ block, rowHeight, laneWidth }) {
           service under it, 78 adds the footer and 104 the status strip. They
           move with the type and with the padding; a threshold left behind a
           size change is a card that clips the line it just decided to draw. */}
-      {height >= 104 && (
-        <p
-          className={`flex items-center gap-1.5 truncate text-[12px] leading-none font-medium ${
-            STATUS_TONE[stateOf(block.status)] ?? 'text-muted'
-          }`}
-        >
-          {/* `currentColor`, so the dot and the word are the same statement
+        {height >= 104 && (
+          <p
+            className={`flex items-center gap-1.5 truncate text-[12px] leading-none font-medium ${
+              STATUS_TONE[stateOf(block.status)] ?? 'text-muted'
+            }`}
+          >
+            {/* `currentColor`, so the dot and the word are the same statement
               rather than two things that have to be kept in step. */}
-          <span
-            aria-hidden="true"
-            className="h-1.5 w-1.5 shrink-0 rounded-full bg-current"
-          />
-          {statusLabel(block.status)}
-        </p>
-      )}
+            <span
+              aria-hidden="true"
+              className="h-1.5 w-1.5 shrink-0 rounded-full bg-current"
+            />
+            {statusLabel(block.status)}
+          </p>
+        )}
 
-      <p className="truncate text-[15px] leading-tight font-semibold text-ink">
-        {block.client}
-      </p>
-
-      {height >= 54 && (
-        // `ink`, not `muted`: on a grey card the muted grey was a second grey
-        // and the line disappeared into its own background. The hierarchy is
-        // carried by weight instead — the name is semibold, this is not — which
-        // survives being read at arm's length where a difference of two greys
-        // does not.
-        <p className="truncate text-[13px] leading-tight text-ink">
-          {block.service}
+        <p className="truncate text-[15px] leading-tight font-semibold text-ink">
+          {block.client}
         </p>
-      )}
 
-      {height >= 78 && (
-        // Pushed to the bottom edge: the head of the card is what it is, the
-        // foot is what it costs, and on a booking that runs three hours the
-        // two should not both be huddled at the top.
-        <p className="mt-auto flex items-center justify-between gap-2 truncate pt-2 text-[12px] leading-none">
-          <span className="font-display font-medium text-ink">
-            {block.range}
-          </span>
-          <span className="shrink-0 text-muted">
-            {formatPrice(block.price)}
-          </span>
-        </p>
-      )}
-    </div>
+        {height >= 54 && (
+          // `ink`, not `muted`: on a grey card the muted grey was a second grey
+          // and the line disappeared into its own background. The hierarchy is
+          // carried by weight instead — the name is semibold, this is not — which
+          // survives being read at arm's length where a difference of two greys
+          // does not.
+          <p className="truncate text-[13px] leading-tight text-ink">
+            {block.service}
+          </p>
+        )}
+
+        {height >= 78 && (
+          // Pushed to the bottom edge: the head of the card is what it is, the
+          // foot is what it costs, and on a booking that runs three hours the
+          // two should not both be huddled at the top.
+          <p className="mt-auto flex items-center justify-between gap-2 truncate pt-2 text-[12px] leading-none">
+            <span className="font-display font-medium text-ink">
+              {block.range}
+            </span>
+            <span className="shrink-0 text-muted">
+              {formatPrice(block.price)}
+            </span>
+          </p>
+        )}
+      </div>
+    </BookingPopover>
   )
 }
 

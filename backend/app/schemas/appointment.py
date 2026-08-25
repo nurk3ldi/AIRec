@@ -153,9 +153,21 @@ class UpdateAppointmentRequest(BaseModel):
     has changed the same booking, not made another one. It re-snapshots the
     name, the length and the price, which is why it can change how long the
     booking runs and so has to be re-checked exactly like a new start time.
+
+    **`service_name`, `price` and `duration_minutes` override that snapshot,
+    field by field**, and are the whole of it where there is no service at all.
+    The panel edits a booking the same way it writes one — every field is a
+    field — so a PATCH has to be able to say the same things a POST can. Sending
+    `service_id: null` unhooks a booking from the price list without touching
+    what it is called or what it cost.
     """
 
     service_id: uuid.UUID | None = None
+    service_name: str | None = Field(default=None, max_length=120)
+    price: int | None = Field(default=None, ge=0)
+    duration_minutes: int | None = Field(
+        default=None, ge=1, le=MAX_DURATION_MINUTES
+    )
     client_name: str | None = Field(default=None, max_length=120)
     client_phone: str | None = Field(default=None, max_length=32)
     starts_at: datetime | None = None
@@ -175,7 +187,7 @@ class UpdateAppointmentRequest(BaseModel):
             raise ValueError("Укажите имя клиента.")
         return stripped
 
-    @field_validator("client_phone", "note")
+    @field_validator("client_phone", "note", "service_name")
     @classmethod
     def _blank_to_none(cls, value: str | None) -> str | None:
         if value is None:
