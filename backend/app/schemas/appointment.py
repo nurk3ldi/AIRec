@@ -51,12 +51,34 @@ class AppointmentPublic(BaseModel):
     status: str
     source: str
     note: str | None = None
+    color: str | None = None
     # Computed on the model from `archived_at`.
     archived: bool = False
     created_at: datetime
 
 
 MAX_DURATION_MINUTES = 24 * 60
+
+# **The palette is closed, and the server holds the list.** Storing a free
+# string would let a client write anything into a column the calendar renders,
+# and storing a hex would freeze one theme's answer into every row. A name is
+# checked here and resolved to a colour where it is drawn.
+BOOKING_COLORS = frozenset(
+    {"orange", "green", "blue", "violet", "rose", "teal"}
+)
+
+
+def _validate_color(value: str | None) -> str | None:
+    """`None` clears the mark; anything outside the palette is a bug, not a
+    preference."""
+    if value is None:
+        return None
+    name = value.strip().lower()
+    if not name:
+        return None
+    if name not in BOOKING_COLORS:
+        raise ValueError("Неизвестный цвет.")
+    return name
 
 
 class CreateAppointmentRequest(BaseModel):
@@ -95,6 +117,7 @@ class CreateAppointmentRequest(BaseModel):
         default=None, ge=1, le=MAX_DURATION_MINUTES
     )
     note: str | None = Field(default=None, max_length=MAX_NOTE_LENGTH)
+    color: str | None = Field(default=None, max_length=16)
     # The owner adding a booking by hand may write it down as already agreed;
     # the assistant leaves it pending for the owner to look at.
     status: AppointmentStatus = AppointmentStatus.PENDING
@@ -141,6 +164,11 @@ class CreateAppointmentRequest(BaseModel):
     def _validate_start(cls, value: datetime) -> datetime:
         return _require_aware(value)
 
+    @field_validator("color")
+    @classmethod
+    def _validate_color_name(cls, value: str | None) -> str | None:
+        return _validate_color(value)
+
 
 class UpdateAppointmentRequest(BaseModel):
     """A PATCH: an omitted field is left alone.
@@ -173,6 +201,7 @@ class UpdateAppointmentRequest(BaseModel):
     starts_at: datetime | None = None
     note: str | None = Field(default=None, max_length=MAX_NOTE_LENGTH)
     status: AppointmentStatus | None = None
+    color: str | None = Field(default=None, max_length=16)
     # Out of the calendar's way, or back into it. A view flag — it changes
     # nothing about when the booking is or whether its hour is free.
     archived: bool | None = None
@@ -198,6 +227,11 @@ class UpdateAppointmentRequest(BaseModel):
     @classmethod
     def _validate_start(cls, value: datetime | None) -> datetime | None:
         return None if value is None else _require_aware(value)
+
+    @field_validator("color")
+    @classmethod
+    def _validate_color_name(cls, value: str | None) -> str | None:
+        return _validate_color(value)
 
 
 class SlotsQuery(BaseModel):

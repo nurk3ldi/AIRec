@@ -239,6 +239,7 @@ class AppointmentService:
             status=data.status.value,
             source=data.source.value,
             note=data.note,
+            color=data.color,
         )
         self._appointments.add(appointment)
         await self._session.commit()
@@ -306,7 +307,7 @@ class AppointmentService:
                 minutes=appointment.duration_minutes
             )
 
-        for field in ("client_name", "client_phone", "note"):
+        for field in ("client_name", "client_phone", "note", "color"):
             if field in changes:
                 setattr(appointment, field, changes[field])
 

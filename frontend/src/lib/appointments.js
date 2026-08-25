@@ -71,6 +71,7 @@ export function toBlock(row, timeZone) {
     minutes: row.duration_minutes,
     price: row.price,
     status: row.status,
+    color: row.color,
     archived: row.archived,
     source: row.source,
     note: row.note,
@@ -121,6 +122,29 @@ export const statusLabel = (status) =>
  * Eight is enough that a day repeats a colour only past eight bookings, and
  * few enough that they stay tellable apart.
  */
+/**
+ * The marks a booking may carry, as name → hue.
+ *
+ * **The names are the API's** — the server keeps the same closed set and
+ * refuses anything outside it — and the hues are this app's answer to them, so
+ * the palette can be retuned without touching a single stored row.
+ *
+ * They are never painted at full strength. Every one is mixed into the card's
+ * own fill at a low percentage where it is drawn, which is what keeps a marked
+ * booking a *tinted card* rather than a coloured block: a week of saturated
+ * rectangles is a week that looks like something is happening, which is the
+ * reason per-booking colour was taken out in the first place. What came back is
+ * a mark the owner chooses, on the few bookings worth marking.
+ */
+export const BOOKING_TINTS = {
+  orange: '#ea6a1e',
+  green: '#16a34a',
+  blue: '#3248f2',
+  violet: '#7c3aed',
+  rose: '#e11d63',
+  teal: '#0e96c7',
+}
+
 export const BOOKING_COLORS = [
   '#3248F2', // indigo — the brand accent
   '#7C3AED', // violet

@@ -8,7 +8,14 @@ import {
   updateAppointment,
 } from '../../lib/api'
 import { authed } from '../../lib/auth'
-import { fromMinutes, instantAt, parseClock } from '../../lib/appointments'
+import {
+  BOOKING_STATES,
+  BOOKING_TINTS,
+  fromMinutes,
+  instantAt,
+  parseClock,
+  stateOf,
+} from '../../lib/appointments'
 import { useT } from '../../lib/i18n'
 import { FIELD, FIELD_ERROR } from '../controls'
 import DateField from './DateField'
@@ -94,6 +101,8 @@ export default function BookingPopover({
   const [clientName, setClientName] = useState('')
   const [clientPhone, setClientPhone] = useState('')
   const [note, setNote] = useState('')
+  const [color, setColor] = useState('')
+  const [status, setStatus] = useState('confirmed')
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -178,6 +187,8 @@ export default function BookingPopover({
     setClientName(booking?.client ?? '')
     setClientPhone(booking?.phone ?? '')
     setNote(booking?.note ?? '')
+    setColor(booking?.color ?? '')
+    setStatus(booking ? stateOf(booking.status) : 'confirmed')
     setConfirmingDelete(false)
     setError('')
     setFields({})
@@ -226,6 +237,14 @@ export default function BookingPopover({
       duration_minutes:
         (parseClock(endsAt) - parseClock(startsAt) + 24 * 60) % (24 * 60),
       note: note.trim() || null,
+      // Empty means "no mark", which the API stores as null — a booking that
+      // was coloured and then cleared has to be able to say so, and `''` is not
+      // a colour the server knows.
+      color: color || null,
+      // Only when editing. A booking being written now has not happened yet, so
+      // the four states are not a choice anyone can make about it — its status
+      // is whatever the API's default says a new booking is.
+      ...(editing ? { status } : {}),
     }
 
     try {
@@ -491,6 +510,59 @@ export default function BookingPopover({
               />
             </Group>
 
+            {/* **The mark, and it is optional by design.** The first swatch is
+                "none", and it is first because it is the answer for almost
+                every booking: a calendar where each card is coloured is a
+                calendar where colour has stopped meaning anything.
+
+                Each swatch is the hue mixed into the card's own fill at exactly
+                the strength the grid draws it, so what you pick is what you
+                get — a preview at full saturation would promise a block of
+                colour the grid never paints. */}
+            <Group label={t('appointments.color')} error={fields.color}>
+              <div className="flex flex-wrap gap-2">
+                <Swatch
+                  tint={null}
+                  chosen={!color}
+                  onClick={() => setColor('')}
+                  label={t('appointments.colorNone')}
+                />
+                {Object.entries(BOOKING_TINTS).map(([name, tint]) => (
+                  <Swatch
+                    key={name}
+                    tint={tint}
+                    chosen={color === name}
+                    onClick={() => setColor(name)}
+                    label={name}
+                  />
+                ))}
+              </div>
+            </Group>
+
+            {/* Editing only: a booking being written down has not happened yet,
+                so none of the four is a thing anyone can say about it. */}
+            {editing && (
+              <Group label={t('appointments.status')} error={fields.status}>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {BOOKING_STATES.map((state) => (
+                    <button
+                      key={state.id}
+                      type="button"
+                      onClick={() => setStatus(state.id)}
+                      aria-pressed={status === state.id}
+                      className={`h-9 rounded-xl px-3 text-[13px] font-medium outline-none transition-colors ${
+                        status === state.id
+                          ? 'bg-surface-chip text-ink'
+                          : 'bg-ink/[0.04] text-muted hover:bg-ink/[0.07] hover:text-ink focus-visible:bg-ink/[0.07]'
+                      }`}
+                    >
+                      {t(STATUS_KEYS[state.id])}
+                    </button>
+                  ))}
+                </div>
+              </Group>
+            )}
+
             {error && (
               <p className="mb-3 text-[13px] text-danger" role="alert">
                 {error}
@@ -545,6 +617,44 @@ export default function BookingPopover({
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
+  )
+}
+
+/** The four states' labels, keyed by id — the same map `StatusFilter` keeps,
+ *  and for the same reason: `BOOKING_STATES` carries Russian of its own, which
+ *  is right for code with no `t` to call and wrong on a panel that is not. */
+const STATUS_KEYS = {
+  confirmed: 'booking.active',
+  completed: 'booking.completed',
+  no_show: 'booking.noShow',
+  cancelled: 'booking.cancelled',
+}
+
+/**
+ * One colour to mark a booking with, drawn as the card will actually look.
+ *
+ * The chosen one takes a ring rather than a tick: a tick has to be legible
+ * against six different fills, and a ring sits outside the circle where the
+ * fill cannot reach it.
+ */
+function Swatch({ tint, chosen, onClick, label }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={chosen}
+      className={`h-7 w-7 rounded-full outline-none transition-shadow ${
+        chosen
+          ? 'shadow-[0_0_0_2px_var(--color-surface),0_0_0_4px_var(--color-ink)]'
+          : 'shadow-[0_0_0_1px_var(--color-line)]'
+      }`}
+      style={{
+        backgroundColor: tint
+          ? `color-mix(in oklab, ${tint} 16%, var(--color-surface-card))`
+          : 'var(--color-surface-card)',
+      }}
+    />
   )
 }
 

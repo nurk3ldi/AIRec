@@ -7,6 +7,7 @@ import {
   ArrowRight01Icon,
 } from '@hugeicons/core-free-icons'
 import {
+  BOOKING_TINTS,
   byStart,
   formatPrice,
   fromMinutes,
@@ -943,10 +944,18 @@ function BookingBlock({
         // outline. It also made the card read as a control rather than as a
         // record, which is the wrong noun for something you look at rather than
         // press.
-        className={`absolute flex cursor-pointer flex-col gap-1.5 overflow-hidden rounded-lg bg-surface-card px-2.5 py-2 select-none ${
+        className={`absolute flex cursor-pointer flex-col gap-1.5 overflow-hidden rounded-lg px-2.5 py-2 select-none ${
           cancelled ? 'opacity-45' : ''
         }`}
         style={{
+          // **The mark, mixed into the card rather than replacing it.** 16% is
+          // enough to tell two marked bookings apart at a glance and not enough
+          // to turn the grid into a colour chart — see the note on
+          // `BOOKING_TINTS`. Unmarked, this is the plain card fill, which is
+          // the ordinary case and stays the quiet one.
+          backgroundColor: BOOKING_TINTS[block.color]
+            ? `color-mix(in oklab, ${BOOKING_TINTS[block.color]} 16%, var(--color-surface-card))`
+            : 'var(--color-surface-card)',
           top,
           height,
           // **Fixed lanes in the day view, shares of the column in the week.**

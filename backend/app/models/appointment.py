@@ -132,6 +132,11 @@ class Appointment(Base):
         server_default=AppointmentSource.MANUAL,
     )
     note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # What the owner marked this booking with, as a palette *name* — see the
+    # note in migration 0019. Null is the ordinary case: most bookings are not
+    # marked, and a calendar where every card is coloured is a calendar where
+    # colour means nothing.
+    color: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
     # Out of the calendar's way, still in the history.
     #
