@@ -15,6 +15,7 @@ import {
 import { authed } from '../../lib/auth'
 import {
   BOOKING_STATES,
+  BOOKING_TINT_MIX,
   BOOKING_TINTS,
   fromMinutes,
   instantAt,
@@ -515,107 +516,42 @@ export default function BookingPopover({
               />
             </Group>
 
-            {/* **The mark, and it is optional by design.** The first swatch is
-                "none", and it is first because it is the answer for almost
-                every booking: a calendar where each card is coloured is a
-                calendar where colour has stopped meaning anything.
+            {/* **Two rows, one shape.** Both answer a question with a small
+                closed set, which is a row rather than a field — see the note on
+                `PanelSelect`. The colour is offered when adding as well as when
+                editing; the status only when editing, because a booking being
+                written down has not happened yet and none of the four is a
+                thing anyone can say about it yet. */}
+            <PanelSelect
+              label={t('appointments.color')}
+              // `'none'` on the wire and `''` in the form: Radix will not take
+              // an empty string as an item value, and the API wants `null`.
+              value={color || 'none'}
+              onChange={(next) => setColor(next === 'none' ? '' : next)}
+              options={[
+                {
+                  id: 'none',
+                  label: t('appointments.colorNone'),
+                  dot: null,
+                },
+                ...Object.entries(BOOKING_TINTS).map(([name, tint]) => ({
+                  id: name,
+                  label: t(`color.${name}`),
+                  dot: tint,
+                })),
+              ]}
+            />
 
-                Each swatch is the hue mixed into the card's own fill at exactly
-                the strength the grid draws it, so what you pick is what you
-                get — a preview at full saturation would promise a block of
-                colour the grid never paints. */}
-            <Group label={t('appointments.color')} error={fields.color}>
-              <div className="flex flex-wrap gap-2">
-                <Swatch
-                  tint={null}
-                  chosen={!color}
-                  onClick={() => setColor('')}
-                  label={t('appointments.colorNone')}
-                />
-                {Object.entries(BOOKING_TINTS).map(([name, tint]) => (
-                  <Swatch
-                    key={name}
-                    tint={tint}
-                    chosen={color === name}
-                    onClick={() => setColor(name)}
-                    label={name}
-                  />
-                ))}
-              </div>
-            </Group>
-
-            {/* **A row, not a field, and not the 2×2 of buttons it was.** A
-                setting with a small closed set of answers is a row — label on
-                the left, the answer and a chevron on the right — which is the
-                shape «Настройки» already uses for the theme and the language.
-                Four buttons spent a quarter of the panel showing three answers
-                nobody had chosen.
-
-                Outside `Group` on purpose: `Group` writes its label above the
-                control, and this one carries its own beside it. No hairlines
-                either, unlike the settings list — there the rows are a list and
-                the rules are what separate them, here it is one row among
-                fields and a rule would be a divider through the middle of a
-                form.
-
-                Editing only: a booking being written down has not happened yet,
-                so none of the four is a thing anyone can say about it. */}
             {editing && (
-              <div className="mb-3 flex items-center justify-between gap-4">
-                <span className="text-[14px] text-ink">
-                  {t('appointments.status')}
-                </span>
-
-                <Select.Root value={status} onValueChange={setStatus}>
-                  <Select.Trigger
-                    aria-label={t('appointments.status')}
-                    className="-my-2 flex shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2 py-2 text-[14px] text-ink outline-none transition-colors focus-visible:bg-ink/6"
-                  >
-                    <Select.Value />
-                    <Select.Icon asChild>
-                      <HugeiconsIcon
-                        icon={ArrowDown01Icon}
-                        size={15}
-                        strokeWidth={2}
-                        className="text-muted"
-                      />
-                    </Select.Icon>
-                  </Select.Trigger>
-
-                  <Select.Portal>
-                    <Select.Content
-                      position="popper"
-                      align="end"
-                      sideOffset={6}
-                      // Above the panel's own `z-[60]`, and tagged so one
-                      // Escape closes this list rather than the panel with it.
-                      data-nested-overlay
-                      className="z-[70] min-w-[168px] overflow-hidden rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)]"
-                    >
-                      <Select.Viewport>
-                        {BOOKING_STATES.map((state) => (
-                          <Select.Item
-                            key={state.id}
-                            value={state.id}
-                            className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-[14px] text-ink outline-none select-none data-[highlighted]:bg-ink/6"
-                          >
-                            <Select.ItemText>
-                              {t(STATUS_KEYS[state.id])}
-                            </Select.ItemText>
-                            <Select.ItemIndicator className="ml-auto text-ink">
-                              <HugeiconsIcon
-                                icon={Tick02Icon}
-                                size={15}
-                                strokeWidth={2.4}
-                              />
-                            </Select.ItemIndicator>
-                          </Select.Item>
-                        ))}
-                      </Select.Viewport>
-                    </Select.Content>
-                  </Select.Portal>
-                </Select.Root>
-              </div>
+              <PanelSelect
+                label={t('appointments.status')}
+                value={status}
+                onChange={setStatus}
+                options={BOOKING_STATES.map((state) => ({
+                  id: state.id,
+                  label: t(STATUS_KEYS[state.id]),
+                }))}
+              />
             )}
 
             {error && (
@@ -675,6 +611,94 @@ export default function BookingPopover({
   )
 }
 
+/**
+ * A settings-style row: a label, and a closed set of answers behind a chevron.
+ *
+ * **Written once because there are two of them**, and two rows built separately
+ * are two rows that agree until one is restyled. It is the shape «Настройки»
+ * uses for the theme and the language, minus the hairlines: there the rows are
+ * a list and the rules are what separate them, here they sit among form fields
+ * and a rule would be a divider drawn through the middle of a form.
+ *
+ * An option may carry a `dot` — a colour, drawn at the strength the grid will
+ * actually paint it, so what the list shows is what the card becomes.
+ */
+function PanelSelect({ label, value, onChange, options }) {
+  const current = options.find((option) => option.id === value)
+
+  return (
+    <div className="mb-3 flex items-center justify-between gap-4">
+      <span className="shrink-0 text-[14px] text-ink">{label}</span>
+
+      <Select.Root value={value} onValueChange={onChange}>
+        <Select.Trigger
+          aria-label={label}
+          className="-my-2 flex min-w-0 cursor-pointer items-center gap-1.5 rounded-lg px-2 py-2 text-[14px] text-ink outline-none transition-colors focus-visible:bg-ink/6"
+        >
+          {current?.dot && <Dot tint={current.dot} />}
+          <Select.Value className="truncate" />
+          <Select.Icon asChild>
+            <HugeiconsIcon
+              icon={ArrowDown01Icon}
+              size={15}
+              strokeWidth={2}
+              className="shrink-0 text-muted"
+            />
+          </Select.Icon>
+        </Select.Trigger>
+
+        <Select.Portal>
+          <Select.Content
+            position="popper"
+            align="end"
+            sideOffset={6}
+            // Above the panel's own `z-[60]`, and tagged so one Escape closes
+            // this list rather than the panel with it.
+            data-nested-overlay
+            className="z-[70] min-w-[176px] overflow-hidden rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)]"
+          >
+            <Select.Viewport>
+              {options.map((option) => (
+                <Select.Item
+                  key={option.id}
+                  value={option.id}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-[14px] text-ink outline-none select-none data-[highlighted]:bg-ink/6"
+                >
+                  {option.dot !== undefined && <Dot tint={option.dot} />}
+                  <Select.ItemText>{option.label}</Select.ItemText>
+                  <Select.ItemIndicator className="ml-auto text-ink">
+                    <HugeiconsIcon
+                      icon={Tick02Icon}
+                      size={15}
+                      strokeWidth={2.4}
+                    />
+                  </Select.ItemIndicator>
+                </Select.Item>
+              ))}
+            </Select.Viewport>
+          </Select.Content>
+        </Select.Portal>
+      </Select.Root>
+    </div>
+  )
+}
+
+/** The colour itself, at the strength a booking card is tinted with. `null` is
+ *  "no colour" and shows the plain card fill inside a hairline. */
+function Dot({ tint }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="h-3.5 w-3.5 shrink-0 rounded-full shadow-[0_0_0_1px_var(--color-line)]"
+      style={{
+        backgroundColor: tint
+          ? `color-mix(in oklab, ${tint} ${BOOKING_TINT_MIX}%, var(--color-surface-card))`
+          : 'var(--color-surface-card)',
+      }}
+    />
+  )
+}
+
 /** The four states' labels, keyed by id — the same map `StatusFilter` keeps,
  *  and for the same reason: `BOOKING_STATES` carries Russian of its own, which
  *  is right for code with no `t` to call and wrong on a panel that is not. */
@@ -683,34 +707,6 @@ const STATUS_KEYS = {
   completed: 'booking.completed',
   no_show: 'booking.noShow',
   cancelled: 'booking.cancelled',
-}
-
-/**
- * One colour to mark a booking with, drawn as the card will actually look.
- *
- * The chosen one takes a ring rather than a tick: a tick has to be legible
- * against six different fills, and a ring sits outside the circle where the
- * fill cannot reach it.
- */
-function Swatch({ tint, chosen, onClick, label }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      aria-pressed={chosen}
-      className={`h-7 w-7 rounded-full outline-none transition-shadow ${
-        chosen
-          ? 'shadow-[0_0_0_2px_var(--color-surface),0_0_0_4px_var(--color-ink)]'
-          : 'shadow-[0_0_0_1px_var(--color-line)]'
-      }`}
-      style={{
-        backgroundColor: tint
-          ? `color-mix(in oklab, ${tint} 16%, var(--color-surface-card))`
-          : 'var(--color-surface-card)',
-      }}
-    />
-  )
 }
 
 /** A labelled block, with the field's message under it where there is one. */

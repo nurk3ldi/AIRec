@@ -7,6 +7,7 @@ import {
   ArrowRight01Icon,
 } from '@hugeicons/core-free-icons'
 import {
+  BOOKING_TINT_MIX,
   BOOKING_TINTS,
   byStart,
   formatPrice,
@@ -948,13 +949,11 @@ function BookingBlock({
           cancelled ? 'opacity-45' : ''
         }`}
         style={{
-          // **The mark, mixed into the card rather than replacing it.** 16% is
-          // enough to tell two marked bookings apart at a glance and not enough
-          // to turn the grid into a colour chart — see the note on
-          // `BOOKING_TINTS`. Unmarked, this is the plain card fill, which is
+          // **The mark, mixed into the card rather than replacing it** — see
+          // `BOOKING_TINT_MIX` for the strength and why it is that number. Unmarked, this is the plain card fill, which is
           // the ordinary case and stays the quiet one.
           backgroundColor: BOOKING_TINTS[block.color]
-            ? `color-mix(in oklab, ${BOOKING_TINTS[block.color]} 16%, var(--color-surface-card))`
+            ? `color-mix(in oklab, ${BOOKING_TINTS[block.color]} ${BOOKING_TINT_MIX}%, var(--color-surface-card))`
             : 'var(--color-surface-card)',
           top,
           height,

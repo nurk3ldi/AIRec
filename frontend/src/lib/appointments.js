@@ -129,6 +129,31 @@ export const statusLabel = (status) =>
  * refuses anything outside it — and the hues are this app's answer to them, so
  * the palette can be retuned without touching a single stored row.
  *
+ * **The names outlive the hues, which is the whole point of storing a name.**
+ * These six replaced a darker, muddier set — `#16a34a`, `#e11d63`, `#0e96c7` —
+ * that read as a decade old beside the rest of the product: deep, slightly grey
+ * mid-tones from a time when screens were dimmer. The current six sit a step
+ * brighter and a step cleaner, far enough apart in hue to be told apart at a
+ * glance and close enough in lightness to read as one set. Not one row in the
+ * database had to change for it.
+ *
+/**
+ * How much of the hue reaches the card, as a percentage.
+ *
+ * **One number, used by the grid and by the picker**, so the swatch in the list
+ * and the card it produces cannot disagree — they were two literals in two
+ * files, which is exactly the pair that drifts.
+ *
+ * 38, up from 16 and then 20. The low numbers made a *wash*: recognisable if
+ * you knew which colour you had picked and barely a colour if you did not,
+ * which is the opposite of what a mark is for. This is high enough to name at a
+ * glance and still low enough that the card reads as tinted rather than
+ * painted — ink stays legible on all six in both themes, which is the ceiling
+ * that actually decides this.
+ */
+export const BOOKING_TINT_MIX = 38
+
+/**
  * They are never painted at full strength. Every one is mixed into the card's
  * own fill at a low percentage where it is drawn, which is what keeps a marked
  * booking a *tinted card* rather than a coloured block: a week of saturated
@@ -137,12 +162,12 @@ export const statusLabel = (status) =>
  * a mark the owner chooses, on the few bookings worth marking.
  */
 export const BOOKING_TINTS = {
-  orange: '#ea6a1e',
-  green: '#16a34a',
-  blue: '#3248f2',
-  violet: '#7c3aed',
-  rose: '#e11d63',
-  teal: '#0e96c7',
+  orange: '#f97316',
+  green: '#22c55e',
+  blue: '#3b82f6',
+  violet: '#8b5cf6',
+  rose: '#f43f5e',
+  teal: '#06b6d4',
 }
 
 export const BOOKING_COLORS = [
@@ -225,7 +250,7 @@ export function instantAt(day, clock, timeZone) {
         hourCycle: 'h23',
       })
         .formatToParts(new Date(ms))
-        .map((part) => [part.type, part.value])
+        .map((part) => [part.type, part.value]),
     )
     const shown = Date.UTC(
       Number(at.year),
@@ -233,7 +258,7 @@ export function instantAt(day, clock, timeZone) {
       Number(at.day),
       Number(at.hour),
       Number(at.minute),
-      Number(at.second)
+      Number(at.second),
     )
     return shown - ms
   }
@@ -280,7 +305,7 @@ export function parseClock(text) {
 
 export const fromMinutes = (minutes) =>
   `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(
-    minutes % 60
+    minutes % 60,
   ).padStart(2, '0')}`
 
 export function startOfDay(date) {
@@ -340,7 +365,8 @@ export function layoutDay(blocks) {
   for (const block of sorted) {
     if (cluster.length > 0 && block.start >= clusterEnd) flush()
     cluster.push(block)
-    clusterEnd = cluster.length === 1 ? block.end : Math.max(clusterEnd, block.end)
+    clusterEnd =
+      cluster.length === 1 ? block.end : Math.max(clusterEnd, block.end)
   }
   if (cluster.length > 0) flush()
 
