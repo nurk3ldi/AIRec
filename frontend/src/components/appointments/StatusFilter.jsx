@@ -3,6 +3,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { FilterHorizontalIcon, Tick02Icon } from '@hugeicons/core-free-icons'
 import { BOOKING_STATES } from '../../lib/appointments'
 import { useT } from '../../lib/i18n'
+import { PANEL_MOTION } from './panel'
 
 /**
  * The label for each of the four states, keyed by the state's id.
@@ -72,7 +73,7 @@ export default function StatusFilter({ value, onChange }) {
           sideOffset={8}
           collisionPadding={12}
           data-nested-overlay
-          className="z-[70] w-[196px] rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)]"
+          className={`z-[70] w-[196px] rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] ${PANEL_MOTION}`}
         >
           {BOOKING_STATES.map((state) => {
             const on = value.has(state.id)

@@ -12,6 +12,8 @@ export default {
   'appointments.viewWeek': '5 days',
   'appointments.prev': 'Back',
   'appointments.next': 'Forward',
+  'appointments.expand': 'Expand to full height',
+  'appointments.collapse': 'Collapse',
   'appointments.now': 'Now',
   'appointments.upNext': 'Up next',
   'appointments.upNextEmpty': 'Nothing else booked today',

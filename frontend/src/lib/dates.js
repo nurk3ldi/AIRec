@@ -17,26 +17,66 @@
 import { getLocale } from './i18n'
 
 export const MONTHS_SHORT = [
-  'ЯНВ', 'ФЕВ', 'МАР', 'АПР', 'МАЙ', 'ИЮН',
-  'ИЮЛ', 'АВГ', 'СЕН', 'ОКТ', 'НОЯ', 'ДЕК',
+  'ЯНВ',
+  'ФЕВ',
+  'МАР',
+  'АПР',
+  'МАЙ',
+  'ИЮН',
+  'ИЮЛ',
+  'АВГ',
+  'СЕН',
+  'ОКТ',
+  'НОЯ',
+  'ДЕК',
 ]
 
 /** Genitive — these only ever appear after a day number: "24 августа". */
 export const MONTHS_OF = [
-  'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-  'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+  'января',
+  'февраля',
+  'марта',
+  'апреля',
+  'мая',
+  'июня',
+  'июля',
+  'августа',
+  'сентября',
+  'октября',
+  'ноября',
+  'декабря',
 ]
 
 /** For a date squeezed into a narrow column: "31 авг 2026". */
 export const MONTHS_ABBR = [
-  'янв', 'фев', 'мар', 'апр', 'мая', 'июн',
-  'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
+  'янв',
+  'фев',
+  'мар',
+  'апр',
+  'мая',
+  'июн',
+  'июл',
+  'авг',
+  'сен',
+  'окт',
+  'ноя',
+  'дек',
 ]
 
 /** Nominative — the month standing on its own: "Апрель 2025". */
 export const MONTHS = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+  'Январь',
+  'Февраль',
+  'Март',
+  'Апрель',
+  'Май',
+  'Июнь',
+  'Июль',
+  'Август',
+  'Сентябрь',
+  'Октябрь',
+  'Ноябрь',
+  'Декабрь',
 ]
 
 /**
@@ -44,8 +84,13 @@ export const MONTHS = [
  * order as the backend's `weekday`, which starts on Monday.
  */
 export const DAY_NAMES = [
-  'Воскресенье', 'Понедельник', 'Вторник', 'Среда',
-  'Четверг', 'Пятница', 'Суббота',
+  'Воскресенье',
+  'Понедельник',
+  'Вторник',
+  'Среда',
+  'Четверг',
+  'Пятница',
+  'Суббота',
 ]
 
 /** Column headings, Monday first — how a week is read here. */
@@ -150,6 +195,55 @@ export const sameDay = (a, b) =>
  * `formatToParts` rather than the formatted string, so Russian's trailing
  * " г." never has to be stripped: the era is simply a part we do not take.
  */
+/**
+ * A single day, written out — "понедельник, 24 августа".
+ *
+ * The weekday is capitalised rather than the string's first character, for the
+ * same reason `monthLabel` capitalises the month: `ru` and `kk` lowercase their
+ * weekday names, and raising position zero would be raising whatever the locale
+ * happened to put first.
+ */
+export function dayLabel(date) {
+  const parts = new Intl.DateTimeFormat(getLocale(), {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).formatToParts(date)
+
+  return parts
+    .map((part) =>
+      part.type === 'weekday'
+        ? part.value.charAt(0).toUpperCase() + part.value.slice(1)
+        : part.value,
+    )
+    .join('')
+}
+
+/**
+ * A span of days — "24 – 28 августа", or "29 сентября – 3 октября".
+ *
+ * **The month is dropped from the first date when both fall in the same one.**
+ * "24 августа – 28 августа" says August twice about a span five days long,
+ * which is the sort of thing a heading is read past rather than read. Across a
+ * month boundary both are needed and both are there.
+ *
+ * An en dash with spaces, matching the one the booking cards use for their own
+ * spans — the same relationship written the same way.
+ */
+export function rangeLabel(from, to) {
+  const locale = getLocale()
+  const sameMonth =
+    from.getMonth() === to.getMonth() && from.getFullYear() === to.getFullYear()
+
+  const start = from.toLocaleDateString(
+    locale,
+    sameMonth ? { day: 'numeric' } : { day: 'numeric', month: 'long' },
+  )
+  const end = to.toLocaleDateString(locale, { day: 'numeric', month: 'long' })
+
+  return `${start} – ${end}`
+}
+
 export function monthLabel(date) {
   const parts = new Intl.DateTimeFormat(getLocale(), {
     month: 'long',
@@ -165,7 +259,7 @@ export function monthLabel(date) {
     .map((part) =>
       part.type === 'month'
         ? part.value.charAt(0).toUpperCase() + part.value.slice(1)
-        : part.value
+        : part.value,
     )
     .join(' ')
 }

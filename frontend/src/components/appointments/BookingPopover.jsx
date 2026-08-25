@@ -14,6 +14,7 @@ import { FIELD, FIELD_ERROR } from '../controls'
 import DateField from './DateField'
 import ServiceField from './ServiceField'
 import TimeField from './TimeField'
+import { PANEL_MOTION } from './panel'
 
 /**
  * Writing a booking down by hand, in a panel hanging off the button that opens
@@ -354,7 +355,7 @@ export default function BookingPopover({
           aria-label={t(
             editing ? 'appointments.editTitle' : 'appointments.newTitle',
           )}
-          className="z-[60] flex origin-[var(--radix-popover-content-transform-origin)] max-h-[var(--radix-popover-content-available-height)] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none data-[state=open]:animate-[popover-in_180ms_cubic-bezier(0.32,0.72,0,1)]"
+          className={`z-[60] flex max-h-[var(--radix-popover-content-available-height)] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none ${PANEL_MOTION}`}
         >
           <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-3">
             <p className="font-display text-[17px] font-semibold tracking-[-0.02em] text-ink">

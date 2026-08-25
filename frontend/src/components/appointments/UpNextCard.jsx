@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AnimatePresence, m, useReducedMotion } from 'motion/react'
 import { byStart, dayOf, minutesOf } from '../../lib/appointments'
 import { useT } from '../../lib/i18n'
 
@@ -25,6 +26,7 @@ import { useT } from '../../lib/i18n'
 export default function UpNextCard({ bookings, timeZone }) {
   const t = useT()
   const now = useMinute()
+  const reduce = useReducedMotion()
 
   const today = dayOf(now.toISOString(), timeZone)
   const minute = minutesOf(now.toISOString(), timeZone)
@@ -71,37 +73,54 @@ export default function UpNextCard({ bookings, timeZone }) {
         // stop on the next name instead of scanning a table. The list scrolls;
         // the card does not grow.
         <div className="mt-2 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
-          {queue.map((booking, index) => (
-            <div
-              key={booking.id}
-              className="flex shrink-0 items-start gap-3 rounded-xl bg-ink/[0.06] px-3 py-2.5"
-            >
-              <div className="min-w-0 flex-1">
-                {/* The first is the one about to happen, so it is the one that
+          {/* **Leaving is what this animates, and it is the only reason to.**
+              A booking's start slips into the past and it drops out of the
+              queue on its own, with nobody touching anything — the one change
+              on this page that happens *to* you rather than because of you. A
+              row that vanished between glances would be a row you wondered
+              about; one that fades has visibly gone.
+
+              Opacity alone, no layout animation: that needs `domMax`, and this
+              app deliberately loads the smaller `domAnimation` everywhere but
+              the sidebar's marker. The rows below close the gap at once, which
+              after a fade reads as the queue settling rather than as a jump. */}
+          <AnimatePresence initial={false}>
+            {queue.map((booking, index) => (
+              <m.div
+                key={booking.id}
+                initial={reduce ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: reduce ? 0 : 0.16, ease: 'easeOut' }}
+                className="flex shrink-0 items-start gap-3 rounded-xl bg-ink/[0.06] px-3 py-2.5"
+              >
+                <div className="min-w-0 flex-1">
+                  {/* The first is the one about to happen, so it is the one that
                     reads at full strength; the rest are context. That is the
                     whole hierarchy here — no colour, no badge, just weight. */}
-                <p
-                  className={`truncate text-[14px] leading-tight ${
-                    index === 0
-                      ? 'font-semibold text-ink'
-                      : 'font-medium text-ink'
-                  }`}
-                >
-                  {booking.client}
-                </p>
-                <p className="mt-0.5 truncate text-[12px] leading-tight text-muted">
-                  {booking.service}
-                </p>
-              </div>
+                  <p
+                    className={`truncate text-[14px] leading-tight ${
+                      index === 0
+                        ? 'font-semibold text-ink'
+                        : 'font-medium text-ink'
+                    }`}
+                  >
+                    {booking.client}
+                  </p>
+                  <p className="mt-0.5 truncate text-[12px] leading-tight text-muted">
+                    {booking.service}
+                  </p>
+                </div>
 
-              {/* The start alone, not the span: the question this list answers
+                {/* The start alone, not the span: the question this list answers
                   is when to expect somebody, and the end of a booking that has
                   not begun is a number nobody needs yet. */}
-              <span className="shrink-0 font-display text-[13px] font-semibold text-ink tabular-nums">
-                {booking.from}
-              </span>
-            </div>
-          ))}
+                <span className="shrink-0 font-display text-[13px] font-semibold text-ink tabular-nums">
+                  {booking.from}
+                </span>
+              </m.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </section>

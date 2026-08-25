@@ -18,6 +18,8 @@ export default {
   'appointments.viewWeek': '5 дней',
   'appointments.prev': 'Назад',
   'appointments.next': 'Вперёд',
+  'appointments.expand': 'Развернуть на весь экран',
+  'appointments.collapse': 'Свернуть',
   'appointments.now': 'Сейчас',
   'appointments.upNext': 'Дальше',
   'appointments.upNextEmpty': 'Больше записей на сегодня нет',

@@ -4,6 +4,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowDown01Icon } from '@hugeicons/core-free-icons'
 import { formatDuration, formatPrice } from '../../lib/appointments'
 import { FIELD, FIELD_ERROR } from '../controls'
+import { PANEL_MOTION } from './panel'
 
 /**
  * The service: type it, or open the price list and pick one.
@@ -91,7 +92,7 @@ export default function ServiceField({
           // Above the booking panel's own `z-[60]`, and tagged so one Escape
           // closes this list and not the panel behind it.
           data-nested-overlay
-          className="z-[70] max-h-[196px] w-[var(--radix-popover-trigger-width)] overflow-y-auto rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)]"
+          className={`z-[70] max-h-[196px] w-[var(--radix-popover-trigger-width)] overflow-y-auto rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] ${PANEL_MOTION}`}
         >
           {matches.map((item) => {
             const chosen = item.id === chosenId

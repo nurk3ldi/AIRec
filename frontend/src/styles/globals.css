@@ -338,16 +338,33 @@ a {
   background: var(--ink);
 }
 
-/* The booking panel's arrival. Radix mounts and unmounts its content, so this
-   has to be an animation rather than a transition — there is no previous value
-   to transition from.
+/* **Every panel on `/appointments` arrives and leaves on these two.** Radix
+   mounts and unmounts its content, so both have to be animations rather than
+   transitions — there is no previous value to transition from — and the closing
+   one is what keeps a panel from simply blinking out.
 
-   It scales from `--radix-popover-content-transform-origin`, the corner Radix
-   works out from where the panel actually landed, so it grows out of the button
-   that opened it whichever side it had room on. */
+   They scale from `--radix-popover-content-transform-origin`, the corner Radix
+   works out from where the panel actually landed, so each grows out of the
+   control that opened it whichever side it had room on.
+
+   **0.98, not 0.96, and 260ms rather than 180.** The shorter, deeper version
+   read as a pop: the eye caught the scale as a separate event from the fade.
+   A smaller distance over a longer time is the same gesture without the snap —
+   the panel arrives rather than appearing. The curve is an ease-out expo, which
+   spends almost all of that time slowing down.
+
+   Leaving is 150ms and eased *in*: a panel you have dismissed should already be
+   going, and the asymmetry is the same one the profile menu uses. */
 @keyframes popover-in {
   from {
     opacity: 0;
-    transform: scale(0.96);
+    transform: scale(0.98);
+  }
+}
+
+@keyframes popover-out {
+  to {
+    opacity: 0;
+    transform: scale(0.98);
   }
 }

@@ -12,6 +12,8 @@ export default {
   'appointments.viewWeek': '5 күн',
   'appointments.prev': 'Артқа',
   'appointments.next': 'Алға',
+  'appointments.expand': 'Толық экранға жаю',
+  'appointments.collapse': 'Жию',
   'appointments.now': 'Қазір',
   'appointments.upNext': 'Кезекте',
   'appointments.upNextEmpty': 'Бүгінге басқа жазба жоқ',

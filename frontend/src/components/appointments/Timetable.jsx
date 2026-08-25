@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, m, useReducedMotion } from 'motion/react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Add01Icon,
@@ -15,6 +16,8 @@ import {
 } from '../../lib/appointments'
 import {
   dayKey,
+  dayLabel,
+  rangeLabel,
   sameDay,
   shiftDate,
   weekDays,
@@ -47,6 +50,18 @@ const END_HOUR = 21
  * comfortably a card rather than the 20px sliver it was at a fixed 80.
  */
 const HOURS_ON_SCREEN = 3
+
+/**
+ * How much of the column the grid takes when the cards above it are showing.
+ *
+ * Written here as well as in the class below because the hour's height is
+ * derived from it: raising the grid must not make the *hours* taller, it must
+ * reveal **more of them**. Measuring the box and dividing by
+ * `HOURS_ON_SCREEN` would do the opposite — the same three hours, stretched —
+ * so the sum is always taken against the collapsed height and the extra room
+ * goes to the rest of the day.
+ */
+const GRID_SHARE = 0.65
 
 // Monday to Friday. The week helper hands back seven and this takes the front
 // of it, so Saturday and Sunday are dropped rather than reordered — `weekDays`
@@ -167,6 +182,8 @@ export default function Timetable({
   services,
   timeZone,
   onSaved,
+  expanded,
+  onToggleExpanded,
 }) {
   const t = useT()
   const [view, setView] = useState('week')
@@ -272,14 +289,20 @@ export default function Timetable({
     const measure = () => {
       const head = heading.current?.offsetHeight ?? 0
       const usable = box.clientHeight - head
-      if (usable > 0) setRowHeight(usable / HOURS_ON_SCREEN)
+      // Against the *collapsed* height, never the current one — see the note
+      // on `GRID_SHARE`. Raised, the box is bigger and the hour is not, so what
+      // the extra room buys is more of the day rather than a taller morning.
+      const collapsed = expanded ? usable * GRID_SHARE : usable
+      if (collapsed > 0) setRowHeight(collapsed / HOURS_ON_SCREEN)
     }
 
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(box)
     return () => observer.disconnect()
-  }, [])
+    // Re-measured when the grid is raised or lowered: the share it is taken
+    // against has changed, and the observer alone would not know that.
+  }, [expanded])
 
   // The widest cluster of the day, which is how many lanes the column has to
   // be able to hold. Only the day view asks: the week view sizes its columns by
@@ -317,7 +340,32 @@ export default function Timetable({
     //
     // `min-h-0` stays: without it the grid inside refuses to shrink below its
     // thirteen 56px hours and the overflow lands on the document instead.
-    <section className="flex h-[65%] min-h-0 flex-col">
+    <section
+      // `h-[65%]` → `h-full`, both percentages of a definite height, which is
+      // what makes the change animatable at all. The curve is the one the
+      // profile sheet uses — this is the same gesture, a panel sliding over
+      // what was there.
+      className={`flex min-h-0 flex-col transition-[height] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none ${
+        expanded ? 'h-full' : 'h-[65%]'
+      }`}
+    >
+      {/* **The pull.** A strip the full width of the grid with a grip in the
+          middle of it, which is what a blind looks like when it is down. It is
+          a button rather than a drag target: dragging would have to decide what
+          a half-pulled curtain means, and there are only two answers worth
+          having. Clicking anywhere along it works, so it is a large target for
+          a small mark. */}
+      <button
+        type="button"
+        onClick={onToggleExpanded}
+        aria-expanded={expanded}
+        aria-label={t(
+          expanded ? 'appointments.collapse' : 'appointments.expand',
+        )}
+        className="group grid h-4 shrink-0 place-items-center outline-none"
+      >
+        <span className="h-1 w-9 rounded-full bg-ink/15 transition-colors group-hover:bg-ink/30 group-focus-visible:bg-ink/30" />
+      </button>
       {/* **Outside the grid's border, above its top rule.** The heading and the
           controls are what you steer the grid *with*, not part of it, so the
           line belongs between them — inside the box the toolbar read as a
@@ -325,13 +373,30 @@ export default function Timetable({
 
           It carries no rule of its own either: the day names below already have
           one, and two lines twelve pixels apart read as a mistake. */}
-      <header className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-        {/* The heading and the filter travel together: one names what is in
-            the grid and the other decides it, where everything against the
-            right edge decides which days are on screen. */}
-        <div className="flex min-w-0 items-center gap-3">
-          <h2 className="font-display text-[22px] font-bold tracking-[-0.02em] text-ink">
-            {t('nav.appointments')}
+      {/* No padding at the top at all: the grip's own 16px box already centres
+          a 4px bar, so it carries 6px of air under it and any more here was
+          that gap twice. `pb-3` stays — below the toolbar is the grid, and that
+          side has nothing else supplying the space. */}
+      <header className="flex flex-wrap items-center justify-between gap-3 px-4 pt-0 pb-3">
+        {/* **The days on screen, not the word «Записи».** That word is the
+            page's title forty pixels above this, so writing it again was the
+            same label twice at two adjacent sizes — the one pairing this
+            project's type scale rules out by name.
+
+            What was missing is what this says now. Three controls on the right
+            change *which days are showing* and the calendar changes it from the
+            other side of the page, and nothing put the answer into words: you
+            read it off the column headings, or counted.
+
+            17px, not the 22 the heading was. It is no longer the page's title
+            and should not be its loudest line; it is the toolbar's anchor, and
+            a real step down from the 24 above it rather than the near-miss that
+            was there before. */}
+        <div className="flex min-w-0 items-center gap-2">
+          <h2 className="min-w-0 truncate font-display text-[17px] font-semibold tracking-[-0.01em] text-ink">
+            {view === 'day'
+              ? dayLabel(days[0])
+              : rangeLabel(days[0], days[days.length - 1])}
           </h2>
           <StatusFilter value={statuses} onChange={setStatuses} />
         </div>
@@ -663,18 +728,32 @@ export default function Timetable({
                 />
               ))}
 
-              {bookingsFor(day).map((block) => (
-                <BookingBlock
-                  key={block.id}
-                  block={block}
-                  rowHeight={rowHeight}
-                  laneWidth={view === 'day' ? LANE_WIDTH : null}
-                  services={services}
-                  timeZone={timeZone}
-                  onDayChange={onSelect}
-                  onSaved={onSaved}
-                />
-              ))}
+              {/* **The one animated thing on this screen, and it answers a
+                  question.** Save a booking and the panel closes; without this
+                  the card simply exists a frame later, which reads as the grid
+                  having always had it. Fading and scaling in says *this is what
+                  you just made*, and the same in reverse says a deleted one is
+                  gone rather than never having been.
+
+                  It fires on a date change too, when every card is new — twenty
+                  elements moving at once, which would normally break the rule
+                  about one or two moving things. It does not here because they
+                  move together and identically: what the eye sees is the grid
+                  refreshing, one object, not twenty. */}
+              <AnimatePresence initial={false}>
+                {bookingsFor(day).map((block) => (
+                  <BookingBlock
+                    key={block.id}
+                    block={block}
+                    rowHeight={rowHeight}
+                    laneWidth={view === 'day' ? LANE_WIDTH : null}
+                    services={services}
+                    timeZone={timeZone}
+                    onDayChange={onSelect}
+                    onSaved={onSaved}
+                  />
+                ))}
+              </AnimatePresence>
             </div>
           ))}
 
@@ -770,6 +849,7 @@ function BookingBlock({
   onSaved,
 }) {
   const [open, setOpen] = useState(false)
+  const reduce = useReducedMotion()
   const top = ((block.start - WINDOW_FROM) / 60) * rowHeight
   // A floor, so a fifteen-minute service is still a block you can read a name
   // out of rather than a coloured line.
@@ -797,7 +877,20 @@ function BookingBlock({
       timeZone={timeZone}
       onSaved={onSaved}
     >
-      <div
+      <m.div
+        // Opacity and a hair of scale, nothing that moves the card off where it
+        // belongs: a booking's position *is* its meaning here, and sliding one
+        // in from anywhere would be drawing it at a time it is not.
+        //
+        // 180ms out of nothing and 120ms back into it — arriving is the half
+        // worth watching, leaving is the half you have already decided about.
+        initial={reduce ? false : { opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
+        transition={{
+          duration: reduce ? 0 : 0.18,
+          ease: [0.16, 1, 0.3, 1],
+        }}
         onDoubleClick={() => setOpen(true)}
         // **`surface-card`, its own fill, and it took three tries to land on
         // one.** `surface-chip` was too loud — `#2a2a2a` on a black grid is a
@@ -898,7 +991,7 @@ function BookingBlock({
             </span>
           </p>
         )}
-      </div>
+      </m.div>
     </BookingPopover>
   )
 }

@@ -6,6 +6,7 @@ import { dayKey } from '../../lib/dates'
 import { getLocale } from '../../lib/i18n'
 import { FIELD } from '../controls'
 import MonthCalendar from './MonthCalendar'
+import { PANEL_MOTION } from './panel'
 
 /**
  * A date field that opens this project's own month, not the browser's.
@@ -62,7 +63,7 @@ export default function DateField({ value, onChange, label }) {
           // Above the booking panel's own `z-[60]`, and tagged so one Escape
           // closes this month and not the panel behind it.
           data-nested-overlay
-          className="z-[70] w-[300px] rounded-xl border border-line bg-surface p-3 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)]"
+          className={`z-[70] w-[300px] rounded-xl border border-line bg-surface p-3 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] ${PANEL_MOTION}`}
         >
           <MonthCalendar
             // `null` while nothing is chosen, deliberately: `MonthCalendar`

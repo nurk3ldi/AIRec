@@ -75,6 +75,10 @@ export default function AppointmentsPage() {
 
   /* --- the bookings themselves --------------------------------------- */
 
+  // Whether the grid is pulled up over the cards. The page holds it because
+  // the two regions it sizes live on either side of this component.
+  const [expanded, setExpanded] = useState(false)
+
   const [bookings, setBookings] = useState([])
   // Bumped after a save. A counter rather than a boolean, because two bookings
   // made in a row have to be two reloads and `true → true` is no change at all.
@@ -163,7 +167,20 @@ export default function AppointmentsPage() {
             `flex-1` rather than a second percentage: the grid below states its
             share and this takes what is left, so the two cannot add up to
             anything but the column. */}
-        <div className="grid min-h-0 flex-1 grid-cols-3 gap-4 p-4">
+        {/* **An explicit 35%, not `flex-1`**, so raising the grid is a change
+            between two percentages and can therefore be animated. `flex-1`
+            would have been a change of *how* the height is decided, which has
+            no midpoint to draw.
+
+            `h-0` rather than unmounting: the cards keep their clocks running
+            and their scroll position, and coming back down is the same
+            transition in reverse rather than three components rebuilding. */}
+        <div
+          className={`grid min-h-0 shrink-0 grid-cols-3 gap-4 overflow-hidden transition-[height,padding] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none ${
+            expanded ? 'h-0 p-0' : 'h-[35%] p-4'
+          }`}
+          aria-hidden={expanded}
+        >
           {/* Now, next, and where somebody could still be fitted in — the
               three questions asked with a client on the phone, in the order
               they come up. */}
@@ -180,6 +197,8 @@ export default function AppointmentsPage() {
           services={services}
           timeZone={timeZone}
           onSaved={() => setReload((n) => n + 1)}
+          expanded={expanded}
+          onToggleExpanded={() => setExpanded((was) => !was)}
         />
       </div>
 
