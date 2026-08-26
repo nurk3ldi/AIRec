@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import MonthCalendar from '../components/appointments/MonthCalendar'
+import ChatFeed from '../components/appointments/ChatFeed'
 import NowCard from '../components/appointments/NowCard'
 import FreeSlotCard from '../components/appointments/FreeSlotCard'
 import UpNextCard from '../components/appointments/UpNextCard'
@@ -34,6 +35,49 @@ import styles from '../styles/Appointments.module.css'
  * `/appointments/slots` and archiving all work, and the rules underneath them
  * live in `lib/appointments.js`, `lib/dates.js` and `lib/schedule.js`.
  */
+/* --- TEMPORARY: three invented chats -------------------------------------
+ *
+ * **Delete this block and the `chats={DEMO_CHATS}` below when `/inbox` gets a
+ * backend.** It exists so the feed's layout can be looked at and argued with;
+ * it is not a placeholder that should survive into anything real. Invented
+ * figures are how the `/dashboard` analytics screen ended up being built and
+ * then removed whole, so this one is marked rather than trusted to be
+ * remembered.
+ *
+ * The times are built from *today* rather than written as literals, so the
+ * three rows read as this morning whenever the page is opened instead of
+ * quietly becoming a date in the past.
+ */
+const demoAt = (hours, minutes) => {
+  const day = new Date()
+  day.setHours(hours, minutes, 0, 0)
+  return day.toISOString()
+}
+
+const DEMO_CHATS = [
+  {
+    id: 'demo-waiting',
+    at: demoAt(9, 40),
+    client: 'Айгерим',
+    preview: 'Можно перенести на завтра?',
+    state: 'waiting',
+  },
+  {
+    id: 'demo-new',
+    at: demoAt(11, 5),
+    client: '+7 707 415 22 90',
+    preview: 'Здравствуйте, есть свободное время сегодня?',
+    state: 'new',
+  },
+  {
+    id: 'demo-answered',
+    at: demoAt(14, 20),
+    client: 'Данияр',
+    preview: 'Спасибо, до встречи',
+    state: 'answered',
+  },
+]
+
 export default function AppointmentsPage() {
   const t = useT()
   const [selected, setSelected] = useState(() => new Date())
@@ -232,8 +276,34 @@ export default function AppointmentsPage() {
           unfinished: the page does not scroll, so on a narrow screen the
           calendar is below the fold rather than reachable. A small-screen
           layout is still to be designed — see the note on the page element. */}
-      <aside className="min-h-[300px] w-full shrink-0 border-t border-line p-4 xl:min-h-0 xl:w-[calc(300px+2rem)] xl:border-t-0 xl:border-l">
-        <MonthCalendar value={selected} onChange={setSelected} />
+      <aside className="flex min-h-[300px] w-full shrink-0 flex-col gap-4 border-t border-line p-4 xl:min-h-0 xl:w-[calc(300px+2rem)] xl:border-t-0 xl:border-l">
+        <div className="shrink-0">
+          <MonthCalendar value={selected} onChange={setSelected} />
+        </div>
+
+        {/* **The room under the month, which was empty.** The panel is the
+            page's full height and the calendar is a fixed card at the top of
+            it; a feed is the right thing to put in the rest because it has no
+            height of its own to insist on — it takes the leftover and scrolls
+            inside itself.
+
+            `hidden xl:flex`: below `xl` the three regions stack and the page
+            still does not scroll, so anything added under the calendar there
+            goes below the fold and takes the calendar with it. That layout is
+            still to be designed — see the note on the page element — and this
+            waits for it rather than pretending the problem is not there.
+
+            **`DEMO_CHATS` is temporary and marked as such** — see the block
+            above. `/inbox` has no channel and no message table behind it, so
+            there is nothing real to hand this yet; the three rows are here to
+            be looked at, and the fetch replaces them the day the endpoint
+            exists. Passing `null` instead is what draws the honest empty
+            state. */}
+        <ChatFeed
+          chats={DEMO_CHATS}
+          timeZone={timeZone}
+          className="hidden xl:flex"
+        />
       </aside>
     </div>
   )
