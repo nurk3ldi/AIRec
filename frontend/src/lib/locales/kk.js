@@ -52,6 +52,8 @@ export default {
   'color.violet': 'Күлгін',
   'color.rose': 'Қызғылт',
   'color.teal': 'Көгілдір',
+  'appointments.groupCount': 'Жазба: {count}',
+  'appointments.groupTitle': 'Осы уақыттағы жазбалар',
   'appointments.status': 'Мәртебесі',
   'appointments.save': 'Сақтау',
   'appointments.saving': 'Сақталуда…',

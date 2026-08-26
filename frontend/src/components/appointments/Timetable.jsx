@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, m, useReducedMotion } from 'motion/react'
+import * as Popover from '@radix-ui/react-popover'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Add01Icon,
@@ -7,6 +8,7 @@ import {
   ArrowRight01Icon,
 } from '@hugeicons/core-free-icons'
 import {
+  BOOKING_STATES,
   byStart,
   formatPrice,
   fromMinutes,
@@ -26,6 +28,7 @@ import {
 import { closedRanges } from '../../lib/schedule'
 import BookingPopover from './BookingPopover'
 import StatusFilter from './StatusFilter'
+import { PANEL_MOTION } from './panel'
 import { useT } from '../../lib/i18n'
 
 // The window of the day the grid draws. A guess for now, and an honest one:
@@ -97,6 +100,33 @@ const LANE_GAP = 8
  * seen it and then cannot be unseen.
  */
 const LANE_INSET = LANE_GAP / 2
+
+/**
+ * How wide a card has to be before a line is worth drawing in it.
+ *
+ * **The card already decides what to show by its height; this is the same rule
+ * turned ninety degrees, and it was missing.** In the week view a column is
+ * split between however many bookings share an hour, so three at 19:00 on a
+ * laptop leaves each about 90px — and at 90px every line the card drew came out
+ * as an ellipsis. «Активно» became «Актив…», a client became «Nur…», and the
+ * span became «19:00 –» with the price pushed off the end. A row of cards
+ * saying nothing but that something is there, three times.
+ *
+ * The thresholds are what the text actually needs, measured the way the height
+ * ones were. Under `LABEL`, the status is the coloured dot alone — the colour
+ * *is* the status now, so the word is the part that can go, and it stays in the
+ * accessibility tree. Under `RANGE`, the footer shows the start time and drops
+ * both the dash and the price: a start is the half of a span you scan for, and
+ * a truncated end time is worse than none.
+ *
+ * The name is never dropped. A card that cannot say who is coming has stopped
+ * being a booking, and at that point the honest answer is the day view, which
+ * is a switch away and gives every one of them 240px.
+ */
+const CARD_WIDTH = {
+  LABEL: 132,
+  RANGE: 108,
+}
 
 /**
  * What colour a booking's status is said in.
@@ -292,6 +322,20 @@ export default function Timetable({
   const scroller = useRef(null)
   const heading = useRef(null)
   const [rowHeight, setRowHeight] = useState(120)
+  /**
+   * How wide one day's column is, in pixels.
+   *
+   * Measured for the same reason the hour is: a week column is `1fr` of
+   * whatever is left after the gutter, so its width is a fact about the window
+   * rather than a number anyone can write down. The cards need it because what
+   * a card can *say* depends on how wide it is — see `BookingBlock` — and a
+   * percentage cannot be compared against the width of a word.
+   *
+   * It starts at `LANE_WIDTH` so the first frame assumes a comfortable column
+   * rather than a cramped one: guessing wide shows a card with too much in it
+   * for one frame, guessing narrow blanks every card until the observer lands.
+   */
+  const [columnWidth, setColumnWidth] = useState(LANE_WIDTH)
 
   useEffect(() => {
     const box = scroller.current
@@ -300,6 +344,9 @@ export default function Timetable({
     const measure = () => {
       const head = heading.current?.offsetHeight ?? 0
       const usable = box.clientHeight - head
+      // The gutter is a fixed track and is not one of the days.
+      const columns = (box.clientWidth - 56) / Math.max(days.length, 1)
+      if (columns > 0) setColumnWidth(columns)
       // Against the *collapsed* height, never the current one — see the note
       // on `GRID_SHARE`. Raised, the box is bigger and the hour is not, so what
       // the extra room buys is more of the day rather than a taller morning.
@@ -312,8 +359,49 @@ export default function Timetable({
     observer.observe(box)
     return () => observer.disconnect()
     // Re-measured when the grid is raised or lowered: the share it is taken
-    // against has changed, and the observer alone would not know that.
-  }, [expanded])
+    // against has changed, and the observer alone would not know that. And on
+    // a view switch, because one day and five split the same box very
+    // differently and the observer sees no resize when only the count changes.
+  }, [expanded, days.length])
+
+  /**
+   * What a day column actually draws: single cards, and clusters gathered into
+   * one where the column cannot hold them apart.
+   *
+   * **A card that has to be read is worth more than three that cannot be.**
+   * Below `CARD_WIDTH.RANGE` a lane has room for a name and nothing else — no
+   * span, no price, no status — so three bookings at 19:00 in a week column
+   * become three boxes whose only message is that something is there, said
+   * three times. One box saying "three bookings, 19:00–20:30" is the same
+   * message once, and it is the truthful one for a view whose job is scanning.
+   *
+   * It is decided on the *measured* lane rather than on the count: two
+   * bookings on a wide monitor are perfectly readable side by side, and
+   * collapsing them there would hide what the screen had room for. The day view
+   * never groups — its lanes are a fixed 240px and it scrolls sideways instead,
+   * which is the other way to answer the same question.
+   */
+  const drawFor = (day) => {
+    const blocks = bookingsFor(day)
+    const single = []
+    const groups = new Map()
+
+    for (const block of blocks) {
+      const lane = columnWidth / block.lanes - LANE_INSET * 2
+      if (view === 'day' || block.lanes === 1 || lane >= CARD_WIDTH.RANGE) {
+        single.push(block)
+        continue
+      }
+      const found = groups.get(block.cluster)
+      if (found) found.push(block)
+      else groups.set(block.cluster, [block])
+    }
+
+    return {
+      single,
+      groups: [...groups.values()].map((list) => list.sort(byStart)),
+    }
+  }
 
   // The widest cluster of the day, which is how many lanes the column has to
   // be able to hold. Only the day view asks: the week view sizes its columns by
@@ -706,24 +794,30 @@ export default function Timetable({
             ))}
           </div>
 
-          {days.map((day) => (
-            <div
-              key={day.toISOString()}
-              className={`relative border-l border-line ${
-                sameDay(day, selected) ? 'bg-ink/[0.04]' : ''
-              }`}
-            >
-              {hours.map((hour) => (
-                // **No rule across the hour.** The gutter down the left says
-                // what time it is and the columns say which day; a line every
-                // eighty pixels across five columns was a grid drawn over a
-                // grid, and the cards on it have edges of their own to be read
-                // against. The rows stay — they are what gives the column its
-                // height — they simply draw nothing.
-                <div key={hour} style={{ height: rowHeight }} />
-              ))}
+          {days.map((day) => {
+            // Once per day, not once per list: `drawFor` walks the day's
+            // bookings and buckets them, and calling it twice in the JSX below
+            // would do that walk twice for one answer.
+            const draw = drawFor(day)
 
-              {/* **Lane rules, in the day view only.** With one column and
+            return (
+              <div
+                key={day.toISOString()}
+                className={`relative border-l border-line ${
+                  sameDay(day, selected) ? 'bg-ink/[0.04]' : ''
+                }`}
+              >
+                {hours.map((hour) => (
+                  // **No rule across the hour.** The gutter down the left says
+                  // what time it is and the columns say which day; a line every
+                  // eighty pixels across five columns was a grid drawn over a
+                  // grid, and the cards on it have edges of their own to be read
+                  // against. The rows stay — they are what gives the column its
+                  // height — they simply draw nothing.
+                  <div key={hour} style={{ height: rowHeight }} />
+                ))}
+
+                {/* **Lane rules, in the day view only.** With one column and
                   fixed-width lanes, two bookings at the same hour sit side by
                   side with nothing but 8px of gap between them — which reads as
                   one wide card that happens to have a seam. A rule says they
@@ -733,40 +827,40 @@ export default function Timetable({
                   `dayLanes - 1` of them: lines go *between* lanes, so a day
                   that never doubles up draws none. Centred in the gap, drawn
                   before everything else so the cards paint over them. */}
-              {view === 'day' &&
-                Array.from({ length: dayLanes - 1 }, (_, index) => (
-                  <div
-                    key={`lane-${index}`}
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-y-0 w-px bg-line"
-                    style={{
-                      left:
-                        LANE_INSET +
-                        (index + 1) * (LANE_WIDTH + LANE_GAP) -
-                        LANE_GAP / 2,
-                    }}
+                {view === 'day' &&
+                  Array.from({ length: dayLanes - 1 }, (_, index) => (
+                    <div
+                      key={`lane-${index}`}
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-y-0 w-px bg-line"
+                      style={{
+                        left:
+                          LANE_INSET +
+                          (index + 1) * (LANE_WIDTH + LANE_GAP) -
+                          LANE_GAP / 2,
+                      }}
+                    />
+                  ))}
+
+                {/* Drawn after the hour rules so it lies over them, and before
+                  the now-line, which is a later child of the grid and so still
+                  crosses it. Bookings will land on top of both. */}
+                {closedFor(day).map((range) => (
+                  <ClosedSpan
+                    key={`${range.kind}-${range.from}`}
+                    range={range}
+                    rowHeight={rowHeight}
+                    label={
+                      range.kind === 'off'
+                        ? t('appointments.dayOff')
+                        : range.kind === 'break'
+                          ? t('appointments.break')
+                          : null
+                    }
                   />
                 ))}
 
-              {/* Drawn after the hour rules so it lies over them, and before
-                  the now-line, which is a later child of the grid and so still
-                  crosses it. Bookings will land on top of both. */}
-              {closedFor(day).map((range) => (
-                <ClosedSpan
-                  key={`${range.kind}-${range.from}`}
-                  range={range}
-                  rowHeight={rowHeight}
-                  label={
-                    range.kind === 'off'
-                      ? t('appointments.dayOff')
-                      : range.kind === 'break'
-                        ? t('appointments.break')
-                        : null
-                  }
-                />
-              ))}
-
-              {/* **The one animated thing on this screen, and it answers a
+                {/* **The one animated thing on this screen, and it answers a
                   question.** Save a booking and the panel closes; without this
                   the card simply exists a frame later, which reads as the grid
                   having always had it. Fading and scaling in says *this is what
@@ -778,22 +872,35 @@ export default function Timetable({
                   about one or two moving things. It does not here because they
                   move together and identically: what the eye sees is the grid
                   refreshing, one object, not twenty. */}
-              <AnimatePresence initial={false}>
-                {bookingsFor(day).map((block) => (
-                  <BookingBlock
-                    key={block.id}
-                    block={block}
-                    rowHeight={rowHeight}
-                    laneWidth={view === 'day' ? LANE_WIDTH : null}
-                    services={services}
-                    timeZone={timeZone}
-                    onDayChange={onSelect}
-                    onSaved={onSaved}
-                  />
-                ))}
-              </AnimatePresence>
-            </div>
-          ))}
+                <AnimatePresence initial={false}>
+                  {draw.single.map((block) => (
+                    <BookingBlock
+                      key={block.id}
+                      block={block}
+                      rowHeight={rowHeight}
+                      laneWidth={view === 'day' ? LANE_WIDTH : null}
+                      columnWidth={columnWidth}
+                      services={services}
+                      timeZone={timeZone}
+                      onDayChange={onSelect}
+                      onSaved={onSaved}
+                    />
+                  ))}
+                  {draw.groups.map((group) => (
+                    <GroupBlock
+                      key={`group-${group[0].id}`}
+                      group={group}
+                      rowHeight={rowHeight}
+                      services={services}
+                      timeZone={timeZone}
+                      onDayChange={onSelect}
+                      onSaved={onSaved}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
+            )
+          })}
 
           {/* Spans every column, so the current time can be read against any
               day rather than only against today's. Which column *is* today is
@@ -878,6 +985,7 @@ function BookingBlock({
   block,
   rowHeight,
   laneWidth,
+  columnWidth,
   services,
   timeZone,
   onDayChange,
@@ -894,6 +1002,13 @@ function BookingBlock({
   const height = Math.max(((block.end - block.start) / 60) * rowHeight, 34)
   const state = stateOf(block.status)
   const cancelled = state === 'cancelled'
+  // What this card is actually going to be, in pixels — the fixed lane in the
+  // day view, and in the week view the share of a measured column that is left
+  // after the insets and the gaps between lanes. It mirrors the `width` written
+  // into the style below; the two are the same sum, one for the browser to lay
+  // out with and one to decide what will fit inside it.
+  const width =
+    laneWidth ?? Math.max(columnWidth / block.lanes - LANE_INSET * 2, 0)
 
   return (
     // **Double click, not click.** A single click on a booking will eventually
@@ -946,9 +1061,12 @@ function BookingBlock({
         // outline. It also made the card read as a control rather than as a
         // record, which is the wrong noun for something you look at rather than
         // press.
-        className={`absolute flex cursor-pointer flex-col gap-1.5 overflow-hidden rounded-lg px-2.5 py-2 select-none ${
-          cancelled ? 'opacity-45' : ''
-        }`}
+        // **The padding narrows with the card.** 10px a side is 22% of a
+        // 90px lane, which is a fifth of the width spent on air in the one
+        // place there is none to spare — and the name is what pays for it.
+        className={`absolute flex cursor-pointer flex-col gap-1.5 overflow-hidden rounded-lg py-2 select-none ${
+          width >= CARD_WIDTH.LABEL ? 'px-2.5' : 'px-2'
+        } ${cancelled ? 'opacity-45' : ''}`}
         style={{
           // **Every card is the same grey**, whatever its status — see
           // `STATUS_TONE` for where the status is said instead. The owner's own
@@ -1003,11 +1121,25 @@ function BookingBlock({
               aria-hidden="true"
               className="h-1.5 w-1.5 shrink-0 rounded-full bg-current"
             />
-            {statusLabel(block.status)}
+            {/* Narrow, the dot says it on its own — but only to someone who can
+              see it, which is why the word goes to `sr-only` rather than
+              away. */}
+            <span className={width >= CARD_WIDTH.LABEL ? '' : 'sr-only'}>
+              {statusLabel(block.status)}
+            </span>
           </p>
         )}
 
-        <p className="truncate text-[15px] leading-tight font-semibold text-ink">
+        {/* **The one line that is never dropped**, and the one that steps
+          down instead. At 15px a narrow lane cuts an ordinary first name in
+          half — «Nurkeldi» wants about 68px and a 90px card offers 70 before
+          its padding — where 13px fits it whole. A name shown smaller is still
+          the name; a name shown as «Nur…» is not. */}
+        <p
+          className={`truncate leading-tight font-semibold text-ink ${
+            width >= CARD_WIDTH.LABEL ? 'text-[15px]' : 'text-[13px]'
+          }`}
+        >
           {block.client}
         </p>
 
@@ -1028,14 +1160,202 @@ function BookingBlock({
           // two should not both be huddled at the top.
           <p className="mt-auto flex items-center justify-between gap-2 truncate pt-2 text-[12px] leading-none">
             <span className="font-display font-medium text-ink">
-              {block.range}
+              {width >= CARD_WIDTH.RANGE ? block.range : block.from}
             </span>
-            <span className="shrink-0 text-muted">
-              {formatPrice(block.price)}
-            </span>
+            {width >= CARD_WIDTH.LABEL && (
+              <span className="shrink-0 text-muted">
+                {formatPrice(block.price)}
+              </span>
+            )}
           </p>
         )}
       </m.div>
+    </BookingPopover>
+  )
+}
+
+/**
+ * A cluster of overlapping bookings the column cannot hold apart, as one card.
+ *
+ * **The week view's job is to say what is happening, and three unreadable
+ * boxes do not say it.** Below `CARD_WIDTH.RANGE` a lane has room for a name
+ * and nothing else, so a busy hour turned into a row of ellipses — the least
+ * legible part of the screen was the part with the most in it. Gathered, the
+ * same hour reads as one statement: how many, and from when to when.
+ *
+ * **Clicking opens the full detail, because the card no longer carries it.**
+ * That is the trade and it has to be paid: a group card is a summary, and a
+ * summary the reader cannot open is information taken away. The panel lists
+ * every booking whole — status, client, service, span, price — and a row opens
+ * the ordinary editor anchored to itself, so nothing under it is a second
+ * implementation of anything.
+ *
+ * Single click here, not the grid's double click. On the grid a single click is
+ * being kept back for selecting a booking; inside a list there is nothing to
+ * keep it back for, and a list row that needs two clicks is a list row people
+ * click twice by accident and once in vain.
+ */
+function GroupBlock({
+  group,
+  rowHeight,
+  services,
+  timeZone,
+  onDayChange,
+  onSaved,
+}) {
+  const t = useT()
+  const [open, setOpen] = useState(false)
+  const reduce = useReducedMotion()
+
+  const start = Math.min(...group.map((block) => block.start))
+  const end = Math.max(...group.map((block) => block.end))
+  const top = ((start - WINDOW_FROM) / 60) * rowHeight
+  const height = Math.max(((end - start) / 60) * rowHeight, 34)
+  // Every state present in the cluster, once each and in the order the four are
+  // defined — so the dots read as a legend rather than as a tally, and two
+  // groups with the same mix look the same.
+  const states = BOOKING_STATES.map((state) => state.id).filter((id) =>
+    group.some((block) => stateOf(block.status) === id),
+  )
+
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Anchor asChild>
+        <m.button
+          type="button"
+          initial={reduce ? false : { opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
+          transition={{ duration: reduce ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
+          onClick={() => setOpen(true)}
+          aria-label={t('appointments.groupCount', { count: group.length })}
+          // **A dashed edge, which is the one thing on this grid that is
+          // stroked.** A booking is a solid card; this is not a booking, it is
+          // a stack of them, and the broken line is what says "there is more
+          // inside" without a word or an icon spent on it.
+          className="absolute flex flex-col gap-1 overflow-hidden rounded-lg border border-dashed border-line bg-surface-card px-2 py-2 text-left outline-none transition-colors hover:border-line-strong focus-visible:border-line-strong"
+          style={{
+            top,
+            height,
+            left: LANE_INSET,
+            width: `calc(100% - ${LANE_INSET * 2}px)`,
+          }}
+        >
+          <span className="flex shrink-0 items-center gap-1">
+            {states.map((id) => (
+              <span
+                key={id}
+                aria-hidden="true"
+                className={`h-1.5 w-1.5 shrink-0 rounded-full bg-current ${
+                  STATUS_TONE[id] ?? 'text-muted'
+                }`}
+              />
+            ))}
+          </span>
+
+          <span className="truncate text-[13px] leading-tight font-semibold text-ink">
+            {t('appointments.groupCount', { count: group.length })}
+          </span>
+
+          {height >= 60 && (
+            <span className="mt-auto truncate font-display text-[12px] leading-none font-medium text-ink">
+              {fromMinutes(start)} – {fromMinutes(end)}
+            </span>
+          )}
+        </m.button>
+      </Popover.Anchor>
+
+      <Popover.Portal>
+        <Popover.Content
+          side="left"
+          align="center"
+          sideOffset={10}
+          // The visible heading is the span, which is what identifies this
+          // group on a grid full of them; the panel still needs saying what it
+          // *is*, and that belongs in the accessibility tree rather than as a
+          // second line of chrome over a four-row list.
+          aria-label={t('appointments.groupTitle')}
+          // The 68px header plus the usual 12, exactly as the booking panel
+          // does it: this is `z-[60]` and the header `z-40`, so nothing else
+          // stops it painting over the page title.
+          collisionPadding={{ top: 80, right: 12, bottom: 12, left: 12 }}
+          className={`z-[60] flex max-h-[min(480px,var(--radix-popover-content-available-height))] w-[min(320px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none ${PANEL_MOTION}`}
+        >
+          <p className="shrink-0 px-4 pt-4 pb-2 font-display text-[15px] font-semibold text-ink">
+            {fromMinutes(start)} – {fromMinutes(end)}
+          </p>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
+            {group.map((block) => (
+              <GroupRow
+                key={block.id}
+                block={block}
+                services={services}
+                timeZone={timeZone}
+                onDayChange={onDayChange}
+                onSaved={onSaved}
+              />
+            ))}
+          </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  )
+}
+
+/** One booking inside a group panel: everything the collapsed card had to drop,
+ *  and a click that opens the same editor the grid opens. */
+function GroupRow({ block, services, timeZone, onDayChange, onSaved }) {
+  const [open, setOpen] = useState(false)
+  const state = stateOf(block.status)
+
+  return (
+    <BookingPopover
+      asAnchor
+      open={open}
+      onOpenChange={setOpen}
+      booking={block}
+      onDayChange={onDayChange}
+      services={services}
+      timeZone={timeZone}
+      onSaved={onSaved}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={`flex w-full flex-col gap-0.5 rounded-xl px-2 py-2 text-left outline-none transition-colors hover:bg-ink/6 focus-visible:bg-ink/6 ${
+          state === 'cancelled' ? 'opacity-45' : ''
+        }`}
+      >
+        <span
+          className={`flex items-center gap-1.5 text-[12px] leading-none font-medium ${
+            STATUS_TONE[state] ?? 'text-muted'
+          }`}
+        >
+          <span
+            aria-hidden="true"
+            className="h-1.5 w-1.5 shrink-0 rounded-full bg-current"
+          />
+          {statusLabel(block.status)}
+        </span>
+
+        <span className="truncate text-[14px] leading-tight font-semibold text-ink">
+          {block.client}
+        </span>
+
+        <span className="truncate text-[13px] leading-tight text-ink">
+          {block.service}
+        </span>
+
+        <span className="flex items-center justify-between gap-2 pt-0.5 text-[12px] leading-none">
+          <span className="font-display font-medium text-ink">
+            {block.range}
+          </span>
+          <span className="shrink-0 text-muted">
+            {formatPrice(block.price)}
+          </span>
+        </span>
+      </button>
     </BookingPopover>
   )
 }

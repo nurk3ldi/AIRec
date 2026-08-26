@@ -58,6 +58,8 @@ export default {
   'color.violet': 'Фиолетовый',
   'color.rose': 'Розовый',
   'color.teal': 'Бирюзовый',
+  'appointments.groupCount': 'Записей: {count}',
+  'appointments.groupTitle': 'Записи на это время',
   'appointments.status': 'Статус',
   'appointments.save': 'Сохранить',
   'appointments.saving': 'Сохраняем…',

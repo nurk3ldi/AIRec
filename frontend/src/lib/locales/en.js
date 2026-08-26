@@ -52,6 +52,8 @@ export default {
   'color.violet': 'Violet',
   'color.rose': 'Rose',
   'color.teal': 'Teal',
+  'appointments.groupCount': 'Bookings: {count}',
+  'appointments.groupTitle': 'Bookings at this time',
   'appointments.status': 'Status',
   'appointments.save': 'Save',
   'appointments.saving': 'Saving…',

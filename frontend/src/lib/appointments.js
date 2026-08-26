@@ -367,6 +367,12 @@ export function layoutDay(blocks) {
   const placed = []
   let cluster = []
   let clusterEnd = 0
+  // Which chain of overlaps a block belongs to. `lanes` says how many ways the
+  // column is split and `lane` says which one this is, but neither says *whose
+  // company* a booking is in — and a narrow week column has to be able to
+  // gather a whole cluster into one card. Bumped per flush, so it is unique
+  // within the day and means nothing beyond it.
+  let clusterIndex = 0
 
   const flush = () => {
     // Greedy lanes: reuse the leftmost one whose last booking has finished.
@@ -382,8 +388,14 @@ export function layoutDay(blocks) {
     })
 
     cluster.forEach((block, index) => {
-      placed.push({ ...block, lane: lanes[index], lanes: laneEnds.length })
+      placed.push({
+        ...block,
+        lane: lanes[index],
+        lanes: laneEnds.length,
+        cluster: clusterIndex,
+      })
     })
+    clusterIndex += 1
     cluster = []
   }
 
