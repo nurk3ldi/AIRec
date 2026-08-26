@@ -179,28 +179,29 @@ const STATUS_TONE = {
 }
 
 /**
- * The fill a closed stretch wears.
+ * The diagonal hatch a closed stretch wears.
  *
- * **It was a diagonal hatch and it had to stop being one when the grid became
- * a full day.** Hatching was the right answer while the grid drew 08:00–21:00
- * and a closed stretch was a fifth of it: a tint says the hour is *some* other
- * kind of hour, where hatching says it is struck out. Over twenty-four hours
- * the proportions invert — most of the day is shut — and a stripe pattern
- * across two-thirds of the busiest surface in the product is a texture nobody
- * asked to look at, on the scale of a whole screen.
+ * **A pattern rather than a flat grey, because a flat grey is a colour and this
+ * has to read as "nothing happens here".** A tint says the hour is *some* other
+ * kind of hour; hatching says it is struck out. It is also the one thing that
+ * survives a booking being drawn on top of it, which a fill would not.
  *
- * A flat tint is the calm version of the same statement, and at this scale it
- * reads the way it should: the open hours are the band that is *not* filled,
- * which is exactly the shape the eye should be finding. `color-mix` rather than
- * an alpha so it tracks `ink` through a theme change — 6% lands as a step off
- * the ground on the light side and a step off black on the dark one.
+ * 6px on, 6px off at 135° — the reference's own period, measured off it. The
+ * contrast is deliberately tiny: this is the background of the grid, and a
+ * visible stripe across a large part of the screen is a texture nobody asked to
+ * look at. `color-mix` rather than an alpha stop so the stripes track `ink`
+ * through a theme change.
  *
- * The old objection to a fill was that hatching survives a booking drawn on top
- * of it. It still does not survive one, and that turned out not to matter: a
- * booking card is opaque and the shading is background, so what is underneath a
- * card is not information anybody was reading.
+ * **It was briefly a flat tint and is back.** The argument for the tint was
+ * scale: over twenty-four hours most of the day is shut, where at 08:00–21:00 a
+ * closed stretch was a fifth of the grid, so the pattern went from marking a
+ * corner to covering two-thirds of the busiest surface in the product. That
+ * argument lost to how the two actually look — struck-out reads as struck out
+ * at any size, and a tint at that scale reads as a second kind of surface
+ * rather than as an absence.
  */
-const CLOSED_FILL = 'color-mix(in oklab, var(--color-ink) 6%, transparent)'
+const HATCH =
+  'repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in oklab, var(--color-ink) 5%, transparent) 6px 12px)'
 
 /** The slice of the day the grid draws, in minutes. */
 const WINDOW_FROM = START_HOUR * 60
@@ -1461,11 +1462,12 @@ function ClosedSpan({ range, label, rowHeight }) {
 
   return (
     <div
-      // The fill is a style and not a class, because it is a `color-mix` —
-      // and it is the only fill here: a class carrying a second one underneath
-      // would be a value nobody can see and nobody can find.
+      // The hatch is a style and not a class, because it is a gradient built
+      // from a `color-mix` — and it is the only background here: a class
+      // carrying a second one underneath would be a value nobody can see and
+      // nobody can find.
       className="pointer-events-none absolute inset-x-0 overflow-hidden"
-      style={{ top, height, background: CLOSED_FILL }}
+      style={{ top, height, backgroundImage: HATCH }}
     >
       {label && height >= 28 && (
         // **Centred down the block, not pinned to its top.** A word at the top
