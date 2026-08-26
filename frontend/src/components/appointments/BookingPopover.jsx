@@ -448,45 +448,62 @@ export default function BookingPopover({
               </div>
             </Group>
 
-            {/* **When, as two rows rather than three blocks.** The date and the
-                two clocks were a stack of separate fields, each with its own
-                line; the reference puts a start and an end on one line apiece,
-                which is how the two are actually thought about — a booking runs
-                *from* something *to* something.
+            {/* **The day gets a line of its own, and the two clocks share
+                one.** They were on one row together — a label, a date and a
+                start time — and the date was the field that lost: three
+                controls on a 400px row left it a shrunken box showing its
+                calendar glyph and nothing else, which is a date field that
+                cannot say what date it holds.
 
-                The date sits on the start row only. This model has no end
-                *date*: a booking that runs past midnight is expressed by an end
-                clock earlier than its start, and the arithmetic wraps. Giving
-                the end a date field would be offering a value nothing reads. */}
-            <PanelRow label={t('appointments.start')}>
+                Split, each row holds one question. The day is a full-width
+                field like the service and the price above it, because it is the
+                same kind of thing: a value the booking has, not a setting about
+                it. And the two clocks are back on one line, which is how a span
+                is read — *from* something *to* something — with the dash
+                between them saying so.
+
+                There is no end *date* and there should not be: a booking that
+                runs past midnight is written with an end clock earlier than its
+                start and the arithmetic wraps, so a second date field would be
+                offering a value nothing reads. */}
+            <Group>
               <DateField
                 value={date}
                 onChange={pickDate}
                 label={t('appointments.date')}
               />
-              <TimeField
-                value={startsAt}
-                onChange={setStartsAt}
-                label={t('appointments.start')}
-              />
-            </PanelRow>
+            </Group>
 
             <Group error={fields.time ?? fields.starts_at}>
-              <PanelRow label={t('appointments.end')}>
+              <div className="flex items-center gap-2">
+                <TimeField
+                  value={startsAt}
+                  onChange={setStartsAt}
+                  label={t('appointments.start')}
+                />
+                {/* The span, in one character. Both fields carry their own name
+                    while they are empty, and once they are filled it is the
+                    dash that says which way round they run. */}
+                <span
+                  aria-hidden="true"
+                  className="shrink-0 text-[14px] text-muted"
+                >
+                  —
+                </span>
                 <TimeField
                   value={endsAt}
                   onChange={setEndsAt}
                   label={t('appointments.end')}
                 />
-              </PanelRow>
+              </div>
             </Group>
 
-            {/* Both answer a question with a small closed set, which is a row
-                rather than a field — see the note on `PanelSelect`. The colour
-                is offered when adding as well as when editing; the status only
-                when editing, because a booking being written down has not
-                happened yet and none of the four is a thing anyone can say
-                about it. */}
+            {/* Both answer a question with a small closed set — a label and
+                a field of the same build as every other field on the panel; see
+                the note on `PanelSelect`. The colour is offered when adding as
+                well as when editing; the status only when editing, because a
+                booking being written down has not happened yet and none of the
+                four is a thing anyone can say about it. */}
             <PanelSelect
               label={t('appointments.color')}
               // `'none'` on the wire and `''` in the form: Radix will not take
@@ -611,35 +628,21 @@ export default function BookingPopover({
 }
 
 /**
- * A label on the left and whatever controls it on the right.
- *
- * The shape the reference uses for everything that is a *setting about* the
- * event rather than the event itself — and the shape «Настройки» already uses
- * for the theme and the language. No hairline: there the rows are a list and
- * the rules separate them, here they sit among form fields and a rule would be
- * a divider drawn through the middle of a form.
- */
-function PanelRow({ label, children }) {
-  return (
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <span className="shrink-0 text-[14px] text-ink">{label}</span>
-      {/* The controls share what is left, so a row with two of them and a row
-          with one line their right edges up. */}
-      <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-        {children}
-      </div>
-    </div>
-  )
-}
-
-/**
  * A settings-style row: a label, and a closed set of answers behind a chevron.
  *
  * **Written once because there are two of them**, and two rows built separately
- * are two rows that agree until one is restyled. It is the shape «Настройки»
- * uses for the theme and the language, minus the hairlines: there the rows are
- * a list and the rules are what separate them, here they sit among form fields
- * and a rule would be a divider drawn through the middle of a form.
+ * are two rows that agree until one is restyled.
+ *
+ * **The trigger wears `FIELD`, the same ring every other control on this panel
+ * has.** It was bare text with a chevron after it — the shape «Настройки» uses
+ * — and that shape belongs to a list of settings, where the rules between rows
+ * are what make each one a row. Dropped among seven bordered fields it read as
+ * a caption rather than as something you could press, and the panel looked like
+ * a form with two sentences fallen into the middle of it.
+ *
+ * The label stays outside the field rather than becoming its placeholder, which
+ * is what every other control here does: a select always has a value, so there
+ * is no empty state for a placeholder to fill.
  *
  * An option may carry a `dot` — a colour, drawn at the strength the grid will
  * actually paint it, so what the list shows is what the card becomes.
@@ -648,16 +651,26 @@ function PanelSelect({ label, value, onChange, options }) {
   const current = options.find((option) => option.id === value)
 
   return (
-    <div className="mb-3 flex items-center justify-between gap-4">
-      <span className="shrink-0 text-[14px] text-ink">{label}</span>
+    <div className="mb-3 flex items-center gap-4">
+      {/* **One width for both labels**, so the two fields under each other
+          start at the same x — «Цвет» and «Статус» are four characters apart,
+          and two adjacent fields whose left edges disagree by that much read as
+          a mistake rather than as a form. 96px clears the longest of the three
+          languages («Мәртебесі») with room to spare. */}
+      <span className="w-24 shrink-0 truncate text-[14px] text-ink">
+        {label}
+      </span>
 
       <Select.Root value={value} onValueChange={onChange}>
         <Select.Trigger
           aria-label={label}
-          className="-my-2 flex min-w-0 cursor-pointer items-center gap-1.5 rounded-lg px-2 py-2 text-[14px] text-ink outline-none transition-colors focus-visible:bg-ink/6"
+          className={`${FIELD} flex h-9 min-w-0 flex-1 cursor-pointer items-center gap-2 text-[14px] outline-none`}
         >
           {current?.dot && <Dot tint={current.dot} />}
-          <Select.Value className="truncate" />
+          {/* Left-aligned like the text in every other field, with the chevron
+              held to the far edge — `flex-1` on the value rather than `ml-auto`
+              on the icon, so a long label truncates instead of pushing it. */}
+          <Select.Value className="min-w-0 flex-1 truncate text-left" />
           <Select.Icon asChild>
             <HugeiconsIcon
               icon={ArrowDown01Icon}
@@ -676,7 +689,7 @@ function PanelSelect({ label, value, onChange, options }) {
             // Above the panel's own `z-[60]`, and tagged so one Escape closes
             // this list rather than the panel with it.
             data-nested-overlay
-            className="z-[70] min-w-[176px] overflow-hidden rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)]"
+            className="z-[70] max-h-[240px] min-w-[var(--radix-select-trigger-width)] overflow-y-auto rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)]"
           >
             <Select.Viewport>
               {options.map((option) => (

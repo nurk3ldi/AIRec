@@ -92,12 +92,13 @@ export default function TimeField({ value, onChange, label }) {
       placeholder={label}
       aria-label={label}
       autoComplete="off"
-      // A fixed 86px, not a share of the row: the start row pairs it with a
-      // date twice its length, and splitting evenly there would give four
-      // characters the same room as eighteen. Fixed, the two rows' clocks line
-      // their right edges up, which is the whole reason the end row reads as
-      // belonging to the start row above it.
-      className={`${FIELD} h-9 w-[86px] shrink-0 px-2.5 text-center font-display text-[14px] font-medium`}
+      // **Half the row, because the other half is the other clock.** It was a
+      // fixed 86px while it shared a line with a date field twice its length,
+      // where splitting evenly would have given four characters the same room
+      // as eighteen. The date has its own line now and the two clocks have
+      // theirs, so an even split is exactly right: the pair is one span, and
+      // one end of it is not more important than the other.
+      className={`${FIELD} h-9 min-w-0 flex-1 px-2.5 text-center font-display text-[14px] font-medium`}
     />
   )
 }
