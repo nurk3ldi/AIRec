@@ -99,6 +99,14 @@ class Settings(BaseSettings):
     # change of mind (or a misclick) is recoverable.
     account_deletion_grace_days: int = 30
 
+    # **How recently a thread must have been spoken in to count as live.**
+    # «Сейчас переписываются» is a window over the last message rather than a
+    # stored flag, because a stored one needs something to turn it off again
+    # and nothing ever would — see `ConversationStatus`. Fifteen minutes is a
+    # reply people are still waiting for; an hour is a conversation you have
+    # walked away from.
+    conversation_active_minutes: int = 15
+
     # --- Email change confirmation ---
     # Separate from the reset settings on purpose: the two flows protect
     # different things and their limits should be tunable apart.

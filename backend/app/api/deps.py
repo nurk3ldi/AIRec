@@ -13,6 +13,10 @@ from app.db.session import get_session
 from app.models.user import User
 from app.repositories.appointment import AppointmentRepository
 from app.repositories.business import BusinessRepository
+from app.repositories.conversation import (
+    ConversationRepository,
+    MessageRepository,
+)
 from app.repositories.email_change import EmailChangeRepository
 from app.repositories.password_reset import PasswordResetRepository
 from app.repositories.refresh_token import RefreshTokenRepository
@@ -21,6 +25,7 @@ from app.repositories.user import UserRepository
 from app.services.appointment import AppointmentService
 from app.services.auth import AuthService, ClientInfo
 from app.services.business import BusinessService
+from app.services.conversation import ConversationService
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -72,6 +77,20 @@ def get_appointment_service(session: SessionDep) -> AppointmentService:
 
 AppointmentServiceDep = Annotated[
     AppointmentService, Depends(get_appointment_service)
+]
+
+
+def get_conversation_service(session: SessionDep) -> ConversationService:
+    return ConversationService(
+        session=session,
+        businesses=get_business_service(session),
+        conversations=ConversationRepository(session),
+        messages=MessageRepository(session),
+    )
+
+
+ConversationServiceDep = Annotated[
+    ConversationService, Depends(get_conversation_service)
 ]
 
 

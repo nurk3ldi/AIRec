@@ -148,6 +148,18 @@ class AppointmentNotFound(AppError):
     message = "Запись не найдена."
 
 
+class ConversationNotFound(AppError):
+    status_code = HTTPStatus.NOT_FOUND
+    code = "conversation_not_found"
+    message = "Диалог не найден."
+
+
+class MessageNotFound(AppError):
+    status_code = HTTPStatus.NOT_FOUND
+    code = "message_not_found"
+    message = "Сообщение не найдено."
+
+
 class OutsideWorkingHours(AppError):
     status_code = HTTPStatus.BAD_REQUEST
     code = "outside_working_hours"
