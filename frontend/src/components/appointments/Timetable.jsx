@@ -25,18 +25,40 @@ import {
   weekDays,
   weekdayLabels,
 } from '../../lib/dates'
-import { closedRanges } from '../../lib/schedule'
+import { closedRanges, toMinutes } from '../../lib/schedule'
 import BookingPopover from './BookingPopover'
 import StatusFilter from './StatusFilter'
 import { PANEL_MOTION } from './panel'
 import { useT } from '../../lib/i18n'
 
-// The window of the day the grid draws. A guess for now, and an honest one:
-// the real answer is the business's own working hours, which `/business`
-// already stores and `lib/schedule.js` already knows how to read — this becomes
-// `openSpans()` the moment the page fetches them.
-const START_HOUR = 8
-const END_HOUR = 21
+// **The whole day, midnight to midnight.** It was 08:00–21:00, which is a
+// guess about when a business is open, and the guess is now unnecessary: the
+// real hours arrive from `/business/working-hours` and are drawn as shading, so
+// the grid can hold every hour and let the *shading* say which ones are the
+// working day. It also stopped being merely tidy — a booking may now be written
+// outside opening hours, so a grid that only drew 08:00–21:00 was a grid that
+// could hide a booking it had just accepted.
+//
+// What that costs is scrolling, and it is paid once: the grid scrolls itself to
+// the start of the working day on mount — see `useOpeningScroll`.
+const START_HOUR = 0
+const END_HOUR = 24
+
+/**
+ * How much time one row of the grid covers.
+ *
+ * **Ninety minutes, not sixty.** A full day at hourly rows is twenty-four
+ * labels down the gutter, which on a grid this dense reads as a ruler rather
+ * than as a set of landmarks. At an hour and a half it is sixteen — still every
+ * part of the day, and 1440 divides by 90 exactly, so the last row ends on
+ * midnight instead of being cut short.
+ *
+ * It is only what the rows and the gutter are drawn *in*. Everything positioned
+ * on the grid — bookings, the now-line, closed spans — is still placed from
+ * `rowHeight`, which stays pixels-per-*hour*, because minutes are what those
+ * things are measured in and converting twice is how the two drift apart.
+ */
+const ROW_MINUTES = 90
 /**
  * **How much of the day is on screen at once — and the hour's height is derived
  * from it, not the other way round.**
@@ -157,21 +179,28 @@ const STATUS_TONE = {
 }
 
 /**
- * The diagonal hatch a closed stretch wears.
+ * The fill a closed stretch wears.
  *
- * **A pattern rather than a flat grey, because a flat grey is a colour and this
- * has to read as "nothing happens here".** A tint says the hour is *some* other
- * kind of hour; hatching says it is struck out. It is also the one thing that
- * survives a booking being drawn on top of it, which a fill would not.
+ * **It was a diagonal hatch and it had to stop being one when the grid became
+ * a full day.** Hatching was the right answer while the grid drew 08:00–21:00
+ * and a closed stretch was a fifth of it: a tint says the hour is *some* other
+ * kind of hour, where hatching says it is struck out. Over twenty-four hours
+ * the proportions invert — most of the day is shut — and a stripe pattern
+ * across two-thirds of the busiest surface in the product is a texture nobody
+ * asked to look at, on the scale of a whole screen.
  *
- * 6px on, 6px off at 135° — the reference's own period, measured off it. The
- * contrast is deliberately tiny: this is the background of the grid, and a
- * visible stripe across a fifth of the screen is a texture nobody asked to
- * look at. `color-mix` rather than an alpha stop so the stripes track `ink`
- * through a theme change.
+ * A flat tint is the calm version of the same statement, and at this scale it
+ * reads the way it should: the open hours are the band that is *not* filled,
+ * which is exactly the shape the eye should be finding. `color-mix` rather than
+ * an alpha so it tracks `ink` through a theme change — 6% lands as a step off
+ * the ground on the light side and a step off black on the dark one.
+ *
+ * The old objection to a fill was that hatching survives a booking drawn on top
+ * of it. It still does not survive one, and that turned out not to matter: a
+ * booking card is opaque and the shading is background, so what is underneath a
+ * card is not information anybody was reading.
  */
-const HATCH =
-  'repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in oklab, var(--color-ink) 5%, transparent) 6px 12px)'
+const CLOSED_FILL = 'color-mix(in oklab, var(--color-ink) 6%, transparent)'
 
 /** The slice of the day the grid draws, in minutes. */
 const WINDOW_FROM = START_HOUR * 60
@@ -241,9 +270,12 @@ export default function Timetable({
     view === 'day'
       ? [weekdayLabels()[(selected.getDay() + 6) % 7]]
       : weekdayLabels()
-  const hours = Array.from(
-    { length: END_HOUR - START_HOUR },
-    (_, index) => START_HOUR + index,
+  // The rows, as the minute each begins at. Not hours any more — see
+  // `ROW_MINUTES` — and derived rather than written out, so the two constants
+  // are the only place the extent of the day is decided.
+  const rows = Array.from(
+    { length: ((END_HOUR - START_HOUR) * 60) / ROW_MINUTES },
+    (_, index) => START_HOUR * 60 + index * ROW_MINUTES,
   )
 
   /**
@@ -322,6 +354,10 @@ export default function Timetable({
   const scroller = useRef(null)
   const heading = useRef(null)
   const [rowHeight, setRowHeight] = useState(120)
+  // How tall one row is. Derived here rather than beside `rows` above, because
+  // `rowHeight` is measured further down and a `const` read before its own
+  // declaration is a temporal-dead-zone throw, not an undefined.
+  const rowSpan = (ROW_MINUTES / 60) * rowHeight
   /**
    * How wide one day's column is, in pixels.
    *
@@ -414,6 +450,39 @@ export default function Timetable({
         )
       : 1
 
+  /**
+   * Put the working day at the top of the grid, once.
+   *
+   * A grid that draws all twenty-four hours opens at midnight, which is three
+   * hours of dead night in the one place the owner needs to see the afternoon.
+   * The fix belongs here rather than in the extent of the grid: the whole day
+   * has to be *reachable* — a booking may now be written at any hour — and only
+   * the starting position has to be useful.
+   *
+   * **The earliest opening time of the week, not the current time.** The
+   * current time moves, so a grid that followed it would scroll under the
+   * cursor while somebody was reading; the opening hour is a fact about the
+   * business and lands in the same place every morning. Half an hour of margin
+   * above it, so the run-up to opening is visible rather than cut off.
+   *
+   * It runs once per mount and only after the first real measurement, which is
+   * what stops it from fighting the reader: scroll away, change the week, open
+   * a booking — none of that brings it back.
+   */
+  const scrolled = useRef(false)
+  useEffect(() => {
+    const box = scroller.current
+    if (!box || scrolled.current || !week?.length) return
+
+    const opens = week
+      .map((row) => (row.is_24h || !row.opens_at ? null : toMinutes(row.opens_at)))
+      .filter((minute) => minute !== null)
+    const target = opens.length ? Math.min(...opens) : 8 * 60
+
+    box.scrollTop = Math.max(((target - 30 - WINDOW_FROM) / 60) * rowHeight, 0)
+    scrolled.current = true
+  }, [week, rowHeight])
+
   const now = useNow()
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
   const withinGrid = nowMinutes >= START_HOUR * 60 && nowMinutes < END_HOUR * 60
@@ -438,7 +507,7 @@ export default function Timetable({
     // the only reason a percentage resolves here at all; see the note on it.
     //
     // `min-h-0` stays: without it the grid inside refuses to shrink below its
-    // thirteen 56px hours and the overflow lands on the document instead.
+    // its twenty-four hours of rows and the overflow lands on the document.
     <section
       // `h-[65%]` → `h-full`, both percentages of a definite height, which is
       // what makes the change animatable at all. The curve is the one the
@@ -631,7 +700,7 @@ export default function Timetable({
 
           **This is the only thing on the page that scrolls**, and its height is
           whatever the page has left after the cards above it — `flex-1` for the
-          leftover, `min-h-0` so it may actually take less than its 13 hours of
+          leftover, `min-h-0` so it may actually take less than its full day of
           content. Without that second class a flex item refuses to shrink below
           what it holds, and the overflow lands on the document instead: the
           page grows past the viewport and Chrome puts a scrollbar down the side
@@ -768,28 +837,28 @@ export default function Timetable({
 
               Straddling reads slightly better mid-grid — the number centres on
               its own line — but it puts the first label half above the grid,
-              where the sticky corner paints over it and 08:00 arrives sliced in
+              where the sticky corner paints over it and 00:00 arrives sliced in
               half. Sitting inside the row costs a couple of pixels of precision
               and makes the column start where the times start, which is what
               the gutter is for. */}
           <div className="relative">
-            {hours.map((hour) => (
-              // Height from the constant, not from a class: every booking
-              // and the now-line are positioned by `rowHeight`, so a row of a
+            {rows.map((minute) => (
+              // Height from the constants, not from a class: every booking and
+              // the now-line are positioned by `rowHeight`, so a row of a
               // different size puts the whole grid out by however much they
               // differ. They were `h-14` and the constant was 56, which agreed
               // only until one of them was changed.
               <div
-                key={hour}
+                key={minute}
                 className="relative"
-                style={{ height: rowHeight }}
+                style={{ height: rowSpan }}
               >
                 {/* Centred across the gutter rather than pushed against the
                     grid, and at the day headings' 13px — the times are the
                     column's whole content, so hugging one edge of it left the
                     other looking like padding nobody claimed. */}
                 <span className="absolute inset-x-0 top-1 text-center text-[13px] text-muted">
-                  {fromMinutes(hour * 60)}
+                  {fromMinutes(minute)}
                 </span>
               </div>
             ))}
@@ -808,14 +877,14 @@ export default function Timetable({
                   sameDay(day, selected) ? 'bg-ink/[0.04]' : ''
                 }`}
               >
-                {hours.map((hour) => (
-                  // **No rule across the hour.** The gutter down the left says
+                {rows.map((minute) => (
+                  // **No rule across the row.** The gutter down the left says
                   // what time it is and the columns say which day; a line every
                   // eighty pixels across five columns was a grid drawn over a
                   // grid, and the cards on it have edges of their own to be read
                   // against. The rows stay — they are what gives the column its
                   // height — they simply draw nothing.
-                  <div key={hour} style={{ height: rowHeight }} />
+                  <div key={minute} style={{ height: rowSpan }} />
                 ))}
 
                 {/* **Lane rules, in the day view only.** With one column and
@@ -1392,8 +1461,11 @@ function ClosedSpan({ range, label, rowHeight }) {
 
   return (
     <div
-      className="pointer-events-none absolute inset-x-0 overflow-hidden bg-ink/[0.03]"
-      style={{ top, height, backgroundImage: HATCH }}
+      // The fill is a style and not a class, because it is a `color-mix` —
+      // and it is the only fill here: a class carrying a second one underneath
+      // would be a value nobody can see and nobody can find.
+      className="pointer-events-none absolute inset-x-0 overflow-hidden"
+      style={{ top, height, background: CLOSED_FILL }}
     >
       {label && height >= 28 && (
         // **Centred down the block, not pinned to its top.** A word at the top
