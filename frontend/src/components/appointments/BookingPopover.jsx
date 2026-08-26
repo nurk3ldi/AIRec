@@ -20,6 +20,7 @@ import {
   parseClock,
   stateOf,
 } from '../../lib/appointments'
+import { hoursProblem } from '../../lib/schedule'
 import { useT } from '../../lib/i18n'
 import { FIELD, FIELD_ERROR } from '../controls'
 import DateField from './DateField'
@@ -79,6 +80,7 @@ export default function BookingPopover({
   booking,
   onDayChange,
   services,
+  week,
   timeZone,
   onSaved,
 }) {
@@ -114,6 +116,31 @@ export default function BookingPopover({
 
   const active = services?.filter((item) => item.is_active) ?? []
   const service = active.find((item) => item.id === serviceId)
+
+  /**
+   * Whether this time falls outside the working day — a **warning**, and the
+   * only thing standing where a refusal used to.
+   *
+   * The server no longer turns a manual booking away for being outside opening
+   * hours or inside the break: the owner is recording something agreed or
+   * already done, and a calendar that refuses those is arguing with the day it
+   * exists to record. What that check was also catching is a mistyped date,
+   * and this catches it better — before Save, beside the field, while there is
+   * still something to correct rather than after the fact.
+   *
+   * `(getDay() + 6) % 7` because the API counts weekdays from Monday; the same
+   * translation the grid needs. Nothing is said until the week has loaded and
+   * both clocks are filled — a warning invented out of half a form is noise.
+   */
+  const day = date ? new Date(`${date}T00:00:00`) : null
+  const hoursRow = day
+    ? week?.find((row) => row.weekday === (day.getDay() + 6) % 7)
+    : null
+  const problem = hoursProblem(
+    hoursRow,
+    startsAt ? parseClock(startsAt) : null,
+    endsAt ? parseClock(endsAt) : null,
+  )
 
   /**
    * Choosing from the price list fills the fields; the fields are still the
@@ -554,6 +581,31 @@ export default function BookingPopover({
               />
             </Group>
 
+            {/* **A caution, and it does not stop anything.** `--now` rather
+                than `danger`, because red in this product means something
+                failed and nothing has: the booking will save exactly as it is.
+                It is the app's own colour for "look here", which is what this
+                is. `role="status"` rather than `alert` for the same reason —
+                an alert interrupts a screen reader, and this is a remark. */}
+            {problem && (
+              <p
+                className="mb-3 flex items-start gap-1.5 text-[13px] text-now"
+                role="status"
+              >
+                <span
+                  aria-hidden="true"
+                  className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-current"
+                />
+                <span>
+                  {t(WARNING_KEYS[problem] ?? 'appointments.warnClosed')}
+                  <span className="text-muted">
+                    {' — '}
+                    {t('appointments.warnAnyway')}
+                  </span>
+                </span>
+              </p>
+            )}
+
             {error && (
               <p className="mb-3 text-[13px] text-danger" role="alert">
                 {error}
@@ -698,6 +750,16 @@ function PanelSelect({ label, value, onChange, options }) {
       </Select.Root>
     </div>
   )
+}
+
+/** Why a time is outside the working day, keyed by what `hoursProblem`
+ *  reports. A closed day and a break are different facts and are worth saying
+ *  differently: one is "come back tomorrow", the other is "come back in an
+ *  hour". */
+const WARNING_KEYS = {
+  off: 'appointments.warnDayOff',
+  break: 'appointments.warnBreak',
+  shut: 'appointments.warnClosed',
 }
 
 /** The four states' labels, keyed by id — the same map `StatusFilter` keeps,

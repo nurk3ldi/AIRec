@@ -601,6 +601,7 @@ export default function Timetable({
             // page's own selection.
             onDayChange={onSelect}
             services={services}
+            week={week}
             timeZone={timeZone}
             onSaved={onSaved}
           >
@@ -881,6 +882,7 @@ export default function Timetable({
                       laneWidth={view === 'day' ? LANE_WIDTH : null}
                       columnWidth={columnWidth}
                       services={services}
+                      week={week}
                       timeZone={timeZone}
                       onDayChange={onSelect}
                       onSaved={onSaved}
@@ -892,6 +894,7 @@ export default function Timetable({
                       group={group}
                       rowHeight={rowHeight}
                       services={services}
+                      week={week}
                       timeZone={timeZone}
                       onDayChange={onSelect}
                       onSaved={onSaved}
@@ -987,6 +990,7 @@ function BookingBlock({
   laneWidth,
   columnWidth,
   services,
+  week,
   timeZone,
   onDayChange,
   onSaved,
@@ -1025,6 +1029,7 @@ function BookingBlock({
       booking={block}
       onDayChange={onDayChange}
       services={services}
+      week={week}
       timeZone={timeZone}
       onSaved={onSaved}
     >
@@ -1199,6 +1204,7 @@ function GroupBlock({
   group,
   rowHeight,
   services,
+  week,
   timeZone,
   onDayChange,
   onSaved,
@@ -1291,6 +1297,7 @@ function GroupBlock({
                 key={block.id}
                 block={block}
                 services={services}
+                week={week}
                 timeZone={timeZone}
                 onDayChange={onDayChange}
                 onSaved={onSaved}
@@ -1305,7 +1312,7 @@ function GroupBlock({
 
 /** One booking inside a group panel: everything the collapsed card had to drop,
  *  and a click that opens the same editor the grid opens. */
-function GroupRow({ block, services, timeZone, onDayChange, onSaved }) {
+function GroupRow({ block, services, week, timeZone, onDayChange, onSaved }) {
   const [open, setOpen] = useState(false)
   const state = stateOf(block.status)
 
@@ -1317,6 +1324,7 @@ function GroupRow({ block, services, timeZone, onDayChange, onSaved }) {
       booking={block}
       onDayChange={onDayChange}
       services={services}
+      week={week}
       timeZone={timeZone}
       onSaved={onSaved}
     >

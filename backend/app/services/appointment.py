@@ -204,16 +204,18 @@ class AppointmentService:
             service.duration_minutes if service else None
         )
         ends_at = starts_at + timedelta(minutes=minutes)
-        # Notice and horizon constrain *clients*, not the business. The owner
-        # writing down someone who walked in twenty minutes ago is recording
+        # Notice, horizon *and* opening hours constrain clients, not the
+        # business. The owner writing down someone who walked in twenty minutes
+        # ago — or during the lunch break, or after closing — is recording
         # something that already happened, and refusing it would be refusing
-        # reality. `source` is what tells the two apart.
+        # reality. `source` is what tells the two apart; the panel warns instead
+        # of the server refusing.
         await self._ensure_within_rules(
             user,
             business,
             starts_at,
             ends_at,
-            enforce_notice=data.source is not AppointmentSource.MANUAL,
+            enforce_client_rules=data.source is not AppointmentSource.MANUAL,
         )
         # Same flag, same reason as the rules above: the owner records, the
         # assistant is constrained.
@@ -335,7 +337,7 @@ class AppointmentService:
                 business,
                 appointment.starts_at,
                 appointment.ends_at,
-                enforce_notice=False,
+                enforce_client_rules=False,
             )
 
         # Room is re-checked whenever this booking starts occupying something it
@@ -403,27 +405,40 @@ class AppointmentService:
         business: Business,
         starts_at: datetime,
         ends_at: datetime,
-        enforce_notice: bool,
+        enforce_client_rules: bool,
     ) -> None:
         """Whether this time may be booked at all.
 
-        `enforce_notice` covers the two rules that exist to protect the business
-        from clients — how much warning it needs and how far ahead it accepts
-        work. Opening hours are *not* under that flag: they catch a mistyped
-        date just as well for the owner as for anyone else, and unlike the other
-        two there is no version of "book me while you're closed" that is the
-        right thing to record.
+        **One flag, and opening hours are now under it.** It governs the three
+        rules that exist to protect the business from what a *client* may ask
+        for: how much notice it needs, how far ahead it accepts work, and
+        whether it is open.
+
+        Opening hours used to sit outside this, on the argument that they catch
+        a mistyped date for the owner too. That was wrong about what the owner
+        is doing. A booking written by hand is a record of something that has
+        been agreed or has already happened — somebody came during the lunch
+        break, somebody was fitted in an hour after closing — and a calendar
+        that refuses to write those down is a calendar arguing with the day it
+        exists to record. The mistyped date is a real risk and it is answered
+        where it belongs: the panel says so before Save, as a warning, while
+        there is still something to correct.
+
+        For the assistant the check is unchanged and must be. "Book me while
+        you're closed" is not a thing a client may be told yes to.
         """
         tz = _zone(business)
-        if enforce_notice:
-            now = datetime.now(UTC)
-            if starts_at < now + timedelta(minutes=business.min_lead_minutes):
-                raise BookingTooSoon
-            horizon = now.astimezone(tz).date() + timedelta(
-                days=business.booking_horizon_days
-            )
-            if starts_at.astimezone(tz).date() > horizon:
-                raise BookingTooFar
+        if not enforce_client_rules:
+            return
+
+        now = datetime.now(UTC)
+        if starts_at < now + timedelta(minutes=business.min_lead_minutes):
+            raise BookingTooSoon
+        horizon = now.astimezone(tz).date() + timedelta(
+            days=business.booking_horizon_days
+        )
+        if starts_at.astimezone(tz).date() > horizon:
+            raise BookingTooFar
 
         windows = await self._windows_around(
             user, business, starts_at.astimezone(tz).date()
@@ -431,9 +446,7 @@ class AppointmentService:
         # The whole booking has to fall inside one stretch of open time. Two
         # windows that merely add up to enough are a booking that runs through
         # the lunch break.
-        if not any(
-            start <= starts_at and ends_at <= end for start, end in windows
-        ):
+        if not any(start <= starts_at and ends_at <= end for start, end in windows):
             raise OutsideWorkingHours
 
     async def _ensure_room(

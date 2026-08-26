@@ -132,6 +132,40 @@ export function closedRanges(row) {
 }
 
 /**
+ * What is wrong with putting a booking here, or `null` if nothing is.
+ *
+ * **A warning, not a refusal.** The server used to reject any booking outside
+ * opening hours whoever was making it; it no longer does for the owner, and
+ * this is what replaced that check. A booking written by hand is a record of
+ * something agreed or already done — somebody came during the break, somebody
+ * was fitted in after closing — and a calendar that will not write those down
+ * is arguing with the day it exists to record. What is left is the real risk
+ * the old check also caught, a mistyped date, and a warning catches that
+ * *before* Save while there is still something to correct.
+ *
+ * The assistant is still refused by the server. This is the owner's panel.
+ *
+ * `from`/`to` are minutes of the day. An end at or before the start is a
+ * booking running past midnight, which no pair of clock columns can express as
+ * open — so it is measured to the end of the day and will report `shut` unless
+ * the day is round-the-clock.
+ *
+ * A missing row means the week has not loaded and reports nothing, the same
+ * choice `closedRanges` makes: a warning invented out of data that has not
+ * arrived is worse than no warning at all.
+ */
+export function hoursProblem(row, from, to) {
+  if (!row || row.is_24h) return null
+  if (from == null || to == null) return null
+
+  const end = to > from ? to : MINUTES_IN_DAY
+  const hit = closedRanges(row).find(
+    (range) => range.from < end && from < range.to,
+  )
+  return hit?.kind ?? null
+}
+
+/**
  * The stretches of a day that are open and unbooked, as `[from, to]` minutes.
  *
  * The complement of everything in the way: the hours the business is shut
