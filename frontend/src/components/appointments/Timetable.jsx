@@ -1359,7 +1359,7 @@ function GroupBlock({
           // does it: this is `z-[60]` and the header `z-40`, so nothing else
           // stops it painting over the page title.
           collisionPadding={{ top: 80, right: 12, bottom: 12, left: 12 }}
-          className={`z-[60] flex max-h-[min(480px,var(--radix-popover-content-available-height))] w-[min(320px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none ${PANEL_MOTION}`}
+          className={`z-[60] flex max-h-[min(480px,var(--radix-popover-content-available-height,calc(100vh_-_92px)))] w-[min(320px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none ${PANEL_MOTION}`}
         >
           <p className="shrink-0 px-4 pt-4 pb-2 font-display text-[15px] font-semibold text-ink">
             {fromMinutes(start)} – {fromMinutes(end)}

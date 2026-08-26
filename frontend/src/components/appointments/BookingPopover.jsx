@@ -390,6 +390,28 @@ export default function BookingPopover({
           side="left"
           align="center"
           sideOffset={10}
+          // **560px first, the window second.** The panel is a form of seven
+          // fields and it is capped rather than left to grow: two of its blocks
+          // are lists that grow with the business — a price list, and a month —
+          // so uncapped it reached the top and bottom of the screen and stopped
+          // looking like a dialog at all. 560 is a panel; a 900px one is a page
+          // that happens to float. Past that it scrolls inside itself.
+          //
+          // The window's own budget is the *second* limit, for the short screen
+          // where even 560 does not fit.
+          //
+          // **The fallback in that second limit is load-bearing.**
+          // `--radix-popover-content-available-height` is written by the
+          // positioner *after* it has measured, so on the frame the panel first
+          // paints the variable does not exist yet — and an unset variable in
+          // an arbitrary value makes the whole `max-height` invalid, which is
+          // no cap at all. A form of seven fields laid out uncapped is taller
+          // than the window, and the positioner then had to place a box it
+          // could not fit: the top went off the screen and took the heading
+          // with it. `calc(100vh - 92px)` is the same budget written in numbers
+          // that always exist — the 68px page header, the 12px margin, and 12
+          // at the bottom.
+          //
           // **80px of it at the top: the 68px header plus the usual 12.** The
           // panel is `z-[60]` and the header `z-40`, so nothing stops it
           // painting straight over the page title — it has to be told where the
@@ -403,9 +425,9 @@ export default function BookingPopover({
           aria-label={t(
             editing ? 'appointments.editTitle' : 'appointments.newTitle',
           )}
-          className={`z-[60] flex max-h-[var(--radix-popover-content-available-height)] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none ${PANEL_MOTION}`}
+          className={`z-[60] flex max-h-[min(560px,var(--radix-popover-content-available-height,calc(100vh_-_92px)))] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none ${PANEL_MOTION}`}
         >
-          <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-3">
+          <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-1.5">
             <p className="font-display text-[17px] font-semibold tracking-[-0.02em] text-ink">
               {t(editing ? 'appointments.editTitle' : 'appointments.newTitle')}
             </p>
@@ -420,9 +442,18 @@ export default function BookingPopover({
             </Popover.Close>
           </div>
 
+          {/* **`pt-1.5`, and it is not decoration.** A field's edge here is a
+              `box-shadow` rather than a border — see `controls.js` — so it sits
+              *outside* the element, and this is a scroll container, which clips
+              at its padding box. With no padding above it, the first field's
+              top ring was cut off exactly along that edge and the field read as
+              open at the top. Six pixels also clears the 4px halo focus adds,
+              which was being cut the same way. The header gives the same six
+              back from its own `pb`, so the gap between title and first field
+              is what it always was. */}
           <form
             onSubmit={submit}
-            className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-6"
+            className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-1.5 pb-6"
           >
             {/* **What it is, first.** The reference opens with the event's own
                 name in a plain full-width field, and everything that is a
