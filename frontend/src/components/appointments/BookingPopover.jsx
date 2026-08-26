@@ -640,9 +640,14 @@ export default function BookingPopover({
  * a caption rather than as something you could press, and the panel looked like
  * a form with two sentences fallen into the middle of it.
  *
- * The label stays outside the field rather than becoming its placeholder, which
- * is what every other control here does: a select always has a value, so there
- * is no empty state for a placeholder to fill.
+ * **The label is inside the field, on the left, and the answer is on the
+ * right.** A select always has a value, so there is no empty state a
+ * placeholder could fill the way the other fields' do — the label has to be
+ * visible next to its answer permanently. Outside the field it needed a column
+ * of its own, which made these two rows the only ones on the panel that were
+ * not simply a field the full width of it. Inside, the row is that field again
+ * and the split does the labelling: muted name on the left, ink answer against
+ * the right edge, which is the shape a settings row has always had.
  *
  * An option may carry a `dot` — a colour, drawn at the strength the grid will
  * actually paint it, so what the list shows is what the card becomes.
@@ -651,34 +656,32 @@ function PanelSelect({ label, value, onChange, options }) {
   const current = options.find((option) => option.id === value)
 
   return (
-    <div className="mb-3 flex items-center gap-4">
-      {/* **One width for both labels**, so the two fields under each other
-          start at the same x — «Цвет» and «Статус» are four characters apart,
-          and two adjacent fields whose left edges disagree by that much read as
-          a mistake rather than as a form. 96px clears the longest of the three
-          languages («Мәртебесі») with room to spare. */}
-      <span className="w-24 shrink-0 truncate text-[14px] text-ink">
-        {label}
-      </span>
-
+    <div className="mb-3">
       <Select.Root value={value} onValueChange={onChange}>
         <Select.Trigger
           aria-label={label}
-          className={`${FIELD} flex h-9 min-w-0 flex-1 cursor-pointer items-center gap-2 text-[14px] outline-none`}
+          className={`${FIELD} flex h-9 w-full cursor-pointer items-center gap-2 text-[14px] outline-none`}
         >
-          {current?.dot && <Dot tint={current.dot} />}
-          {/* Left-aligned like the text in every other field, with the chevron
-              held to the far edge — `flex-1` on the value rather than `ml-auto`
-              on the icon, so a long label truncates instead of pushing it. */}
-          <Select.Value className="min-w-0 flex-1 truncate text-left" />
-          <Select.Icon asChild>
-            <HugeiconsIcon
-              icon={ArrowDown01Icon}
-              size={15}
-              strokeWidth={2}
-              className="shrink-0 text-muted"
-            />
-          </Select.Icon>
+          {/* Muted, and never truncated: it is the shorter of the two and the
+              one that must always be readable — a row whose answer has eaten
+              its question is a row you cannot use. */}
+          <span className="shrink-0 text-muted">{label}</span>
+
+          {/* The answer, held to the right edge. `ml-auto` on the group rather
+              than `flex-1` on the value, so a long option truncates from its
+              own end instead of dragging the chevron off with it. */}
+          <span className="ml-auto flex min-w-0 items-center gap-2">
+            {current?.dot && <Dot tint={current.dot} />}
+            <Select.Value className="truncate text-ink" />
+            <Select.Icon asChild>
+              <HugeiconsIcon
+                icon={ArrowDown01Icon}
+                size={15}
+                strokeWidth={2}
+                className="shrink-0 text-muted"
+              />
+            </Select.Icon>
+          </span>
         </Select.Trigger>
 
         <Select.Portal>
