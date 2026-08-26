@@ -186,11 +186,15 @@ const STATUS_TONE = {
  * kind of hour; hatching says it is struck out. It is also the one thing that
  * survives a booking being drawn on top of it, which a fill would not.
  *
- * 6px on, 6px off at 135° — the reference's own period, measured off it. The
- * contrast is deliberately tiny: this is the background of the grid, and a
- * visible stripe across a large part of the screen is a texture nobody asked to
- * look at. `color-mix` rather than an alpha stop so the stripes track `ink`
- * through a theme change.
+ * 6px on, 6px off at 135° — the reference's own period, measured off it.
+ *
+ * **The stripe is `--hatch`, a token with a value per theme**, and it has to
+ * be. It was `ink` at 5% mixed for both, which is a grey stripe on a white page
+ * and `#0d0d0d` on a black one — a value you can measure and cannot see. The
+ * two sides do not want the same number either: dark-on-light is read more
+ * readily than light-on-dark, so the dark theme takes the larger share to
+ * arrive at the same faintness. Faint is still the intent — this is the
+ * background of the grid — but faint and invisible are not the same thing.
  *
  * **It was briefly a flat tint and is back.** The argument for the tint was
  * scale: over twenty-four hours most of the day is shut, where at 08:00–21:00 a
@@ -201,7 +205,7 @@ const STATUS_TONE = {
  * rather than as an absence.
  */
 const HATCH =
-  'repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in oklab, var(--color-ink) 5%, transparent) 6px 12px)'
+  'repeating-linear-gradient(135deg, transparent 0 6px, var(--color-hatch) 6px 12px)'
 
 /** The slice of the day the grid draws, in minutes. */
 const WINDOW_FROM = START_HOUR * 60

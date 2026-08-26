@@ -64,6 +64,7 @@
   --color-danger: var(--danger);
   --color-ok: var(--ok);
   --color-now: var(--now);
+  --color-hatch: var(--hatch);
 
   /* **`sans` and `display` are the same face now.** Both names stay because
      roughly a hundred elements are written in terms of them, and because the
@@ -113,6 +114,16 @@
      colour, turned up far enough to grab. */
   --scroll-thumb: color-mix(in oklab, var(--ink) 20%, transparent);
   --scroll-thumb-hover: color-mix(in oklab, var(--ink) 36%, transparent);
+  /* The stripe in the hatch over a closed hour on `/appointments`.
+     **Two literals, and it has to be**, for the same reason `surface-chip`
+     does: it was one `ink` alpha for both themes and that cannot work here.
+     Ink at 5% is a grey stripe on a white page and very nearly nothing on a
+     black one — white at 5% over `#000000` lands on `#0d0d0d`, which is a
+     value you can measure and cannot see. And the two sides do not even want
+     the same number once they are separate: the eye reads dark-on-light more
+     readily than light-on-dark, so the dark theme needs the larger share to
+     arrive at the same faintness. */
+  --hatch: rgb(23 18 21 / 0.11);
   --field: rgb(0 0 0 / 0.08);
   --field-hover: rgb(0 0 0 / 0.21);
   --field-focus: rgb(0 0 0 / 0.34);
@@ -179,6 +190,7 @@
   --surface-raised: #0e0e0e;
   --surface-chip: #2a2a2a;
   --surface-card: #1c1c1c;
+  --hatch: rgb(255 255 255 / 0.2);
   /* Solid greys, not white at an alpha — taken from Vercel's dark theme, where
      `--ds-gray-400` (#2e2e2e) is the workhorse border and `--ds-gray-500`
      (#454545) is the step up from it.

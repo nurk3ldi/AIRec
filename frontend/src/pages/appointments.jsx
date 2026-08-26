@@ -65,7 +65,7 @@ const DEMO_CHATS = [
   {
     id: 'demo-waiting',
     at: demoAt(16, 35),
-    client: 'Айгерим',
+    client: 'Ақзере',
     preview: 'Можно перенести на завтра?',
     state: 'waiting',
   },
@@ -79,7 +79,7 @@ const DEMO_CHATS = [
   {
     id: 'demo-answered-bye',
     at: demoAt(14, 20),
-    client: 'Данияр',
+    client: 'Мақсат',
     preview: 'Спасибо, до встречи',
     state: 'answered',
   },
@@ -93,7 +93,7 @@ const DEMO_CHATS = [
   {
     id: 'demo-answered',
     at: demoAt(9, 40),
-    client: 'Мадина',
+    client: 'Нұрдәулет',
     preview: 'Подтверждаю, буду в 18:00',
     state: 'answered',
   },
