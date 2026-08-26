@@ -116,9 +116,12 @@ export default function ChatFeed({ chats, timeZone, className = '' }) {
  * who and about what — the same order the booking cards use, which is what
  * keeps the two halves of this screen reading as one product.
  *
- * `surface-raised`, no border: the edgeless card this page already uses for the
- * three above the timetable. On the dark theme `surface` and `ground` are the
- * same black, so a card without a fill of its own would be nothing at all.
+ * **`surface-card`, not `surface-raised`.** Both are edgeless fills and the
+ * difference is which ground they have to stand off. `surface-raised` is
+ * `#0e0e0e` on the dark theme, which is a step off a *page* and no step at all
+ * off the pure black this panel sits on — measurable, invisible. `surface-card`
+ * is the token that already exists for exactly this, and it is what a booking
+ * on the timetable wears for the same reason.
  */
 function ChatRow({ chat, timeZone }) {
   const t = useT()
@@ -127,7 +130,7 @@ function ChatRow({ chat, timeZone }) {
   return (
     <Link
       to="/inbox"
-      className="block rounded-xl bg-surface-raised px-3 py-2.5 outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85"
+      className="block rounded-xl bg-surface-card px-3 py-2.5 outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85"
     >
       <span className="flex items-baseline justify-between gap-2">
         <span className="font-display text-[17px] leading-none font-semibold tracking-[-0.01em] text-ink">
