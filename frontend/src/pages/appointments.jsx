@@ -45,8 +45,15 @@ import styles from '../styles/Appointments.module.css'
  * remembered.
  *
  * The times are built from *today* rather than written as literals, so the
- * three rows read as this morning whenever the page is opened instead of
- * quietly becoming a date in the past.
+ * rows read as this afternoon whenever the page is opened instead of quietly
+ * becoming a date in the past.
+ *
+ * **Newest first**, because that is what the feed is for: a chat that has just
+ * opened has to arrive where the eye already is, and a list that appends puts
+ * every new one at the bottom of a box that scrolls. The one still waiting for
+ * an answer is the most recent here on purpose — that is the row the colour is
+ * spent on, and burying it under four answered ones would be spending it on
+ * something nobody can see.
  */
 const demoAt = (hours, minutes) => {
   const day = new Date()
@@ -57,10 +64,24 @@ const demoAt = (hours, minutes) => {
 const DEMO_CHATS = [
   {
     id: 'demo-waiting',
-    at: demoAt(9, 40),
+    at: demoAt(16, 35),
     client: 'Айгерим',
     preview: 'Можно перенести на завтра?',
     state: 'waiting',
+  },
+  {
+    id: 'demo-new-price',
+    at: demoAt(15, 10),
+    client: '+7 747 902 11 08',
+    preview: 'Сколько стоит окрашивание?',
+    state: 'new',
+  },
+  {
+    id: 'demo-answered-bye',
+    at: demoAt(14, 20),
+    client: 'Данияр',
+    preview: 'Спасибо, до встречи',
+    state: 'answered',
   },
   {
     id: 'demo-new',
@@ -71,9 +92,9 @@ const DEMO_CHATS = [
   },
   {
     id: 'demo-answered',
-    at: demoAt(14, 20),
-    client: 'Данияр',
-    preview: 'Спасибо, до встречи',
+    at: demoAt(9, 40),
+    client: 'Мадина',
+    preview: 'Подтверждаю, буду в 18:00',
     state: 'answered',
   },
 ]

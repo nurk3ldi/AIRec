@@ -28,7 +28,11 @@ import { useT } from '../../lib/i18n'
  * lands, this takes a `chats` array and draws it.
  *
  * A chat is `{ id, at, client, preview, state }`, where `at` is an ISO instant
- * and `state` is one of `CHAT_TONE`'s keys.
+ * and `state` is one of `CHAT_TONE`'s keys. **They are drawn in the order they
+ * are given and the newest belongs first** — this does no sorting of its own,
+ * because the order a feed arrives in is the endpoint's answer to give, but a
+ * feed that appends puts every new chat at the bottom of a box that scrolls,
+ * which is the opposite of what "new chats drop in here" means.
  */
 
 /**
