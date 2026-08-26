@@ -7,8 +7,6 @@ import {
   ArrowRight01Icon,
 } from '@hugeicons/core-free-icons'
 import {
-  BOOKING_TINT_MIX,
-  BOOKING_TINTS,
   byStart,
   formatPrice,
   fromMinutes,
@@ -859,16 +857,12 @@ function useNow() {
 /**
  * One booking, drawn where it sits.
  *
- * **The colour marks *which* booking, not what became of it.** Status picked it
- * once and the result was a screen of one colour: almost every booking is an
- * ordinary live one, so a status palette paints them all the same and says
- * nothing you could not already see. What differs from row to row is identity,
- * so identity is what gets the hue — see `BOOKING_COLORS`.
- *
- * The fill is that hue mixed into the surface rather than the hue itself: a
- * solid block of colour every hour of a busy day is a wall, and the text on it
- * would need its own contrast rule per hue. Mixed, one text colour works on all
- * eight, and the bar down the left edge carries the identity at full strength.
+ * **Every card is the same grey right now.** Two attempts at colour here have
+ * been switched off: a hue per booking of the day, and then a mark the owner
+ * chose. Both are still in `lib/appointments.js` and the second is still stored
+ * on the row — what is gone is the line that read it. A week of coloured blocks
+ * is a week that looks like something is happening, and nothing on this grid
+ * has yet needed a colour to mean anything.
  *
  * A cancelled booking fades rather than disappearing: it gave its hour back —
  * `BLOCKING_STATUSES` — but it is still what happened there, and the assistant
@@ -949,12 +943,13 @@ function BookingBlock({
           cancelled ? 'opacity-45' : ''
         }`}
         style={{
-          // **The mark, mixed into the card rather than replacing it** — see
-          // `BOOKING_TINT_MIX` for the strength and why it is that number. Unmarked, this is the plain card fill, which is
-          // the ordinary case and stays the quiet one.
-          backgroundColor: BOOKING_TINTS[block.color]
-            ? `color-mix(in oklab, ${BOOKING_TINTS[block.color]} ${BOOKING_TINT_MIX}%, var(--color-surface-card))`
-            : 'var(--color-surface-card)',
+          // **Every card is the plain grey, and the mark is switched off.** A
+          // booking's `color` is still stored and still comes down on the row —
+          // nothing has been thrown away — but nothing reads it here for now.
+          // `BOOKING_TINTS` in `lib/appointments.js` keeps the palette and the
+          // one line that used it is a `color-mix` of that tint into this fill;
+          // see the note there for how it goes back.
+          backgroundColor: 'var(--color-surface-card)',
           top,
           height,
           // **Fixed lanes in the day view, shares of the column in the week.**

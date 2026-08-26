@@ -104,39 +104,64 @@ export const statusLabel = (status) =>
   BOOKING_STATES.find((state) => state.id === stateOf(status))?.label ?? ''
 
 /**
- * The colours a booking wears in the calendar and in the day list.
+ * The marks a booking may carry, as name -> hue — **switched off in the UI, and
+ * imported by nothing.**
  *
- * They mark *which booking* — not what became of it. Status used to pick the
- * colour, and the result was a screen of black: almost every booking is an
- * ordinary live one, so a status palette paints them all the same and tells you
- * nothing you couldn't already see. Identity is the thing that actually differs
- * from row to row, so identity is what gets the colour.
- *
- * Chosen as a family rather than picked apart: one saturation band, one
- * lightness band, evenly spaced around the wheel, with the brand accent as the
- * first of them so the product's own blue belongs to the set instead of
- * standing outside it. `#DC2626` and `#16A34A` are deliberately *not* here —
- * they mean "error" and "up" elsewhere in this app, and a booking that happens
- * to be sixth would otherwise look like a warning.
- *
- * Eight is enough that a day repeats a colour only past eight bookings, and
- * few enough that they stay tellable apart.
- */
-/**
- * The marks a booking may carry, as name → hue.
+ * The picker was taken out of the booking panel and the grid draws every card
+ * in the plain `surface-card` grey again. Nothing else was undone: the column
+ * is still there, the values already written are still on their rows, and the
+ * server still refuses a name outside this set. Two lines put it back — the
+ * `PanelSelect` block noted in `BookingPopover`, and a `color-mix` of the tint
+ * into the card fill in `Timetable`'s `BookingBlock`.
  *
  * **The names are the API's** — the server keeps the same closed set and
  * refuses anything outside it — and the hues are this app's answer to them, so
- * the palette can be retuned without touching a single stored row.
+ * the palette can be retuned without touching a single stored row. It has been
+ * retuned twice now, and not one row changed either time.
  *
- * **The names outlive the hues, which is the whole point of storing a name.**
- * These six replaced a darker, muddier set — `#16a34a`, `#e11d63`, `#0e96c7` —
- * that read as a decade old beside the rest of the product: deep, slightly grey
- * mid-tones from a time when screens were dimmer. The current six sit a step
- * brighter and a step cleaner, far enough apart in hue to be told apart at a
- * glance and close enough in lightness to read as one set. Not one row in the
- * database had to change for it.
+ * **These six are constructed, not picked**, from a reference the owner gave
+ * as the look wanted for a booking's background: `#ffd60a`, `#f8f9fa`,
+ * `#495057`, `#d00000` — cool neutrals carrying two flat, near-gamut-edge
+ * accents. What transfers from it is that character rather than those four
+ * literals: two of the four are the neutrals a card and its ink already are,
+ * and the closed set of names this app may store holds no yellow and no red.
  *
+ * So: every one is OKLCH `L 0.74` at 97% of the chroma its own hue can reach in
+ * sRGB — the reference's punch, which is what `#ffd60a` and `#d00000` both are
+ * — on hues 20 / 75 / 150 / 198 / 258 / 308. The two warm ones are placed
+ * against the reference: `rose` at 20° reaches for `#d00000` (29°) as far as
+ * the word rose allows, and `orange` at 75° for `#ffd60a` (95°) as far as the
+ * word orange does.
+ *
+ * **One lightness for all six is the part that is not negotiable.** The
+ * hand-picked Tailwind 500s before this ran `L 0.61` (blue, violet) to `L 0.72`
+ * (green), which is a visible step: the set read as six colours from six places
+ * rather than as one palette, and the darker two looked heavier for no reason a
+ * reader could name. Because these mix into the card at matching strength, ink
+ * contrast on a marked booking now varies by half a point instead of by three —
+ * 13.4–14.2 on the light theme, 8.1–8.7 on the dark.
+ *
+ * Chroma is *not* equalised, and cannot be: sRGB simply holds less cyan than it
+ * does magenta at this lightness, so teal tops out around `C 0.12` where green
+ * reaches `0.20`. Flattening everything to teal's ceiling would have paid for
+ * an equality nobody can see with a palette nobody can.
+ *
+ * They are never painted at full strength either — every one is mixed into the
+ * card's own fill at `BOOKING_TINT_MIX`, which is what keeps a marked booking a
+ * *tinted card* rather than a coloured block. A week of saturated rectangles is
+ * a week that looks like something is happening, which is the reason automatic
+ * per-booking colour was taken out in the first place. What came back is a mark
+ * the owner chooses, on the few bookings worth marking.
+ */
+export const BOOKING_TINTS = {
+  rose: '#fc7f82',
+  orange: '#e19b18',
+  green: '#1bcc62',
+  teal: '#1cc2c6',
+  blue: '#76acfc',
+  violet: '#c98afd',
+}
+
 /**
  * How much of the hue reaches the card, as a percentage.
  *
@@ -154,22 +179,21 @@ export const statusLabel = (status) =>
 export const BOOKING_TINT_MIX = 38
 
 /**
- * They are never painted at full strength. Every one is mixed into the card's
- * own fill at a low percentage where it is drawn, which is what keeps a marked
- * booking a *tinted card* rather than a coloured block: a week of saturated
- * rectangles is a week that looks like something is happening, which is the
- * reason per-booking colour was taken out in the first place. What came back is
- * a mark the owner chooses, on the few bookings worth marking.
+ * A colour per booking of a day, handed out by position — **imported by
+ * nothing.**
+ *
+ * It was the first answer to telling one booking from another at a glance, and
+ * it lost to a plainer argument: a week of coloured blocks is a week that looks
+ * like something is happening, and nothing on that screen needed a colour to
+ * mean anything. `BOOKING_TINTS` above is what replaced it — the same idea,
+ * except the owner decides which few bookings are worth marking.
+ *
+ * Kept for the day something does need a colour of its own. Eight is enough
+ * that a day repeats only past eight bookings, and few enough that they stay
+ * tellable apart. `#DC2626` and `#16A34A` are deliberately absent: they mean
+ * "error" and "up" elsewhere in this app, and a booking that happened to be
+ * sixth would look like a warning.
  */
-export const BOOKING_TINTS = {
-  orange: '#f97316',
-  green: '#22c55e',
-  blue: '#3b82f6',
-  violet: '#8b5cf6',
-  rose: '#f43f5e',
-  teal: '#06b6d4',
-}
-
 export const BOOKING_COLORS = [
   '#3248F2', // indigo — the brand accent
   '#7C3AED', // violet

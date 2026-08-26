@@ -15,8 +15,6 @@ import {
 import { authed } from '../../lib/auth'
 import {
   BOOKING_STATES,
-  BOOKING_TINT_MIX,
-  BOOKING_TINTS,
   fromMinutes,
   instantAt,
   parseClock,
@@ -107,7 +105,6 @@ export default function BookingPopover({
   const [clientName, setClientName] = useState('')
   const [clientPhone, setClientPhone] = useState('')
   const [note, setNote] = useState('')
-  const [color, setColor] = useState('')
   const [status, setStatus] = useState('confirmed')
 
   const [saving, setSaving] = useState(false)
@@ -193,7 +190,6 @@ export default function BookingPopover({
     setClientName(booking?.client ?? '')
     setClientPhone(booking?.phone ?? '')
     setNote(booking?.note ?? '')
-    setColor(booking?.color ?? '')
     setStatus(booking ? stateOf(booking.status) : 'confirmed')
     setConfirmingDelete(false)
     setError('')
@@ -243,10 +239,10 @@ export default function BookingPopover({
       duration_minutes:
         (parseClock(endsAt) - parseClock(startsAt) + 24 * 60) % (24 * 60),
       note: note.trim() || null,
-      // Empty means "no mark", which the API stores as null — a booking that
-      // was coloured and then cleared has to be able to say so, and `''` is not
-      // a colour the server knows.
-      color: color || null,
+      // No `color` key at all, which is not the same as sending `null`: the
+      // field is switched off in the panel, and a PATCH that omitted it leaves
+      // whatever is stored alone. Clearing every booking's mark on the next
+      // save is not what "take the picker away for now" asked for.
       // Only when editing. A booking being written now has not happened yet, so
       // the four states are not a choice anyone can make about it — its status
       // is whatever the API's default says a new booking is.
@@ -498,28 +494,15 @@ export default function BookingPopover({
               </div>
             </Group>
 
-            {/* Both answer a question with a small closed set — a label and
-                a field of the same build as every other field on the panel; see
-                the note on `PanelSelect`. The colour is offered when adding as
-                well as when editing; the status only when editing, because a
-                booking being written down has not happened yet and none of the
-                four is a thing anyone can say about it. */}
-            <PanelSelect
-              label={t('appointments.color')}
-              // `'none'` on the wire and `''` in the form: Radix will not take
-              // an empty string as an item value, and the API wants `null`.
-              value={color || 'none'}
-              onChange={(next) => setColor(next === 'none' ? '' : next)}
-              options={[
-                { id: 'none', label: t('appointments.colorNone'), dot: null },
-                ...Object.entries(BOOKING_TINTS).map(([name, tint]) => ({
-                  id: name,
-                  label: t(`color.${name}`),
-                  dot: tint,
-                })),
-              ]}
-            />
+            {/* A closed set of answers, so a label and a field of the same
+                build as every other field on the panel — see `PanelSelect`.
 
+                **A colour picker sat here and has been taken out for now.** It
+                offered the six marks in `BOOKING_TINTS`; the column, the stored
+                values and the palette all survive it, and putting it back is
+                this block again beside the one below. Only when editing, this
+                one: a booking being written down has not happened yet, and none
+                of the four states is a thing anyone can say about it. */}
             {editing && (
               <PanelSelect
                 label={t('appointments.status')}
@@ -649,12 +632,11 @@ export default function BookingPopover({
  * and the split does the labelling: muted name on the left, ink answer against
  * the right edge, which is the shape a settings row has always had.
  *
- * An option may carry a `dot` — a colour, drawn at the strength the grid will
- * actually paint it, so what the list shows is what the card becomes.
+ * It carried a swatch per option while the colour picker was here, so the list
+ * showed what the card would become. With that field gone the only caller is
+ * the status row, which has nothing to draw beside its labels.
  */
 function PanelSelect({ label, value, onChange, options }) {
-  const current = options.find((option) => option.id === value)
-
   return (
     <div className="mb-3">
       <Select.Root value={value} onValueChange={onChange}>
@@ -671,7 +653,6 @@ function PanelSelect({ label, value, onChange, options }) {
               than `flex-1` on the value, so a long option truncates from its
               own end instead of dragging the chevron off with it. */}
           <span className="ml-auto flex min-w-0 items-center gap-2">
-            {current?.dot && <Dot tint={current.dot} />}
             <Select.Value className="truncate text-ink" />
             <Select.Icon asChild>
               <HugeiconsIcon
@@ -701,7 +682,6 @@ function PanelSelect({ label, value, onChange, options }) {
                   value={option.id}
                   className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-[14px] text-ink outline-none select-none data-[highlighted]:bg-ink/6"
                 >
-                  {option.dot !== undefined && <Dot tint={option.dot} />}
                   <Select.ItemText>{option.label}</Select.ItemText>
                   <Select.ItemIndicator className="ml-auto text-ink">
                     <HugeiconsIcon
@@ -717,22 +697,6 @@ function PanelSelect({ label, value, onChange, options }) {
         </Select.Portal>
       </Select.Root>
     </div>
-  )
-}
-
-/** The colour itself, at the strength a booking card is tinted with. `null` is
- *  "no colour" and shows the plain card fill inside a hairline. */
-function Dot({ tint }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="h-3.5 w-3.5 shrink-0 rounded-full shadow-[0_0_0_1px_var(--color-line)]"
-      style={{
-        backgroundColor: tint
-          ? `color-mix(in oklab, ${tint} ${BOOKING_TINT_MIX}%, var(--color-surface-card))`
-          : 'var(--color-surface-card)',
-      }}
-    />
   )
 }
 
