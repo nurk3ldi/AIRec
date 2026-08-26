@@ -101,22 +101,27 @@ const LANE_INSET = LANE_GAP / 2
 /**
  * What colour a booking's status is said in.
  *
- * **Only two of the four get one, and that is the point.** Colour on a
- * calendar is worth exactly what it is spent on: paint every card and it says
- * nothing, paint the two that need looking at and they can be found from across
- * the room.
+ * **The word takes the colour, the card does not.** Tinting the whole fill was
+ * tried and taken back out: a week of coloured blocks is a week that looks like
+ * something is happening, and it is also what forces every other line on the
+ * card to be re-checked for contrast against three different grounds. One
+ * 12px label carries the same information and costs the grid nothing.
  *
- * `confirmed` is almost every booking there is — the ordinary, expected case —
- * so it takes the muted grey everything else on the card takes. `cancelled`
- * already has a signal of its own: the whole card fades to 45%, which is a
- * stronger statement than a coloured word and does not need repeating.
+ * **Three of the four get a colour and `cancelled` is the grey one.** That is
+ * the exception on purpose: it gave its hour back — see `BLOCKING_STATUSES` —
+ * so it is the one row on the grid that is not an appointment any more, and the
+ * card already fades to 45% to say so. Colouring it would be pointing at the
+ * one booking nobody has to look at.
  *
- * That leaves the two that are worth spotting. `completed` is `ok`, the green
- * this project already means "done" with; `no_show` is `danger`, the red it
- * already means "this went wrong" with. Neither is a new hue and neither is
- * being borrowed for decoration.
+ * None of the three is a new hue. `completed` is `ok`, the green this project
+ * already means "done" with; `no_show` is `danger`, the red it already means
+ * "this went wrong" with; `confirmed` is `--now`, the orange that already means
+ * "the present moment" here — it is the live booking, the one the day is
+ * actually made of, and the same colour crosses the grid as the now-line and
+ * tints today's column.
  */
 const STATUS_TONE = {
+  confirmed: 'text-now',
   completed: 'text-ok',
   no_show: 'text-danger',
 }
@@ -857,12 +862,13 @@ function useNow() {
 /**
  * One booking, drawn where it sits.
  *
- * **Every card is the same grey right now.** Two attempts at colour here have
- * been switched off: a hue per booking of the day, and then a mark the owner
- * chose. Both are still in `lib/appointments.js` and the second is still stored
- * on the row — what is gone is the line that read it. A week of coloured blocks
- * is a week that looks like something is happening, and nothing on this grid
- * has yet needed a colour to mean anything.
+ * **Every card is the same grey, and the only colour on it is the status
+ * word** — see `STATUS_TONE`. Three answers to "what should a booking be
+ * coloured by" have been switched off to get here: a hue per booking of the
+ * day, a mark the owner picked, and the status painted across the whole fill.
+ * The first two said *which* booking it was rather than anything about it; the
+ * third said something true but said it in a week of coloured blocks, which is
+ * a week that looks like something is happening.
  *
  * A cancelled booking fades rather than disappearing: it gave its hour back —
  * `BLOCKING_STATUSES` — but it is still what happened there, and the assistant
@@ -886,7 +892,8 @@ function BookingBlock({
   // hour any height at all — a narrow window, or the first frame before the
   // measurement lands. A card below this is a coloured line, not a card.
   const height = Math.max(((block.end - block.start) / 60) * rowHeight, 34)
-  const cancelled = block.status === 'cancelled'
+  const state = stateOf(block.status)
+  const cancelled = state === 'cancelled'
 
   return (
     // **Double click, not click.** A single click on a booking will eventually
@@ -943,12 +950,10 @@ function BookingBlock({
           cancelled ? 'opacity-45' : ''
         }`}
         style={{
-          // **Every card is the plain grey, and the mark is switched off.** A
-          // booking's `color` is still stored and still comes down on the row —
-          // nothing has been thrown away — but nothing reads it here for now.
-          // `BOOKING_TINTS` in `lib/appointments.js` keeps the palette and the
-          // one line that used it is a `color-mix` of that tint into this fill;
-          // see the note there for how it goes back.
+          // **Every card is the same grey**, whatever its status — see
+          // `STATUS_TONE` for where the status is said instead. The owner's own
+          // `color` mark is still stored on the row and still ignored here; the
+          // picker for it is out of the panel for now.
           backgroundColor: 'var(--color-surface-card)',
           top,
           height,
@@ -984,9 +989,12 @@ function BookingBlock({
           move with the type and with the padding; a threshold left behind a
           size change is a card that clips the line it just decided to draw. */}
         {height >= 104 && (
+          // The muted grey is the fallback rather than a fourth entry: it is
+          // what `cancelled` takes, and it is also what a status this map has
+          // never heard of should look like.
           <p
             className={`flex items-center gap-1.5 truncate text-[12px] leading-none font-medium ${
-              STATUS_TONE[stateOf(block.status)] ?? 'text-muted'
+              STATUS_TONE[state] ?? 'text-muted'
             }`}
           >
             {/* `currentColor`, so the dot and the word are the same statement

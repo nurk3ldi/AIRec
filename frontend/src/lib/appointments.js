@@ -108,11 +108,12 @@ export const statusLabel = (status) =>
  * imported by nothing.**
  *
  * The picker was taken out of the booking panel and the grid draws every card
- * in the plain `surface-card` grey again. Nothing else was undone: the column
- * is still there, the values already written are still on their rows, and the
- * server still refuses a name outside this set. Two lines put it back — the
- * `PanelSelect` block noted in `BookingPopover`, and a `color-mix` of the tint
- * into the card fill in `Timetable`'s `BookingBlock`.
+ * in the plain `surface-card` grey; the status is said in the colour of one
+ * word instead, which is `STATUS_TONE` in `Timetable`. Nothing under it was
+ * undone: the column is still there, the values already written are still on
+ * their rows, and the server still refuses a name outside this set. Putting the
+ * picker back is the `PanelSelect` block noted in `BookingPopover`, plus a
+ * `color-mix` of the tint into the card fill in `BookingBlock`.
  *
  * **The names are the API's** — the server keeps the same closed set and
  * refuses anything outside it — and the hues are this app's answer to them, so
