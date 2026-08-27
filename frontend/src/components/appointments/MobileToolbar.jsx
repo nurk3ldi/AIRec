@@ -6,10 +6,11 @@ import {
 } from '@hugeicons/core-free-icons'
 import { useT } from '../../lib/i18n'
 import BookingPopover from './BookingPopover'
+import { CONTROLS_HEIGHT } from './grid'
 
 /**
  * The phone's controls for `/appointments`, in the room the calendar reserves
- * for them — see `CONTROLS_HEIGHT` in `MonthScroller`.
+ * for them — see `CONTROLS_HEIGHT` in `grid.js`.
  *
  * **Three in one pill against the right edge**, the shape the reference uses
  * and the one a thumb reaches: the right-hand third of the top of a phone is
@@ -30,6 +31,7 @@ import BookingPopover from './BookingPopover'
  * will be wired to the thing that label names.
  */
 export default function MobileToolbar({
+  leading,
   services,
   week,
   timeZone,
@@ -40,7 +42,19 @@ export default function MobileToolbar({
   const t = useT()
 
   return (
-    <div className="flex h-full items-end justify-end px-4 pb-2">
+    // **The bar carries its own height rather than filling its parent.** It
+    // was `h-full`, which is right inside the calendar's reserved box and wrong
+    // everywhere else: on the day screen the parent is the whole screen, so the
+    // bar took all of it and `items-end` pushed the row to the bottom with the
+    // grid shoved off below. A control bar is 96px tall wherever it is put.
+    //
+    // `justify-between` with nothing on the left still puts the pill on the
+    // right, so the two arrangements are one row rather than two.
+    <div
+      style={{ height: CONTROLS_HEIGHT }}
+      className="flex shrink-0 items-end justify-between gap-2 px-4 pb-2"
+    >
+      {leading}
       <div className="flex items-center gap-0.5 rounded-full bg-surface-card p-1">
         <ToolButton icon={FilterHorizontalIcon} label={t('appointments.filter')} />
         <ToolButton

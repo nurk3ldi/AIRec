@@ -27,38 +27,18 @@ import {
   weekdayLabels,
 } from '../../lib/dates'
 import { closedRanges, toMinutes } from '../../lib/schedule'
+import {
+  END_HOUR,
+  HATCH,
+  START_HOUR,
+  WINDOW_FROM,
+  WINDOW_TO,
+} from './grid'
 import BookingPopover from './BookingPopover'
 import StatusFilter from './StatusFilter'
 import { PANEL_MOTION } from './panel'
 import { useT } from '../../lib/i18n'
 
-// **The whole day, midnight to midnight.** It was 08:00–21:00, which is a
-// guess about when a business is open, and the guess is now unnecessary: the
-// real hours arrive from `/business/working-hours` and are drawn as shading, so
-// the grid can hold every hour and let the *shading* say which ones are the
-// working day. It also stopped being merely tidy — a booking may now be written
-// outside opening hours, so a grid that only drew 08:00–21:00 was a grid that
-// could hide a booking it had just accepted.
-//
-// What that costs is scrolling, and it is paid once: the grid scrolls itself to
-// the start of the working day on mount — see `useOpeningScroll`.
-const START_HOUR = 0
-const END_HOUR = 24
-
-/**
- * How much time one row of the grid covers.
- *
- * **Ninety minutes, not sixty.** A full day at hourly rows is twenty-four
- * labels down the gutter, which on a grid this dense reads as a ruler rather
- * than as a set of landmarks. At an hour and a half it is sixteen — still every
- * part of the day, and 1440 divides by 90 exactly, so the last row ends on
- * midnight instead of being cut short.
- *
- * It is only what the rows and the gutter are drawn *in*. Everything positioned
- * on the grid — bookings, the now-line, closed spans — is still placed from
- * `rowHeight`, which stays pixels-per-*hour*, because minutes are what those
- * things are measured in and converting twice is how the two drift apart.
- */
 const ROW_MINUTES = 90
 /**
  * **How much of the day is on screen at once — and the hour's height is derived
@@ -152,38 +132,6 @@ const CARD_WIDTH = {
 }
 
 
-/**
- * The diagonal hatch a closed stretch wears.
- *
- * **A pattern rather than a flat grey, because a flat grey is a colour and this
- * has to read as "nothing happens here".** A tint says the hour is *some* other
- * kind of hour; hatching says it is struck out. It is also the one thing that
- * survives a booking being drawn on top of it, which a fill would not.
- *
- * 6px on, 6px off at 135° — the reference's own period, measured off it.
- *
- * **The stripe is `--hatch`, a token with a value per theme**, and it has to
- * be. It was `ink` at 5% mixed for both, which is a grey stripe on a white page
- * and `#0d0d0d` on a black one — a value you can measure and cannot see. The
- * two sides do not want the same number either: dark-on-light is read more
- * readily than light-on-dark, so the dark theme takes the larger share to
- * arrive at the same faintness. Faint is still the intent — this is the
- * background of the grid — but faint and invisible are not the same thing.
- *
- * **It was briefly a flat tint and is back.** The argument for the tint was
- * scale: over twenty-four hours most of the day is shut, where at 08:00–21:00 a
- * closed stretch was a fifth of the grid, so the pattern went from marking a
- * corner to covering two-thirds of the busiest surface in the product. That
- * argument lost to how the two actually look — struck-out reads as struck out
- * at any size, and a tint at that scale reads as a second kind of surface
- * rather than as an absence.
- */
-const HATCH =
-  'repeating-linear-gradient(135deg, transparent 0 6px, var(--color-hatch) 6px 12px)'
-
-/** The slice of the day the grid draws, in minutes. */
-const WINDOW_FROM = START_HOUR * 60
-const WINDOW_TO = END_HOUR * 60
 
 // Two views, and both do something — a switcher whose segments are decoration
 // is worse than no switcher, which is why the reference's Today/Month/Year are

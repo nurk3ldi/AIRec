@@ -4,6 +4,7 @@ import MonthCalendar from '../components/appointments/MonthCalendar'
 import MonthScroller from '../components/appointments/MonthScroller'
 import MobileToolbar from '../components/appointments/MobileToolbar'
 import MobileSearch from '../components/appointments/MobileSearch'
+import MobileDay from '../components/appointments/MobileDay'
 import ChatFeed from '../components/appointments/ChatFeed'
 import NowCard from '../components/appointments/NowCard'
 import FreeSlotCard from '../components/appointments/FreeSlotCard'
@@ -155,6 +156,12 @@ export default function AppointmentsPage() {
   // and the × in its bar is the one way back. The page holds the flag because
   // it owns which of the two is mounted.
   const [searching, setSearching] = useState(false)
+
+  // **Which of the two the phone is on.** Tapping a day in the calendar opens
+  // that day's hours; the back button in its bar comes here again. Both stay
+  // mounted — the same reason the search does — so coming back lands where you
+  // left rather than rebuilding a year of months.
+  const [dayOpen, setDayOpen] = useState(false)
 
   const [bookings, setBookings] = useState([])
   // Bumped after a save. A counter rather than a boolean, because two bookings
@@ -328,7 +335,10 @@ export default function AppointmentsPage() {
           to put them. */}
       <MonthScroller
         value={selected}
-        onChange={setSelected}
+        onChange={(chosen) => {
+          setSelected(chosen)
+          setDayOpen(true)
+        }}
         controls={
           <MobileToolbar
             services={services}
@@ -341,6 +351,44 @@ export default function AppointmentsPage() {
         }
         className="min-h-0 flex-1 sm:hidden"
       />
+
+      {/* **A day arrives from the right, the way a drill-down does.** It is
+          one step further in than the calendar — a month says which days exist,
+          this says what is in one of them — and coming in from the side is what
+          every phone means by that. Leaving to the right says it went back.
+
+          Over the calendar rather than instead of it, for the reason the search
+          is: a year of months does not need rebuilding because somebody looked
+          at Thursday. */}
+      <AnimatePresence initial={false}>
+        {dayOpen && (
+          <m.div
+            key="day"
+            initial={reduce ? false : { x: '100%' }}
+            animate={{ x: 0 }}
+            exit={reduce ? { opacity: 0 } : { x: '100%' }}
+            transition={
+              reduce
+                ? { duration: 0 }
+                : { duration: 0.32, ease: [0.32, 0.72, 0, 1] }
+            }
+            className="absolute inset-0 z-20 flex flex-col bg-ground sm:hidden"
+          >
+            <MobileDay
+              day={selected}
+              onDayChange={setSelected}
+              onBack={() => setDayOpen(false)}
+              bookings={bookings}
+              week={week}
+              services={services}
+              timeZone={timeZone}
+              onSaved={() => setReload((n) => n + 1)}
+              onSearch={() => setSearching(true)}
+              className="min-h-0 flex-1"
+            />
+          </m.div>
+        )}
+      </AnimatePresence>
 
       {/* **The search comes down over the calendar from the top edge.** It used
           to replace it outright, which is the same end state arrived at with no

@@ -13,6 +13,7 @@ import {
 import { dayLabel } from '../../lib/dates'
 import { useT } from '../../lib/i18n'
 import BookingPopover from './BookingPopover'
+import { CONTROLS_HEIGHT } from './grid'
 
 /**
  * Searching the calendar from a phone: a field where the controls were, and the
@@ -100,8 +101,11 @@ export default function MobileSearch({
   return (
     <div className={`flex flex-col ${className}`}>
       {/* The same room the toolbar had, so switching modes does not move the
-          screen under the reader — see `CONTROLS_HEIGHT` in `MonthScroller`. */}
-      <div className="flex shrink-0 items-end gap-2 px-4 pb-2 pt-[calc(3rem+env(safe-area-inset-top))]">
+          screen under the reader — see `CONTROLS_HEIGHT` in `grid.js`. */}
+      <div
+        style={{ height: CONTROLS_HEIGHT }}
+        className="flex shrink-0 items-end gap-2 px-4 pb-2"
+      >
         <div className="relative flex h-10 min-w-0 flex-1 items-center">
           <span className="pointer-events-none absolute left-3 grid place-items-center text-muted">
             <HugeiconsIcon icon={Search01Icon} size={17} strokeWidth={2} />

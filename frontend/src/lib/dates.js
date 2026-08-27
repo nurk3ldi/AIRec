@@ -244,6 +244,22 @@ export function rangeLabel(from, to) {
   return `${start} – ${end}`
 }
 
+/**
+ * The month on its own, capitalised — "Август", "Тамыз", "August".
+ *
+ * Not `monthLabel(date).split(' ')[0]`, which is the shape it started as and
+ * is wrong in Kazakh: `kk` puts the year first, so the first word of that
+ * string is a number. Asked for as a month, it comes back as a month in every
+ * language.
+ *
+ * Capitalised here for the same reason `monthLabel` does it: `ru` and `kk`
+ * lowercase their month names, and a heading wants the capital.
+ */
+export function monthName(date) {
+  const name = new Intl.DateTimeFormat(getLocale(), { month: 'long' }).format(date)
+  return name.charAt(0).toUpperCase() + name.slice(1)
+}
+
 export function monthLabel(date) {
   const parts = new Intl.DateTimeFormat(getLocale(), {
     month: 'long',

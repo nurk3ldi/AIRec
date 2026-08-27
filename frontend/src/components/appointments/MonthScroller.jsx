@@ -8,6 +8,7 @@ import {
   weekdayLabels,
 } from '../../lib/dates'
 import { useT } from '../../lib/i18n'
+import { CONTROLS_HEIGHT } from './grid'
 
 /**
  * The whole calendar on a phone: months stacked and scrolled through, not
@@ -48,25 +49,6 @@ import { useT } from '../../lib/i18n'
 const MONTHS_BACK = 1
 const MONTHS_FORWARD = 11
 
-/**
- * The room kept above the calendar for the controls that will steer it.
- *
- * It began as 68 — the desktop header's own height, which is what this screen
- * gave up when the header came off it below `sm`. That turned out to be the
- * wrong measure: a desktop header is one row of small controls on a wide bar,
- * where this has to hold a row sized for thumbs. 96 is that row (a 44pt target
- * is the floor on a phone) with air above and below it, which is what stops a
- * control bar from reading as jammed against the month's name.
- *
- * `env(safe-area-inset-top)` is added rather than baked in: it is 0 in a
- * browser tab, and the notch's height once this is installed to a home screen —
- * the same reason the bottom bar carries the inset for the home indicator.
- *
- * Reserved now rather than letting the calendar start at the top edge, so that
- * the day the controls arrive they land in a space that already exists instead
- * of pushing a year of months down on the frame they mount.
- */
-const CONTROLS_HEIGHT = 'calc(96px + env(safe-area-inset-top))'
 
 export default function MonthScroller({
   value,
@@ -156,13 +138,14 @@ export default function MonthScroller({
       className={`flex flex-col ${className}`}
       aria-label={t('nav.appointments')}
     >
-      {/* The room is this component's — it is what the calendar has to lay
-          itself out around — but what goes in it is not. The caller has the
-          services, the week and the zone the controls need; this only knows
-          about months. Empty is still a valid answer: see `CONTROLS_HEIGHT`. */}
-      <div style={{ height: CONTROLS_HEIGHT }} className="shrink-0">
-        {controls}
-      </div>
+      {/* The room is this component's — it is what the calendar lays itself
+          out around — but what goes in it is not: the caller has the services,
+          the week and the zone the controls need, where this only knows about
+          months. The controls carry the height themselves, so what is left here
+          is the empty case. See `CONTROLS_HEIGHT`. */}
+      {controls ?? (
+        <div style={{ height: CONTROLS_HEIGHT }} className="shrink-0" />
+      )}
 
       {/* **Fixed, and it changes rather than travelling.** Every month used to
           carry its own `sticky` heading, so an arriving month pushed the
