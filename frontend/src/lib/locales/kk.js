@@ -64,6 +64,8 @@ export default {
   'appointments.searchHint': 'Клиенттің аты немесе нөмірі бойынша іздеу',
   'appointments.searching': 'Іздеп жатырмыз…',
   'appointments.searchEmpty': 'Ештеңе табылмады',
+  'appointments.detailTitle': 'Жазба',
+  'appointments.edit': 'Өзгерту',
   'appointments.groupCount': 'Жазба: {count}',
   'appointments.groupTitle': 'Осы уақыттағы жазбалар',
   'appointments.status': 'Мәртебесі',

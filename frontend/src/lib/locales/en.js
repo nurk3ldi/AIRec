@@ -64,6 +64,8 @@ export default {
   'appointments.searchHint': 'Search by client name or phone',
   'appointments.searching': 'Searching…',
   'appointments.searchEmpty': 'Nothing found',
+  'appointments.detailTitle': 'Booking',
+  'appointments.edit': 'Edit',
   'appointments.groupCount': 'Bookings: {count}',
   'appointments.groupTitle': 'Bookings at this time',
   'appointments.status': 'Status',

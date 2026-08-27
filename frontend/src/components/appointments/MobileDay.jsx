@@ -21,7 +21,7 @@ import {
 } from '../../lib/dates'
 import { closedRanges, toMinutes } from '../../lib/schedule'
 import { useT } from '../../lib/i18n'
-import BookingPopover from './BookingPopover'
+import BookingDetail from './BookingDetail'
 import MobileToolbar from './MobileToolbar'
 import { HATCH, END_HOUR, START_HOUR, WINDOW_FROM } from './grid'
 
@@ -474,7 +474,6 @@ export default function MobileDay({
                 services={services}
                 week={week}
                 timeZone={timeZone}
-                onDayChange={onDayChange}
                 onSaved={onSaved}
               />
             ))}
@@ -509,36 +508,27 @@ export default function MobileDay({
 /**
  * One booking on the day grid.
  *
- * Full width, because there is one column and nothing to share it with until
- * two bookings overlap — then `layoutDay`'s lanes split it, exactly as they do
- * on the desktop. Single tap opens the editor: the grid's double click exists
- * because a single one is being kept back for selecting a booking, and there is
- * no selection on a phone to keep it back for.
+ * A third of the column wide — see `VISIBLE_LANES`. Single tap opens the
+ * *detail*, not the editor: the grid's double click exists because a single one
+ * is being kept back for selecting a booking, and there is no selection on a
+ * phone to keep it back for — but a tap is also the lightest gesture there is,
+ * so what it opens has to be the thing you can read rather than the thing you
+ * can change. See `BookingDetail`.
  */
-function DayBlock({
-  block,
-  laneWidth,
-  services,
-  week,
-  timeZone,
-  onDayChange,
-  onSaved,
-}) {
+function DayBlock({ block, laneWidth, services, week, timeZone, onSaved }) {
   const [open, setOpen] = useState(false)
   const top = ((block.start - WINDOW_FROM) / 60) * HOUR_HEIGHT
   const height = Math.max(((block.end - block.start) / 60) * HOUR_HEIGHT, 34)
   const cancelled = block.status === 'cancelled'
 
   return (
-    <BookingPopover
-      asAnchor
+    <BookingDetail
       open={open}
       onOpenChange={setOpen}
       booking={block}
       services={services}
       week={week}
       timeZone={timeZone}
-      onDayChange={onDayChange}
       onSaved={onSaved}
     >
       <button
@@ -582,7 +572,7 @@ function DayBlock({
           </span>
         )}
       </button>
-    </BookingPopover>
+    </BookingDetail>
   )
 }
 

@@ -70,6 +70,8 @@ export default {
   'appointments.searchHint': 'Поиск по имени клиента или номеру',
   'appointments.searching': 'Ищем…',
   'appointments.searchEmpty': 'Ничего не найдено',
+  'appointments.detailTitle': 'Запись',
+  'appointments.edit': 'Изменить',
   'appointments.groupCount': 'Записей: {count}',
   'appointments.groupTitle': 'Записи на это время',
   'appointments.status': 'Статус',

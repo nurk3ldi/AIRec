@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import * as Dialog from '@radix-ui/react-dialog'
 import * as Select from '@radix-ui/react-select'
@@ -27,7 +27,8 @@ import { FIELD, FIELD_ERROR } from '../controls'
 import DateField from './DateField'
 import ServiceField from './ServiceField'
 import TimeField from './TimeField'
-import { PANEL_MOTION, SCRIM_MOTION, SHEET_MOTION } from './panel'
+import { PANEL_MOTION } from './panel'
+import Sheet from './Sheet'
 import { useMediaQuery } from '../../lib/media'
 
 /**
@@ -107,55 +108,6 @@ export default function BookingPopover({
   // that, and `useId` is what keeps it unique when three of these are mounted
   // at once behind the grid's cards.
   const formId = useId()
-
-  /**
-   * Pulling the sheet down to dismiss it.
-   *
-   * **Pointer events and an inline transform, not a drag library.** What this
-   * has to do is follow a finger and decide once at the end; Motion would bring
-   * `AnimatePresence` and `forceMount` with it, which is a different animation
-   * scheme from the one every other panel here already rides.
-   *
-   * **The grip is the top bar, not the whole sheet.** The form under it scrolls,
-   * and a sheet that also drags from its body is a sheet that closes when
-   * somebody meant to scroll to the phone field. That is what the bar being a
-   * fixed row above a scrolling form is *for*, and it is how a phone sheet with
-   * scrollable content behaves everywhere else.
-   *
-   * Downwards only: `Math.max(0, …)` — pulling up would open nothing, since the
-   * sheet is already at its full height.
-   *
-   * **120px is a decision, not a twitch.** Below it the sheet springs back, so
-   * a stray drag on the way to a button costs nothing; the transition is on
-   * only while nothing is held, which is what keeps the follow exact and the
-   * release smooth.
-   */
-  const grabbed = useRef(null)
-  const [pulled, setPulled] = useState(0)
-
-  const startDrag = (event) => {
-    // **A press that lands on a button is not a drag.** The bar carries the
-    // close and the save, and capturing the pointer for the whole row would
-    // move the pointer stream to the row — so the press would end somewhere the
-    // button never sees and the tap would be swallowed. The grip is the bar
-    // *between* them.
-    if (event.target.closest('button')) return
-    grabbed.current = event.clientY
-    event.currentTarget.setPointerCapture?.(event.pointerId)
-  }
-
-  const onDrag = (event) => {
-    if (grabbed.current === null) return
-    setPulled(Math.max(0, event.clientY - grabbed.current))
-  }
-
-  const endDrag = (event) => {
-    if (grabbed.current === null) return
-    const distance = event.clientY - grabbed.current
-    grabbed.current = null
-    setPulled(0)
-    if (distance > 120) setOpen(false)
-  }
 
   const [selfOpen, setSelfOpen] = useState(false)
   const open = openProp ?? selfOpen
@@ -449,13 +401,10 @@ export default function BookingPopover({
     </div>
   ) : (
     <div
-      // **The bar is also the sheet's handle** — see `startDrag`. `touch-none`
-      // so a downward drag on it belongs to the sheet rather than to the page;
-      // the two buttons inside still take their taps, which are not drags.
-      onPointerDown={startDrag}
-      onPointerMove={onDrag}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
+      // **The bar is also the sheet's handle**, and `Sheet` is what attaches
+      // that — the drag belongs to the thing being dragged, not to what happens
+      // to be at the top of it.
+      //
       // **`px-6`, the form's own padding.** The two buttons are the widest
       // things in this row, so their outer edges are what the eye lines the bar
       // up by — and the thing below them to line up with is the edge of the
@@ -857,60 +806,17 @@ export default function BookingPopover({
        same call `ProfileDialog` makes: a sideways tap out of a form you opened
        on purpose is not a way out worth offering. `z-[60]` is what puts it over
        the nav's `z-50`. */
-    <Dialog.Root open={open} onOpenChange={setOpen}>
-      {asAnchor ? children : <Dialog.Trigger asChild>{children}</Dialog.Trigger>}
-
-      <Dialog.Portal>
-        <Dialog.Overlay
-          className={`fixed inset-0 z-[60] bg-scrim ${SCRIM_MOTION}`}
-        />
-        <Dialog.Content
-          // No description element and none wanted; telling Radix so keeps it
-          // from warning about a missing one.
-          aria-describedby={undefined}
-          onEscapeKeyDown={(event) => {
-            if (document.querySelector('[data-nested-overlay]')) {
-              event.preventDefault()
-            }
-          }}
-          // **Up to the indicators, with the top two corners rounded.** It was
-          // 90% of the viewport, which is a proportion rather than a place: on
-          // a tall phone it left a band of page showing that had nothing in it,
-          // and on a short one it ate the form. `top` and `bottom` instead, so
-          // the sheet is defined by where it *stops* — twelve pixels clear of
-          // the status bar, which is enough for the radius to be seen and to
-          // leave somewhere to tap out, and no more.
-          //
-          // `env(safe-area-inset-top)` is added rather than assumed: it is 0 in
-          // a browser tab, where the status bar is the browser's own chrome and
-          // outside the viewport already, and the notch's height once this is
-          // installed to a home screen.
-          //
-          // The bottom inset lives on the sheet rather than on the dim behind
-          // it: padding the overlay would leave the strip showing the backdrop
-          // instead of the sheet's own fill. The top inset is gone with the
-          // full-bleed height that needed it.
-          style={{
-            transform: pulled ? `translateY(${pulled}px)` : undefined,
-            // On only while nothing is held: during a drag the sheet has to
-            // track the finger exactly, and a transition there would make it
-            // lag behind by its own duration.
-            transition: grabbed.current
-              ? 'none'
-              : 'transform 260ms cubic-bezier(0.32, 0.72, 0, 1)',
-          }}
-          className={`fixed inset-x-0 bottom-0 z-[60] flex flex-col overflow-hidden rounded-t-2xl bg-surface pb-[env(safe-area-inset-bottom)] outline-none top-[calc(12px+env(safe-area-inset-top))] ${SHEET_MOTION}`}
-        >
-          {/* Radix names a dialog from its `Title`. The visible heading inside
-              `body` cannot be one — the same element renders inside a popover on
-              a desktop, where `Dialog.Title` would throw — so the name is given
-              here and hidden. */}
-          <Dialog.Title className="sr-only">{title}</Dialog.Title>
-          {header}
-          {body}
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <Sheet
+      open={open}
+      onOpenChange={setOpen}
+      label={title}
+      header={header}
+      trigger={
+        asAnchor ? children : <Dialog.Trigger asChild>{children}</Dialog.Trigger>
+      }
+    >
+      {body}
+    </Sheet>
   )
 }
 

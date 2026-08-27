@@ -12,7 +12,7 @@ import {
 } from '../../lib/appointments'
 import { dayLabel } from '../../lib/dates'
 import { useT } from '../../lib/i18n'
-import BookingPopover from './BookingPopover'
+import BookingDetail from './BookingDetail'
 import { CONTROLS_HEIGHT } from './grid'
 
 /**
@@ -180,17 +180,16 @@ export default function MobileSearch({
  * anywhere in the history there is no position, and "when" is the first thing
  * that has to be answered. The status keeps the colour it has everywhere else.
  *
- * Tapping opens the ordinary editor, anchored to the row — the same thing the
- * grid's cards and the group panel's rows open, so nothing under it is a second
- * implementation.
+ * Tapping opens the booking's detail, the same thing the day grid's cards
+ * open — reading before writing, on the screen where a tap is the lightest
+ * gesture there is. See `BookingDetail`.
  */
 function SearchRow({ block, services, week, timeZone, onSaved }) {
   const [open, setOpen] = useState(false)
   const state = stateOf(block.status)
 
   return (
-    <BookingPopover
-      asAnchor
+    <BookingDetail
       open={open}
       onOpenChange={setOpen}
       booking={block}
@@ -239,6 +238,6 @@ function SearchRow({ block, services, week, timeZone, onSaved }) {
           {block.service}
         </span>
       </button>
-    </BookingPopover>
+    </BookingDetail>
   )
 }
