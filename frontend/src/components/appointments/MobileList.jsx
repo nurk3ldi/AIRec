@@ -10,6 +10,7 @@ import {
 import { dayKey, dayLabel, sameDay } from '../../lib/dates'
 import { freeWindows } from '../../lib/schedule'
 import { useT } from '../../lib/i18n'
+import { useRemembered } from '../../lib/viewState'
 import BookingDetail from './BookingDetail'
 import BookingPopover from './BookingPopover'
 import WeekStrip from './WeekStrip'
@@ -58,6 +59,13 @@ export default function MobileList({
 }) {
   const t = useT()
   const now = useNow()
+  // **Remembered, like every other choice on this screen.** Whether the month
+  // is open is something the owner set on purpose, and folding it back every
+  // time they look at a booking and come out again is the screen forgetting it.
+  const [monthOpen, setMonthOpen] = useRemembered(
+    'appointments.monthOpen',
+    false,
+  )
   const isToday = sameDay(day, now)
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
 
@@ -101,7 +109,13 @@ export default function MobileList({
           to a whole year of months to move one day forward is a trip; the strip
           is that move in one tap, and it is the same control the day grid
           carries — see `WeekStrip`. */}
-      <WeekStrip day={day} onDayChange={onDayChange} className="pb-2" />
+      <WeekStrip
+        day={day}
+        onDayChange={onDayChange}
+        expanded={monthOpen}
+        onToggle={() => setMonthOpen((was) => !was)}
+        className="pb-1"
+      />
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {/* **One line: the day on the left, what is in it on the right.** It

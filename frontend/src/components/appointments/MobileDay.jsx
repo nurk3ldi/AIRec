@@ -269,6 +269,11 @@ export default function MobileDay({
           again — two taps and a screen change for the move a day view is most
           often opened to make. Shared with the agenda; see `WeekStrip`.
 
+          No `onToggle`, so no grip and no month: this screen already gives its
+          whole height to twenty-four hours, and five more rows of dates over
+          them would be a calendar sitting on the thing you opened the calendar
+          to look at.
+
           The direction is cleared first, so a day picked here arrives without
           motion: the direction belongs to the swipe that set it, and a tap two
           gestures later is not that swipe. */}
