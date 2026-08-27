@@ -72,6 +72,8 @@ export default {
   'appointments.searchEmpty': 'Ничего не найдено',
   'appointments.detailTitle': 'Запись',
   'appointments.edit': 'Изменить',
+  'appointments.viewCalendar': 'Календарь',
+  'appointments.viewList': 'Список',
   'appointments.groupCount': 'Записей: {count}',
   'appointments.groupTitle': 'Записи на это время',
   'appointments.status': 'Статус',

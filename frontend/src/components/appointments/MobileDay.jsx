@@ -93,6 +93,8 @@ export default function MobileDay({
   timeZone,
   onSaved,
   onSearch,
+  view,
+  onViewChange,
   className = '',
 }) {
   const t = useT()
@@ -261,6 +263,8 @@ export default function MobileDay({
         onDayChange={onDayChange}
         onSaved={onSaved}
         onSearch={onSearch}
+        view={view}
+        onViewChange={onViewChange}
       />
 
       {/* **The week this day sits in, and it is how you get to the next one.**

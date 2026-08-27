@@ -1,12 +1,16 @@
+import * as Popover from '@radix-ui/react-popover'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Add01Icon,
-  FilterHorizontalIcon,
+  Calendar03Icon,
+  LeftToRightListBulletIcon,
   Search01Icon,
+  Tick02Icon,
 } from '@hugeicons/core-free-icons'
 import { useT } from '../../lib/i18n'
 import BookingPopover from './BookingPopover'
 import { CONTROLS_HEIGHT } from './grid'
+import { PANEL_MOTION } from './panel'
 
 /**
  * The phone's controls for `/appointments`, in the room the calendar reserves
@@ -24,11 +28,11 @@ import { CONTROLS_HEIGHT } from './grid'
  * ground, which is pure black on the dark theme, and `#0e0e0e` there is a step
  * nobody can see.
  *
- * **«+» and search work; the filter does not yet.** The add panel is finished
- * and works from a phone unchanged, and search takes the screen over — see
- * `MobileSearch`. The filter has nothing to filter until the calendar carries
- * markers, so it is placed rather than invented: it carries its real label and
- * will be wired to the thing that label names.
+ * All three do something now. The add panel is finished and works from a phone
+ * unchanged, search takes the screen over — see `MobileSearch` — and the third
+ * switches between the two things this screen can be: the calendar, or the day
+ * around it. It was a filter with nothing to filter, which is a button waiting
+ * for a feature; a switcher is what that slot turned out to be for.
  */
 export default function MobileToolbar({
   leading,
@@ -38,6 +42,8 @@ export default function MobileToolbar({
   onDayChange,
   onSaved,
   onSearch,
+  view,
+  onViewChange,
 }) {
   const t = useT()
 
@@ -59,7 +65,7 @@ export default function MobileToolbar({
     >
       {leading}
       <div className="ml-auto flex items-center gap-0.5 rounded-full bg-surface-card p-1">
-        <ToolButton icon={FilterHorizontalIcon} label={t('appointments.filter')} />
+        <ViewSwitch value={view} onChange={onViewChange} />
         <ToolButton
           icon={Search01Icon}
           label={t('header.search')}
@@ -81,6 +87,80 @@ export default function MobileToolbar({
         </BookingPopover>
       </div>
     </div>
+  )
+}
+
+/**
+ * Which of the two this screen is: the calendar, or the day around it.
+ *
+ * **A menu of two rather than a segmented control**, which is what a desktop
+ * would use. A segment needs room for both words permanently, and this bar has
+ * a back button and two other controls in it on a 390pt screen; a menu spends
+ * one 40px circle and shows the words only while the choice is being made.
+ *
+ * The glyph is the view you are *in*, not the one you would go to — a control
+ * that shows its own state is read at a glance, where one that shows its effect
+ * has to be worked out. The tick beside the open item says the same thing again
+ * inside the menu, which is where somebody has come to check.
+ */
+function ViewSwitch({ value, onChange }) {
+  const t = useT()
+  const options = [
+    {
+      id: 'calendar',
+      icon: Calendar03Icon,
+      label: t('appointments.viewCalendar'),
+    },
+    {
+      id: 'list',
+      icon: LeftToRightListBulletIcon,
+      label: t('appointments.viewList'),
+    },
+  ]
+  const current = options.find((option) => option.id === value) ?? options[0]
+
+  return (
+    <Popover.Root>
+      <Popover.Trigger asChild>
+        <ToolButton icon={current.icon} label={current.label} />
+      </Popover.Trigger>
+
+      <Popover.Portal>
+        <Popover.Content
+          side="bottom"
+          align="end"
+          sideOffset={8}
+          collisionPadding={12}
+          className={`z-[70] w-[196px] rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] ${PANEL_MOTION}`}
+        >
+          {options.map((option) => (
+            <Popover.Close asChild key={option.id}>
+              <button
+                type="button"
+                onClick={() => onChange?.(option.id)}
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-left text-[15px] text-ink outline-none transition-colors hover:bg-ink/6 focus-visible:bg-ink/6"
+              >
+                <HugeiconsIcon
+                  icon={option.icon}
+                  size={18}
+                  strokeWidth={2}
+                  className="shrink-0 text-muted"
+                />
+                {option.label}
+                {option.id === current.id && (
+                  <HugeiconsIcon
+                    icon={Tick02Icon}
+                    size={16}
+                    strokeWidth={2.4}
+                    className="ml-auto shrink-0 text-ink"
+                  />
+                )}
+              </button>
+            </Popover.Close>
+          ))}
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   )
 }
 

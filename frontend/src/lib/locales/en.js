@@ -66,6 +66,8 @@ export default {
   'appointments.searchEmpty': 'Nothing found',
   'appointments.detailTitle': 'Booking',
   'appointments.edit': 'Edit',
+  'appointments.viewCalendar': 'Calendar',
+  'appointments.viewList': 'List',
   'appointments.groupCount': 'Bookings: {count}',
   'appointments.groupTitle': 'Bookings at this time',
   'appointments.status': 'Status',

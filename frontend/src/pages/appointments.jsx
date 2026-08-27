@@ -5,6 +5,7 @@ import MonthScroller from '../components/appointments/MonthScroller'
 import MobileToolbar from '../components/appointments/MobileToolbar'
 import MobileSearch from '../components/appointments/MobileSearch'
 import MobileDay from '../components/appointments/MobileDay'
+import MobileList from '../components/appointments/MobileList'
 import ChatFeed from '../components/appointments/ChatFeed'
 import NowCard from '../components/appointments/NowCard'
 import FreeSlotCard from '../components/appointments/FreeSlotCard'
@@ -184,6 +185,30 @@ export default function AppointmentsPage() {
   // left rather than rebuilding a year of months.
   const [dayOpen, setDayOpen] = useRemembered('appointments.dayOpen', false)
 
+  // **Which of the two the phone's ground floor is**, chosen from the bar's
+  // third control. The calendar answers "which day"; the list answers "what is
+  // happening in this one" — the three cards and the conversations the desktop
+  // keeps around its grid, which a phone has no room to put beside anything.
+  const [mobileView, setMobileView] = useRemembered(
+    'appointments.mobileView',
+    'calendar',
+  )
+
+  // The bar is the same on both, so it is written once — and it has to be, or
+  // the two would drift into two bars that look alike.
+  const mobileBar = (
+    <MobileToolbar
+      services={services}
+      week={week}
+      timeZone={timeZone}
+      onDayChange={setSelected}
+      onSaved={() => setReload((n) => n + 1)}
+      onSearch={() => setSearching(true)}
+      view={mobileView}
+      onViewChange={setMobileView}
+    />
+  )
+
   const [bookings, setBookings] = useState([])
   // Bumped after a save. A counter rather than a boolean, because two bookings
   // made in a row have to be two reloads and `true → true` is no change at all.
@@ -354,24 +379,25 @@ export default function AppointmentsPage() {
           *definite* height and `overflow-hidden`, so a child that will not
           shrink below its content puts a year of months where there is nowhere
           to put them. */}
-      <MonthScroller
-        value={selected}
-        onChange={(chosen) => {
-          setSelected(chosen)
-          setDayOpen(true)
-        }}
-        controls={
-          <MobileToolbar
-            services={services}
-            week={week}
-            timeZone={timeZone}
-            onDayChange={setSelected}
-            onSaved={() => setReload((n) => n + 1)}
-            onSearch={() => setSearching(true)}
-          />
-        }
-        className="min-h-0 flex-1 sm:hidden"
-      />
+      {mobileView === 'list' ? (
+        <MobileList
+          bookings={bookings}
+          week={week}
+          timeZone={timeZone}
+          controls={mobileBar}
+          className="min-h-0 flex-1 sm:hidden"
+        />
+      ) : (
+        <MonthScroller
+          value={selected}
+          onChange={(chosen) => {
+            setSelected(chosen)
+            setDayOpen(true)
+          }}
+          controls={mobileBar}
+          className="min-h-0 flex-1 sm:hidden"
+        />
+      )}
 
       {/* **A day arrives from the right, the way a drill-down does.** It is
           one step further in than the calendar — a month says which days exist,
@@ -405,6 +431,8 @@ export default function AppointmentsPage() {
               timeZone={timeZone}
               onSaved={() => setReload((n) => n + 1)}
               onSearch={() => setSearching(true)}
+              view={mobileView}
+              onViewChange={setMobileView}
               className="min-h-0 flex-1"
             />
           </m.div>

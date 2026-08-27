@@ -66,6 +66,8 @@ export default {
   'appointments.searchEmpty': 'Ештеңе табылмады',
   'appointments.detailTitle': 'Жазба',
   'appointments.edit': 'Өзгерту',
+  'appointments.viewCalendar': 'Күнтізбе',
+  'appointments.viewList': 'Тізім',
   'appointments.groupCount': 'Жазба: {count}',
   'appointments.groupTitle': 'Осы уақыттағы жазбалар',
   'appointments.status': 'Мәртебесі',
