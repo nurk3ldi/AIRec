@@ -63,7 +63,22 @@ export default function MobileToolbar({
       style={{ height: CONTROLS_HEIGHT }}
       className="flex shrink-0 items-end gap-2 px-4 pb-2"
     >
-      {leading}
+      {/* **The wordmark, unless something more useful wants the slot.** This
+          screen drops the app's header below `sm` to give its 68px to the
+          grid, and the name went with it — a screen with the product's name
+          nowhere on it reads as a fragment rather than as a place. The bar had
+          an empty left third anyway.
+
+          `leading` wins where it is given: on the day screen that slot is the
+          way back, and a drill-down's left corner belongs to the way out of it
+          rather than to a label. `h-12` so the name sits on the pill's centre
+          line — the row is `items-end`, and text with no box of its own would
+          hang from its baseline instead. */}
+      {leading ?? (
+        <span className="flex h-12 shrink-0 items-center font-display text-[20px] font-bold tracking-[-0.03em] text-ink">
+          AIRec
+        </span>
+      )}
       <div className="ml-auto flex items-center gap-0.5 rounded-full bg-surface-card p-1">
         <ViewSwitch value={view} onChange={onViewChange} />
         <ToolButton

@@ -12,7 +12,7 @@ import { freeWindows } from '../../lib/schedule'
 import { useT } from '../../lib/i18n'
 import BookingDetail from './BookingDetail'
 import BookingPopover from './BookingPopover'
-import ChatFeed from './ChatFeed'
+import WeekStrip from './WeekStrip'
 
 /**
  * The day as one list, with the present marked inside it.
@@ -45,13 +45,9 @@ import ChatFeed from './ChatFeed'
  *  which uses the same floor. */
 const MIN_GAP_MINUTES = 15
 
-/** How many conversations the foot of the list shows before «Все ›» takes over.
- *  Enough to see whether anything is waiting, few enough that the day above it
- *  is still the subject of the screen. */
-const CHAT_ROWS = 3
-
 export default function MobileList({
   day,
+  onDayChange,
   bookings,
   week,
   services,
@@ -95,25 +91,38 @@ export default function MobileList({
   ].sort((a, b) => a.at - b.at)
 
   const counted = blocks.filter((b) => b.status !== 'cancelled')
-  const total = counted.reduce((sum, block) => sum + block.price, 0)
 
   return (
     <div className={`flex flex-col ${className}`}>
       {controls}
 
+      {/* **The week over the day it belongs to.** The switcher gets you to this
+          screen and the calendar chooses which day it is about, but going back
+          to a whole year of months to move one day forward is a trip; the strip
+          is that move in one tap, and it is the same control the day grid
+          carries — see `WeekStrip`. */}
+      <WeekStrip day={day} onDayChange={onDayChange} className="pb-2" />
+
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        {/* **The day, then what it adds up to.** Two lines and no card: this is
-            the heading of the list under it, not a box sitting on top of one.
-            The summary is the one place a number belongs on this screen — the
-            rows below say what happened, this says how much of it there was. */}
-        <div className="px-4 pt-2 pb-3">
-          <h2 className="font-display text-[22px] font-bold tracking-[-0.02em] text-ink">
+        {/* **One line: the day on the left, what is in it on the right.** It
+            was two lines with the counts under the date, which spent a whole
+            row on two short numbers — and the numbers are a caption of the list
+            below rather than a statement of their own, so they belong beside
+            the thing they caption.
+
+            **The day's takings are gone from it.** Money on this screen was the
+            one figure nobody came here for: the question a phone gets opened
+            for in a shop is who is next and where the gap is, and a total is
+            something looked at once in the evening. It is also the number most
+            likely to be wrong here — cancelled bookings out, no-shows in, and
+            neither is obvious from a sum with no explanation under it. */}
+        <div className="flex items-baseline justify-between gap-3 px-4 pt-2 pb-3">
+          <h2 className="min-w-0 truncate font-display text-[22px] font-bold tracking-[-0.02em] text-ink">
             {isToday ? t('appointments.today') : dayLabel(day)}
           </h2>
-          <p className="mt-0.5 text-[13px] text-muted">
+          <p className="shrink-0 text-[13px] text-muted">
             {[
               t('appointments.countBookings', { count: counted.length }),
-              total > 0 ? formatPrice(total) : null,
               gaps.length
                 ? t('appointments.countWindows', { count: gaps.length })
                 : null,
@@ -128,7 +137,12 @@ export default function MobileList({
             {t('appointments.dayEmpty')}
           </p>
         ) : (
-          <ul className="border-t border-line">
+          // **Cards with air between them, not rows divided by hairlines.** A
+          // ruled list is right where every row is the same kind of thing; here
+          // three kinds share the column — a booking, an empty window, and the
+          // present moment — and a card is what says the first two are objects
+          // while the line between them is not.
+          <ul className="space-y-2 px-4 pb-6">
             {items.map((item) =>
               item.kind === 'now' ? (
                 <NowRow key="now" minutes={nowMinutes} />
@@ -147,7 +161,6 @@ export default function MobileList({
                 <BookingRow
                   key={item.block.id}
                   block={item.block}
-                  past={isToday && item.block.end <= nowMinutes}
                   running={
                     isToday &&
                     item.block.start <= nowMinutes &&
@@ -163,13 +176,6 @@ export default function MobileList({
             )}
           </ul>
         )}
-
-        {/* The other half of the day, and the last thing on the screen because
-            the rows above it are about the next hour and this is about everyone
-            who is not in it. */}
-        <div className="mt-6 border-t border-line px-4 pt-4 pb-4">
-          <ChatFeed chats={null} timeZone={timeZone} limit={CHAT_ROWS} className="flex" />
-        </div>
       </div>
     </div>
   )
@@ -178,18 +184,15 @@ export default function MobileList({
 /**
  * One booking.
  *
- * **The time leads and everything else follows it**, because in a list ordered
- * by time the left edge is what the eye runs down. A booking that has already
- * finished fades to 45% — the same weight a cancelled one carries on the grid,
- * and for the same reason: it is still what happened, and it is not what you
- * are looking for.
+ * **The span leads and everything else follows it**, because in a list ordered
+ * by time the left edge is what the eye runs down — so it carries both ends of
+ * the booking with the rule between them, not only its start.
  *
  * A tap opens the detail, not the editor — reading before writing, as
  * everywhere else on the phone.
  */
 function BookingRow({
   block,
-  past,
   running,
   remaining,
   services,
@@ -210,16 +213,37 @@ function BookingRow({
       timeZone={timeZone}
       onSaved={onSaved}
     >
-      <li className="border-b border-line">
+      <li>
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className={`flex w-full items-start gap-3 px-4 py-3 text-left outline-none transition-colors hover:bg-ink/4 focus-visible:bg-ink/4 ${
-            past || block.status === 'cancelled' ? 'opacity-45' : ''
+          // **Only a cancelled booking fades.** A finished one was fading too,
+          // and that was wrong about what a day's list is for: the morning is
+          // what the owner looks back over — who came, what they had, what it
+          // cost — and dimming it says it no longer counts. A cancellation is
+          // the one row that genuinely did not happen, and it keeps the 45% it
+          // wears on the grid.
+          className={`flex w-full items-start gap-3 rounded-xl bg-surface-card px-3 py-3 text-left outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85 ${
+            block.status === 'cancelled' ? 'opacity-45' : ''
           }`}
         >
-          <span className="w-[52px] shrink-0 pt-0.5 font-display text-[14px] font-semibold tabular-nums text-ink">
-            {block.from}
+          {/* **Both ends of the span, joined by the line between them.** The
+              start alone leaves "how long" to be read out of the line under the
+              client, where it sits among the service and the price; here the
+              two times are the column the eye is already running down, and the
+              rule between them says they are one span rather than two facts
+              that happen to be stacked.
+
+              Centred, which the digits allow: `tabular-nums` makes every time
+              the same width, so the rule lands under the middle of both. */}
+          <span className="flex w-[52px] shrink-0 flex-col items-center gap-1 pt-0.5">
+            <span className="font-display text-[14px] font-semibold tabular-nums text-ink">
+              {block.from}
+            </span>
+            <span aria-hidden="true" className="h-3 w-px bg-line-strong" />
+            <span className="font-display text-[13px] tabular-nums text-muted">
+              {block.to}
+            </span>
           </span>
 
           <span className="min-w-0 flex-1">
@@ -238,15 +262,21 @@ function BookingRow({
                 booking swaps the length for what is left of it, which is the
                 only thing anybody wants from a booking already under way. */}
             <span className="mt-0.5 block truncate text-[13px] text-muted">
+              {/* The length is gone from here: the two times beside it are
+                  the span, and saying "45 мин" next to «10:00 / 10:45» is the
+                  same fact twice. What is left of it is the countdown, which
+                  the times cannot give. */}
               {[
                 block.service,
                 running
                   ? t('appointments.remainingShort', {
                       time: formatDuration(Math.max(remaining, 1)),
                     })
-                  : formatDuration(block.minutes),
+                  : null,
                 formatPrice(block.price),
-              ].join(' · ')}
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </span>
           </span>
         </button>
@@ -279,11 +309,14 @@ function GapRow({ day, from, to, services, week, timeZone, onSaved }) {
       timeZone={timeZone}
       onSaved={onSaved}
     >
-      <li className="border-b border-line">
+      <li>
+        {/* **Dashed and unfilled**, the one stroked thing here — the grid marks
+            a collapsed stack the same way and for the same reason: a booking is
+            a solid card, and an absence is not. */}
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex w-full items-center gap-3 px-4 py-2.5 text-left outline-none transition-colors hover:bg-ink/4 focus-visible:bg-ink/4"
+          className="flex w-full items-center gap-3 rounded-xl border border-dashed border-line px-3 py-2.5 text-left outline-none transition-colors hover:border-line-strong focus-visible:border-line-strong"
         >
           <span className="w-[52px] shrink-0 font-display text-[14px] font-medium tabular-nums text-muted">
             {fromMinutes(from)}
@@ -312,7 +345,7 @@ function GapRow({ day, from, to, services, week, timeZone, onSaved }) {
  */
 function NowRow({ minutes }) {
   return (
-    <li aria-hidden="true" className="flex items-center gap-2 px-4 py-1">
+    <li aria-hidden="true" className="flex items-center gap-2 py-1">
       <span className="w-[52px] shrink-0 font-display text-[12px] font-semibold tabular-nums text-now">
         {fromMinutes(minutes)}
       </span>

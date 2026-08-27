@@ -16,13 +16,12 @@ import {
   monthName,
   sameDay,
   shiftDate,
-  weekDays,
-  weekdayLabels,
 } from '../../lib/dates'
 import { closedRanges, toMinutes } from '../../lib/schedule'
 import { useT } from '../../lib/i18n'
 import BookingDetail from './BookingDetail'
 import MobileToolbar from './MobileToolbar'
+import WeekStrip from './WeekStrip'
 import { HATCH, END_HOUR, START_HOUR, WINDOW_FROM } from './grid'
 
 /**
@@ -100,8 +99,6 @@ export default function MobileDay({
   const t = useT()
   const now = useNow()
 
-  const strip = weekDays(day)
-  const letters = weekdayLabels()
   const hours = Array.from(
     { length: END_HOUR - START_HOUR },
     (_, index) => START_HOUR + index,
@@ -270,50 +267,19 @@ export default function MobileDay({
       {/* **The week this day sits in, and it is how you get to the next one.**
           Without it the only way to Friday is back out to the calendar and in
           again — two taps and a screen change for the move a day view is most
-          often opened to make. */}
-      <div className="grid shrink-0 grid-cols-7 px-2 pb-2">
-        {strip.map((item, index) => {
-          const selected = sameDay(item, day)
-          const today = sameDay(item, now)
-          const weekend = index >= 5
+          often opened to make. Shared with the agenda; see `WeekStrip`.
 
-          return (
-            <button
-              key={dayKey(item)}
-              type="button"
-              onClick={() => {
-                // Cleared, so a day picked here arrives without motion — the
-                // direction belongs to the swipe that set it, and a tap two
-                // gestures later is not that swipe.
-                setDirection(0)
-                onDayChange?.(item)
-              }}
-              aria-pressed={selected}
-              aria-current={today ? 'date' : undefined}
-              className="grid place-items-center gap-1 py-1 outline-none"
-            >
-              <span
-                className={`text-[11px] font-medium ${weekend ? 'text-muted/70' : 'text-muted'}`}
-              >
-                {letters[index]}
-              </span>
-              <span
-                className={`grid h-9 w-9 place-items-center rounded-full font-display text-[17px] transition-colors ${
-                  selected
-                    ? 'bg-now font-semibold text-white'
-                    : today
-                      ? 'bg-surface-chip font-semibold text-ink'
-                      : weekend
-                        ? 'font-medium text-muted'
-                        : 'font-medium text-ink'
-                }`}
-              >
-                {item.getDate()}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+          The direction is cleared first, so a day picked here arrives without
+          motion: the direction belongs to the swipe that set it, and a tap two
+          gestures later is not that swipe. */}
+      <WeekStrip
+        day={day}
+        onDayChange={(item) => {
+          setDirection(0)
+          onDayChange?.(item)
+        }}
+        className="pb-2"
+      />
 
       {/* The date in words, under a rule — the reference's own arrangement, and
           it earns its line: the strip above says which *weekday*, this says

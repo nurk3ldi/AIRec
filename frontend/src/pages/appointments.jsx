@@ -194,6 +194,25 @@ export default function AppointmentsPage() {
     'calendar',
   )
 
+  /**
+   * Choosing a mode also puts away whatever is on top of it.
+   *
+   * **The day and the search are layers over the ground floor, not screens
+   * beside it.** So switching from the calendar to the list while a day was
+   * open changed the floor underneath and left the day sitting over it — the
+   * switch appeared to do nothing, which is the worst kind of not working: the
+   * control responded and the screen did not.
+   *
+   * Both directions, not only into the list. Picking a mode is saying what you
+   * want to be looking at, and the answer to that cannot be "the thing you were
+   * looking at before".
+   */
+  const chooseMobileView = (next) => {
+    setMobileView(next)
+    setDayOpen(false)
+    setSearching(false)
+  }
+
   // The bar is the same on both, so it is written once — and it has to be, or
   // the two would drift into two bars that look alike.
   const mobileBar = (
@@ -205,7 +224,7 @@ export default function AppointmentsPage() {
       onSaved={() => setReload((n) => n + 1)}
       onSearch={() => setSearching(true)}
       view={mobileView}
-      onViewChange={setMobileView}
+      onViewChange={chooseMobileView}
     />
   )
 
@@ -382,6 +401,7 @@ export default function AppointmentsPage() {
       {mobileView === 'list' ? (
         <MobileList
           day={selected}
+          onDayChange={setSelected}
           bookings={bookings}
           week={week}
           services={services}
@@ -435,7 +455,7 @@ export default function AppointmentsPage() {
               onSaved={() => setReload((n) => n + 1)}
               onSearch={() => setSearching(true)}
               view={mobileView}
-              onViewChange={setMobileView}
+              onViewChange={chooseMobileView}
               className="min-h-0 flex-1"
             />
           </m.div>
