@@ -81,6 +81,7 @@ export default function BookingPopover({
   open: openProp,
   onOpenChange,
   booking,
+  preset,
   onDayChange,
   services,
   week,
@@ -221,13 +222,20 @@ export default function BookingPopover({
   // service a new business happens to have was a value nobody entered, and a
   // price that had not been agreed is the kind of default that gets saved by
   // accident.
+  //
+  // **`preset` is the one exception, and it is not a default.** It carries a
+  // day and a time the owner has already chosen by tapping a particular free
+  // window — that is a decision they made, not a guess this form is making on
+  // their behalf, and asking them to type it again would be the panel
+  // forgetting what it was opened from. Nothing else is seeded with it: the
+  // service and the price are still theirs to say.
   useEffect(() => {
     if (!open) return
-    setDate(booking?.day ?? '')
+    setDate(booking?.day ?? preset?.day ?? '')
     setServiceId(booking?.serviceId ?? '')
     setServiceName(booking?.service ?? '')
     setPrice(booking ? String(booking.price) : '')
-    setStartsAt(booking?.from ?? '')
+    setStartsAt(booking?.from ?? preset?.from ?? '')
     setEndsAt(booking?.to ?? '')
     setClientName(booking?.client ?? '')
     setClientPhone(booking?.phone ?? '')

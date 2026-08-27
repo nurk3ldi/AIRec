@@ -57,7 +57,12 @@ const STATE_KEYS = {
   answered: 'chat.answered',
 }
 
-export default function ChatFeed({ chats, timeZone, className = '' }) {
+export default function ChatFeed({
+  chats,
+  timeZone,
+  limit,
+  className = '',
+}) {
   const t = useT()
 
   return (
@@ -89,8 +94,19 @@ export default function ChatFeed({ chats, timeZone, className = '' }) {
       </header>
 
       {chats?.length ? (
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
-          {chats.map((chat) => (
+        // **`limit` turns the scroll off, not just the row count down.** Inside
+        // the agenda this sits at the foot of a column that already scrolls,
+        // and a list with a scroll of its own there is two scrolls fighting
+        // over one thumb — the reason the caller wants a short feed at all is
+        // that «Все ›» is where the long one lives.
+        <div
+          className={
+            limit
+              ? 'space-y-2'
+              : 'min-h-0 flex-1 space-y-2 overflow-y-auto'
+          }
+        >
+          {(limit ? chats.slice(0, limit) : chats).map((chat) => (
             <ChatRow key={chat.id} chat={chat} timeZone={timeZone} />
           ))}
         </div>

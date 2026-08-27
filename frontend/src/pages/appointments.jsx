@@ -381,9 +381,12 @@ export default function AppointmentsPage() {
           to put them. */}
       {mobileView === 'list' ? (
         <MobileList
+          day={selected}
           bookings={bookings}
           week={week}
+          services={services}
           timeZone={timeZone}
+          onSaved={() => setReload((n) => n + 1)}
           controls={mobileBar}
           className="min-h-0 flex-1 sm:hidden"
         />
