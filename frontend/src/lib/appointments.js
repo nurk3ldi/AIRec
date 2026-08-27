@@ -45,7 +45,11 @@ function partsIn(iso, timeZone) {
  */
 export function toBlock(row, timeZone) {
   const start = partsIn(row.starts_at, timeZone)
-  const end = partsIn(row.ends_at, timeZone)
+  // **A booking may have no end**, and `null` travels the whole way rather than
+  // being filled in with a guess here. Every screen that draws one has to know
+  // the difference — a card with no end is a length nobody stated, and drawing
+  // it as though somebody had is the one thing this must not do.
+  const end = row.ends_at ? partsIn(row.ends_at, timeZone) : null
 
   return {
     id: row.id,
@@ -59,12 +63,20 @@ export function toBlock(row, timeZone) {
     serviceId: row.service_id,
     start: start.minutes,
     // A booking running past midnight would otherwise end "before" it started.
-    end: end.day === start.day ? end.minutes : 24 * 60,
+    // `null` when there is no end at all — see `open` below, which is the flag
+    // to branch on; this stays null so that arithmetic done on it fails loudly
+    // rather than silently placing a card somewhere.
+    end: end ? (end.day === start.day ? end.minutes : 24 * 60) : null,
+    /** No end time: the client is here and nobody has said until when. */
+    open: end === null,
     // Both the joined form and its two halves: the panel reads it as one
-    // phrase, a narrow column stacks it over two lines.
-    range: `${start.clock} – ${end.clock}`,
+    // phrase, a narrow column stacks it over two lines. With no end the dash
+    // stays and the second clock does not — «12:00 –» is the honest reading,
+    // and it is also what tells a glance that the end is missing rather than
+    // that the booking is a moment long.
+    range: end ? `${start.clock} – ${end.clock}` : `${start.clock} –`,
     from: start.clock,
-    to: end.clock,
+    to: end ? end.clock : null,
     client: row.client_name,
     phone: row.client_phone,
     service: row.service_name,
@@ -387,8 +399,39 @@ export function addDays(date, count) {
  * straight out of React state, and writing a layout result onto them would make
  * the same booking mean different things depending on when it was last drawn.
  */
+/**
+ * How long a booking with no end is *drawn* as.
+ *
+ * **A drawing length, not a claim.** The server stores nothing for it and the
+ * assistant goes on offering the time — see `ends_at` on the model — so this
+ * number exists only so the card has somewhere to stop. Forty-five minutes is
+ * what makes it stop somewhere useful: at the desktop grid's usual hour it is
+ * a little over ninety pixels, which is where a card has room for the status,
+ * the client and the service, and on the phone's fixed 80px hour it is sixty,
+ * which holds a name and a time. Shorter and the card cannot say who is in it;
+ * longer and an unknown starts taking up more of the day than the bookings that
+ * are actually known.
+ *
+ * The card's bottom edge is faded out wherever this is used, so the length
+ * reads as "still going" rather than as a booking that ends at 12:45.
+ */
+export const OPEN_MINUTES = 45
+
+/**
+ * Where a booking stops for the purpose of laying out a day.
+ *
+ * The one place the drawn length stands in for a real one. Overlap has to be
+ * decided on what is *on screen*: two cards that visually cover each other must
+ * be given lanes, however little the open one claims about the day.
+ */
+export function endOf(block) {
+  return block.end ?? block.start + OPEN_MINUTES
+}
+
 export function layoutDay(blocks) {
-  const sorted = [...blocks].sort((a, b) => a.start - b.start || b.end - a.end)
+  const sorted = [...blocks].sort(
+    (a, b) => a.start - b.start || endOf(b) - endOf(a),
+  )
 
   const placed = []
   let cluster = []
@@ -409,7 +452,7 @@ export function layoutDay(blocks) {
         lane = laneEnds.length
         laneEnds.push(0)
       }
-      laneEnds[lane] = block.end
+      laneEnds[lane] = endOf(block)
       return lane
     })
 
@@ -429,7 +472,7 @@ export function layoutDay(blocks) {
     if (cluster.length > 0 && block.start >= clusterEnd) flush()
     cluster.push(block)
     clusterEnd =
-      cluster.length === 1 ? block.end : Math.max(clusterEnd, block.end)
+      cluster.length === 1 ? endOf(block) : Math.max(clusterEnd, endOf(block))
   }
   if (cluster.length > 0) flush()
 

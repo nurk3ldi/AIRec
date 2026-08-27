@@ -259,8 +259,13 @@ export default function BookingPopover({
     const problems = {}
     if (!serviceName.trim()) problems.service = t('appointments.required')
     if (price === '') problems.price = t('appointments.required')
-    if (!startsAt || !endsAt) problems.time = t('appointments.required')
-    else if (parseClock(startsAt) === parseClock(endsAt))
+    // **The start is required and the end is not.** A booking has to happen at
+    // a time; how long it takes is regularly not known at the moment somebody
+    // walks in, and demanding it made the panel ask for a number nobody had.
+    // Left empty, the booking is written down open — see `ends_at` on the
+    // model for what that does and does not claim.
+    if (!startsAt) problems.time = t('appointments.required')
+    else if (endsAt && parseClock(startsAt) === parseClock(endsAt))
       problems.time = t('appointments.sameTime')
     if (!clientName.trim()) problems.clientName = t('appointments.required')
     setFields(problems)
@@ -287,8 +292,15 @@ export default function BookingPopover({
       // is the ordinary way to write a booking that runs past twelve, and
       // refusing it would be refusing the one shape a night shift can take in
       // two clock fields.
-      duration_minutes:
-        (parseClock(endsAt) - parseClock(startsAt) + 24 * 60) % (24 * 60),
+      // **`null` is the value that says "no end", and it is always sent.**
+      // Omitting the key would mean something else entirely on both sides: on a
+      // POST the service's own length would be used, and on a PATCH the stored
+      // one would be left alone — so a booking could never be re-opened once it
+      // had an end. Explicit null is how the owner clearing this field reaches
+      // the server.
+      duration_minutes: endsAt
+        ? (parseClock(endsAt) - parseClock(startsAt) + 24 * 60) % (24 * 60)
+        : null,
       note: note.trim() || null,
       // No `color` key at all, which is not the same as sending `null`: the
       // field is switched off in the panel, and a PATCH that omitted it leaves

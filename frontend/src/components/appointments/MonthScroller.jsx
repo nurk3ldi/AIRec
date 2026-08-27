@@ -38,10 +38,12 @@ import { CONTROLS_HEIGHT } from './grid'
  * books a haircut in 2031. Thirteen months of 42 cells is 546 elements, which
  * renders in one frame and scrolls without any of that machinery.
  *
- * **There are no markers on the days yet, and that is not an oversight.** The
- * page fetches one week of bookings at a time, so dots here would appear on
- * seven days and nowhere else — a calendar that looks broken rather than one
- * that looks empty. They arrive together with a wider fetch.
+ * **The days carry marks now, and the fetch is what made that honest.** Dots
+ * over a week's worth of data would have appeared on seven days and nowhere
+ * else — a calendar that looks broken rather than one that looks empty — so the
+ * page reads the whole visible month and `marked` is the answer for exactly
+ * that range. Months outside it carry no marks, which is why the page refetches
+ * as the selection moves.
  */
 
 // One behind so the month you are in is not against the top edge, and a year
@@ -54,6 +56,10 @@ export default function MonthScroller({
   value,
   onChange,
   controls,
+  // Day keys with something booked on them. Absent means no marks — a caller
+  // that has not fetched a wide enough range should show none rather than
+  // showing an empty month as though it were empty.
+  marked,
   className = '',
 }) {
   const t = useT()
@@ -227,7 +233,7 @@ export default function MonthScroller({
                     // The press state, on the button rather than on the circle
                     // inside it: the circle animates its own fill, and two
                     // owners of one transition is one of them lost.
-                    className="grid h-12 place-items-center outline-none transition-transform duration-[160ms] ease-out active:scale-[0.95]"
+                    className="relative grid h-12 place-items-center outline-none transition-transform duration-[160ms] ease-out active:scale-[0.95]"
                   >
                     {/* **The mark is a circle behind the number, not a change
                         of colour on it.** A phone is read at arm's length and
@@ -251,6 +257,17 @@ export default function MonthScroller({
                     >
                       {day.getDate()}
                     </span>
+                    {/* **Under the circle, not inside it.** The circle is
+                        already saying which day is chosen and which is today,
+                        and the button's 48px leaves exactly the room for a mark
+                        below it — so unlike the desktop calendar's, this one
+                        never lands on the orange and needs no second colour. */}
+                    {marked?.has(dayKey(day)) && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute bottom-[3px] left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-muted"
+                      />
+                    )}
                   </button>
                 )
               })}

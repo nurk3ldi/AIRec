@@ -40,6 +40,10 @@ export default function WeekStrip({
   onDayChange,
   expanded = false,
   onToggle,
+  // Day keys that have something booked on them — see the page, which is the
+  // only thing that knows. Absent is a valid answer and means no marks, which
+  // is right for any caller that has not fetched a range wide enough to say.
+  marked,
   className = '',
 }) {
   const t = useT()
@@ -66,6 +70,7 @@ export default function WeekStrip({
       // a hole in the middle of a month reads as a bug.
       outside={item.getMonth() !== day.getMonth()}
       onDayChange={onDayChange}
+      marked={marked}
     />
   )
 
@@ -139,7 +144,7 @@ export default function WeekStrip({
  * for today, both as a filled circle rather than a change of text colour — a
  * phone is read at arm's length and in sunlight, where two greys are one grey.
  */
-function Cell({ item, day, now, outside, onDayChange }) {
+function Cell({ item, day, now, outside, onDayChange, marked }) {
   const selected = sameDay(item, day)
   const today = sameDay(item, now)
   const weekend = item.getDay() === 0 || item.getDay() === 6
@@ -152,7 +157,7 @@ function Cell({ item, day, now, outside, onDayChange }) {
       aria-current={today ? 'date' : undefined}
       // The press state sits on the button so the circle inside it comes along;
       // moving the transform onto the span would fight the fill it animates.
-      className="grid place-items-center py-1 outline-none transition-transform duration-[160ms] ease-out active:scale-[0.95]"
+      className="flex flex-col items-center gap-1 py-1 outline-none transition-transform duration-[160ms] ease-out active:scale-[0.95]"
     >
       <span
         className={`grid h-9 w-9 place-items-center rounded-full font-display text-[17px] transition-colors ${
@@ -169,6 +174,25 @@ function Cell({ item, day, now, outside, onDayChange }) {
       >
         {item.getDate()}
       </span>
+      {/* **The mark for a day that has something on it**, under the date rather
+          than on it: the circle already says which day is chosen and which is
+          today, and a second thing inside it would be two statements in one
+          shape.
+
+          Always drawn, and only sometimes coloured. An element that appears and
+          disappears would change the strip's height as the week changed, so the
+          space is reserved and it is the fill that switches — which also keeps
+          every cell's date on one line across the row.
+
+          Grey in every state, including on the selected day: it sits outside
+          the orange circle, on the page's own ground, so it needs no second
+          colour to stay legible. */}
+      <span
+        aria-hidden="true"
+        className={`h-1 w-1 rounded-full ${
+          marked?.has(dayKey(item)) ? 'bg-muted' : 'bg-transparent'
+        }`}
+      />
     </button>
   )
 }

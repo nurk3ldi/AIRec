@@ -10,6 +10,7 @@ import {
 import {
   BOOKING_STATES,
   byStart,
+  endOf,
   formatPrice,
   fromMinutes,
   layoutDay,
@@ -893,8 +894,25 @@ export default function Timetable({
                 }
                 animate={{ opacity: 1 }}
                 transition={{ duration: reduce ? 0 : 0.2, ease: [0.16, 1, 0.3, 1] }}
-                className={`relative border-l border-line ${
-                  sameDay(day, selected) ? 'bg-ink/[0.04]' : ''
+                // **The column publishes its own fill as `--column-bg`**, and
+                // the cards on it read that variable to cut themselves out of
+                // the hatch — see `BookingBlock`. It has to be a variable and
+                // not a token: this column is the page's ground everywhere
+                // except on the selected day, where it is that ground with 4%
+                // ink over it, and a ring painted in the plain token would show
+                // as a pale halo on exactly the column somebody is looking at.
+                //
+                // The tint is `--column-tint`, one opaque colour, rather than
+                // the `bg-ink/[0.04]` it used to be: an alpha cannot be handed
+                // to a `box-shadow` that has to *hide* what is under it. It
+                // lives in `globals.css` and not in an arbitrary property here
+                // because Tailwind writes a no-`color-mix` fallback for those,
+                // and its fallback for a 4% mix is the first colour alone — a
+                // column of solid ink.
+                className={`relative border-l border-line bg-[var(--column-bg)] ${
+                  sameDay(day, selected)
+                    ? '[--column-bg:var(--column-tint)]'
+                    : '[--column-bg:var(--color-ground)]'
                 }`}
               >
                 {rows.map((minute) => (
@@ -1092,7 +1110,7 @@ function BookingBlock({
   // A floor for the case where the grid is briefly too short to give a quarter
   // hour any height at all — a narrow window, or the first frame before the
   // measurement lands. A card below this is a coloured line, not a card.
-  const height = Math.max(((block.end - block.start) / 60) * rowHeight, 34)
+  const height = Math.max(((endOf(block) - block.start) / 60) * rowHeight, 34)
   const state = stateOf(block.status)
   const cancelled = state === 'cancelled'
   // What this card is actually going to be, in pixels — the fixed lane in the
@@ -1176,9 +1194,31 @@ function BookingBlock({
         // does not gain a pixel and shift the text inside it on the way past.
         // A transform would have had to be a Motion value like the press below,
         // for the same reason.
-        className={`absolute flex cursor-pointer flex-col gap-1.5 overflow-hidden rounded-lg py-2 transition-shadow duration-150 select-none hover:shadow-[0_0_0_1px_var(--color-line-strong)] ${
-          width >= CARD_WIDTH.LABEL ? 'px-2.5' : 'px-2'
-        } ${cancelled ? 'opacity-45' : ''}`}
+        // **A booking cuts itself out of the hatch.** A card sitting on a break
+        // or a day off had the stripes running right up against its edge, so
+        // the two read as one striped block with a lighter rectangle punched in
+        // it rather than as a booking *on* a closed hour. The 3px ring is
+        // painted in the column's own fill (`--column-bg`, published by the
+        // column above), so the hatch stops a little short of the card and
+        // carries on beyond it — which is the honest picture: the hour is still
+        // closed, and this is still booked inside it.
+        //
+        // Small on purpose. The gap has to be enough to see and not enough to
+        // look like a margin; at 3px two cards in adjacent lanes still clear
+        // each other, since the lane gap is wider than two rings.
+        // **A booking with no end has no bottom edge either.** Its height is
+        // `OPEN_MINUTES`, a length chosen so the card can be read — it is not a
+        // time anybody stated, and a card that stopped in a clean line at 12:45
+        // would be saying it was. Fading the last twelve pixels of the fill says
+        // "still going" without a word, and it is the mask rather than a
+        // gradient background so the ring and the edge fade with it.
+        className={`absolute flex cursor-pointer flex-col gap-1.5 overflow-hidden rounded-lg py-2 shadow-[0_0_0_3px_var(--column-bg)] transition-shadow duration-150 select-none hover:shadow-[0_0_0_1px_var(--color-line-strong),0_0_0_3px_var(--column-bg)] ${
+          block.open
+            ? '[mask-image:linear-gradient(to_bottom,#000_calc(100%-12px),transparent)]'
+            : ''
+        } ${width >= CARD_WIDTH.LABEL ? 'px-2.5' : 'px-2'} ${
+          cancelled ? 'opacity-45' : ''
+        }`}
         style={{
           // **Every card is the same grey**, whatever its status — see
           // `statusTone` for where the status is said instead. The owner's own
@@ -1321,7 +1361,7 @@ function GroupBlock({
   const reduce = useReducedMotion()
 
   const start = Math.min(...group.map((block) => block.start))
-  const end = Math.max(...group.map((block) => block.end))
+  const end = Math.max(...group.map((block) => endOf(block)))
   const top = ((start - WINDOW_FROM) / 60) * rowHeight
   const height = Math.max(((end - start) / 60) * rowHeight, 34)
   // Every state present in the cluster, once each and in the order the four are
@@ -1346,7 +1386,10 @@ function GroupBlock({
           // stroked.** A booking is a solid card; this is not a booking, it is
           // a stack of them, and the broken line is what says "there is more
           // inside" without a word or an icon spent on it.
-          className="absolute flex flex-col gap-1 overflow-hidden rounded-lg border border-dashed border-line bg-surface-card px-2 py-2 text-left outline-none transition-colors hover:border-line-strong focus-visible:border-line-strong"
+          // The same cut-out the single cards get — a collapsed stack is still
+          // a booking sitting on the hour, and it would otherwise be the one
+          // thing on the grid the hatch ran straight into.
+          className="absolute flex flex-col gap-1 overflow-hidden rounded-lg border border-dashed border-line bg-surface-card px-2 py-2 text-left shadow-[0_0_0_3px_var(--column-bg)] outline-none transition-colors hover:border-line-strong focus-visible:border-line-strong"
           style={{
             top,
             height,

@@ -44,7 +44,15 @@ import { useT } from '../../lib/i18n'
  * busiest day is closed. When the schedule is wired in, the days to dim are the
  * ones actually marked closed — that is the same ink saying something true.
  */
-export default function MonthCalendar({ value, onChange }) {
+export default function MonthCalendar({
+  value,
+  onChange,
+  // Day keys with something booked on them, for the marks under the dates. The
+  // page reads a month's worth and hands the same answer to every calendar;
+  // absent means no marks, which is what the date field inside the booking
+  // panel gets — it is choosing a day, not reporting on one.
+  marked,
+}) {
   const t = useT()
   // The month on screen, which is not the same thing as the day chosen: you
   // browse away from your selection and back without losing it.
@@ -290,6 +298,22 @@ export default function MonthCalendar({ value, onChange }) {
                   <span className="relative z-10">
                     {String(day.getDate()).padStart(2, '0')}
                   </span>
+                  {/* **The mark for a day with something on it.** Absolute
+                      rather than a row of its own: this cell is 36px and the
+                      date already fills it, so reserving space under the digits
+                      would make every square taller for a 4px dot.
+
+                      White on the chosen day, muted everywhere else — unlike
+                      the phone's strip, this one sits *inside* the cell and so
+                      lands on the orange fill when the day is selected. */}
+                  {marked?.has(dayKey(day)) && (
+                    <span
+                      aria-hidden="true"
+                      className={`absolute bottom-[3px] left-1/2 z-10 h-1 w-1 -translate-x-1/2 rounded-full ${
+                        isSelected ? 'bg-white' : 'bg-muted'
+                      }`}
+                    />
+                  )}
                 </button>
               )
             })}

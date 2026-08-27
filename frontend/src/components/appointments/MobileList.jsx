@@ -50,6 +50,7 @@ export default function MobileList({
   day,
   onDayChange,
   bookings,
+  marked,
   week,
   services,
   timeZone,
@@ -73,8 +74,10 @@ export default function MobileList({
   const blocks = (bookings ?? []).filter((b) => b.day === key).sort(byStart)
   // A cancelled booking gave its hour back, so it is not in the way of a new
   // one — the same rule `BLOCKING_STATUSES` states on the server.
+  // A booking with no end is left out for a second reason: it claims no
+  // stretch of the day at all, so a window beside it is genuinely free.
   const busy = blocks
-    .filter((b) => b.status !== 'cancelled')
+    .filter((b) => b.status !== 'cancelled' && !b.open)
     .map((b) => [b.start, b.end])
 
   const hours = week?.find((row) => row.weekday === (day.getDay() + 6) % 7)
@@ -111,6 +114,7 @@ export default function MobileList({
           carries — see `WeekStrip`. */}
       <WeekStrip
         day={day}
+        marked={marked}
         onDayChange={onDayChange}
         expanded={monthOpen}
         onToggle={() => setMonthOpen((was) => !was)}
@@ -178,9 +182,14 @@ export default function MobileList({
                   running={
                     isToday &&
                     item.block.start <= nowMinutes &&
-                    nowMinutes < item.block.end
+                    // With no end it is running until somebody says otherwise,
+                    // which is the whole point of writing it down that way.
+                    nowMinutes < (item.block.end ?? 24 * 60)
                   }
-                  remaining={item.block.end - nowMinutes}
+                  remaining={
+                    item.block.end === null ? null : item.block.end - nowMinutes
+                  }
+                  elapsed={nowMinutes - item.block.start}
                   services={services}
                   week={week}
                   timeZone={timeZone}
@@ -209,6 +218,7 @@ function BookingRow({
   block,
   running,
   remaining,
+  elapsed,
   services,
   week,
   timeZone,
@@ -270,6 +280,10 @@ function BookingRow({
               {block.from}
             </span>
             <span aria-hidden="true" className="h-3 w-px bg-line-strong" />
+            {/* **Nothing under the rule when there is no end.** The line still
+                runs, because the column is a span and the span still started;
+                what is missing is the second time, and leaving the space empty
+                says that more plainly than any placeholder would. */}
             <span className="font-display text-[13px] tabular-nums text-muted">
               {block.to}
             </span>
@@ -298,9 +312,19 @@ function BookingRow({
               {[
                 block.service,
                 running
-                  ? t('appointments.remainingShort', {
-                      time: formatDuration(Math.max(remaining, 1)),
-                    })
+                  ? t(
+                      remaining === null
+                        ? 'appointments.elapsedShort'
+                        : 'appointments.remainingShort',
+                      {
+                        time: formatDuration(
+                          Math.max(
+                            remaining === null ? elapsed : remaining,
+                            1,
+                          ),
+                        ),
+                      },
+                    )
                   : null,
                 formatPrice(block.price),
               ]

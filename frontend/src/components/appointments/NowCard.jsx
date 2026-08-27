@@ -35,7 +35,9 @@ export default function NowCard({ bookings, timeZone }) {
       booking.day === today &&
       booking.status !== 'cancelled' &&
       booking.start <= minute &&
-      minute < booking.end,
+      // No end means it is still running: that is what the owner said when they
+      // wrote it down without one.
+      minute < (booking.end ?? 24 * 60),
   )
 
   // The set changes under the page — a booking ends, another starts — and an
@@ -93,11 +95,26 @@ export default function NowCard({ bookings, timeZone }) {
               the only part that changes while you look at it. The span under it
               is what the number is counted against — a timer with no end time
               beside it is a number you have to trust. */}
+          {/* **With no end it counts up instead of down.** There is nothing to
+              count towards, and a dash here would leave the card's largest
+              element saying nothing on the one booking that is happening. Time
+              since the client sat down is the answer to the same question the
+              countdown answers — how far through this are we — asked from the
+              other side. */}
           <p className="mt-auto pt-3 font-display text-[32px] leading-none font-bold tracking-[-0.02em] text-ink tabular-nums">
-            {countdown(current.end - minute, now)}
+            {countdown(
+              current.open ? minute - current.start : current.end - minute,
+              now,
+            )}
           </p>
           <p className="mt-1.5 flex items-center justify-between gap-2 text-[12px] text-muted">
-            <span>{t('appointments.remaining')}</span>
+            <span>
+              {t(
+                current.open
+                  ? 'appointments.elapsed'
+                  : 'appointments.remaining',
+              )}
+            </span>
             <span className="font-display font-medium tabular-nums">
               {current.range}
             </span>

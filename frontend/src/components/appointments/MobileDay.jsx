@@ -4,6 +4,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowLeft01Icon } from '@hugeicons/core-free-icons'
 import {
   byStart,
+  endOf,
   formatPrice,
   fromMinutes,
   layoutDay,
@@ -106,6 +107,7 @@ export default function MobileDay({
   day,
   onDayChange,
   onBack,
+  marked,
   bookings,
   week,
   services,
@@ -354,6 +356,7 @@ export default function MobileDay({
           gestures later is not that swipe. */}
       <WeekStrip
         day={day}
+        marked={marked}
         onDayChange={(item) => {
           setDirection(0)
           onDayChange?.(item)
@@ -421,7 +424,10 @@ export default function MobileDay({
             }
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: reduce ? 0 : 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative grid"
+            // `--column-bg` is what the cards below read to cut themselves out
+            // of the hatch — see `BookingCard`. Declared here rather than
+            // assumed, so the two grids in this app answer it the same way.
+            className="relative grid bg-[var(--column-bg)] [--column-bg:var(--color-ground)]"
             style={{
               gridTemplateColumns: `${GUTTER}px ${columnWidth || 1}px`,
               height: (END_HOUR - START_HOUR) * HOUR_HEIGHT,
@@ -590,7 +596,7 @@ export default function MobileDay({
 function DayBlock({ block, laneWidth, services, week, timeZone, onSaved }) {
   const [open, setOpen] = useState(false)
   const top = ((block.start - WINDOW_FROM) / 60) * HOUR_HEIGHT
-  const height = Math.max(((block.end - block.start) / 60) * HOUR_HEIGHT, 34)
+  const height = Math.max(((endOf(block) - block.start) / 60) * HOUR_HEIGHT, 34)
   const cancelled = block.status === 'cancelled'
 
   return (
@@ -606,9 +612,24 @@ function DayBlock({ block, laneWidth, services, week, timeZone, onSaved }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`absolute flex flex-col gap-0.5 overflow-hidden rounded-lg bg-surface-card px-2.5 py-1.5 text-left outline-none ${
-          cancelled ? 'opacity-45' : ''
-        }`}
+        // **The booking cuts itself out of the hatch**, the same way the
+        // desktop grid's cards do: a 3px ring in the column's own fill, so a
+        // card written over a break or a day off has the stripes stopping a
+        // little short of it and carrying on beyond. Running the hatch into the
+        // card's edge made the two read as one striped block with a rectangle
+        // punched out, rather than as a booking sitting *on* a closed hour.
+        //
+        // `--column-bg` is published by the grid above. Here there is only ever
+        // one column and no selected-day tint, so it is the page's ground — but
+        // it is read through the variable anyway, or the two screens would
+        // answer the same question in two different ways.
+        className={`absolute flex flex-col gap-0.5 overflow-hidden rounded-lg bg-surface-card px-2.5 py-1.5 text-left shadow-[0_0_0_3px_var(--column-bg)] outline-none ${
+          block.open
+            ? // No end, so no bottom edge — the drawn length is `OPEN_MINUTES`
+              // and nobody stated it. See the same mask on the desktop grid.
+              '[mask-image:linear-gradient(to_bottom,#000_calc(100%-12px),transparent)]'
+            : ''
+        } ${cancelled ? 'opacity-45' : ''}`}
         style={{
           top,
           height,

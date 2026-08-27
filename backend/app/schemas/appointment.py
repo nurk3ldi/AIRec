@@ -42,12 +42,15 @@ class AppointmentPublic(BaseModel):
     # below still says what was booked.
     service_id: uuid.UUID | None = None
     service_name: str
-    duration_minutes: int
+    # Both null together, and it means the booking has no end yet — see
+    # `ends_at` on the model. A client is in the chair and how long for is not
+    # a thing anyone has said.
+    duration_minutes: int | None = None
     price: int
     client_name: str
     client_phone: str | None = None
     starts_at: datetime
-    ends_at: datetime
+    ends_at: datetime | None = None
     status: str
     source: str
     note: str | None = None
@@ -155,9 +158,33 @@ class CreateAppointmentRequest(BaseModel):
             raise ValueError("Укажите услугу.")
         if self.price is None:
             raise ValueError("Укажите цену.")
-        if self.duration_minutes is None:
-            raise ValueError("Укажите длительность.")
+        # **The length is not required and never was the same kind of thing.**
+        # A name and a price are what the booking *is*; a length is how long it
+        # will take, which is regularly not known at the moment somebody walks
+        # in. Left out, the booking is open-ended — see `open_ended` below and
+        # `ends_at` on the model.
         return self
+
+    @property
+    def open_ended(self) -> bool:
+        """Whether this booking is being written down with no end.
+
+        Two ways to say it, and they are the same answer to two different
+        situations. **Sending `duration_minutes: null` explicitly** is how a
+        booking that names a service still says "no end": the price list has a
+        length and the owner is declining it, which the value alone cannot
+        express because absent would mean "use the service's". **Leaving it out
+        with no service** is the other, and there is nothing to fall back to.
+
+        `model_fields_set` is what separates absent from null — the same
+        distinction `AppointmentService.update` draws with `"service_id" in
+        changes`, and for the same reason: null is a value here, not a silence.
+        """
+        if self.duration_minutes is not None:
+            return False
+        if "duration_minutes" in self.model_fields_set:
+            return True
+        return self.service_id is None
 
     @field_validator("starts_at")
     @classmethod

@@ -40,7 +40,14 @@ export default function FreeSlotCard({ bookings, week, timeZone }) {
 
   const busy = (bookings ?? [])
     .filter(
-      (booking) => booking.day === today && booking.status !== 'cancelled',
+      (booking) =>
+        booking.day === today &&
+        booking.status !== 'cancelled' &&
+        // **A booking with no end is not in the way of anything.** It claims no
+        // stretch of the day — the server does not block on it either, see
+        // `ends_at` on the model — so subtracting a made-up length here would
+        // hide a window that is genuinely free.
+        !booking.open,
     )
     .map((booking) => [booking.start, booking.end])
 

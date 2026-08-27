@@ -124,6 +124,21 @@
      readily than light-on-dark, so the dark theme needs the larger share to
      arrive at the same faintness. */
   --hatch: rgb(23 18 21 / 0.11);
+  /* The timetable's selected day column, as one **opaque** colour.
+     It was `bg-ink/[0.04]`, and an alpha cannot do this job any more: the
+     bookings on that column paint a ring of the column's own fill around
+     themselves to cut the closed-hour hatch away from their edges, and a ring
+     you can see through hides nothing.
+
+     **A literal per theme, like `hatch` and `surface-chip` above, and for a
+     new reason on top of theirs.** A `color-mix` would express the intent
+     better — this is exactly ink at 4% over the ground — but both Tailwind and
+     the CSS minifier emit a no-`color-mix` fallback for one, and their fallback
+     for a 4% mix is *the first colour on its own*: a column of solid ink. A
+     theoretical browser, but not a failure worth leaving armed for a value that
+     is two hex codes. These are that mix, computed: `#171215` at 4% over
+     `#f6f8fa`, and white at 4% over black. */
+  --column-tint: #edeff1;
   --field: rgb(0 0 0 / 0.08);
   --field-hover: rgb(0 0 0 / 0.21);
   --field-focus: rgb(0 0 0 / 0.34);
@@ -191,6 +206,8 @@
   --surface-chip: #2a2a2a;
   --surface-card: #1c1c1c;
   --hatch: rgb(255 255 255 / 0.2);
+  /* White at 4% over the pure-black ground — see the note on the light value. */
+  --column-tint: #0a0a0a;
   /* Solid greys, not white at an alpha — taken from Vercel's dark theme, where
      `--ds-gray-400` (#2e2e2e) is the workhorse border and `--ds-gray-500`
      (#454545) is the step up from it.

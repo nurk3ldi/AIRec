@@ -238,9 +238,22 @@ export default function AppointmentsPage() {
   // switch would trade a request for nothing: seven days of one business is a
   // small answer, and stepping between the two views is instant when both are
   // already here.
+  // **The week the grid draws, widened to the month the calendars show.**
+  // The timetable only ever needs seven days, and that is still all it reads —
+  // but the month calendars mark which days have something on them, and a mark
+  // can only be trusted if its absence means something. Fetching a week and
+  // dotting a month would put marks on seven days and nowhere else, which reads
+  // as "these are the only bookings" rather than as "this is all we asked for".
+  //
+  // The union rather than the month alone, because a week straddles two of
+  // them: the days of the 28th–3rd are on screen together and the grid must
+  // have them all. String comparison is enough to take the wider end — day keys
+  // are `YYYY-MM-DD`, which sorts as it reads.
   const span = weekDays(selected)
-  const from = dayKey(span[0])
-  const to = dayKey(span[6])
+  const monthStart = new Date(selected.getFullYear(), selected.getMonth(), 1)
+  const monthEnd = new Date(selected.getFullYear(), selected.getMonth() + 1, 0)
+  const from = [dayKey(span[0]), dayKey(monthStart)].sort()[0]
+  const to = [dayKey(span[6]), dayKey(monthEnd)].sort()[1]
 
   useEffect(() => {
     let alive = true
@@ -260,6 +273,27 @@ export default function AppointmentsPage() {
       alive = false
     }
   }, [from, to, timeZone, reload])
+
+  /**
+   * Which days have something on them, for the marks under the dates.
+   *
+   * **A `Set` of day keys and nothing more.** The calendars need to answer one
+   * question per cell — is there anything here — and handing them the bookings
+   * would make each of them filter the same list on every render of every day.
+   *
+   * **Cancelled bookings do not count.** A cancellation gave its hour back and
+   * is not something on the day any more; it is kept so the owner can look back
+   * at it, which is what the day's own list is for. That is the same line the
+   * list's counts draw and the same one `BLOCKING_STATUSES` draws on the
+   * server.
+   *
+   * A day outside `from`–`to` is simply absent, which is why the fetch above is
+   * a month wide: an empty mark has to mean "nothing booked" rather than "not
+   * asked for".
+   */
+  const marked = new Set(
+    bookings.filter((row) => row.status !== 'cancelled').map((row) => row.day),
+  )
 
   return (
     // The flex row is *on the page element itself*, so `items-stretch` has the
@@ -401,6 +435,7 @@ export default function AppointmentsPage() {
       {mobileView === 'list' ? (
         <MobileList
           day={selected}
+          marked={marked}
           onDayChange={setSelected}
           bookings={bookings}
           week={week}
@@ -413,6 +448,7 @@ export default function AppointmentsPage() {
       ) : (
         <MonthScroller
           value={selected}
+          marked={marked}
           onChange={(chosen) => {
             setSelected(chosen)
             setDayOpen(true)
@@ -446,6 +482,7 @@ export default function AppointmentsPage() {
           >
             <MobileDay
               day={selected}
+              marked={marked}
               onDayChange={setSelected}
               onBack={() => setDayOpen(false)}
               bookings={bookings}
@@ -511,7 +548,11 @@ export default function AppointmentsPage() {
 
       <aside className="hidden min-h-[300px] w-full shrink-0 flex-col gap-4 border-t border-line p-4 sm:flex xl:min-h-0 xl:w-[calc(300px+2rem)] xl:border-t-0 xl:border-l">
         <div className="shrink-0">
-          <MonthCalendar value={selected} onChange={setSelected} />
+          <MonthCalendar
+            value={selected}
+            onChange={setSelected}
+            marked={marked}
+          />
         </div>
 
         {/* **The room under the month, which was empty.** The panel is the

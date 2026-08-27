@@ -200,21 +200,34 @@ class AppointmentService:
             if data.price is not None
             else (service.price if service else None)
         )
-        minutes = data.duration_minutes or (
-            service.duration_minutes if service else None
+        # **`None` here is a booking with no end**, not a missing value — see
+        # `CreateAppointmentRequest.open_ended` for the two ways a caller says
+        # so. The pair travels together from this point on: an open booking has
+        # neither a length nor an end, and nothing downstream has to ask which
+        # of the two it is.
+        minutes = (
+            None
+            if data.open_ended
+            else data.duration_minutes or (service.duration_minutes if service else None)
         )
-        ends_at = starts_at + timedelta(minutes=minutes)
+        ends_at = None if minutes is None else starts_at + timedelta(minutes=minutes)
         # Notice, horizon *and* opening hours constrain clients, not the
         # business. The owner writing down someone who walked in twenty minutes
         # ago — or during the lunch break, or after closing — is recording
         # something that already happened, and refusing it would be refusing
         # reality. `source` is what tells the two apart; the panel warns instead
         # of the server refusing.
+        #
+        # **An open-ended booking is checked at its start and nowhere else.**
+        # There is no span to test against opening hours or against capacity,
+        # and inventing one to test would be inventing the fact the owner
+        # declined to state. `starts_at` twice is that: a zero-length instant,
+        # which `_free` counts as overlapping nothing.
         await self._ensure_within_rules(
             user,
             business,
             starts_at,
-            ends_at,
+            ends_at or starts_at,
             enforce_client_rules=data.source is not AppointmentSource.MANUAL,
         )
         # Same flag, same reason as the rules above: the owner records, the
@@ -222,7 +235,7 @@ class AppointmentService:
         await self._ensure_room(
             business,
             starts_at,
-            ends_at,
+            ends_at or starts_at,
             enforce=data.source is not AppointmentSource.MANUAL,
         )
 
@@ -292,7 +305,12 @@ class AppointmentService:
             appointment.service_name = changes["service_name"]
         if changes.get("price") is not None:
             appointment.price = changes["price"]
-        if changes.get("duration_minutes") is not None:
+        # **`in changes` and not `is not None`, because null is a value here.**
+        # It is how a booking is re-opened — the owner clearing the end time on
+        # one that had one — and `exclude_unset` is what keeps that distinct
+        # from not sending the field at all. The same distinction `service_id`
+        # above is read with, for the same reason.
+        if "duration_minutes" in changes:
             moved = moved or changes["duration_minutes"] != appointment.duration_minutes
             appointment.duration_minutes = changes["duration_minutes"]
 
@@ -304,9 +322,14 @@ class AppointmentService:
         if moved:
             # Derived from whichever of the two just changed, and from the
             # duration this booking now carries rather than whatever the price
-            # list says today.
-            appointment.ends_at = appointment.starts_at + timedelta(
-                minutes=appointment.duration_minutes
+            # list says today. No duration means no end — the two are always
+            # written together, so nothing downstream ever has to reconcile one
+            # against the other.
+            appointment.ends_at = (
+                None
+                if appointment.duration_minutes is None
+                else appointment.starts_at
+                + timedelta(minutes=appointment.duration_minutes)
             )
 
         for field in ("client_name", "client_phone", "note", "color"):
@@ -336,7 +359,9 @@ class AppointmentService:
                 user,
                 business,
                 appointment.starts_at,
-                appointment.ends_at,
+                # A zero-length instant when the booking has no end, exactly as
+                # on create: there is no span to test.
+                appointment.ends_at or appointment.starts_at,
                 enforce_client_rules=False,
             )
 
@@ -348,7 +373,7 @@ class AppointmentService:
             await self._ensure_room(
                 business,
                 appointment.starts_at,
-                appointment.ends_at,
+                appointment.ends_at or appointment.starts_at,
                 exclude_id=appointment.id,
                 enforce=appointment.source != AppointmentSource.MANUAL.value,
             )

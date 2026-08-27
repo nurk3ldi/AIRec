@@ -4,7 +4,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import datetime
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -36,6 +36,7 @@ class AppointmentRepository:
         statuses: Sequence[str] | None = None,
         query: str | None = None,
         include_archived: bool = False,
+        occupying_only: bool = False,
     ) -> Sequence[Appointment]:
         """Bookings that *overlap* the window, not merely start inside it.
 
@@ -50,12 +51,33 @@ class AppointmentRepository:
         search, because a booking put out of the way is exactly the kind you go
         looking for by name, and the availability check, because archiving is a
         view flag and must not hand an occupied hour back out.
+
+        **`occupying_only` is what tells the two kinds of caller apart.** A
+        booking with no end (`ends_at IS NULL`, see the model) occupies nothing,
+        so an availability check must not see it at all — but a calendar still
+        has to draw it. Left to plain SQL both would get it wrong in the same
+        direction: `ends_at > start` is NULL for such a row, which is not TRUE,
+        so *every* range query would silently drop it and an open booking would
+        never appear on the grid it was written onto. So the range test spells
+        out both cases — a row with an end overlaps the window, a row without
+        one belongs to it if it *starts* inside it — and the availability
+        callers ask for `occupying_only` instead.
         """
         stmt = select(Appointment).where(Appointment.business_id == business_id)
+        if occupying_only:
+            stmt = stmt.where(Appointment.ends_at.is_not(None))
         if end is not None:
             stmt = stmt.where(Appointment.starts_at < end)
         if start is not None:
-            stmt = stmt.where(Appointment.ends_at > start)
+            begins_inside = Appointment.starts_at >= start
+            stmt = stmt.where(
+                Appointment.ends_at > start
+                if occupying_only
+                else or_(
+                    Appointment.ends_at > start,
+                    and_(Appointment.ends_at.is_(None), begins_inside),
+                )
+            )
         if statuses is not None:
             stmt = stmt.where(Appointment.status.in_(statuses))
         if query:
@@ -72,10 +94,18 @@ class AppointmentRepository:
         """The ones that actually take up a place in that window.
 
         `include_archived=True` on purpose: see `archived_at` on the model —
-        putting a booking out of sight must not put its hour back on sale.
+        putting a booking out of sight must not put its hour back on sale. And
+        `occupying_only=True`, which is the opposite kind of exclusion: a
+        booking with no end has not claimed any part of the day, so it cannot
+        take a place in it.
         """
         return await self.list_in_range(
-            business_id, start, end, BLOCKING_STATUSES, include_archived=True
+            business_id,
+            start,
+            end,
+            BLOCKING_STATUSES,
+            include_archived=True,
+            occupying_only=True,
         )
 
     def add(self, appointment: Appointment) -> None:

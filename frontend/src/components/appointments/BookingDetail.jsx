@@ -114,9 +114,14 @@ export default function BookingDetail({
             <Row label={t('appointments.date')} value={booking && dayLabel(new Date(`${booking.day}T00:00:00`))} />
             <Row
               label={t('appointments.time')}
+              // The length is only said when there is one. With no end
+              // `booking.range` is already «12:00 –», and appending a duration
+              // to that would be inventing the very number the row is short of.
               value={
                 booking &&
-                `${booking.range} · ${formatDuration(booking.minutes)}`
+                (booking.open
+                  ? booking.range
+                  : `${booking.range} · ${formatDuration(booking.minutes)}`)
               }
             />
             <Row label={t('appointments.service')} value={booking?.service} />

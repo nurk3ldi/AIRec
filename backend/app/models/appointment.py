@@ -104,7 +104,9 @@ class Appointment(Base):
 
     # Snapshots, taken once at booking time and never refreshed.
     service_name: Mapped[str] = mapped_column(String(120), nullable=False)
-    duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    # **NULL means the booking has no end yet** — see `ends_at`, which is NULL
+    # with it and never without it.
+    duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     price: Mapped[int] = mapped_column(Integer, nullable=False)
 
     client_name: Mapped[str] = mapped_column(String(120), nullable=False)
@@ -117,7 +119,27 @@ class Appointment(Base):
     # check is a range overlap, and computing the end in SQL on each comparison
     # would rule out using an index for it. `AppointmentService` is the only
     # writer, so the two cannot drift.
-    ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    #
+    # **NULL is a real answer here: this booking has no end yet.** The owner
+    # writing somebody down as they arrive knows the time they came and not how
+    # long they will be, and a guessed end is worse than none — it is a fact the
+    # calendar states that nobody checked. It is NULL exactly when
+    # `duration_minutes` is; the service never sets one without the other.
+    #
+    # **An open-ended booking occupies nothing.** It is a record of an arrival
+    # rather than a claim on a stretch of the day, so blocking an unknown length
+    # would invent the fact the owner declined to state — `list_blocking` leaves
+    # these rows out entirely, and `available_slots` therefore goes on offering
+    # the time. `list_in_range` includes them by their *start*, since
+    # `ends_at > start` is NULL for them and a plain range query would drop them
+    # off the grid they are supposed to be drawn on.
+    #
+    # The `span` and `duration` check constraints above need no exception: both
+    # evaluate to NULL on such a row, and a CHECK passes anything that is not
+    # FALSE.
+    ends_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     status: Mapped[str] = mapped_column(
         String(16),
