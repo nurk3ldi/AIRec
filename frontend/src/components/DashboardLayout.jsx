@@ -60,9 +60,22 @@ export default function DashboardLayout() {
         {/* Hidden on `/profile` below `sm`: that screen is about you, and the
             phone header carries the app's name and a bell, neither of which
             belongs above it. Hidden rather than unmounted — the page module
-            measures against the same breakpoint. */}
+            measures against the same breakpoint.
+
+            **`/appointments` joins it below `sm`, for a different reason.**
+            That screen is a grid that must fit the viewport exactly — it is the
+            one page in the app with a *definite* height rather than a minimum —
+            so 68px spent on a bar carrying a wordmark and two icons is 68px the
+            hours do not get. The bottom bar still says which screen this is and
+            still leads to the other four, which is what the header was doing
+            there. Above `sm` it comes back: a desktop has the room, and the
+            page title and search belong on it. */}
         <Header
-          className={pathname === '/profile' ? 'hidden sm:flex' : 'flex'}
+          className={
+            pathname === '/profile' || pathname === '/appointments'
+              ? 'hidden sm:flex'
+              : 'flex'
+          }
         />
         {/* The shells sit outside this and update instantly — a click should be
             acknowledged now; only the content it swaps needs to cross over. */}

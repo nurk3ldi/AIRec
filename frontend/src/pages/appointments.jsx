@@ -195,9 +195,11 @@ export default function AppointmentsPage() {
       //
       // With a real height the chain resolves: the page is the viewport, the
       // grid gets what is left, and the only scrollbar on the screen is the one
-      // inside it. The numbers match the module's own — 68px of header, and
-      // below `sm` the 50px bottom bar and the home indicator under it.
-      className={`${styles.page} flex h-[calc(100vh-118px-env(safe-area-inset-bottom))] flex-col items-stretch overflow-hidden sm:h-[calc(100vh-68px)] xl:flex-row`}
+      // inside it. The numbers match the module's own, and below `sm` there is
+      // **no header on this route** — only the 50px bottom bar and the home
+      // indicator under it come off. Above `sm` the header is back and it is
+      // the usual 68.
+      className={`${styles.page} flex h-[calc(100vh-50px-env(safe-area-inset-bottom))] flex-col items-stretch overflow-hidden sm:h-[calc(100vh-68px)] xl:flex-row`}
       aria-label={t('nav.appointments')}
     >
       {/* A column, so the timetable can take everything the cards above it do

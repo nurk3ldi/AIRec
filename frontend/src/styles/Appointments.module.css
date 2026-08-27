@@ -1,9 +1,10 @@
 .page {
-  /* 68px header + a 50px bottom bar, plus the iPhone home indicator under it.
-     The bar is fixed and takes no layout height of its own, so the page has to
-     leave the room or the two together overrun the viewport. From `sm` the bar
-     is gone and only the header is subtracted. */
-  min-height: calc(100vh - 118px - env(safe-area-inset-bottom));
+  /* No header on this route below `sm` — see `DashboardLayout` — so only the
+     50px bottom bar and the iPhone home indicator come off the viewport. The
+     bar is fixed and takes no layout height of its own, so the page has to
+     leave the room or the two together overrun the viewport. From `sm` the
+     header is back, the bar is gone, and the usual 68px is all that goes. */
+  min-height: calc(100vh - 50px - env(safe-area-inset-bottom));
   background: var(--ground);
 }
 
