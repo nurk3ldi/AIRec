@@ -367,6 +367,55 @@ a {
 
    Leaving is 150ms and eased *in*: a panel you have dismissed should already be
    going, and the asymmetry is the same one the profile menu uses. */
+/* **The phone's sheet, and the dim behind it.** A panel that is the whole
+   screen has to arrive from an edge — anything that fades or scales into the
+   middle of a phone reads as a card laid on the page, where this is somewhere
+   you went. Travelling the full height is also why it is slower than the
+   popover: the same timing over ten times the distance looks thrown.
+
+   `cubic-bezier(0.32, 0.72, 0, 1)` is the curve iOS uses for its own sheets and
+   the one `ProfileDialog` already rides — worth borrowing for its shape rather
+   than its pedigree, since it eases *in* as well as out and so gathers speed
+   instead of leaving at full pace from a standstill.
+
+   Out faster than in, as everywhere else here: a sheet you dismissed should
+   already be gone. */
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-out {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scrim-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
 @keyframes popover-in {
   from {
     opacity: 0;

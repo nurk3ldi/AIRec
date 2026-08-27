@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
+import * as Dialog from '@radix-ui/react-dialog'
 import * as Select from '@radix-ui/react-select'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
@@ -26,7 +27,8 @@ import { FIELD, FIELD_ERROR } from '../controls'
 import DateField from './DateField'
 import ServiceField from './ServiceField'
 import TimeField from './TimeField'
-import { PANEL_MOTION } from './panel'
+import { PANEL_MOTION, SCRIM_MOTION, SHEET_MOTION } from './panel'
+import { useMediaQuery } from '../../lib/media'
 
 /**
  * Writing a booking down by hand, in a panel hanging off the button that opens
@@ -94,6 +96,11 @@ export default function BookingPopover({
   // trigger listens for, so it is a `Popover.Anchor` and the boolean lives
   // with the card. `??` rather than `||`, or a controlled `false` would fall
   // through to the internal state and the panel would never close.
+  // **Which shell this is, and it has to be a value rather than a class.** The
+  // two are different primitives, not one styled two ways, so the breakpoint
+  // has to be readable in JS — the one case `lib/media` exists for.
+  const isDesktop = useMediaQuery('(min-width: 640px)')
+
   const [selfOpen, setSelfOpen] = useState(false)
   const open = openProp ?? selfOpen
   const setOpen = onOpenChange ?? setSelfOpen
@@ -346,100 +353,29 @@ export default function BookingPopover({
     if (value) onDayChange?.(new Date(`${value}T00:00:00`))
   }
 
-  return (
-    // **`modal`, which is what stops the page scrolling underneath.** Radix
-    // locks scroll everywhere outside the panel while it is open — including
-    // the timetable's own scroll box, which is the one that matters: the edit
-    // panel is anchored to a *card inside that box*, so a wheel turn slides its
-    // anchor out from under it and the panel chases the card across the screen.
-    //
-    // It costs the half of "a popover, not a modal" that was about the page
-    // staying usable — outside content is inert while this is open. The other
-    // half is the one that mattered and it is kept: no scrim, so the grid
-    // behind is still legible, which is how you know which day and hour you are
-    // writing for.
-    <Popover.Root open={open} onOpenChange={setOpen} modal>
-      {asAnchor ? (
-        <Popover.Anchor asChild>{children}</Popover.Anchor>
-      ) : (
-        <Popover.Trigger asChild>{children}</Popover.Trigger>
-      )}
-
-      <Popover.Portal>
-        {/* No scrim. The page behind stays readable *and* usable — that is the
-            difference between this and the modal it replaced, and dimming it
-            would take back the only reason to anchor the panel at all. */}
-        <Popover.Content
-          // The date and service fields open their own popovers into portals,
-          // so Escape has to be told which layer it is for: without this a
-          // press meant for an open month would close the whole panel with it.
-          onEscapeKeyDown={(event) => {
-            if (document.querySelector('[data-nested-overlay]')) {
-              event.preventDefault()
-            }
-          }}
-          // **Beside the button, not under it.** Under it there is only the
-          // distance from the toolbar down to the bottom of the window, and a
-          // form of seven fields does not fit in that — the panel arrived
-          // capped, with a scrollbar down its own side. To the left it has the
-          // whole height of the page and opens at its natural size.
-          //
-          // `align="center"` hangs it level with the button; Radix slides it
-          // along that edge if either end would fall off the screen, and only
-          // flips it to the other side if the left has no room at all.
-          side="left"
-          align="center"
-          sideOffset={10}
-          // **560px first, the window second.** The panel is a form of seven
-          // fields and it is capped rather than left to grow: two of its blocks
-          // are lists that grow with the business — a price list, and a month —
-          // so uncapped it reached the top and bottom of the screen and stopped
-          // looking like a dialog at all. 560 is a panel; a 900px one is a page
-          // that happens to float. Past that it scrolls inside itself.
-          //
-          // The window's own budget is the *second* limit, for the short screen
-          // where even 560 does not fit.
-          //
-          // **The fallback in that second limit is load-bearing.**
-          // `--radix-popover-content-available-height` is written by the
-          // positioner *after* it has measured, so on the frame the panel first
-          // paints the variable does not exist yet — and an unset variable in
-          // an arbitrary value makes the whole `max-height` invalid, which is
-          // no cap at all. A form of seven fields laid out uncapped is taller
-          // than the window, and the positioner then had to place a box it
-          // could not fit: the top went off the screen and took the heading
-          // with it. `calc(100vh - 92px)` is the same budget written in numbers
-          // that always exist — the 68px page header, the 12px margin, and 12
-          // at the bottom.
-          //
-          // **80px of it at the top: the 68px header plus the usual 12.** The
-          // panel is `z-[60]` and the header `z-40`, so nothing stops it
-          // painting straight over the page title — it has to be told where the
-          // page really begins. Radix takes this as the edge of the space it
-          // may use, so it bounds `--radix-popover-content-available-height`
-          // too: the panel shortens rather than sliding under the bar.
-          collisionPadding={{ top: 80, right: 12, bottom: 12, left: 12 }}
-          // The panel has a heading but no `Dialog.Title` to point at any
-          // more — a popover has no required label of its own, so it is named
-          // here for anyone arriving by screen reader.
-          aria-label={t(
-            editing ? 'appointments.editTitle' : 'appointments.newTitle',
-          )}
-          className={`z-[60] flex max-h-[min(560px,var(--radix-popover-content-available-height,calc(100vh_-_92px)))] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none ${PANEL_MOTION}`}
-        >
+  // The panel's contents, built once and put into whichever shell this
+  // breakpoint calls for. The two shells are genuinely different primitives —
+  // a popover anchored to a control, a dialog anchored to the device — and the
+  // form inside them is the same form; writing it twice is writing two forms
+  // that agree until one of them is edited.
+  const body = (
+    <>
           <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-1.5">
             <p className="font-display text-[17px] font-semibold tracking-[-0.02em] text-ink">
               {t(editing ? 'appointments.editTitle' : 'appointments.newTitle')}
             </p>
-            <Popover.Close asChild>
-              <button
-                type="button"
-                aria-label={t('appointments.close')}
-                className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted outline-none transition-colors hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6 focus-visible:text-ink"
-              >
-                <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
-              </button>
-            </Popover.Close>
+            {/* A plain button rather than `Popover.Close`: the same body is
+                rendered inside a `Dialog` on a phone, and a primitive's own
+                Close only speaks to the primitive it belongs to. `setOpen` is
+                already the one control both shells are driven by. */}
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label={t('appointments.close')}
+              className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted outline-none transition-colors hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6 focus-visible:text-ink"
+            >
+              <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
+            </button>
           </div>
 
           {/* **`pt-1.5`, and it is not decoration.** A field's edge here is a
@@ -669,14 +605,13 @@ export default function BookingPopover({
                 </button>
               )}
 
-              <Popover.Close asChild>
-                <button
-                  type="button"
-                  className="h-10 flex-1 rounded-xl bg-ink/[0.06] px-3 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/12 focus-visible:bg-ink/12"
-                >
-                  {t('appointments.cancel')}
-                </button>
-              </Popover.Close>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="h-10 flex-1 rounded-xl bg-ink/[0.06] px-3 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/12 focus-visible:bg-ink/12"
+              >
+                {t('appointments.cancel')}
+              </button>
 
               <button
                 type="submit"
@@ -687,9 +622,139 @@ export default function BookingPopover({
               </button>
             </div>
           </form>
+    </>
+  )
+
+  return isDesktop ? (
+    // **`modal`, which is what stops the page scrolling underneath.** Radix
+    // locks scroll everywhere outside the panel while it is open — including
+    // the timetable's own scroll box, which is the one that matters: the edit
+    // panel is anchored to a *card inside that box*, so a wheel turn slides its
+    // anchor out from under it and the panel chases the card across the screen.
+    //
+    // It costs the half of "a popover, not a modal" that was about the page
+    // staying usable — outside content is inert while this is open. The other
+    // half is the one that mattered and it is kept: no scrim, so the grid
+    // behind is still legible, which is how you know which day and hour you are
+    // writing for.
+    <Popover.Root open={open} onOpenChange={setOpen} modal>
+      {asAnchor ? (
+        <Popover.Anchor asChild>{children}</Popover.Anchor>
+      ) : (
+        <Popover.Trigger asChild>{children}</Popover.Trigger>
+      )}
+
+      <Popover.Portal>
+        {/* No scrim. The page behind stays readable *and* usable — that is the
+            difference between this and the modal it replaced, and dimming it
+            would take back the only reason to anchor the panel at all. */}
+        <Popover.Content
+          // The date and service fields open their own popovers into portals,
+          // so Escape has to be told which layer it is for: without this a
+          // press meant for an open month would close the whole panel with it.
+          onEscapeKeyDown={(event) => {
+            if (document.querySelector('[data-nested-overlay]')) {
+              event.preventDefault()
+            }
+          }}
+          // **Beside the button, not under it.** Under it there is only the
+          // distance from the toolbar down to the bottom of the window, and a
+          // form of seven fields does not fit in that — the panel arrived
+          // capped, with a scrollbar down its own side. To the left it has the
+          // whole height of the page and opens at its natural size.
+          //
+          // `align="center"` hangs it level with the button; Radix slides it
+          // along that edge if either end would fall off the screen, and only
+          // flips it to the other side if the left has no room at all.
+          side="left"
+          align="center"
+          sideOffset={10}
+          // **560px first, the window second.** The panel is a form of seven
+          // fields and it is capped rather than left to grow: two of its blocks
+          // are lists that grow with the business — a price list, and a month —
+          // so uncapped it reached the top and bottom of the screen and stopped
+          // looking like a dialog at all. 560 is a panel; a 900px one is a page
+          // that happens to float. Past that it scrolls inside itself.
+          //
+          // The window's own budget is the *second* limit, for the short screen
+          // where even 560 does not fit.
+          //
+          // **The fallback in that second limit is load-bearing.**
+          // `--radix-popover-content-available-height` is written by the
+          // positioner *after* it has measured, so on the frame the panel first
+          // paints the variable does not exist yet — and an unset variable in
+          // an arbitrary value makes the whole `max-height` invalid, which is
+          // no cap at all. A form of seven fields laid out uncapped is taller
+          // than the window, and the positioner then had to place a box it
+          // could not fit: the top went off the screen and took the heading
+          // with it. `calc(100vh - 92px)` is the same budget written in numbers
+          // that always exist — the 68px page header, the 12px margin, and 12
+          // at the bottom.
+          //
+          // **80px of it at the top: the 68px header plus the usual 12.** The
+          // panel is `z-[60]` and the header `z-40`, so nothing stops it
+          // painting straight over the page title — it has to be told where the
+          // page really begins. Radix takes this as the edge of the space it
+          // may use, so it bounds `--radix-popover-content-available-height`
+          // too: the panel shortens rather than sliding under the bar.
+          collisionPadding={{ top: 80, right: 12, bottom: 12, left: 12 }}
+          // The panel has a heading but no `Dialog.Title` to point at any
+          // more — a popover has no required label of its own, so it is named
+          // here for anyone arriving by screen reader.
+          aria-label={t(
+            editing ? 'appointments.editTitle' : 'appointments.newTitle',
+          )}
+          className={`z-[60] flex max-h-[min(560px,var(--radix-popover-content-available-height,calc(100vh_-_92px)))] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none ${PANEL_MOTION}`}
+        >
+          {body}
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
+  ) : (
+    /* **On a phone the same form is a sheet that rises from the bottom edge.**
+       A popover is anchored to the control that opened it, which is the right
+       idea on a desktop where the grid behind is why you know which day you are
+       writing for. On a 390pt screen there is no grid behind — the calendar is
+       the screen — and a 400px card floating in the middle of it is a desktop
+       shape in a phone's clothes. Full bleed, arriving from the edge, it reads
+       as somewhere you went.
+
+       **It covers the bottom bar rather than sitting above it**, which is the
+       same call `ProfileDialog` makes: a sideways tap out of a form you opened
+       on purpose is not a way out worth offering. `z-[60]` is what puts it over
+       the nav's `z-50`. */
+    <Dialog.Root open={open} onOpenChange={setOpen}>
+      {asAnchor ? children : <Dialog.Trigger asChild>{children}</Dialog.Trigger>}
+
+      <Dialog.Portal>
+        <Dialog.Overlay
+          className={`fixed inset-0 z-[60] bg-scrim ${SCRIM_MOTION}`}
+        />
+        <Dialog.Content
+          // No description element and none wanted; telling Radix so keeps it
+          // from warning about a missing one.
+          aria-describedby={undefined}
+          onEscapeKeyDown={(event) => {
+            if (document.querySelector('[data-nested-overlay]')) {
+              event.preventDefault()
+            }
+          }}
+          // The insets live on the sheet rather than on the dim behind it:
+          // padding the overlay would leave the status-bar strip showing the
+          // backdrop instead of the sheet's own fill.
+          className={`fixed inset-0 z-[60] flex flex-col overflow-hidden bg-surface pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] outline-none ${SHEET_MOTION}`}
+        >
+          {/* Radix names a dialog from its `Title`. The visible heading inside
+              `body` cannot be one — the same element renders inside a popover on
+              a desktop, where `Dialog.Title` would throw — so the name is given
+              here and hidden. */}
+          <Dialog.Title className="sr-only">
+            {t(editing ? 'appointments.editTitle' : 'appointments.newTitle')}
+          </Dialog.Title>
+          {body}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }
 
