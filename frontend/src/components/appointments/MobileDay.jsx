@@ -371,6 +371,29 @@ export default function MobileDay({
                 </span>
               </div>
             ))}
+
+            {/* **The clock, on the line, in the gutter.** The line alone says
+                *where* now is on the grid and leaves you to work out what time
+                that is by reading the two hour labels it sits between. The pill
+                says it outright, and it belongs in the gutter because that is
+                the column times are written in — put on the grid it would be a
+                label floating over whatever booking happened to be behind it.
+                It follows the line because both are placed from the same
+                minute, and `useNow` ticks that minute.
+
+                Filled rather than coloured text: it sits over the hour label it
+                is nearest to, and two sets of digits an inch apart need one of
+                them to be plainly on top. `text-white` and not `text-surface` —
+                `--now` is a real colour in both themes, so what goes on it does
+                not flip with them. */}
+            {isToday && (
+              <span
+                className="absolute right-1 z-10 -translate-y-1/2 rounded-full bg-now px-1.5 py-0.5 font-display text-[11px] leading-none font-semibold text-white tabular-nums"
+                style={{ top: ((nowMinutes - WINDOW_FROM) / 60) * HOUR_HEIGHT }}
+              >
+                {fromMinutes(nowMinutes)}
+              </span>
+            )}
           </div>
 
           <div className="relative border-l border-line">
@@ -435,7 +458,9 @@ export default function MobileDay({
                   top: ((nowMinutes - WINDOW_FROM) / 60) * HOUR_HEIGHT,
                 }}
               >
-                <span className="-ml-1 h-2 w-2 shrink-0 rounded-full bg-now" />
+                {/* No dot at the head any more: the pill in the gutter is the
+                    head, and a second mark two pixels from it was the same
+                    statement made twice. */}
                 <span className="h-px flex-1 bg-now" />
               </div>
             )}
