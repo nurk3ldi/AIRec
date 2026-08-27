@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   dayKey,
   monthGrid,
@@ -21,9 +21,16 @@ import { useT } from '../../lib/i18n'
  * wait. Scrolling is what a phone does, so the months are laid end to end and
  * you fall through them.
  *
- * The shape is the one every phone calendar has settled on and there is no
- * reason to be different: the month's name, the seven letters, then the weeks,
- * with a rule under each so the eye can travel along a row without drifting.
+ * **The month's name is said twice, at two sizes, and neither repeats the
+ * other.** The big one is fixed above the grid and answers "where am I" — it
+ * never travels and never scrolls away, it simply *changes* as a new month
+ * reaches the top. The small ones live in the flow and answer "where does the
+ * next one begin", which is a different question and belongs where the boundary
+ * actually is. 28 against 17: two steps apart, which the type scale asks for,
+ * since adjacent sizes side by side read as a mistake.
+ *
+ * The first month in the run carries no small heading — there is no boundary
+ * above it to mark, and the big one is already naming it.
  *
  * **A year, not an infinite list.** `MONTHS_BACK` / `MONTHS_FORWARD` bound it,
  * because an endless one needs a windowing scheme to stay cheap and nobody
@@ -41,6 +48,18 @@ import { useT } from '../../lib/i18n'
 const MONTHS_BACK = 1
 const MONTHS_FORWARD = 11
 
+/**
+ * The room kept above the calendar for the controls that will steer it.
+ *
+ * **68px, which is the header's own height** — that is what this screen gave up
+ * when the header was taken off it below `sm`, and what goes here is the same
+ * kind of thing the header held: the controls for the page. Reserving it now
+ * rather than letting the calendar start at the top edge means that the day
+ * those controls arrive, they land in a space that already exists instead of
+ * pushing a year of months down by 68px on the frame they mount.
+ */
+const CONTROLS_HEIGHT = 68
+
 export default function MonthScroller({ value, onChange, className = '' }) {
   const t = useT()
   const today = new Date()
@@ -52,127 +71,182 @@ export default function MonthScroller({ value, onChange, className = '' }) {
     (_, index) => new Date(first.getFullYear(), first.getMonth() + index, 1),
   )
 
+  const scroller = useRef(null)
+  const blocks = useRef([])
+  // Which month the big heading names. It starts on the selection because that
+  // is the month the list opens at — see the effect below — so the two agree on
+  // the first frame instead of the heading correcting itself after it.
+  const [top, setTop] = useState(() => monthIndex(selected))
+
+  /**
+   * Which month is at the top of the scroll box, read on every scroll.
+   *
+   * **From `offsetTop` rather than an `IntersectionObserver`.** The observer
+   * answers "is this on screen", which is not the question: with two months
+   * visible at once both are, and the one that matters is the one whose weeks
+   * the top edge is currently in. That is a comparison against `scrollTop`, and
+   * thirteen of them costs less than the observer's own bookkeeping.
+   *
+   * `+ 1` so a month sitting exactly on the edge counts as arrived rather than
+   * flickering between itself and the one above it on sub-pixel scrolling.
+   */
+  const trackTop = () => {
+    const box = scroller.current
+    if (!box) return
+
+    let found = 0
+    blocks.current.forEach((node, index) => {
+      if (node && node.offsetTop <= box.scrollTop + 1) found = index
+    })
+    const next = monthIndex(months[found])
+    setTop((was) => (was === next ? was : next))
+  }
+
   /**
    * Open on the month in play, without animating there.
    *
-   * `scrollIntoView` rather than arithmetic on `scrollTop`: the months are not
-   * all the same height — a 42-cell grid is, but the headings are not always
-   * one line — so a computed offset would be right for some months and wrong
-   * for the rest.
+   * `scrollIntoView` rather than arithmetic on `scrollTop`: the blocks are not
+   * all the same height — the first one has no heading — so a computed offset
+   * would be right for some and wrong for the rest.
    *
-   * Once per mount, and instant: a calendar that slides on open is a calendar
-   * you have to wait for before you can read it.
+   * Once per mount, and instant: a calendar that slides on open is one you have
+   * to wait for before you can read it. Tapping a day in December must not haul
+   * the list back to August either — which is what the ref guards, rather than
+   * an empty dependency list: `months` is a fresh array every render, so the
+   * honest list is the full one and the ref is what makes it happen once.
    */
-  const current = useRef(null)
+  const opened = useRef(false)
   useEffect(() => {
-    current.current?.scrollIntoView({ block: 'start' })
-    // Deliberately empty: this is where the calendar *opens*, not something
-    // that should chase the selection afterwards. Tapping a day in December
-    // must not haul the list back to August.
-  }, [])
+    if (opened.current) return
+    const index = months.findIndex(
+      (month) => monthIndex(month) === monthIndex(selected),
+    )
+    blocks.current[index < 0 ? MONTHS_BACK : index]?.scrollIntoView({
+      block: 'start',
+    })
+    opened.current = true
+  }, [months, selected])
 
   const letters = weekdayLabels()
+  const heading =
+    months.find((month) => monthIndex(month) === top) ?? selected
 
   return (
-    <section
-      // `overscroll-contain`, so reaching the end of a year does not hand the
-      // scroll to the page behind — which on this screen would be a bounce with
-      // nothing under it, since the page itself never scrolls.
-      className={`overflow-y-auto overscroll-contain ${className}`}
+    <div
+      className={`flex flex-col ${className}`}
       aria-label={t('nav.appointments')}
     >
-      {months.map((month) => (
-        <div
-          key={monthIndex(month)}
-          ref={
-            monthIndex(month) === monthIndex(selected) ? current : undefined
-          }
-          className="pb-6"
-        >
-          {/* Sticky, because a run of months with no anchor is a wall of
-              numbers: scroll far enough and the only thing that says which
-              month you are in has left the screen. Opaque `bg-ground` for the
-              same reason the timetable's day strip is — the rows pass
-              underneath it. */}
-          <div className="sticky top-0 z-10 bg-ground pt-4 pb-2">
-            <h2 className="px-4 font-display text-[26px] font-bold tracking-[-0.02em] text-ink">
-              {monthLabel(month)}
-            </h2>
+      {/* Empty on purpose — see `CONTROLS_HEIGHT`. */}
+      <div style={{ height: CONTROLS_HEIGHT }} className="shrink-0" />
 
-            {/* The seven letters, from `Intl` so they follow the language. */}
-            <div className="mt-2 grid grid-cols-7 border-b border-line px-2 pb-2">
-              {letters.map((letter, index) => (
-                <span
-                  key={letter}
-                  className={`text-center text-[11px] font-medium ${
-                    index >= 5 ? 'text-muted/70' : 'text-muted'
-                  }`}
-                >
-                  {letter}
-                </span>
-              ))}
+      {/* **Fixed, and it changes rather than travelling.** Every month used to
+          carry its own `sticky` heading, so an arriving month pushed the
+          departing one up and off the screen — a piece of motion that says
+          "this label is leaving" about a label that is not going anywhere. One
+          heading in one place, swapping its text, says the same thing without
+          moving: what changed is the month, not where its name lives. */}
+      <h2
+        className="shrink-0 px-4 pb-2 font-display text-[28px] font-bold tracking-[-0.02em] text-ink"
+        aria-live="polite"
+      >
+        {monthLabel(heading)}
+      </h2>
+
+      {/* One row for the whole calendar rather than one per month: the letters
+          do not change from August to September, and a copy above every grid is
+          the same seven characters printed thirteen times. */}
+      <div className="grid shrink-0 grid-cols-7 border-b border-line px-2 pb-2">
+        {letters.map((letter, index) => (
+          <span
+            key={letter}
+            className={`text-center text-[11px] font-medium ${
+              index >= 5 ? 'text-muted/70' : 'text-muted'
+            }`}
+          >
+            {letter}
+          </span>
+        ))}
+      </div>
+
+      <div
+        ref={scroller}
+        onScroll={trackTop}
+        // `overscroll-contain`, so reaching the end of a year does not hand the
+        // scroll to the page behind — which on this screen would be a bounce
+        // with nothing under it, since the page itself never scrolls.
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+      >
+        {months.map((month, index) => (
+          <div
+            key={monthIndex(month)}
+            ref={(node) => {
+              blocks.current[index] = node
+            }}
+          >
+            {index > 0 && (
+              <h3 className="px-4 pt-5 pb-2 font-display text-[17px] font-semibold text-ink">
+                {monthLabel(month)}
+              </h3>
+            )}
+
+            <div className="grid grid-cols-7 px-2">
+              {monthGrid(month).map((day) => {
+                // The 42-cell grid always spills into the months either side —
+                // that is what keeps every month six rows tall. Those days
+                // belong to their own month's block, so here they are blank
+                // space rather than dimmed numbers: a stacked run would
+                // otherwise show the 1st of September twice, once at the foot
+                // of August and once at its own head.
+                if (day.getMonth() !== month.getMonth())
+                  return <span key={dayKey(day)} className="h-12" />
+
+                const isToday = sameDay(day, today)
+                const isSelected = sameDay(day, selected)
+                const weekend = day.getDay() === 0 || day.getDay() === 6
+
+                return (
+                  <button
+                    key={dayKey(day)}
+                    type="button"
+                    onClick={() => onChange?.(day)}
+                    aria-pressed={isSelected}
+                    aria-current={isToday ? 'date' : undefined}
+                    aria-label={day.toLocaleDateString(undefined, {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                    className="grid h-12 place-items-center outline-none"
+                  >
+                    {/* **The mark is a circle behind the number, not a change
+                        of colour on it.** A phone is read at arm's length and
+                        in sunlight, where two greys are one grey — a filled
+                        shape survives both. 36px, the square every other
+                        control on this screen is.
+
+                        `--now` for the selection and `surface-chip` for today,
+                        the same two marks the desktop calendar uses: they are
+                        the same statement said on two screens. */}
+                    <span
+                      className={`grid h-9 w-9 place-items-center rounded-full font-display text-[17px] transition-colors ${
+                        isSelected
+                          ? 'bg-now font-semibold text-white'
+                          : isToday
+                            ? 'bg-surface-chip font-semibold text-ink'
+                            : weekend
+                              ? 'font-medium text-muted'
+                              : 'font-medium text-ink'
+                      }`}
+                    >
+                      {day.getDate()}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           </div>
-
-          <div className="grid grid-cols-7 px-2">
-            {monthGrid(month).map((day) => {
-              // The 42-cell grid always spills into the months either side —
-              // that is what keeps every month six rows tall. Those days belong
-              // to their own month's block, so here they are drawn as blank
-              // space rather than as dimmed numbers: a run of stacked months
-              // would otherwise show the 1st of September twice, once at the
-              // foot of August and once at its own head.
-              const outside = day.getMonth() !== month.getMonth()
-              if (outside) return <span key={dayKey(day)} className="h-12" />
-
-              const isToday = sameDay(day, today)
-              const isSelected = sameDay(day, selected)
-              const weekend = day.getDay() === 0 || day.getDay() === 6
-
-              return (
-                <button
-                  key={dayKey(day)}
-                  type="button"
-                  onClick={() => onChange?.(day)}
-                  aria-pressed={isSelected}
-                  aria-current={isToday ? 'date' : undefined}
-                  aria-label={day.toLocaleDateString(undefined, {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                  className="grid h-12 place-items-center outline-none"
-                >
-                  {/* **The mark is a circle behind the number, not a change of
-                      colour on it.** A phone is read at arm's length and in
-                      sunlight, where two greys are one grey — a filled shape
-                      survives both. 36px, the square every other control on
-                      this screen is.
-
-                      `--now` for the selection, the same orange the desktop
-                      calendar marks the day in play with; today when it is not
-                      the selection takes the chip grey, exactly as there. The
-                      two agree because they are the same statement said on two
-                      screens. */}
-                  <span
-                    className={`grid h-9 w-9 place-items-center rounded-full font-display text-[17px] transition-colors ${
-                      isSelected
-                        ? 'bg-now font-semibold text-white'
-                        : isToday
-                          ? 'bg-surface-chip font-semibold text-ink'
-                          : weekend
-                            ? 'font-medium text-muted'
-                            : 'font-medium text-ink'
-                    }`}
-                  >
-                    {day.getDate()}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      ))}
-    </section>
+        ))}
+      </div>
+    </div>
   )
 }
