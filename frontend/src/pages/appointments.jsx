@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import MonthCalendar from '../components/appointments/MonthCalendar'
+import MonthScroller from '../components/appointments/MonthScroller'
 import ChatFeed from '../components/appointments/ChatFeed'
 import NowCard from '../components/appointments/NowCard'
 import FreeSlotCard from '../components/appointments/FreeSlotCard'
@@ -217,7 +218,17 @@ export default function AppointmentsPage() {
 
           It is not a card either: its top rule is a horizontal line beginning
           exactly where the rail's vertical one ends. */}
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-end">
+      {/* **Everything but the calendar is `hidden sm:flex`.** On a phone this
+          screen is the calendar and nothing else — see `MonthScroller`. The
+          three cards, the timetable and the chat feed are all built for a
+          screen you can put two columns on; stacked into 390 points they were
+          six regions fighting over one viewport that is not allowed to scroll.
+
+          Hidden rather than unmounted, exactly as `/profile`'s header is: the
+          breakpoint decides what is drawn, and a component that is torn down
+          and rebuilt at 640px is one whose clocks restart and whose scroll
+          position is lost every time the window is dragged. */}
+      <div className="hidden min-h-0 min-w-0 flex-1 flex-col justify-end sm:flex">
         {/* **Three cards, empty, and edgeless.** They hold the 35% above the
             grid — see the note on `justify-end`. Empty because what goes in
             them is not decided; drawn anyway because the shape of the row is,
@@ -299,7 +310,18 @@ export default function AppointmentsPage() {
           unfinished: the page does not scroll, so on a narrow screen the
           calendar is below the fold rather than reachable. A small-screen
           layout is still to be designed — see the note on the page element. */}
-      <aside className="flex min-h-[300px] w-full shrink-0 flex-col gap-4 border-t border-line p-4 xl:min-h-0 xl:w-[calc(300px+2rem)] xl:border-t-0 xl:border-l">
+      {/* The phone's whole screen. `min-h-0` beside `flex-1` is what lets it
+          scroll inside the page rather than growing it: this page has a
+          *definite* height and `overflow-hidden`, so a child that will not
+          shrink below its content puts a year of months where there is nowhere
+          to put them. */}
+      <MonthScroller
+        value={selected}
+        onChange={setSelected}
+        className="min-h-0 flex-1 sm:hidden"
+      />
+
+      <aside className="hidden min-h-[300px] w-full shrink-0 flex-col gap-4 border-t border-line p-4 sm:flex xl:min-h-0 xl:w-[calc(300px+2rem)] xl:border-t-0 xl:border-l">
         <div className="shrink-0">
           <MonthCalendar value={selected} onChange={setSelected} />
         </div>
