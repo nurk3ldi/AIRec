@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import * as Dialog from '@radix-ui/react-dialog'
 import * as Select from '@radix-ui/react-select'
@@ -100,6 +100,62 @@ export default function BookingPopover({
   // two are different primitives, not one styled two ways, so the breakpoint
   // has to be readable in JS — the one case `lib/media` exists for.
   const isDesktop = useMediaQuery('(min-width: 640px)')
+
+  // **A handle on the form, so a button outside it can submit it.** On a phone
+  // «Сохранить» lives in the sheet's top bar, which is a sibling of the form
+  // rather than a child — `form={id}` is the only thing that reaches across
+  // that, and `useId` is what keeps it unique when three of these are mounted
+  // at once behind the grid's cards.
+  const formId = useId()
+
+  /**
+   * Pulling the sheet down to dismiss it.
+   *
+   * **Pointer events and an inline transform, not a drag library.** What this
+   * has to do is follow a finger and decide once at the end; Motion would bring
+   * `AnimatePresence` and `forceMount` with it, which is a different animation
+   * scheme from the one every other panel here already rides.
+   *
+   * **The grip is the top bar, not the whole sheet.** The form under it scrolls,
+   * and a sheet that also drags from its body is a sheet that closes when
+   * somebody meant to scroll to the phone field. That is what the bar being a
+   * fixed row above a scrolling form is *for*, and it is how a phone sheet with
+   * scrollable content behaves everywhere else.
+   *
+   * Downwards only: `Math.max(0, …)` — pulling up would open nothing, since the
+   * sheet is already at its full height.
+   *
+   * **120px is a decision, not a twitch.** Below it the sheet springs back, so
+   * a stray drag on the way to a button costs nothing; the transition is on
+   * only while nothing is held, which is what keeps the follow exact and the
+   * release smooth.
+   */
+  const grabbed = useRef(null)
+  const [pulled, setPulled] = useState(0)
+
+  const startDrag = (event) => {
+    // **A press that lands on a button is not a drag.** The bar carries the
+    // close and the save, and capturing the pointer for the whole row would
+    // move the pointer stream to the row — so the press would end somewhere the
+    // button never sees and the tap would be swallowed. The grip is the bar
+    // *between* them.
+    if (event.target.closest('button')) return
+    grabbed.current = event.clientY
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+  }
+
+  const onDrag = (event) => {
+    if (grabbed.current === null) return
+    setPulled(Math.max(0, event.clientY - grabbed.current))
+  }
+
+  const endDrag = (event) => {
+    if (grabbed.current === null) return
+    const distance = event.clientY - grabbed.current
+    grabbed.current = null
+    setPulled(0)
+    if (distance > 120) setOpen(false)
+  }
 
   const [selfOpen, setSelfOpen] = useState(false)
   const open = openProp ?? selfOpen
@@ -358,25 +414,78 @@ export default function BookingPopover({
   // a popover anchored to a control, a dialog anchored to the device — and the
   // form inside them is the same form; writing it twice is writing two forms
   // that agree until one of them is edited.
+  /**
+   * The bar above the form, and it is a different bar in each shell.
+   *
+   * **On a desktop the title leads and the x closes** — the shape a panel on a
+   * page has, where the heading is the first thing read and the dismiss is a
+   * small thing in a corner.
+   *
+   * **On a phone the bar *is* the controls.** Close on the left, the title
+   * centred, save on the right: three fixed positions a thumb learns once, with
+   * the two actions at the edges where a hand already is. That is also why the
+   * form's own buttons are gone below — the same two decisions said twice on
+   * one screen is a screen asking the same question at both ends of itself.
+   *
+   * A plain button rather than `Popover.Close` in either: a primitive's own
+   * Close only speaks to the primitive it belongs to, and `setOpen` is the one
+   * control both shells already run on.
+   */
+  const title = t(editing ? 'appointments.editTitle' : 'appointments.newTitle')
+
+  const header = isDesktop ? (
+    <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-1.5">
+      <p className="font-display text-[17px] font-semibold tracking-[-0.02em] text-ink">
+        {title}
+      </p>
+      <button
+        type="button"
+        onClick={() => setOpen(false)}
+        aria-label={t('appointments.close')}
+        className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted outline-none transition-colors hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6 focus-visible:text-ink"
+      >
+        <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
+      </button>
+    </div>
+  ) : (
+    <div
+      // **The bar is also the sheet's handle** — see `startDrag`. `touch-none`
+      // so a downward drag on it belongs to the sheet rather than to the page;
+      // the two buttons inside still take their taps, which are not drags.
+      onPointerDown={startDrag}
+      onPointerMove={onDrag}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      className="flex shrink-0 touch-none items-center justify-between gap-2 px-3 pt-3 pb-2"
+    >
+      <button
+        type="button"
+        onClick={() => setOpen(false)}
+        aria-label={t('appointments.cancel')}
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-ink outline-none transition-colors hover:bg-ink/8 focus-visible:bg-ink/8"
+      >
+        <HugeiconsIcon icon={Cancel01Icon} size={20} strokeWidth={2} />
+      </button>
+
+      <p className="min-w-0 truncate font-display text-[17px] font-semibold tracking-[-0.02em] text-ink">
+        {title}
+      </p>
+
+      {/* `form={formId}`, because this sits outside the form it submits. */}
+      <button
+        type="submit"
+        form={formId}
+        disabled={saving}
+        aria-label={t('appointments.save')}
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-chip text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <HugeiconsIcon icon={Tick02Icon} size={20} strokeWidth={2.4} />
+      </button>
+    </div>
+  )
+
   const body = (
     <>
-          <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-5 pb-1.5">
-            <p className="font-display text-[17px] font-semibold tracking-[-0.02em] text-ink">
-              {t(editing ? 'appointments.editTitle' : 'appointments.newTitle')}
-            </p>
-            {/* A plain button rather than `Popover.Close`: the same body is
-                rendered inside a `Dialog` on a phone, and a primitive's own
-                Close only speaks to the primitive it belongs to. `setOpen` is
-                already the one control both shells are driven by. */}
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label={t('appointments.close')}
-              className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted outline-none transition-colors hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6 focus-visible:text-ink"
-            >
-              <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
-            </button>
-          </div>
 
           {/* **`pt-1.5`, and it is not decoration.** A field's edge here is a
               `box-shadow` rather than a border — see `controls.js` — so it sits
@@ -388,6 +497,7 @@ export default function BookingPopover({
               back from its own `pb`, so the gap between title and first field
               is what it always was. */}
           <form
+            id={formId}
             onSubmit={submit}
             className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-1.5 pb-6"
           >
@@ -605,21 +715,31 @@ export default function BookingPopover({
                 </button>
               )}
 
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="h-10 flex-1 rounded-xl bg-ink/[0.06] px-3 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/12 focus-visible:bg-ink/12"
-              >
-                {t('appointments.cancel')}
-              </button>
+              {/* **Desktop only.** On a phone the same two decisions sit in
+                  the sheet's top bar, and saying them twice on one screen is
+                  asking the same question at both ends of it. Delete stays in
+                  both, because it is not one of those two — it is the third
+                  thing, and it belongs beside the booking rather than in a bar
+                  with the way out. */}
+              {isDesktop && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setOpen(false)}
+                    className="h-10 flex-1 rounded-xl bg-ink/[0.06] px-3 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/12 focus-visible:bg-ink/12"
+                  >
+                    {t('appointments.cancel')}
+                  </button>
 
-              <button
-                type="submit"
-                disabled={saving}
-                className="h-10 flex-1 rounded-xl bg-surface-chip px-3 text-[14px] font-semibold text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {saving ? t('appointments.saving') : t('appointments.save')}
-              </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="h-10 flex-1 rounded-xl bg-surface-chip px-3 text-[14px] font-semibold text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {saving ? t('appointments.saving') : t('appointments.save')}
+                  </button>
+                </>
+              )}
             </div>
           </form>
     </>
@@ -706,6 +826,7 @@ export default function BookingPopover({
           )}
           className={`z-[60] flex max-h-[min(560px,var(--radix-popover-content-available-height,calc(100vh_-_92px)))] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none ${PANEL_MOTION}`}
         >
+          {header}
           {body}
         </Popover.Content>
       </Popover.Portal>
@@ -739,18 +860,34 @@ export default function BookingPopover({
               event.preventDefault()
             }
           }}
-          // The insets live on the sheet rather than on the dim behind it:
-          // padding the overlay would leave the status-bar strip showing the
-          // backdrop instead of the sheet's own fill.
-          className={`fixed inset-0 z-[60] flex flex-col overflow-hidden bg-surface pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] outline-none ${SHEET_MOTION}`}
+          // **90% of the viewport, held to the bottom edge, with the corners
+          // rounded on the top two.** Not the whole screen: the strip of page
+          // left showing above it is what says this is a layer over the
+          // calendar rather than a new screen — and it is somewhere to tap to
+          // get out. `dvh` rather than `vh` so the browser's own bar shrinking
+          // does not leave the sheet standing 10% short of where it should be.
+          //
+          // The bottom inset lives on the sheet rather than on the dim behind
+          // it: padding the overlay would leave the strip showing the backdrop
+          // instead of the sheet's own fill. The top inset is gone with the
+          // full-bleed height that needed it.
+          style={{
+            transform: pulled ? `translateY(${pulled}px)` : undefined,
+            // On only while nothing is held: during a drag the sheet has to
+            // track the finger exactly, and a transition there would make it
+            // lag behind by its own duration.
+            transition: grabbed.current
+              ? 'none'
+              : 'transform 260ms cubic-bezier(0.32, 0.72, 0, 1)',
+          }}
+          className={`fixed inset-x-0 bottom-0 z-[60] flex h-[90dvh] flex-col overflow-hidden rounded-t-2xl bg-surface pb-[env(safe-area-inset-bottom)] outline-none ${SHEET_MOTION}`}
         >
           {/* Radix names a dialog from its `Title`. The visible heading inside
               `body` cannot be one — the same element renders inside a popover on
               a desktop, where `Dialog.Title` would throw — so the name is given
               here and hidden. */}
-          <Dialog.Title className="sr-only">
-            {t(editing ? 'appointments.editTitle' : 'appointments.newTitle')}
-          </Dialog.Title>
+          <Dialog.Title className="sr-only">{title}</Dialog.Title>
+          {header}
           {body}
         </Dialog.Content>
       </Dialog.Portal>
