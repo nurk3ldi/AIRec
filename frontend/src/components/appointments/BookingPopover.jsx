@@ -456,13 +456,26 @@ export default function BookingPopover({
       onPointerMove={onDrag}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
-      className="flex shrink-0 touch-none items-center justify-between gap-2 px-3 pt-3 pb-2"
+      // **`px-6`, the form's own padding.** The two buttons are the widest
+      // things in this row, so their outer edges are what the eye lines the bar
+      // up by — and the thing below them to line up with is the edge of the
+      // fields, not the edge of the screen. At `px-3` they overhung it by
+      // twelve pixels, which reads as the bar being a different width from the
+      // form rather than as a deliberate outdent.
+      className="flex shrink-0 touch-none items-center justify-between gap-2 px-6 pt-3 pb-2"
     >
       <button
         type="button"
         onClick={() => setOpen(false)}
         aria-label={t('appointments.cancel')}
-        className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-ink outline-none transition-colors hover:bg-ink/8 focus-visible:bg-ink/8"
+        // **A fill at rest, not only under a finger.** Both ends of this bar
+        // are controls and they should read as a pair; a bare glyph beside a
+        // filled circle reads as one button and one label. `ink/8` rather than
+        // `surface-chip`, which is what the save wears: this is the way out,
+        // not the thing to press, so it is a step quieter — and unlike
+        // `surface-chip` an ink tint is visible on both themes here, where the
+        // sheet is white on one and black on the other.
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink/8 text-ink outline-none transition-colors hover:bg-ink/14 focus-visible:bg-ink/14"
       >
         <HugeiconsIcon icon={Cancel01Icon} size={20} strokeWidth={2} />
       </button>
@@ -526,7 +539,7 @@ export default function BookingPopover({
               />
             </Group>
 
-            <Group error={fields.price}>
+            <Group error={fields.price} apart>
               {/* Digits only, and no thousands separators while it is being
                   typed: a field that reformats under the caret is a field that
                   moves the caret. The list above shows the formatted figure,
@@ -574,7 +587,7 @@ export default function BookingPopover({
               />
             </Group>
 
-            <Group error={fields.time ?? fields.starts_at}>
+            <Group error={fields.time ?? fields.starts_at} apart>
               <div className="flex items-center gap-2">
                 <TimeField
                   value={startsAt}
@@ -652,7 +665,7 @@ export default function BookingPopover({
               <textarea
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
-                rows={2}
+                rows={4}
                 placeholder={t('appointments.note')}
                 className={`${FIELD} h-auto resize-none py-2 text-[14px] leading-snug`}
               />
@@ -860,12 +873,18 @@ export default function BookingPopover({
               event.preventDefault()
             }
           }}
-          // **90% of the viewport, held to the bottom edge, with the corners
-          // rounded on the top two.** Not the whole screen: the strip of page
-          // left showing above it is what says this is a layer over the
-          // calendar rather than a new screen — and it is somewhere to tap to
-          // get out. `dvh` rather than `vh` so the browser's own bar shrinking
-          // does not leave the sheet standing 10% short of where it should be.
+          // **Up to the indicators, with the top two corners rounded.** It was
+          // 90% of the viewport, which is a proportion rather than a place: on
+          // a tall phone it left a band of page showing that had nothing in it,
+          // and on a short one it ate the form. `top` and `bottom` instead, so
+          // the sheet is defined by where it *stops* — twelve pixels clear of
+          // the status bar, which is enough for the radius to be seen and to
+          // leave somewhere to tap out, and no more.
+          //
+          // `env(safe-area-inset-top)` is added rather than assumed: it is 0 in
+          // a browser tab, where the status bar is the browser's own chrome and
+          // outside the viewport already, and the notch's height once this is
+          // installed to a home screen.
           //
           // The bottom inset lives on the sheet rather than on the dim behind
           // it: padding the overlay would leave the strip showing the backdrop
@@ -880,7 +899,7 @@ export default function BookingPopover({
               ? 'none'
               : 'transform 260ms cubic-bezier(0.32, 0.72, 0, 1)',
           }}
-          className={`fixed inset-x-0 bottom-0 z-[60] flex h-[90dvh] flex-col overflow-hidden rounded-t-2xl bg-surface pb-[env(safe-area-inset-bottom)] outline-none ${SHEET_MOTION}`}
+          className={`fixed inset-x-0 bottom-0 z-[60] flex flex-col overflow-hidden rounded-t-2xl bg-surface pb-[env(safe-area-inset-bottom)] outline-none top-[calc(12px+env(safe-area-inset-top))] ${SHEET_MOTION}`}
         >
           {/* Radix names a dialog from its `Title`. The visible heading inside
               `body` cannot be one — the same element renders inside a popover on
@@ -1008,6 +1027,13 @@ const STATUS_KEYS = {
 /**
  * A field and, under it, whatever is wrong with it.
  *
+ * **`apart` is what splits the form into three ideas rather than eight rows.**
+ * Twelve pixels between every field makes a list; twenty-four at two of those
+ * eight boundaries makes three blocks — what is being sold, when it happens,
+ * who it is for — and a reader finds a field by remembering which block it was
+ * in rather than by counting down the column. The two boundaries are after the
+ * price and after the times, which is where the subject actually changes.
+ *
  * **It used to carry a label above the control; the placeholder carries it
  * now.** Seven uppercase captions down a 400px panel was a second column of
  * text to read past, and each one repeated a word the empty field could say
@@ -1019,9 +1045,13 @@ const STATUS_KEYS = {
  * panel — seven fields in a fixed order that anyone adding a booking fills in
  * every day — and would not be on a form somebody meets once.
  */
-function Group({ error, children }) {
+function Group({ error, apart = false, children }) {
   return (
-    <div className="mb-3">
+    // **One class or the other, never both.** `mb-3 mb-6` in one string is two
+    // utilities of the same property, and which one wins is decided by their
+    // order in the generated stylesheet rather than by the order they are
+    // written in — a ternary is the version that says what it means.
+    <div className={apart ? 'mb-6' : 'mb-3'}>
       {children}
       {error && <p className="mt-1 text-[12px] text-danger">{error}</p>}
     </div>
