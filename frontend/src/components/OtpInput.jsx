@@ -67,7 +67,10 @@ export default function OtpInput({ value, onChange, hasError, autoFocus }) {
           // as the same kind of object — resting, hover, focus with a halo. The
           // edge is a `box-shadow`, so focus thickens it without the box
           // growing and shunting the other five along the row.
-          className={`h-12 w-12 rounded-md bg-surface text-center text-[20px] font-semibold text-ink outline-none transition-all duration-150 ${
+          // The ring is the only thing that moves, so it is the only thing named
+          // — `transition-all` here put every other property on the transition
+          // for nothing.
+          className={`h-12 w-12 rounded-md bg-surface text-center text-[20px] font-semibold text-ink outline-none transition-shadow duration-150 ${
             hasError
               ? 'shadow-[0_0_0_1px_var(--color-danger)] focus:shadow-[0_0_0_1px_var(--color-danger),0_0_0_4px_var(--color-field-halo)]'
               : 'shadow-[0_0_0_1px_var(--color-field)] hover:shadow-[0_0_0_1px_var(--color-field-hover)] focus:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)]'

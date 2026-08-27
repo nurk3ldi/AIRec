@@ -169,7 +169,7 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={remember}
                   onChange={(event) => setRemember(event.target.checked)}
-                  className="peer h-full w-full cursor-pointer appearance-none rounded-[4px] bg-surface shadow-[0_0_0_1px_var(--color-field-hover)] transition-all checked:bg-accent checked:shadow-none focus-visible:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)]"
+                  className="peer h-full w-full cursor-pointer appearance-none rounded-[4px] bg-surface shadow-[0_0_0_1px_var(--color-field-hover)] transition-[background-color,box-shadow] duration-150 checked:bg-accent checked:shadow-none focus-visible:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)]"
                 />
                 <span className="pointer-events-none absolute inset-0 grid place-items-center text-surface opacity-0 transition-opacity peer-checked:opacity-100">
                   <HugeiconsIcon

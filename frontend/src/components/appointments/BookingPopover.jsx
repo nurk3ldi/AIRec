@@ -14,6 +14,7 @@ import {
   updateAppointment,
 } from '../../lib/api'
 import { authed } from '../../lib/auth'
+import { haptic } from '../../lib/haptics'
 import {
   BOOKING_STATES,
   fromMinutes,
@@ -305,6 +306,14 @@ export default function BookingPopover({
           ? updateAppointment(token, booking.id, body)
           : createAppointment(token, body),
       )
+      // **The one place in this app that confirms with the hand.** A booking
+      // written down is the thing the whole product exists to produce, and it
+      // is committed on a phone with the hand already on the glass. It fires
+      // here, on the success itself, rather than from an effect watching state
+      // — a buzz a frame or two behind its cause reads as a second event.
+      // Silent on an iPhone and on a desktop; the panel closing is what says it
+      // worked on those, and that has to be enough on its own.
+      haptic('commit')
       onSaved?.()
       setOpen(false)
     } catch (err) {

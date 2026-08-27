@@ -201,7 +201,10 @@ function SearchRow({ block, services, week, timeZone, onSaved }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`w-full rounded-xl bg-surface-card px-3 py-2.5 text-left outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85 ${
+        // `active:` as well as `hover:` — the hover variant compiles inside
+        // `@media (hover: hover)` and so never runs on the phone this screen
+        // exists for, leaving the row with no answer to a finger at all.
+        className={`w-full rounded-xl bg-surface-card px-3 py-2.5 text-left outline-none transition-[opacity,scale] duration-[160ms] ease-out hover:opacity-85 focus-visible:opacity-85 active:scale-[0.97] ${
           state === 'cancelled' ? 'opacity-45' : ''
         }`}
       >

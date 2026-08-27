@@ -76,6 +76,14 @@ export default function Sidebar({ user = null, isMenuOpen, onToggleMenu }) {
                 {/* Above the marker: an absolutely positioned sibling paints over
                     static content whatever the DOM order, so the icon needs its
                     own stacking context or the blue square swallows it. */}
+                {/* **The tooltips appear instantly, with no transition and no
+                    4px slide.** These four are the app's own navigation — they
+                    are pointed at tens of times a day, and an animation on
+                    something seen that often is a small wait paid over and
+                    over. It was `transition-all` besides, which put a slide and
+                    a fade on the one label whose whole job is to be read the
+                    moment the cursor arrives. Instant is what a tooltip is
+                    supposed to be. */}
                 <span className="relative z-10 grid place-items-center">
                   <HugeiconsIcon
                     icon={item.icon}
@@ -85,7 +93,7 @@ export default function Sidebar({ user = null, isMenuOpen, onToggleMenu }) {
                     strokeWidth={2.15}
                   />
                 </span>
-                <span className="pointer-events-none absolute left-[46px] z-50 whitespace-nowrap rounded-md bg-ink px-2.5 py-1.5 font-sans text-[11px] font-medium text-surface opacity-0 shadow-xl transition-all duration-150 group-hover:translate-x-1 group-hover:opacity-100">
+                <span className="pointer-events-none absolute left-[46px] z-50 whitespace-nowrap rounded-md bg-ink px-2.5 py-1.5 font-sans text-[11px] font-medium text-surface opacity-0 shadow-xl group-hover:opacity-100">
                   {t(item.labelKey)}
                 </span>
               </Link>
@@ -109,7 +117,7 @@ export default function Sidebar({ user = null, isMenuOpen, onToggleMenu }) {
           {/* Hidden while the menu is open — the panel already names everything
               it points at, so the tooltip would just overlap it. */}
           {!isMenuOpen && (
-            <span className="pointer-events-none absolute left-[46px] z-50 whitespace-nowrap rounded-md bg-ink px-2.5 py-1.5 font-sans text-[11px] font-medium text-surface opacity-0 shadow-xl transition-all duration-150 group-hover:translate-x-1 group-hover:opacity-100">
+            <span className="pointer-events-none absolute left-[46px] z-50 whitespace-nowrap rounded-md bg-ink px-2.5 py-1.5 font-sans text-[11px] font-medium text-surface opacity-0 shadow-xl group-hover:opacity-100">
               {t('nav.profile')}
             </span>
           )}

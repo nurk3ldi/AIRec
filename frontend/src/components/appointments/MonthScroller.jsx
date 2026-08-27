@@ -224,7 +224,10 @@ export default function MonthScroller({
                       month: 'long',
                       year: 'numeric',
                     })}
-                    className="grid h-12 place-items-center outline-none"
+                    // The press state, on the button rather than on the circle
+                    // inside it: the circle animates its own fill, and two
+                    // owners of one transition is one of them lost.
+                    className="grid h-12 place-items-center outline-none transition-transform duration-[160ms] ease-out active:scale-[0.95]"
                   >
                     {/* **The mark is a circle behind the number, not a change
                         of colour on it.** A phone is read at arm's length and

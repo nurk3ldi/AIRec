@@ -196,7 +196,9 @@ function ToolButton({ icon, label, ...rest }) {
     <button
       type="button"
       aria-label={label}
-      className="grid h-10 w-10 place-items-center rounded-full text-ink outline-none transition-colors hover:bg-ink/8 focus-visible:bg-ink/8"
+      // A deeper dip than the rows get: 0.97 of a 40px circle is under a pixel,
+      // which is a press state you can measure and cannot see.
+      className="grid h-10 w-10 place-items-center rounded-full text-ink outline-none transition-[background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.95]"
       {...rest}
     >
       <HugeiconsIcon

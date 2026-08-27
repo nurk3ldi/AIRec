@@ -362,6 +362,38 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* **The two themes cross over instead of cutting.**
+   Every colour in this app is a token, so flipping `data-theme` repaints the
+   whole screen between white and pure black on one frame. That is the abrupt
+   brightness jump accessibility guidance names by itself, and at full-viewport
+   scale it is the one moment in this product that is uncomfortable rather than
+   merely sudden.
+
+   **Unlayered, and that is the point rather than an oversight.** The note at
+   the top of this file is right that an unlayered rule outranks every Tailwind
+   utility — which is exactly what is wanted here, because `transition-colors`
+   sits on about a hundred elements and each would otherwise keep its own 150ms
+   during the switch. The blast radius is bounded by the attribute: `theme.js`
+   puts `data-theme-switching` on for 200ms and takes it off again, so outside
+   that window not one of these declarations exists.
+
+   **Colour only.** No `transform`, no `opacity`, no size — nothing moves, which
+   is what makes this the gentlest kind of transition and why it is safe to
+   apply to every element at once. Reduced motion never sees it at all;
+   `theme.js` declines to arm the attribute in the first place. */
+:root[data-theme-switching],
+:root[data-theme-switching] *,
+:root[data-theme-switching] *::before,
+:root[data-theme-switching] *::after {
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease,
+    fill 200ms ease,
+    stroke 200ms ease,
+    box-shadow 200ms ease;
+}
+
 ::selection {
   /* Follows the theme rather than a fixed colour: on a light page the highlight
      is ink with the surface showing through the letters, and on a dark one the
@@ -409,9 +441,20 @@ a {
   }
 }
 
+/* **It leaves from wherever the finger left it.** `--sheet-pulled` is written
+   by `Sheet.jsx` at the moment of release; without it the `from` was a hard
+   `translateY(0)`, so a sheet dragged 130px down snapped back to the top and
+   only *then* slid away — a jump at the exact instant the eye is on it. An
+   animation must start from the value that is on screen, never from the one
+   the model says it should be at.
+
+   The `0px` fallback is for the three dismissals that are not a drag — the
+   close button, Escape, a tap on the scrim — and **the unit is load-bearing**:
+   `var(--sheet-pulled, 0)` would resolve to `translateY(0)` with no unit, which
+   is invalid and drops the whole declaration. */
 @keyframes sheet-out {
   from {
-    transform: translateY(0);
+    transform: translateY(var(--sheet-pulled, 0px));
   }
   to {
     transform: translateY(100%);

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, m, useReducedMotion } from 'motion/react'
 import * as Popover from '@radix-ui/react-popover'
 import { HugeiconsIcon } from '@hugeicons/react'
@@ -193,6 +193,19 @@ export default function Timetable({
   // changed; a week that slides in from the right says you went *forward*,
   // which is the whole of what the two arrows mean.
   const [direction, setDirection] = useState(0)
+  /**
+   * *Why* the days on screen changed, which is what decides how they arrive.
+   *
+   * An arrow is a **direction**: the week travelled, so the columns come in from
+   * the side it came from. The day/week switch is not — nothing travelled, the
+   * grid simply became a different shape — so its columns fade in place, which
+   * is the honest description of what happened and the reason a slide would be
+   * wrong here rather than merely different.
+   *
+   * `null` on first mount, so arriving at the page animates nothing: that is
+   * `PageTransition`'s job, and a second fade underneath it reads as a stutter.
+   */
+  const [entrance, setEntrance] = useState(null)
   const reduce = useReducedMotion()
 
   const step = VIEWS.find((item) => item.id === view)?.step ?? 'week'
@@ -308,32 +321,56 @@ export default function Timetable({
    */
   const [columnWidth, setColumnWidth] = useState(LANE_WIDTH)
 
-  useEffect(() => {
+  /**
+   * True while the pull's 300ms height transition is in flight.
+   *
+   * **This is what stops the grid stretching every time it is raised.** The
+   * observer below watches the scroll box, and the box's height changes on
+   * every frame of that transition — so `measure` ran about eighteen times per
+   * pull, each with a height on its way somewhere else, re-rendering every
+   * booking, closed span, hour row and the now-line with a new pixel size each
+   * time. What you saw was the hours stretching and then settling, which is the
+   * opposite of what raising the grid is for.
+   *
+   * `GRID_SHARE` exists precisely so that the measured hour is the *same* in
+   * both states — the collapsed box is 65% of the region and the raised one is
+   * divided by 0.65 again — so the correct behaviour is for `rowHeight` not to
+   * move at all across a toggle. Holding the observer off and measuring once
+   * when the transition lands is how that becomes true.
+   */
+  const settling = useRef(false)
+
+  const measure = useCallback(() => {
     const box = scroller.current
     if (!box) return
-
-    const measure = () => {
-      const head = heading.current?.offsetHeight ?? 0
-      const usable = box.clientHeight - head
-      // The gutter is a fixed track and is not one of the days.
-      const columns = (box.clientWidth - 56) / Math.max(days.length, 1)
-      if (columns > 0) setColumnWidth(columns)
-      // Against the *collapsed* height, never the current one — see the note
-      // on `GRID_SHARE`. Raised, the box is bigger and the hour is not, so what
-      // the extra room buys is more of the day rather than a taller morning.
-      const collapsed = expanded ? usable * GRID_SHARE : usable
-      if (collapsed > 0) setRowHeight(collapsed / HOURS_ON_SCREEN)
-    }
-
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(box)
-    return () => observer.disconnect()
-    // Re-measured when the grid is raised or lowered: the share it is taken
+    const head = heading.current?.offsetHeight ?? 0
+    const usable = box.clientHeight - head
+    // The gutter is a fixed track and is not one of the days.
+    const columns = (box.clientWidth - 56) / Math.max(days.length, 1)
+    if (columns > 0) setColumnWidth(columns)
+    // Against the *collapsed* height, never the current one — see the note
+    // on `GRID_SHARE`. Raised, the box is bigger and the hour is not, so what
+    // the extra room buys is more of the day rather than a taller morning.
+    const collapsed = expanded ? usable * GRID_SHARE : usable
+    if (collapsed > 0) setRowHeight(collapsed / HOURS_ON_SCREEN)
+    // Re-made when the grid is raised or lowered: the share it is taken
     // against has changed, and the observer alone would not know that. And on
     // a view switch, because one day and five split the same box very
     // differently and the observer sees no resize when only the count changes.
   }, [expanded, days.length])
+
+  useEffect(() => {
+    const box = scroller.current
+    if (!box) return
+
+    if (!settling.current) measure()
+    const observer = new ResizeObserver(() => {
+      if (settling.current) return
+      measure()
+    })
+    observer.observe(box)
+    return () => observer.disconnect()
+  }, [measure])
 
   /**
    * What a day column actually draws: single cards, and clusters gathered into
@@ -451,6 +488,16 @@ export default function Timetable({
       className={`flex min-h-0 flex-col transition-[height] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none ${
         expanded ? 'h-full' : 'h-[65%]'
       }`}
+      // The far end of the `settling` flag: measuring is held off for the
+      // length of the pull and done once against the height it actually landed
+      // at. Guarded on the target and the property, or a colour transition
+      // finishing on a card inside would clear the flag halfway through.
+      onTransitionEnd={(event) => {
+        if (event.target !== event.currentTarget) return
+        if (event.propertyName !== 'height') return
+        settling.current = false
+        measure()
+      }}
     >
       {/* **The pull.** A strip the full width of the grid with a grip in the
           middle of it, which is what a blind looks like when it is down. It is
@@ -460,7 +507,14 @@ export default function Timetable({
           a small mark. */}
       <button
         type="button"
-        onClick={onToggleExpanded}
+        onClick={() => {
+          // Raised before the state changes, so the observer is already held
+          // off on the first frame of the transition. Not under reduced
+          // motion: there the height snaps, no `transitionend` ever fires, and
+          // the flag would stay up for the rest of the session.
+          if (!reduce) settling.current = true
+          onToggleExpanded?.()
+        }}
         aria-expanded={expanded}
         aria-label={t(
           expanded ? 'appointments.collapse' : 'appointments.expand',
@@ -514,6 +568,7 @@ export default function Timetable({
             icon={ArrowLeft01Icon}
             onClick={() => {
               setDirection(-1)
+              setEntrance('step')
               onSelect?.(shiftDate(selected, step, -1))
             }}
           />
@@ -522,6 +577,7 @@ export default function Timetable({
             icon={ArrowRight01Icon}
             onClick={() => {
               setDirection(1)
+              setEntrance('step')
               onSelect?.(shiftDate(selected, step, 1))
             }}
           />
@@ -549,7 +605,13 @@ export default function Timetable({
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setView(item.id)}
+                  onClick={() => {
+                    // A fade, not a slide: one day and five are the same days
+                    // seen at a different width, and nothing about that is a
+                    // movement in a direction.
+                    setEntrance('switch')
+                    setView(item.id)
+                  }}
                   aria-pressed={isActive}
                   className={`grid h-8 place-items-center rounded-full px-4 text-[14px] font-medium outline-none transition-colors ${
                     isActive
@@ -687,11 +749,17 @@ export default function Timetable({
               // their keys change with the week too. Between the two, the whole
               // grid reads as arriving.
               <m.div
-                key={day.toISOString()}
+                // **The view is part of the key.** Switching between one day
+                // and five leaves the selected date in both, so keyed on the
+                // date alone that one column would be the only thing on the
+                // grid that did not react to the switch.
+                key={`${view}-${day.toISOString()}`}
                 initial={
-                  reduce || !direction
+                  reduce || !entrance
                     ? false
-                    : { opacity: 0, x: direction * 12 }
+                    : entrance === 'step'
+                      ? { opacity: 0, x: direction * 12 }
+                      : { opacity: 0 }
                 }
                 animate={{ opacity: 1, x: 0 }}
                 transition={{
@@ -806,8 +874,25 @@ export default function Timetable({
             const draw = drawFor(day)
 
             return (
-              <div
-                key={day.toISOString()}
+              // **The column reacts to a view switch as one thing.** Its cards
+              // cannot do it themselves: they live under an `AnimatePresence`
+              // with `initial={false}`, so remounting the column suppresses
+              // exactly the entrance they would otherwise play. Fading the
+              // column instead covers all of them at once, which is also the
+              // truer description — what changed is the shape of the grid, not
+              // any one booking in it.
+              //
+              // Keyed on the view as well as the date for the same reason the
+              // heading above is: switching between one day and five keeps the
+              // selected date in both, so on the date alone this column would
+              // be the only part of the grid that sat still.
+              <m.div
+                key={`${view}-${day.toISOString()}`}
+                initial={
+                  reduce || entrance !== 'switch' ? false : { opacity: 0 }
+                }
+                animate={{ opacity: 1 }}
+                transition={{ duration: reduce ? 0 : 0.2, ease: [0.16, 1, 0.3, 1] }}
                 className={`relative border-l border-line ${
                   sameDay(day, selected) ? 'bg-ink/[0.04]' : ''
                 }`}
@@ -905,7 +990,7 @@ export default function Timetable({
                     />
                   ))}
                 </AnimatePresence>
-              </div>
+              </m.div>
             )
           })}
 
@@ -1051,6 +1136,18 @@ function BookingBlock({
           duration: reduce ? 0 : 0.18,
           ease: [0.16, 1, 0.3, 1],
         }}
+        // **The card answers the press, and it has to be `whileTap` rather than
+        // an `active:scale-*` class.** This element already animates `scale` on
+        // mount, so Motion owns its inline transform and a Tailwind utility
+        // would be overwritten by it; `whileTap` layers over `animate` instead
+        // of fighting it. (The gesture comes from `domAnimation`, which
+        // `PageTransition` already loads above this.)
+        //
+        // Without it, opening a booking was three actions with no reply to any
+        // of them — hover did nothing, the first click did nothing, and only the
+        // second click opened the panel. The dip is what says the first one
+        // landed.
+        whileTap={{ scale: 0.98 }}
         onDoubleClick={() => setOpen(true)}
         // **`surface-card`, its own fill, and it took three tries to land on
         // one.** `surface-chip` was too loud — `#2a2a2a` on a black grid is a
@@ -1073,7 +1170,13 @@ function BookingBlock({
         // **The padding narrows with the card.** 10px a side is 22% of a
         // 90px lane, which is a fifth of the width spent on air in the one
         // place there is none to spare — and the name is what pays for it.
-        className={`absolute flex cursor-pointer flex-col gap-1.5 overflow-hidden rounded-lg py-2 select-none ${
+        //
+        // The hover mark is a hairline rather than a lift, and a `box-shadow`
+        // rather than a `border`: it sits outside the box model, so the card
+        // does not gain a pixel and shift the text inside it on the way past.
+        // A transform would have had to be a Motion value like the press below,
+        // for the same reason.
+        className={`absolute flex cursor-pointer flex-col gap-1.5 overflow-hidden rounded-lg py-2 transition-shadow duration-150 select-none hover:shadow-[0_0_0_1px_var(--color-line-strong)] ${
           width >= CARD_WIDTH.LABEL ? 'px-2.5' : 'px-2'
         } ${cancelled ? 'opacity-45' : ''}`}
         style={{

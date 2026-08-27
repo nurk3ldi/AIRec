@@ -150,7 +150,9 @@ function Cell({ item, day, now, outside, onDayChange }) {
       onClick={() => onDayChange?.(item)}
       aria-pressed={selected}
       aria-current={today ? 'date' : undefined}
-      className="grid place-items-center py-1 outline-none"
+      // The press state sits on the button so the circle inside it comes along;
+      // moving the transform onto the span would fight the fill it animates.
+      className="grid place-items-center py-1 outline-none transition-transform duration-[160ms] ease-out active:scale-[0.95]"
     >
       <span
         className={`grid h-9 w-9 place-items-center rounded-full font-display text-[17px] transition-colors ${

@@ -237,7 +237,22 @@ function BookingRow({
           // cost — and dimming it says it no longer counts. A cancellation is
           // the one row that genuinely did not happen, and it keeps the 45% it
           // wears on the grid.
-          className={`flex w-full items-start gap-3 rounded-xl bg-surface-card px-3 py-3 text-left outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85 ${
+          // **`active:` and not only `hover:`.** Tailwind compiles the hover
+          // variant inside `@media (hover: hover)`, which is right — it stops a
+          // tap leaving a stuck highlight — but it also means that on the phone
+          // this row is built for, the hover rule never runs at all. Without a
+          // press state the row gives nothing back between the finger landing
+          // and the sheet opening, which reads as a dropped tap.
+          //
+          // One `transition-[…]` naming both properties rather than two
+          // `transition-*` utilities: two of them set the same declaration and
+          // are resolved by stylesheet order, so one would silently win.
+          //
+          // **`scale`, not `transform`.** Tailwind v4 compiles `scale-[0.97]`
+          // to the standalone `scale` property, which is a different animatable
+          // property from `transform` — naming `transform` here would leave the
+          // dip with no transition at all and it would simply snap.
+          className={`flex w-full items-start gap-3 rounded-xl bg-surface-card px-3 py-3 text-left outline-none transition-[opacity,scale] duration-[160ms] ease-out hover:opacity-85 focus-visible:opacity-85 active:scale-[0.97] ${
             block.status === 'cancelled' ? 'opacity-45' : ''
           }`}
         >
@@ -330,7 +345,7 @@ function GapRow({ day, from, to, services, week, timeZone, onSaved }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex w-full items-center gap-3 rounded-xl border border-dashed border-line px-3 py-2.5 text-left outline-none transition-colors hover:border-line-strong focus-visible:border-line-strong"
+          className="flex w-full items-center gap-3 rounded-xl border border-dashed border-line px-3 py-2.5 text-left outline-none transition-[border-color,scale] duration-[160ms] ease-out hover:border-line-strong focus-visible:border-line-strong active:scale-[0.97]"
         >
           <span className="w-[52px] shrink-0 font-display text-[14px] font-medium tabular-nums text-muted">
             {fromMinutes(from)}

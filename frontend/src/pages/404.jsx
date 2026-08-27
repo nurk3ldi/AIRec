@@ -11,7 +11,11 @@ export default function NotFoundPage() {
   return (
     <div className="flex min-h-[calc(100vh-64px)] items-center justify-center px-6">
       <div className="text-center">
-        <p className="font-display text-[64px] leading-none font-semibold tracking-[-0.03em] text-accent">
+        {/* Tracking tightens as the type grows: letters read further apart at
+            larger sizes, so the largest thing in the app needs the tightest
+            value in it. At `-0.03em` this 64px number was set *looser* than the
+            32px headings on the auth pages, which is the rule inverted. */}
+        <p className="font-display text-[64px] leading-none font-semibold tracking-[-0.045em] text-accent">
           404
         </p>
         <h1 className="font-display mt-6 text-[24px] font-semibold tracking-[-0.02em] text-ink">

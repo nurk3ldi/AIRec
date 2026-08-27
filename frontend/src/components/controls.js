@@ -16,9 +16,17 @@
  * Use `var(--color-field)`, never `var(--field)`: only the `@theme inline`
  * names are registered, and Tailwind silently drops an arbitrary value that
  * references an unregistered variable.
+ *
+ * **The transition names its three properties.** It was `transition-all`, which
+ * animates every animatable property an element has, including ones nothing
+ * here intends to move. What these controls actually change is the ring
+ * (`box-shadow`, on hover and focus), the fill (`background-color`, on a filled
+ * button's hover) and `opacity` when one goes disabled. Naming them costs one
+ * string and takes everything else off the transition.
  */
 export const CONTROL =
-  'h-10 w-full rounded-md px-3 text-[16px] font-medium transition-all duration-150'
+  'h-10 w-full rounded-md px-3 text-[16px] font-medium ' +
+  'transition-[box-shadow,background-color,opacity] duration-150'
 
 export const FIELD =
   `${CONTROL} bg-surface font-normal text-ink outline-none placeholder:text-muted ` +
