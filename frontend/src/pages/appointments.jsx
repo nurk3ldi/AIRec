@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import MonthCalendar from '../components/appointments/MonthCalendar'
 import MonthScroller from '../components/appointments/MonthScroller'
+import MobileToolbar from '../components/appointments/MobileToolbar'
 import ChatFeed from '../components/appointments/ChatFeed'
 import NowCard from '../components/appointments/NowCard'
 import FreeSlotCard from '../components/appointments/FreeSlotCard'
@@ -318,6 +319,15 @@ export default function AppointmentsPage() {
       <MonthScroller
         value={selected}
         onChange={setSelected}
+        controls={
+          <MobileToolbar
+            services={services}
+            week={week}
+            timeZone={timeZone}
+            onDayChange={setSelected}
+            onSaved={() => setReload((n) => n + 1)}
+          />
+        }
         className="min-h-0 flex-1 sm:hidden"
       />
 

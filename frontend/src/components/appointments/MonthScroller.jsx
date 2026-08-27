@@ -68,7 +68,12 @@ const MONTHS_FORWARD = 11
  */
 const CONTROLS_HEIGHT = 'calc(96px + env(safe-area-inset-top))'
 
-export default function MonthScroller({ value, onChange, className = '' }) {
+export default function MonthScroller({
+  value,
+  onChange,
+  controls,
+  className = '',
+}) {
   const t = useT()
   const today = new Date()
   const selected = value ?? today
@@ -151,8 +156,13 @@ export default function MonthScroller({ value, onChange, className = '' }) {
       className={`flex flex-col ${className}`}
       aria-label={t('nav.appointments')}
     >
-      {/* Empty on purpose — see `CONTROLS_HEIGHT`. */}
-      <div style={{ height: CONTROLS_HEIGHT }} className="shrink-0" />
+      {/* The room is this component's — it is what the calendar has to lay
+          itself out around — but what goes in it is not. The caller has the
+          services, the week and the zone the controls need; this only knows
+          about months. Empty is still a valid answer: see `CONTROLS_HEIGHT`. */}
+      <div style={{ height: CONTROLS_HEIGHT }} className="shrink-0">
+        {controls}
+      </div>
 
       {/* **Fixed, and it changes rather than travelling.** Every month used to
           carry its own `sticky` heading, so an arriving month pushed the
