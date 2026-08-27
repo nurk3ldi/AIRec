@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { AnimatePresence, m, useReducedMotion } from 'motion/react'
 import MonthCalendar from '../components/appointments/MonthCalendar'
 import MonthScroller from '../components/appointments/MonthScroller'
 import MobileToolbar from '../components/appointments/MobileToolbar'
+import MobileSearch from '../components/appointments/MobileSearch'
 import ChatFeed from '../components/appointments/ChatFeed'
 import NowCard from '../components/appointments/NowCard'
 import FreeSlotCard from '../components/appointments/FreeSlotCard'
@@ -103,6 +105,7 @@ const DEMO_CHATS = [
 
 export default function AppointmentsPage() {
   const t = useT()
+  const reduce = useReducedMotion()
   const [selected, setSelected] = useState(() => new Date())
 
   // **The week the business actually works**, so the grid can shade the hours
@@ -145,6 +148,13 @@ export default function AppointmentsPage() {
   // Whether the grid is pulled up over the cards. The page holds it because
   // the two regions it sizes live on either side of this component.
   const [expanded, setExpanded] = useState(false)
+
+  // **Search takes the phone's screen rather than covering it.** A sheet over a
+  // year of months would leave those months scrolling behind a list that has
+  // nothing to do with them; swapping says plainly that this is another mode,
+  // and the × in its bar is the one way back. The page holds the flag because
+  // it owns which of the two is mounted.
+  const [searching, setSearching] = useState(false)
 
   const [bookings, setBookings] = useState([])
   // Bumped after a save. A counter rather than a boolean, because two bookings
@@ -201,7 +211,7 @@ export default function AppointmentsPage() {
       // **no header on this route** — only the 50px bottom bar and the home
       // indicator under it come off. Above `sm` the header is back and it is
       // the usual 68.
-      className={`${styles.page} flex h-[calc(100vh-50px-env(safe-area-inset-bottom))] flex-col items-stretch overflow-hidden sm:h-[calc(100vh-68px)] xl:flex-row`}
+      className={`${styles.page} relative flex h-[calc(100vh-50px-env(safe-area-inset-bottom))] flex-col items-stretch overflow-hidden sm:h-[calc(100vh-68px)] xl:flex-row`}
       aria-label={t('nav.appointments')}
     >
       {/* A column, so the timetable can take everything the cards above it do
@@ -326,10 +336,58 @@ export default function AppointmentsPage() {
             timeZone={timeZone}
             onDayChange={setSelected}
             onSaved={() => setReload((n) => n + 1)}
+            onSearch={() => setSearching(true)}
           />
         }
         className="min-h-0 flex-1 sm:hidden"
       />
+
+      {/* **The search comes down over the calendar from the top edge.** It used
+          to replace it outright, which is the same end state arrived at with no
+          account of where it came from — the screen simply became something
+          else. Sliding it down from the indicators says the field arrived from
+          the top of the phone, which is where the bar it lands in already was,
+          and leaving on the way it came says it went back there.
+
+          Over rather than instead: the calendar stays mounted underneath, so it
+          keeps its scroll position and the year of months is not rebuilt for a
+          search somebody may close a second later. `bg-ground` is what stops it
+          showing through.
+
+          `m` without a `LazyMotion` of its own — `PageTransition` wraps every
+          page in one, so the features are already above this. */}
+      <AnimatePresence initial={false}>
+        {searching && (
+          <m.div
+            key="search"
+            initial={reduce ? false : { y: '-100%' }}
+            animate={{ y: 0 }}
+            exit={reduce ? { opacity: 0 } : { y: '-100%' }}
+            // In on the sheet's own curve, which eases *in* as well as out so
+            // the panel gathers speed rather than leaving at full pace; out
+            // faster and on an ease-in, as everywhere else here — a thing you
+            // dismissed should be getting out of the way.
+            transition={
+              reduce
+                ? { duration: 0 }
+                : {
+                    duration: 0.36,
+                    ease: [0.32, 0.72, 0, 1],
+                  }
+            }
+            className="absolute inset-0 z-30 flex flex-col bg-ground sm:hidden"
+          >
+            <MobileSearch
+              onClose={() => setSearching(false)}
+              services={services}
+              week={week}
+              timeZone={timeZone}
+              onSaved={() => setReload((n) => n + 1)}
+              className="min-h-0 flex-1"
+            />
+          </m.div>
+        )}
+      </AnimatePresence>
 
       <aside className="hidden min-h-[300px] w-full shrink-0 flex-col gap-4 border-t border-line p-4 sm:flex xl:min-h-0 xl:w-[calc(300px+2rem)] xl:border-t-0 xl:border-l">
         <div className="shrink-0">

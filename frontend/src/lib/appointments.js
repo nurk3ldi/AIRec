@@ -104,6 +104,32 @@ export const statusLabel = (status) =>
   BOOKING_STATES.find((state) => state.id === stateOf(status))?.label ?? ''
 
 /**
+ * What colour a booking's status is said in, as a text class.
+ *
+ * **Three of the four get one, and `cancelled` is the grey.** That is the
+ * exception on purpose: it gave its hour back — see `BLOCKING_STATUSES` — so it
+ * is the one row that is not an appointment any more, and the card already
+ * fades to say so. Colouring it would point at the one booking nobody has to
+ * look at.
+ *
+ * None of the three is a new hue. `completed` is `ok`, the green this project
+ * already means "done" with; `no_show` is `danger`, the red it already means
+ * "this went wrong" with; `confirmed` is `--now`, the orange that already means
+ * "the present moment" here.
+ *
+ * It lives beside `statusLabel` rather than in a component because two screens
+ * read it — the grid and the phone's search results — and two copies of a
+ * three-line map are two maps that agree until one is restyled.
+ */
+const STATUS_TONE = {
+  confirmed: 'text-now',
+  completed: 'text-ok',
+  no_show: 'text-danger',
+}
+
+export const statusTone = (status) => STATUS_TONE[stateOf(status)] ?? 'text-muted'
+
+/**
  * The marks a booking may carry, as name -> hue — **switched off in the UI, and
  * imported by nothing.**
  *

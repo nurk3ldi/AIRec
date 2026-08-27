@@ -23,13 +23,11 @@ import BookingPopover from './BookingPopover'
  * ground, which is pure black on the dark theme, and `#0e0e0e` there is a step
  * nobody can see.
  *
- * **Only «+» does anything yet, and the other two say so by being here at all.**
- * That is the trade this screen is at: the add panel is finished and works from
- * a phone unchanged, while the filter has nothing to filter until the calendar
- * carries markers, and search has no screen to put its results on. Both are
- * placed rather than invented — the layout is what was asked for — and neither
- * pretends: they carry their real labels and will be wired to the things those
- * labels name.
+ * **«+» and search work; the filter does not yet.** The add panel is finished
+ * and works from a phone unchanged, and search takes the screen over — see
+ * `MobileSearch`. The filter has nothing to filter until the calendar carries
+ * markers, so it is placed rather than invented: it carries its real label and
+ * will be wired to the thing that label names.
  */
 export default function MobileToolbar({
   services,
@@ -37,6 +35,7 @@ export default function MobileToolbar({
   timeZone,
   onDayChange,
   onSaved,
+  onSearch,
 }) {
   const t = useT()
 
@@ -44,7 +43,11 @@ export default function MobileToolbar({
     <div className="flex h-full items-end justify-end px-4 pb-2">
       <div className="flex items-center gap-0.5 rounded-full bg-surface-card p-1">
         <ToolButton icon={FilterHorizontalIcon} label={t('appointments.filter')} />
-        <ToolButton icon={Search01Icon} label={t('header.search')} />
+        <ToolButton
+          icon={Search01Icon}
+          label={t('header.search')}
+          onClick={onSearch}
+        />
 
         {/* The panel is anchored to this button and rendered from here for that
             reason: Radix positions and traps focus against the element that

@@ -15,6 +15,7 @@ import {
   layoutDay,
   stateOf,
   statusLabel,
+  statusTone,
 } from '../../lib/appointments'
 import {
   dayKey,
@@ -150,33 +151,6 @@ const CARD_WIDTH = {
   RANGE: 108,
 }
 
-/**
- * What colour a booking's status is said in.
- *
- * **The word takes the colour, the card does not.** Tinting the whole fill was
- * tried and taken back out: a week of coloured blocks is a week that looks like
- * something is happening, and it is also what forces every other line on the
- * card to be re-checked for contrast against three different grounds. One
- * 12px label carries the same information and costs the grid nothing.
- *
- * **Three of the four get a colour and `cancelled` is the grey one.** That is
- * the exception on purpose: it gave its hour back — see `BLOCKING_STATUSES` —
- * so it is the one row on the grid that is not an appointment any more, and the
- * card already fades to 45% to say so. Colouring it would be pointing at the
- * one booking nobody has to look at.
- *
- * None of the three is a new hue. `completed` is `ok`, the green this project
- * already means "done" with; `no_show` is `danger`, the red it already means
- * "this went wrong" with; `confirmed` is `--now`, the orange that already means
- * "the present moment" here — it is the live booking, the one the day is
- * actually made of, and the same colour crosses the grid as the now-line and
- * tints today's column.
- */
-const STATUS_TONE = {
-  confirmed: 'text-now',
-  completed: 'text-ok',
-  no_show: 'text-danger',
-}
 
 /**
  * The diagonal hatch a closed stretch wears.
@@ -1047,7 +1021,7 @@ function useNow() {
  * One booking, drawn where it sits.
  *
  * **Every card is the same grey, and the only colour on it is the status
- * word** — see `STATUS_TONE`. Three answers to "what should a booking be
+ * word** — see `statusTone`. Three answers to "what should a booking be
  * coloured by" have been switched off to get here: a hue per booking of the
  * day, a mark the owner picked, and the status painted across the whole fill.
  * The first two said *which* booking it was rather than anything about it; the
@@ -1148,7 +1122,7 @@ function BookingBlock({
         } ${cancelled ? 'opacity-45' : ''}`}
         style={{
           // **Every card is the same grey**, whatever its status — see
-          // `STATUS_TONE` for where the status is said instead. The owner's own
+          // `statusTone` for where the status is said instead. The owner's own
           // `color` mark is still stored on the row and still ignored here; the
           // picker for it is out of the panel for now.
           backgroundColor: 'var(--color-surface-card)',
@@ -1191,7 +1165,7 @@ function BookingBlock({
           // never heard of should look like.
           <p
             className={`flex items-center gap-1.5 truncate text-[12px] leading-none font-medium ${
-              STATUS_TONE[state] ?? 'text-muted'
+              statusTone(block.status)
             }`}
           >
             {/* `currentColor`, so the dot and the word are the same statement
@@ -1327,7 +1301,7 @@ function GroupBlock({
                 key={id}
                 aria-hidden="true"
                 className={`h-1.5 w-1.5 shrink-0 rounded-full bg-current ${
-                  STATUS_TONE[id] ?? 'text-muted'
+                  statusTone(id)
                 }`}
               />
             ))}
@@ -1411,7 +1385,7 @@ function GroupRow({ block, services, week, timeZone, onDayChange, onSaved }) {
       >
         <span
           className={`flex items-center gap-1.5 text-[12px] leading-none font-medium ${
-            STATUS_TONE[state] ?? 'text-muted'
+            statusTone(block.status)
           }`}
         >
           <span
