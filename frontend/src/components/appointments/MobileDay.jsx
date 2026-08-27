@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { m } from 'motion/react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowLeft01Icon } from '@hugeicons/core-free-icons'
 import {
@@ -14,6 +15,7 @@ import {
   dayLabel,
   monthName,
   sameDay,
+  shiftDate,
   weekDays,
   weekdayLabels,
 } from '../../lib/dates'
@@ -54,6 +56,33 @@ import { HATCH, END_HOUR, START_HOUR, WINDOW_FROM } from './grid'
  */
 const HOUR_HEIGHT = 80
 
+/** The gutter the hours are written in. */
+const GUTTER = 56
+
+/**
+ * How many bookings at the same hour fit before the grid starts scrolling
+ * sideways.
+ *
+ * **Three, and the width follows from it rather than the other way round.** A
+ * booking used to take the whole column when it was alone and a share of it
+ * when it was not, which meant a single booking was a card the width of the
+ * screen holding four short lines — and three of them were 110px each, too
+ * narrow to read a name in. Sizing every lane to a third of the column fixes
+ * both ends: one booking is a third of the screen and looks like a booking, and
+ * three fit without any of them shrinking.
+ *
+ * Past three the grid scrolls rather than dividing further, which is the same
+ * answer the desktop day view gives — a column that thins as the hour fills is
+ * one where the busiest hour is the least readable.
+ */
+const VISIBLE_LANES = 3
+
+/** The air between two lanes, and half of it at each edge — the desktop grid's
+ *  own numbers, so the two screens do not disagree about how far a card sits
+ *  from a rule. */
+const LANE_GAP = 8
+const LANE_INSET = LANE_GAP / 2
+
 export default function MobileDay({
   day,
   onDayChange,
@@ -88,6 +117,55 @@ export default function MobileDay({
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
 
   /**
+   * Swiping sideways to step a day.
+   *
+   * **The gesture has to be told apart from a scroll before it can be
+   * answered.** The grid under the finger scrolls vertically, so the first few
+   * pixels decide which of the two this is: whichever axis moves further first
+   * wins, and once it is the vertical one the swipe is abandoned for the rest
+   * of the press. Deciding once rather than continuously is what stops a
+   * diagonal drag from flipping between scrolling and stepping.
+   *
+   * `touch-action: pan-y` on the box below is the other half. Without it the
+   * browser owns the horizontal pan and the pointer events arrive already
+   * cancelled; with it, vertical scrolling is still the browser's and sideways
+   * is ours.
+   *
+   * 60px, and the direction the *finger* went: dragging the day to the left
+   * brings the next one in from the right, the way a stack of cards behaves.
+   */
+  const swipe = useRef(null)
+  const [direction, setDirection] = useState(0)
+
+  const startSwipe = (event) => {
+    swipe.current = { x: event.clientX, y: event.clientY, axis: null }
+  }
+
+  const moveSwipe = (event) => {
+    const from = swipe.current
+    if (!from || from.axis === 'y') return
+
+    const dx = event.clientX - from.x
+    const dy = event.clientY - from.y
+    if (from.axis === null && Math.abs(dx) + Math.abs(dy) > 8) {
+      from.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
+    }
+  }
+
+  const endSwipe = (event) => {
+    const from = swipe.current
+    swipe.current = null
+    if (!from || from.axis !== 'x') return
+
+    const dx = event.clientX - from.x
+    if (Math.abs(dx) < 60) return
+
+    const step = dx < 0 ? 1 : -1
+    setDirection(step)
+    onDayChange?.(shiftDate(day, 'day', step))
+  }
+
+  /**
    * Open on the working day rather than on midnight.
    *
    * Same reasoning as the desktop grid's: a full day opens at 00:00, which is
@@ -99,7 +177,33 @@ export default function MobileDay({
    * Once per day shown, so scrolling away and back within a day stays where you
    * left it, while stepping to another day starts it at the top again.
    */
+  /**
+   * How wide the scroll box is, so a lane can be a third of it.
+   *
+   * Measured for the same reason the desktop's hour height is: a phone is
+   * whatever width it is, and a lane written in pixels would be a third of some
+   * other phone. A `ResizeObserver` rather than one reading, because this
+   * changes when the device is turned.
+   *
+   * **`useLayoutEffect`, not `useEffect`.** Everything in the column is placed
+   * from this number, so measuring after the paint means one frame with every
+   * lane a pixel wide and every card on top of the last — a grid that flickers
+   * into place. Measuring before it means there is no such frame.
+   */
+  const [boxWidth, setBoxWidth] = useState(0)
   const scroller = useRef(null)
+
+  useLayoutEffect(() => {
+    const box = scroller.current
+    if (!box) return
+
+    const measure = () => setBoxWidth(box.clientWidth)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(box)
+    return () => observer.disconnect()
+  }, [])
+
   useEffect(() => {
     const box = scroller.current
     if (!box) return
@@ -116,6 +220,16 @@ export default function MobileDay({
     // grid back under a thumb once a minute if it were in here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, week])
+
+  // The widest cluster of the day is how many lanes the column has to hold; a
+  // day with nothing in it still has one, so the column is never zero wide.
+  const laneCount = blocks.reduce((most, block) => Math.max(most, block.lanes), 1)
+  const laneWidth = boxWidth ? (boxWidth - GUTTER) / VISIBLE_LANES : 0
+  const columnWidth = Math.max(boxWidth - GUTTER, laneCount * laneWidth)
+  // Past three lanes the horizontal axis belongs to the content, so the swipe
+  // gives it up: a day that scrolls sideways cannot also be stepped sideways
+  // without one gesture meaning two things.
+  const scrolls = laneCount > VISIBLE_LANES
 
   return (
     <div className={`flex flex-col ${className}`}>
@@ -163,7 +277,13 @@ export default function MobileDay({
             <button
               key={dayKey(item)}
               type="button"
-              onClick={() => onDayChange?.(item)}
+              onClick={() => {
+                // Cleared, so a day picked here arrives without motion — the
+                // direction belongs to the swipe that set it, and a tap two
+                // gestures later is not that swipe.
+                setDirection(0)
+                onDayChange?.(item)
+              }}
               aria-pressed={selected}
               aria-current={today ? 'date' : undefined}
               className="grid place-items-center gap-1 py-1 outline-none"
@@ -201,22 +321,49 @@ export default function MobileDay({
 
       <div
         ref={scroller}
+        onPointerDown={scrolls ? undefined : startSwipe}
+        onPointerMove={scrolls ? undefined : moveSwipe}
+        onPointerUp={scrolls ? undefined : endSwipe}
+        onPointerCancel={scrolls ? undefined : endSwipe}
         // `relative`, so the absolutely-placed bookings and the now-line are
         // measured from the grid rather than from whatever is positioned
         // further up the page — the bug the month scroller's heading had.
-        className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        //
+        // `touch-pan-y`: vertical scrolling stays the browser's, sideways
+        // becomes ours — see `startSwipe`. On a day with more lanes than fit,
+        // sideways is the content's instead and both axes go back to the
+        // browser.
+        className={`relative min-h-0 flex-1 overflow-y-auto overscroll-contain ${
+          scrolls ? 'overflow-x-auto' : 'touch-pan-y'
+        }`}
       >
-        <div
+        {/* **Keyed on the day, and entering only.** Changing the key remounts
+            the grid, so React swaps the old for the new in one frame and the
+            arriving one comes in from the side the finger sent it. No
+            `AnimatePresence`: a leaving grid would sit beside its replacement
+            for the length of the animation, two days of hours in one column.
+
+            `direction` is 0 until something steps, so tapping a date in the
+            strip or arriving from the calendar simply appears. */}
+        <m.div
+          key={key}
+          initial={direction ? { opacity: 0, x: direction * 24 } : false}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           className="relative grid"
           style={{
-            gridTemplateColumns: '56px minmax(0, 1fr)',
+            gridTemplateColumns: `${GUTTER}px ${columnWidth || 1}px`,
             height: (END_HOUR - START_HOUR) * HOUR_HEIGHT,
           }}
         >
           {/* The gutter. Labels sit at the top of the hour they name rather
               than straddling the rule above it, so the first one is not half
               cut off by the top of the scroll box. */}
-          <div className="relative">
+          {/* **Sticky, so the times survive scrolling to the fourth lane.** The
+              desktop lets its gutter scroll away with the columns, which is
+              affordable on a screen wide enough to hold the whole day; here
+              losing it means reading a card with no idea what hour it is in. */}
+          <div className="sticky left-0 z-10 bg-ground">
             {hours.map((hour) => (
               <div key={hour} className="relative" style={{ height: HOUR_HEIGHT }}>
                 <span className="absolute inset-x-0 top-1 text-center text-[12px] text-muted">
@@ -239,6 +386,19 @@ export default function MobileDay({
               />
             ))}
 
+            {/* **A rule between lanes, and only where there is more than one.**
+                Two cards 8px apart read as one wide card with a seam in it; a
+                line says they are two. It runs the whole height because a lane
+                is a lane all day, not only where a booking happens to sit. */}
+            {Array.from({ length: laneCount - 1 }, (_, index) => (
+              <div
+                key={`lane-${index}`}
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-0 w-px bg-line"
+                style={{ left: (index + 1) * laneWidth }}
+              />
+            ))}
+
             {closed.map((range) => (
               <div
                 key={`${range.kind}-${range.from}`}
@@ -256,6 +416,7 @@ export default function MobileDay({
               <DayBlock
                 key={block.id}
                 block={block}
+                laneWidth={laneWidth}
                 services={services}
                 week={week}
                 timeZone={timeZone}
@@ -279,7 +440,7 @@ export default function MobileDay({
               </div>
             )}
           </div>
-        </div>
+        </m.div>
       </div>
 
       {blocks.length === 0 && (
@@ -298,7 +459,15 @@ export default function MobileDay({
  * because a single one is being kept back for selecting a booking, and there is
  * no selection on a phone to keep it back for.
  */
-function DayBlock({ block, services, week, timeZone, onDayChange, onSaved }) {
+function DayBlock({
+  block,
+  laneWidth,
+  services,
+  week,
+  timeZone,
+  onDayChange,
+  onSaved,
+}) {
   const [open, setOpen] = useState(false)
   const top = ((block.start - WINDOW_FROM) / 60) * HOUR_HEIGHT
   const height = Math.max(((block.end - block.start) / 60) * HOUR_HEIGHT, 34)
@@ -325,8 +494,11 @@ function DayBlock({ block, services, week, timeZone, onDayChange, onSaved }) {
         style={{
           top,
           height,
-          left: `calc(${(block.lane / block.lanes) * 100}% + 4px)`,
-          width: `calc(${100 / block.lanes}% - 8px)`,
+          // Fixed lanes, not a share of the column — see `VISIBLE_LANES`. A
+          // booking is a third of the screen whether it is alone at that hour
+          // or one of four.
+          left: block.lane * laneWidth + LANE_INSET,
+          width: Math.max(laneWidth - LANE_GAP, 0),
         }}
       >
         <span className="truncate text-[14px] leading-tight font-semibold text-ink">
