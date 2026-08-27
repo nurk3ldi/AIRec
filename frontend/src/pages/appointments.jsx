@@ -20,6 +20,7 @@ import { toBlock } from '../lib/appointments'
 import { authed } from '../lib/auth'
 import { dayKey, weekDays } from '../lib/dates'
 import { useT } from '../lib/i18n'
+import { useRemembered } from '../lib/viewState'
 import styles from '../styles/Appointments.module.css'
 
 /**
@@ -107,7 +108,23 @@ const DEMO_CHATS = [
 export default function AppointmentsPage() {
   const t = useT()
   const reduce = useReducedMotion()
-  const [selected, setSelected] = useState(() => new Date())
+  /**
+   * **The screen remembers where it was.** Every route change unmounts this
+   * page — `PageTransition` swaps the outlet — so without this, a click on
+   * «Диалоги» and back put the calendar on today, the grid lowered and any open
+   * day closed, however carefully all three had just been set.
+   *
+   * Kept for the length of the tab and no longer: which day is on screen is
+   * worth surviving a click on the navigation and worth losing on a reload,
+   * because a page opened fresh should open on today.
+   *
+   * The search is deliberately *not* remembered — see the note where it is
+   * declared.
+   */
+  const [selected, setSelected] = useRemembered(
+    'appointments.day',
+    () => new Date(),
+  )
 
   // **The week the business actually works**, so the grid can shade the hours
   // nobody is there. Seven rows keyed by `weekday`, `0 = Monday`, straight from
@@ -148,20 +165,24 @@ export default function AppointmentsPage() {
 
   // Whether the grid is pulled up over the cards. The page holds it because
   // the two regions it sizes live on either side of this component.
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useRemembered('appointments.expanded', false)
 
   // **Search takes the phone's screen rather than covering it.** A sheet over a
   // year of months would leave those months scrolling behind a list that has
   // nothing to do with them; swapping says plainly that this is another mode,
   // and the × in its bar is the one way back. The page holds the flag because
   // it owns which of the two is mounted.
+  // **Not remembered, unlike the rest.** A search is something you were doing
+  // rather than somewhere you were: coming back to this screen and finding the
+  // calendar replaced by a box holding a query from ten minutes ago is the page
+  // asking you to finish something you had already left.
   const [searching, setSearching] = useState(false)
 
   // **Which of the two the phone is on.** Tapping a day in the calendar opens
   // that day's hours; the back button in its bar comes here again. Both stay
   // mounted — the same reason the search does — so coming back lands where you
   // left rather than rebuilding a year of months.
-  const [dayOpen, setDayOpen] = useState(false)
+  const [dayOpen, setDayOpen] = useRemembered('appointments.dayOpen', false)
 
   const [bookings, setBookings] = useState([])
   // Bumped after a save. A counter rather than a boolean, because two bookings

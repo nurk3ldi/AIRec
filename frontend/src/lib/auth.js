@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ApiError, me, refresh } from './api'
+import { forgetView } from './viewState'
 
 const ACCESS_TOKEN_KEY = 'airec_access_token'
 const REFRESH_TOKEN_KEY = 'airec_refresh_token'
@@ -72,6 +73,14 @@ export function clearTokens() {
     store.removeItem(ACCESS_TOKEN_KEY)
     store.removeItem(REFRESH_TOKEN_KEY)
   }
+  // **And what the screens remembered goes with them.** `useRemembered` keeps
+  // view state in a module map for the length of the tab, which outlives a sign
+  // out — the app redirects to `/login` rather than reloading, so nothing else
+  // clears it. Without this the next person to sign in on a shared machine
+  // opens `/appointments` on somebody else's Thursday. This is the one place
+  // every way a session can end passes through: the sign-out button, a dead
+  // refresh token, a deleted account.
+  forgetView()
 }
 
 /**

@@ -38,6 +38,7 @@ import BookingPopover from './BookingPopover'
 import StatusFilter from './StatusFilter'
 import { PANEL_MOTION } from './panel'
 import { useT } from '../../lib/i18n'
+import { useRemembered } from '../../lib/viewState'
 
 const ROW_MINUTES = 90
 /**
@@ -177,9 +178,16 @@ export default function Timetable({
   onToggleExpanded,
 }) {
   const t = useT()
-  const [view, setView] = useState('week')
+  // Both remembered for the length of the tab: they are what the owner set
+  // this grid *to*, and rebuilding them on every return from another screen is
+  // the page forgetting a decision that was made on purpose. See
+  // `lib/viewState.js`.
+  const [view, setView] = useRemembered('appointments.view', 'week')
   // Empty means "everything", not "nothing" — see the note on `StatusFilter`.
-  const [statuses, setStatuses] = useState(() => new Set())
+  const [statuses, setStatuses] = useRemembered(
+    'appointments.statuses',
+    () => new Set(),
+  )
   // **Which way the last step went**, so the days can arrive from the side they
   // came from. A week that simply replaces the one before it says the date
   // changed; a week that slides in from the right says you went *forward*,

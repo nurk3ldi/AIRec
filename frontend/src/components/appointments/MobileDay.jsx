@@ -422,18 +422,49 @@ export default function MobileDay({
               />
             ))}
 
-            {closed.map((range) => (
-              <div
-                key={`${range.kind}-${range.from}`}
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-x-0"
-                style={{
-                  top: ((range.from - WINDOW_FROM) / 60) * HOUR_HEIGHT,
-                  height: ((range.to - range.from) / 60) * HOUR_HEIGHT,
-                  backgroundImage: HATCH,
-                }}
-              />
-            ))}
+            {closed.map((range) => {
+              const height = ((range.to - range.from) / 60) * HOUR_HEIGHT
+              // **A day off and a break are named; the hours before opening are
+              // not.** The first two are facts about the business and the hatch
+              // alone leaves you guessing which of them this is — that is what
+              // made the lunch hour unreadable. The stretch before 10:00 is not
+              // a fact, it is simply outside the day, and writing "closed"
+              // across the top of the column would be the grid telling you what
+              // it has already shown you.
+              const label =
+                range.kind === 'off'
+                  ? t('appointments.dayOff')
+                  : range.kind === 'break'
+                    ? t('appointments.break')
+                    : null
+
+              return (
+                <div
+                  key={`${range.kind}-${range.from}`}
+                  className="pointer-events-none absolute inset-x-0 overflow-hidden"
+                  style={{
+                    top: ((range.from - WINDOW_FROM) / 60) * HOUR_HEIGHT,
+                    height,
+                    backgroundImage: HATCH,
+                  }}
+                >
+                  {/* Centred down the block rather than pinned to its top: a
+                      word at the top edge belongs to the hour rule above it,
+                      where one in the middle belongs to the span, which is the
+                      thing being named. Hidden on a short span — a word in a
+                      quarter-hour block is a word clipped by its own box. */}
+                  {label && height >= 28 && (
+                    <span className="absolute inset-y-0 left-2 flex items-center gap-1.5 text-[12px] text-muted">
+                      <span
+                        aria-hidden="true"
+                        className="h-1.5 w-1.5 shrink-0 rounded-full bg-muted"
+                      />
+                      {label}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
 
             {blocks.map((block) => (
               <DayBlock
