@@ -124,7 +124,12 @@ export default function MobileDay({
           <button
             type="button"
             onClick={onBack}
-            className="flex h-10 shrink-0 items-center gap-1 rounded-full bg-ink/8 pr-4 pl-2.5 font-display text-[15px] font-semibold text-ink outline-none transition-colors hover:bg-ink/14 focus-visible:bg-ink/14"
+            // **`h-12`, which is the pill's height and not the pill's buttons'.**
+            // The controls beside this are 40px circles inside a capsule with
+            // 4px of padding, so what stands next to this is 48 tall. Matching
+            // the 40 would have left the two ends of one row at different
+            // heights — the kind of difference that is only visible once seen.
+            className="flex h-12 shrink-0 items-center gap-1 rounded-full bg-ink/8 pr-4 pl-3 font-display text-[15px] font-semibold text-ink outline-none transition-colors hover:bg-ink/14 focus-visible:bg-ink/14"
           >
             <HugeiconsIcon
               icon={ArrowLeft01Icon}

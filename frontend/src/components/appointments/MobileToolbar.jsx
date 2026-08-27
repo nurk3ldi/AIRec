@@ -48,14 +48,17 @@ export default function MobileToolbar({
     // bar took all of it and `items-end` pushed the row to the bottom with the
     // grid shoved off below. A control bar is 96px tall wherever it is put.
     //
-    // `justify-between` with nothing on the left still puts the pill on the
-    // right, so the two arrangements are one row rather than two.
+    // **`ml-auto` on the pill, not `justify-between` on the row.** With one
+    // child `justify-between` is `flex-start`, so the bar with nothing on its
+    // left put the controls against the *left* edge — the arrangement was right
+    // only in the case that happened to have two children in it. Pushing the
+    // pill from its own side is true in both.
     <div
       style={{ height: CONTROLS_HEIGHT }}
-      className="flex shrink-0 items-end justify-between gap-2 px-4 pb-2"
+      className="flex shrink-0 items-end gap-2 px-4 pb-2"
     >
       {leading}
-      <div className="flex items-center gap-0.5 rounded-full bg-surface-card p-1">
+      <div className="ml-auto flex items-center gap-0.5 rounded-full bg-surface-card p-1">
         <ToolButton icon={FilterHorizontalIcon} label={t('appointments.filter')} />
         <ToolButton
           icon={Search01Icon}
