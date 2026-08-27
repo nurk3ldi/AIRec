@@ -51,14 +51,22 @@ const MONTHS_FORWARD = 11
 /**
  * The room kept above the calendar for the controls that will steer it.
  *
- * **68px, which is the header's own height** — that is what this screen gave up
- * when the header was taken off it below `sm`, and what goes here is the same
- * kind of thing the header held: the controls for the page. Reserving it now
- * rather than letting the calendar start at the top edge means that the day
- * those controls arrive, they land in a space that already exists instead of
- * pushing a year of months down by 68px on the frame they mount.
+ * It began as 68 — the desktop header's own height, which is what this screen
+ * gave up when the header came off it below `sm`. That turned out to be the
+ * wrong measure: a desktop header is one row of small controls on a wide bar,
+ * where this has to hold a row sized for thumbs. 96 is that row (a 44pt target
+ * is the floor on a phone) with air above and below it, which is what stops a
+ * control bar from reading as jammed against the month's name.
+ *
+ * `env(safe-area-inset-top)` is added rather than baked in: it is 0 in a
+ * browser tab, and the notch's height once this is installed to a home screen —
+ * the same reason the bottom bar carries the inset for the home indicator.
+ *
+ * Reserved now rather than letting the calendar start at the top edge, so that
+ * the day the controls arrive they land in a space that already exists instead
+ * of pushing a year of months down on the frame they mount.
  */
-const CONTROLS_HEIGHT = 68
+const CONTROLS_HEIGHT = 'calc(96px + env(safe-area-inset-top))'
 
 export default function MonthScroller({ value, onChange, className = '' }) {
   const t = useT()
@@ -89,6 +97,13 @@ export default function MonthScroller({ value, onChange, className = '' }) {
    *
    * `+ 1` so a month sitting exactly on the edge counts as arrived rather than
    * flickering between itself and the one above it on sub-pixel scrolling.
+   *
+   * **The scroll box has to be `relative` for any of this to be true.**
+   * `offsetTop` is measured from the nearest *positioned* ancestor, not from
+   * the nearest scrolling one — so without it the blocks were reported against
+   * something further up the page and every offset was too large by the height
+   * of everything above the grid. The heading named the month before the one on
+   * screen, which is exactly the size of that error.
    */
   const trackTop = () => {
     const box = scroller.current
@@ -174,7 +189,7 @@ export default function MonthScroller({ value, onChange, className = '' }) {
         // `overscroll-contain`, so reaching the end of a year does not hand the
         // scroll to the page behind — which on this screen would be a bounce
         // with nothing under it, since the page itself never scrolls.
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain"
       >
         {months.map((month, index) => (
           <div
