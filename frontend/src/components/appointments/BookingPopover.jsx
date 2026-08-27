@@ -553,7 +553,7 @@ export default function BookingPopover({
                   inputMode="numeric"
                   placeholder={t('appointments.price')}
                   autoComplete="off"
-                  className={`${fields.price ? FIELD_ERROR : FIELD} h-9 pr-8 text-[14px]`}
+                  className={`${fields.price ? FIELD_ERROR : FIELD} h-9 pr-8 text-[16px] sm:text-[14px]`}
                 />
                 <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[14px] text-muted">
                   ₸
@@ -645,7 +645,7 @@ export default function BookingPopover({
                 autoComplete="off"
                 className={`${
                   fields.client_name || fields.clientName ? FIELD_ERROR : FIELD
-                } h-9 text-[14px]`}
+                } h-9 text-[16px] sm:text-[14px]`}
               />
             </Group>
 
@@ -657,7 +657,7 @@ export default function BookingPopover({
                 maxLength={32}
                 placeholder={t('appointments.clientPhone')}
                 autoComplete="off"
-                className={`${fields.client_phone ? FIELD_ERROR : FIELD} h-9 text-[14px]`}
+                className={`${fields.client_phone ? FIELD_ERROR : FIELD} h-9 text-[16px] sm:text-[14px]`}
               />
             </Group>
 
@@ -667,7 +667,7 @@ export default function BookingPopover({
                 onChange={(event) => setNote(event.target.value)}
                 rows={4}
                 placeholder={t('appointments.note')}
-                className={`${FIELD} h-auto resize-none py-2 text-[14px] leading-snug`}
+                className={`${FIELD} h-auto resize-none py-2 text-[16px] leading-snug sm:text-[14px]`}
               />
             </Group>
 
@@ -946,7 +946,7 @@ function PanelSelect({ label, value, onChange, options }) {
       <Select.Root value={value} onValueChange={onChange}>
         <Select.Trigger
           aria-label={label}
-          className={`${FIELD} flex h-9 w-full cursor-pointer items-center gap-2 text-[14px] outline-none`}
+          className={`${FIELD} flex h-9 w-full cursor-pointer items-center gap-2 text-[16px] outline-none sm:text-[14px]`}
         >
           {/* Muted, and never truncated: it is the shorter of the two and the
               one that must always be readable — a row whose answer has eaten

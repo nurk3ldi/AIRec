@@ -59,7 +59,7 @@ export default function ServiceField({
             autoComplete="off"
             aria-label={label}
             aria-expanded={open}
-            className={`${invalid ? FIELD_ERROR : FIELD} h-9 pr-9 text-[14px]`}
+            className={`${invalid ? FIELD_ERROR : FIELD} h-9 pr-9 text-[16px] sm:text-[14px]`}
           />
 
           {services.length > 0 && (

@@ -98,7 +98,7 @@ export default function TimeField({ value, onChange, label }) {
       // as eighteen. The date has its own line now and the two clocks have
       // theirs, so an even split is exactly right: the pair is one span, and
       // one end of it is not more important than the other.
-      className={`${FIELD} h-9 min-w-0 flex-1 px-2.5 text-center font-display text-[14px] font-medium`}
+      className={`${FIELD} h-9 min-w-0 flex-1 px-2.5 text-center font-display text-[16px] font-medium sm:text-[14px]`}
     />
   )
 }

@@ -287,6 +287,26 @@ h6 {
     touch-action: manipulation;
   }
 
+  /* **And no pinch-zoom on the page itself.**
+     `pan-x pan-y` is the whole of it: panning in both directions still works,
+     which is every scroll in this app, and the pinch gesture is the one thing
+     left out. `none` would have taken scrolling with it.
+
+     This is what covers Chrome and Android. iOS Safari does not apply
+     `touch-action` to page zoom at all and is refused in `main.jsx` instead, on
+     the `gesturestart` event — the two together are one instruction said in the
+     two places that each listen to half of it.
+
+     Like the viewport flags above, it **fails WCAG 1.4.4** and is here because
+     it was asked for. The zoom a phone reader actually needs is the one Safari
+     performs when a small field takes focus, and that is answered by every
+     input in this app being 16px below `sm` rather than by letting the page be
+     magnified. */
+  html,
+  body {
+    touch-action: pan-x pan-y;
+  }
+
   /* **Every scrollbar in the app, in the app's own colours.**
      The default is the operating system's, which on Windows is a wide light
      track with a grey block in it — a piece of another product's UI sitting

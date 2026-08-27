@@ -66,7 +66,7 @@ function Field({
       <div className="relative flex items-center">
         <input
           id={id}
-          className={`w-full rounded-lg border bg-surface px-3.5 py-2 text-[14px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent ${
+          className={`w-full rounded-lg border bg-surface px-3.5 py-2 text-[16px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent sm:text-[14px] ${
             adornment ? 'pr-9' : ''
           } ${error ? 'border-danger' : 'border-line-strong'}`}
           {...inputProps}
@@ -110,7 +110,7 @@ function PasswordInput({ show, onToggleShow, ...inputProps }) {
     <div className="relative flex items-center">
       <input
         type={show ? 'text' : 'password'}
-        className="w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2 pr-11 text-[14px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent"
+        className="w-full rounded-lg border border-line-strong bg-surface px-3.5 py-2 pr-11 text-[16px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent sm:text-[14px]"
         {...inputProps}
       />
       <button
@@ -895,7 +895,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
               placeholder={t('account.newEmail')}
               autoComplete="email"
               autoFocus
-              className={`w-full rounded-lg border bg-surface px-3.5 py-2 text-[14px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent ${
+              className={`w-full rounded-lg border bg-surface px-3.5 py-2 text-[16px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent sm:text-[14px] ${
                 emailError ? 'border-danger' : 'border-line-strong'
               }`}
             />
