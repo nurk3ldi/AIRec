@@ -25,7 +25,7 @@ export default {
   'inbox.emptyHint': 'Мұнда ассистенттің WhatsApp-тағы жазысулары пайда болады.',
   'inbox.nothingFound': 'Ештеңе табылмады',
   'nav.appointments': 'Жазбалар',
-  'nav.business': 'Бизнес',
+  'nav.assistant': 'Ассистент',
   'nav.profile': 'Профиль',
   'nav.notifications': 'Хабарламалар',
   'appointments.viewDay': 'Күн',

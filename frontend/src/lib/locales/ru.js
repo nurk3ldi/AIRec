@@ -31,7 +31,7 @@ export default {
   'inbox.emptyHint': 'Здесь появятся переписки, которые ассистент ведёт в WhatsApp.',
   'inbox.nothingFound': 'Ничего не найдено',
   'nav.appointments': 'Записи',
-  'nav.business': 'Бизнес',
+  'nav.assistant': 'Ассистент',
   'nav.profile': 'Профиль',
   'nav.notifications': 'Уведомления',
   'appointments.viewDay': 'День',

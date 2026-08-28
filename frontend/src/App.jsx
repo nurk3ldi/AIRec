@@ -5,7 +5,7 @@ import { applyLanguage } from './lib/i18n'
 import DashboardLayout from './components/DashboardLayout'
 import PublicLayout from './components/PublicLayout'
 import AppointmentsPage from './pages/appointments'
-import BusinessPage from './pages/business'
+import AssistantPage from './pages/assistant'
 import DashboardPage from './pages/dashboard'
 import ForgotPasswordPage from './pages/forgot-password'
 import InboxPage from './pages/inbox'
@@ -65,7 +65,7 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/inbox" element={<InboxPage />} />
         <Route path="/appointments" element={<AppointmentsPage />} />
-        <Route path="/business" element={<BusinessPage />} />
+        <Route path="/assistant" element={<AssistantPage />} />
         {/* Not linked to on a desktop — the rail opens the popup instead —
             but a real route all the same, because the phone's bottom bar
             points at it and a back gesture has to have somewhere to go. */}

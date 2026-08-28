@@ -17,7 +17,7 @@ const PAGE_TITLE_KEYS = {
   '/dashboard': 'nav.dashboard',
   '/inbox': 'nav.inbox',
   '/appointments': 'nav.appointments',
-  '/business': 'nav.business',
+  '/assistant': 'nav.assistant',
   '/profile': 'nav.profile',
   '/notifications': 'nav.notifications',
 }

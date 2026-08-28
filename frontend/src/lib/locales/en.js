@@ -25,7 +25,7 @@ export default {
   'inbox.emptyHint': 'The chats your assistant handles on WhatsApp will show up here.',
   'inbox.nothingFound': 'Nothing found',
   'nav.appointments': 'Bookings',
-  'nav.business': 'Business',
+  'nav.assistant': 'Assistant',
   'nav.profile': 'Profile',
   'nav.notifications': 'Notifications',
   'appointments.viewDay': 'Day',
