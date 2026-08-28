@@ -69,11 +69,11 @@ const PANEL_X = 'px-4'
  * that showed only pinned threads would be asking a question nobody has, since
  * the answer is already the first rows of «Все».
  *
- * **There is deliberately no «Корзина» either.** `DELETE /conversations/{id}`
- * removes the row outright and cascades to its messages — there is no soft
- * delete to filter on, the way `archived_at` gives one. A segment with nothing
- * behind it is how the `/dashboard` analytics screen came to be built and then
- * removed whole.
+ * **There is deliberately no «Корзина».** `DELETE /conversations/{id}` removes
+ * the row outright and cascades to its messages, and a bin was built and taken
+ * back out: without a deadline it is a second archive under another name, and
+ * with one it is a scheduler this project does not have. Deleting is rare and
+ * guarded by two presses instead.
  */
 const FILTERS = [
   { id: 'all', labelKey: 'inbox.all', params: {} },
