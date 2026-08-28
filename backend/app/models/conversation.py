@@ -170,6 +170,17 @@ class Conversation(Base):
     starred_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # «Закрепить» — kept at the top of the inbox whatever its last message says.
+    #
+    # **Its own column rather than a second reading of `starred_at`**, because
+    # the two are different kinds of answer: starring says which *list* a thread
+    # belongs to, pinning says where it sits inside whichever list is showing.
+    # A timestamp for the usual reason, and here it also does real work — when
+    # several are pinned, the order they were pinned in is the order to draw
+    # them in, and the column already carries it.
+    pinned_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
@@ -198,6 +209,10 @@ class Conversation(Base):
     @property
     def starred(self) -> bool:
         return self.starred_at is not None
+
+    @property
+    def pinned(self) -> bool:
+        return self.pinned_at is not None
 
     @property
     def awaiting_reply(self) -> bool:

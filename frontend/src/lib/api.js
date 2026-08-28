@@ -430,3 +430,14 @@ export function updateConversation(accessToken, id, changes) {
 export function markConversationRead(accessToken, id) {
   return request(`/conversations/${id}/read`, { method: 'POST', accessToken })
 }
+
+/**
+ * Removes the thread and every message in it. Irreversible — ask before calling.
+ *
+ * **Not** how a thread is put out of the way: that is `archived`, a view flag
+ * that leaves the conversation and its history where they were. This is for one
+ * that should never have existed — a wrong number, a test.
+ */
+export function deleteConversation(accessToken, id) {
+  return request(`/conversations/${id}`, { method: 'DELETE', accessToken })
+}

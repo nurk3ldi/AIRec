@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Search01Icon } from '@hugeicons/core-free-icons'
-import { getBusiness, listConversations } from '../lib/api'
+import {
+  deleteConversation,
+  getBusiness,
+  listConversations,
+  updateConversation,
+} from '../lib/api'
 import { authed } from '../lib/auth'
 import { useT } from '../lib/i18n'
 import ChatRow from '../components/inbox/ChatRow'
@@ -55,20 +60,23 @@ const PANEL_X = 'px-4'
  * here would freeze in whichever language happened to load first and never
  * follow a change. The same rule `NAVIGATION` and `PROFILE_SECTIONS` follow.
  *
- * All three are things the API already answers: the default list is
- * `archived=false`, «Избранное» is `starred=true`, «Архив» is `archived=true`.
+ * Both are things the API already answers: the default list is
+ * `archived=false` and «Архив» is `archived=true`.
  *
- * **There is deliberately no «Корзина».** `DELETE /conversations/{id}` removes
- * the row outright and cascades to its messages — there is no soft delete to
- * filter on, the way `archived_at` and `starred_at` give one. A fourth segment
- * would have been a control with nothing behind it, which is how the
- * `/dashboard` analytics screen came to be built and then removed whole. If a
- * bin is wanted later it is a `deleted_at` column and a migration, following
- * the precedent those two set.
+ * **Two, because a filter has to divide the inbox.** «Избранное» was here and
+ * is gone: pinning replaced it, and pinning is an *ordering* — a pinned thread
+ * stays in the list it was already in and moves to the top of it. A segment
+ * that showed only pinned threads would be asking a question nobody has, since
+ * the answer is already the first rows of «Все».
+ *
+ * **There is deliberately no «Корзина» either.** `DELETE /conversations/{id}`
+ * removes the row outright and cascades to its messages — there is no soft
+ * delete to filter on, the way `archived_at` gives one. A segment with nothing
+ * behind it is how the `/dashboard` analytics screen came to be built and then
+ * removed whole.
  */
 const FILTERS = [
   { id: 'all', labelKey: 'inbox.all', params: {} },
-  { id: 'starred', labelKey: 'inbox.starred', params: { starred: true } },
   { id: 'archived', labelKey: 'inbox.archived', params: { archived: true } },
 ]
 
@@ -114,8 +122,8 @@ const DEMO_CHATS = [
     // The client spoke last, so no tick: this thread is waiting on us.
     last_message_author: 'client',
     last_message_preview: 'Можно перенести на завтра?',
-    starred: true,
     archived: false,
+    pinned: false,
   },
   {
     id: 'demo-maksat',
@@ -125,8 +133,10 @@ const DEMO_CHATS = [
     // Answered by the assistant — the row carries the tick.
     last_message_author: 'assistant',
     last_message_preview: 'Записал вас на четверг, 15:00. До встречи!',
-    starred: false,
     archived: false,
+    // Pinned, so it leads the list even though Ақзере wrote more recently —
+    // which is the whole of what pinning does.
+    pinned: true,
   },
   {
     id: 'demo-unknown',
@@ -137,20 +147,37 @@ const DEMO_CHATS = [
     last_message_at: demoAt(11, 5),
     last_message_author: 'client',
     last_message_preview: 'Сколько стоит окрашивание?',
-    starred: false,
     archived: false,
+    pinned: false,
   },
 ]
 
-/** The filters, applied to the demo rows — the server does this for real ones. */
-const demoFor = (filter) =>
-  DEMO_CHATS.filter((chat) =>
-    filter === 'starred'
-      ? chat.starred
-      : filter === 'archived'
-        ? chat.archived
-        : !chat.archived,
-  )
+/**
+ * The filter and the ordering, applied to the demo rows — the server does both
+ * for real ones. Pinned first, then the newest message, which is exactly
+ * `ConversationRepository.list`'s `ORDER BY`.
+ */
+const demoFor = (rows, filter) =>
+  rows
+    .filter((chat) => (filter === 'archived' ? chat.archived : !chat.archived))
+    .sort(
+      (a, b) =>
+        Number(b.pinned) - Number(a.pinned) ||
+        new Date(b.last_message_at) - new Date(a.last_message_at),
+    )
+
+/**
+ * The menu's actions, applied to the demo rows in memory.
+ *
+ * **The demo has to answer the menu or the menu looks broken.** These rows are
+ * the only ones on screen until a channel exists, so a pin that does nothing to
+ * them is a pin that does nothing at all as far as anybody can see. The same
+ * three changes the server makes: a flag flipped, or the row gone.
+ */
+const demoAfter = (rows, chat, action) =>
+  action === 'delete'
+    ? rows.filter((row) => row.id !== chat.id)
+    : rows.map((row) => (row.id === chat.id ? { ...row, ...action } : row))
 /* --- end TEMPORARY ------------------------------------------------------- */
 
 export default function InboxPage() {
@@ -178,6 +205,15 @@ export default function InboxPage() {
    * way to a list that turns out to have rows in it.
    */
   const [chats, setChats] = useState(null)
+
+  // TEMPORARY — state rather than the constant, so the menu can actually change
+  // these. Delete with the block above.
+  const [demoRows, setDemoRows] = useState(DEMO_CHATS)
+
+  // Bumped after a menu action. A counter rather than a boolean, because two
+  // actions in a row have to be two reloads and `true → true` is no change —
+  // the same reason `/appointments` counts its reloads.
+  const [reload, setReload] = useState(0)
 
   // The zone the business keeps its hours in, so a timestamp on a row is the
   // hour it happened *there*. The same reasoning as the calendar's: `undefined`
@@ -214,7 +250,38 @@ export default function InboxPage() {
       alive = false
       clearTimeout(timer)
     }
-  }, [query, filter])
+  }, [query, filter, reload])
+
+  /**
+   * What the row's menu asks for: a PATCH of the thread's own flags, or the
+   * one action that is not a flag.
+   *
+   * The list is re-read afterwards rather than patched in place. Starring or
+   * archiving can move a thread *out* of the filter it was listed under, and
+   * working that out on the client would be a second copy of a rule the server
+   * already applies.
+   */
+  const onAction = async (chat, action) => {
+    // TEMPORARY — delete with the demo block above. These rows have no id on
+    // the server, so the change is made here instead of being asked for.
+    if (String(chat.id).startsWith('demo-')) {
+      setDemoRows((rows) => demoAfter(rows, chat, action))
+      return
+    }
+
+    try {
+      if (action === 'delete') {
+        await authed((token) => deleteConversation(token, chat.id))
+      } else {
+        await authed((token) => updateConversation(token, chat.id, action))
+      }
+      setReload((n) => n + 1)
+    } catch {
+      // Swallowed like the read above: the list is re-read either way, so a
+      // failed action shows as the row simply not having changed.
+      setReload((n) => n + 1)
+    }
+  }
 
   // **TEMPORARY.** Delete this line together with the block above and render
   // `chats` directly — it is the real answer and is already being fetched.
@@ -223,7 +290,11 @@ export default function InboxPage() {
   // for an inbox that is genuinely empty. A search returns nothing rather than
   // the invented rows: the one thing worse than fake data is fake data that
   // answers a question you actually asked.
-  const shown = chats?.length ? chats : query.trim() ? [] : demoFor(filter)
+  const shown = chats?.length
+    ? chats
+    : query.trim()
+      ? []
+      : demoFor(demoRows, filter)
 
   return (
     // **A definite height, not a minimum**, exactly as `/appointments` carries
@@ -342,7 +413,12 @@ export default function InboxPage() {
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4">
           {shown === null ? null : shown.length > 0 ? (
             shown.map((chat) => (
-              <ChatRow key={chat.id} chat={chat} timeZone={timeZone} />
+              <ChatRow
+                key={chat.id}
+                chat={chat}
+                timeZone={timeZone}
+                onAction={onAction}
+              />
             ))
           ) : (
             // **Two different nothings.** A search that found nothing is a

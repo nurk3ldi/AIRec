@@ -1,7 +1,16 @@
+import { useState } from 'react'
+import * as Popover from '@radix-ui/react-popover'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowDown01Icon, Tick02Icon } from '@hugeicons/core-free-icons'
+import {
+  Archive02Icon,
+  ArrowDown01Icon,
+  Delete02Icon,
+  Pin02Icon,
+  Tick02Icon,
+} from '@hugeicons/core-free-icons'
 import { clockOf } from '../../lib/appointments'
 import { getLocale, useT } from '../../lib/i18n'
+import { PANEL_MOTION } from '../appointments/panel'
 
 /**
  * One conversation in the list.
@@ -46,8 +55,18 @@ function stampOf(iso, timeZone) {
   }).format(at)
 }
 
-export default function ChatRow({ chat, timeZone, onOpen, onMenu }) {
+export default function ChatRow({ chat, timeZone, onOpen, onAction }) {
   const t = useT()
+  /**
+   * Whether the delete row is armed.
+   *
+   * **Two presses, not a dialog** — the same answer `BookingPopover` gives to
+   * the same question. A confirmation window inside a menu is a layer on a
+   * layer for a two-word question, and one red row a slip away from destroying
+   * a conversation and every message in it is worse than either. Reset whenever
+   * the menu closes, so an armed row never survives to the next opening.
+   */
+  const [armed, setArmed] = useState(false)
   const title = chat.client_name || chat.client_phone
   // Ours, whoever said it — the owner stepping in and the assistant answering
   // are the same fact from the list's point of view: this thread is not waiting
@@ -70,8 +89,24 @@ export default function ChatRow({ chat, timeZone, onOpen, onMenu }) {
         // same line as the search pill's edge and the filters above it.
         className="w-full px-4 py-2.5 pr-16 text-left outline-none transition-colors hover:bg-ink/4 focus-visible:bg-ink/6"
       >
-        <span className="block truncate text-[15px] font-medium text-ink">
-          {title}
+        {/* **The pin sits beside the name, not on the far side of the row.**
+            It explains why this thread is at the top, and an explanation four
+            inches from the thing it explains is not one. `shrink-0` after a
+            `truncate`d name, so a long name gives way and the mark never
+            does. */}
+        <span className="flex items-center gap-1.5">
+          <span className="min-w-0 truncate text-[15px] font-medium text-ink">
+            {title}
+          </span>
+          {chat.pinned && (
+            <HugeiconsIcon
+              icon={Pin02Icon}
+              size={13}
+              strokeWidth={2.2}
+              className="shrink-0 text-muted"
+              aria-label={t('inbox.pin')}
+            />
+          )}
         </span>
 
         {/* The tick and the text share one line and one truncation: the mark is
@@ -98,15 +133,85 @@ export default function ChatRow({ chat, timeZone, onOpen, onMenu }) {
           {chat.last_message_at ? stampOf(chat.last_message_at, timeZone) : ''}
         </span>
 
-        <button
-          type="button"
-          onClick={() => onMenu?.(chat)}
-          aria-label={t('inbox.actions')}
-          className="pointer-events-auto -m-1 grid h-6 w-6 place-items-center rounded-full p-1 text-muted outline-none transition-colors hover:text-ink focus-visible:text-ink"
-        >
-          <HugeiconsIcon icon={ArrowDown01Icon} size={16} strokeWidth={2} />
-        </button>
+        <Popover.Root onOpenChange={(open) => !open && setArmed(false)}>
+          <Popover.Trigger asChild>
+            <button
+              type="button"
+              aria-label={t('inbox.actions')}
+              className="pointer-events-auto -m-1 grid h-6 w-6 place-items-center rounded-full p-1 text-muted outline-none transition-colors hover:text-ink focus-visible:text-ink"
+            >
+              <HugeiconsIcon icon={ArrowDown01Icon} size={16} strokeWidth={2} />
+            </button>
+          </Popover.Trigger>
+
+          <Popover.Portal>
+            {/* The app's one panel entrance, shared with everything that opens
+                on `/appointments`: it grows out of the control that opened it.
+                See `PANEL_MOTION`. */}
+            <Popover.Content
+              side="bottom"
+              align="end"
+              sideOffset={6}
+              collisionPadding={12}
+              className={`z-50 w-[220px] rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none ${PANEL_MOTION}`}
+            >
+              {/* Label left, glyph right — the reference's order, and the one
+                  that lets the eye run down the words rather than the icons. */}
+              <MenuItem
+                icon={Pin02Icon}
+                label={t(chat.pinned ? 'inbox.unpin' : 'inbox.pin')}
+                onClick={() => onAction?.(chat, { pinned: !chat.pinned })}
+              />
+              <MenuItem
+                icon={Archive02Icon}
+                label={t(chat.archived ? 'inbox.unarchive' : 'inbox.archive')}
+                onClick={() => onAction?.(chat, { archived: !chat.archived })}
+              />
+              <MenuItem
+                icon={Delete02Icon}
+                label={t(armed ? 'inbox.deleteConfirm' : 'inbox.delete')}
+                danger
+                onClick={() => {
+                  if (!armed) {
+                    setArmed(true)
+                    return
+                  }
+                  onAction?.(chat, 'delete')
+                }}
+              />
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
       </div>
     </div>
+  )
+}
+
+/**
+ * One row of the menu.
+ *
+ * `danger` is the delete row and nothing else. It is the only coloured thing in
+ * here, which is what makes it readable as the one action that cannot be taken
+ * back — a menu where two rows are tinted has nothing left to say that with.
+ */
+function MenuItem({ icon, label, onClick, danger }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left text-[15px] outline-none transition-colors ${
+        danger
+          ? 'text-danger hover:bg-danger/8 focus-visible:bg-danger/8'
+          : 'text-ink hover:bg-ink/6 focus-visible:bg-ink/6'
+      }`}
+    >
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      <HugeiconsIcon
+        icon={icon}
+        size={17}
+        strokeWidth={2}
+        className="shrink-0"
+      />
+    </button>
   )
 }

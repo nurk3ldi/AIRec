@@ -131,7 +131,14 @@ class ConversationRepository:
         if query:
             stmt = stmt.where(_matches(query))
 
+        # **Pinned threads first, and among themselves newest-pinned first.**
+        # `nullslast` is what makes the first key an ordering rather than a
+        # filter: a thread with no `pinned_at` is not excluded, it simply sorts
+        # after every thread that has one. Everything below that is unchanged —
+        # the newest message wins, and `created_at` settles a thread that has no
+        # messages at all.
         stmt = stmt.order_by(
+            Conversation.pinned_at.desc().nullslast(),
             Conversation.last_message_at.desc().nullslast(),
             Conversation.created_at.desc(),
         )

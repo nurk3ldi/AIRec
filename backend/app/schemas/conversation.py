@@ -48,6 +48,9 @@ class ConversationPublic(BaseModel):
     # their timestamps, `awaiting_reply` from who wrote last.
     archived: bool = False
     starred: bool = False
+    # Kept at the top of the list — an ordering rather than a filter, so unlike
+    # `starred` there is no query that returns only these.
+    pinned: bool = False
     awaiting_reply: bool = False
     created_at: datetime
     updated_at: datetime
@@ -123,6 +126,7 @@ class UpdateConversationRequest(BaseModel):
     assistant_enabled: bool | None = None
     archived: bool | None = None
     starred: bool | None = None
+    pinned: bool | None = None
 
     @field_validator("client_name")
     @classmethod

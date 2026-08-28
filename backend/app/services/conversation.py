@@ -155,6 +155,10 @@ class ConversationService:
             conversation.archived_at = (
                 datetime.now(UTC) if changes["archived"] else None
             )
+        if changes.get("pinned") is not None:
+            conversation.pinned_at = (
+                datetime.now(UTC) if changes["pinned"] else None
+            )
         if changes.get("starred") is not None:
             conversation.starred_at = (
                 datetime.now(UTC) if changes["starred"] else None
