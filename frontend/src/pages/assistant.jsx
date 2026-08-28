@@ -83,6 +83,17 @@ export default function AssistantPage() {
           flex row puts each at its own width, side by side, and drops the next
           one to a new line when the room runs out. */}
       <div className="flex w-full flex-wrap content-start gap-6 p-4 sm:p-6">
+        {/* The first column, split in two down the height. `flex-1` on both
+            rather than a fixed share, so the gap between them comes out of the
+            column once instead of being subtracted from each half by hand. */}
+        <div className={`flex w-full max-w-[350px] flex-col gap-6 ${FULL}`}>
+          <ServicesCard
+            services={services}
+            onSaved={() => setReload((n) => n + 1)}
+          />
+          <HoursCard week={week} onSaved={() => setReload((n) => n + 1)} />
+        </div>
+
         {/* **`surface-raised`, and no edge at all.** That token exists for
             exactly this: `surface` is the same black as the page on the dark
             theme, so a borderless card drawn in it is nothing — `surface-raised`
@@ -96,17 +107,6 @@ export default function AssistantPage() {
             business={business}
             onSaved={() => setReload((n) => n + 1)}
           />
-        </div>
-
-        {/* The second column, split in two down the height. `flex-1` on both
-            rather than a fixed share, so the gap between them comes out of the
-            column once instead of being subtracted from each half by hand. */}
-        <div className={`flex w-full max-w-[350px] flex-col gap-6 ${FULL}`}>
-          <ServicesCard
-            services={services}
-            onSaved={() => setReload((n) => n + 1)}
-          />
-          <HoursCard week={week} onSaved={() => setReload((n) => n + 1)} />
         </div>
 
         {/* Everything that is left. `flex-1` takes the leftover of the row
