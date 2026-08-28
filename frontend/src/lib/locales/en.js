@@ -9,6 +9,8 @@ export default {
   'inbox.unpin': 'Unpin',
   'inbox.archive': 'Archive',
   'inbox.unarchive': 'Move out of archive',
+  'inbox.byYou': 'You',
+  'inbox.byAssistant': 'Assistant',
   'inbox.delete': 'Delete',
   'inbox.deleteConfirm': 'Delete for good?',
   'inbox.empty': 'No conversations yet',

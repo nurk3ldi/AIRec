@@ -5,8 +5,8 @@ import {
   Archive02Icon,
   ArrowDown01Icon,
   Delete02Icon,
-  Pin02Icon,
-  Tick02Icon,
+  PinIcon,
+  PinOffIcon,
 } from '@hugeicons/core-free-icons'
 import { clockOf } from '../../lib/appointments'
 import { getLocale, useT } from '../../lib/i18n'
@@ -24,12 +24,13 @@ import { PANEL_MOTION } from '../appointments/panel'
  * it does not already say, while taking 56px off the width the name and the
  * preview have to share in a 340px column.
  *
- * **The mark before the preview is a single tick, not the double one.** `✓✓`
- * means delivered-and-read everywhere a person has seen it, and this product
- * has no delivery receipts at all — there is no outbound channel yet, let alone
- * a receipt from one. What the row can honestly say is *who spoke last*, which
- * is `last_message_author`: a tick when the answer was ours, and nothing when
- * the client is the one still waiting.
+ * **The preview says who spoke, in words rather than in a mark.** It was a
+ * tick, which was wrong in both directions: `✓✓` means delivered-and-read to
+ * anybody who has used a messenger, and this product has no delivery receipts
+ * at all — while a mark that meant "ours" could not say *which* of us. A label
+ * can: «Ассистент:» when the bot answered, «Вы:» when the owner did, and
+ * nothing at all when the client wrote last, because the client's own words
+ * need no attribution on a row that is already titled with their name.
  */
 
 /**
@@ -72,12 +73,14 @@ export default function ChatRow({ chat, timeZone, onOpen, onAction }) {
   // through its first press to show the confirm.
   const [menuOpen, setMenuOpen] = useState(false)
   const title = chat.client_name || chat.client_phone
-  // Ours, whoever said it — the owner stepping in and the assistant answering
-  // are the same fact from the list's point of view: this thread is not waiting
-  // on anybody here.
-  const answered =
-    chat.last_message_author === 'assistant' ||
-    chat.last_message_author === 'owner'
+  // Who said the last thing, as a word. The client gets none — see the note
+  // above.
+  const said =
+    chat.last_message_author === 'assistant'
+      ? t('inbox.byAssistant')
+      : chat.last_message_author === 'owner'
+        ? t('inbox.byYou')
+        : null
 
   return (
     // **The menu is a sibling of the row, not a child of it.** The row is a
@@ -104,28 +107,26 @@ export default function ChatRow({ chat, timeZone, onOpen, onAction }) {
           </span>
           {chat.pinned && (
             <HugeiconsIcon
-              icon={Pin02Icon}
+              icon={PinIcon}
               size={13}
               strokeWidth={2.2}
-              className="shrink-0 text-muted"
+              // **Filled, and it has to be done in CSS.** The free icon set is
+              // stroke-only — there is no solid variant to import — and the
+              // paths carry `stroke` but no `fill`, so filling them is one
+              // rule. The needle is an open path and encloses no area, which is
+              // why it stays a line while the head becomes solid.
+              className="shrink-0 text-muted [&_path]:fill-current"
               aria-label={t('inbox.pin')}
             />
           )}
         </span>
 
-        {/* The tick and the text share one line and one truncation: the mark is
-            `shrink-0` so a long preview never squeezes it out, and the preview
-            itself is what gives way. */}
-        <span className="mt-0.5 flex items-center gap-1 text-[13px] text-muted">
-          {answered && (
-            <HugeiconsIcon
-              icon={Tick02Icon}
-              size={14}
-              strokeWidth={2.4}
-              className="shrink-0"
-            />
-          )}
-          <span className="truncate">{chat.last_message_preview ?? ''}</span>
+        {/* One line and one truncation, label included: «Вы: …» is a single
+            sentence, and truncating the two halves separately would cut the
+            name off before the message it belongs to. */}
+        <span className="mt-0.5 block truncate text-[13px] text-muted">
+          {said && `${said}: `}
+          {chat.last_message_preview ?? ''}
         </span>
       </button>
 
@@ -167,8 +168,10 @@ export default function ChatRow({ chat, timeZone, onOpen, onAction }) {
             >
               {/* Label left, glyph right — the reference's order, and the one
                   that lets the eye run down the words rather than the icons. */}
+              {/* The glyph says which way the row goes, like the label beside
+                  it: a struck-through pin for the one that takes it off. */}
               <MenuItem
-                icon={Pin02Icon}
+                icon={chat.pinned ? PinOffIcon : PinIcon}
                 label={t(chat.pinned ? 'inbox.unpin' : 'inbox.pin')}
                 onClick={() => {
                   setMenuOpen(false)

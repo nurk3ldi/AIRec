@@ -15,6 +15,8 @@ export default {
   'inbox.unpin': 'Открепить',
   'inbox.archive': 'В архив',
   'inbox.unarchive': 'Вернуть из архива',
+  'inbox.byYou': 'Вы',
+  'inbox.byAssistant': 'Ассистент',
   'inbox.delete': 'Удалить',
   'inbox.deleteConfirm': 'Точно удалить?',
   'inbox.empty': 'Пока нет диалогов',

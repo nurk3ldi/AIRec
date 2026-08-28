@@ -9,6 +9,8 @@ export default {
   'inbox.unpin': 'Бекітуді алу',
   'inbox.archive': 'Мұрағатқа',
   'inbox.unarchive': 'Мұрағаттан қайтару',
+  'inbox.byYou': 'Сіз',
+  'inbox.byAssistant': 'Ассистент',
   'inbox.delete': 'Жою',
   'inbox.deleteConfirm': 'Шынымен жою керек пе?',
   'inbox.empty': 'Әзірге диалог жоқ',
