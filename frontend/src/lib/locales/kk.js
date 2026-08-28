@@ -2,6 +2,13 @@
 export default {
   'nav.dashboard': 'Басты бет',
   'nav.inbox': 'Диалогтар',
+  'inbox.all': 'Барлығы',
+  'inbox.starred': 'Таңдаулы',
+  'inbox.archived': 'Мұрағат',
+  'inbox.actions': 'Чатпен әрекеттер',
+  'inbox.empty': 'Әзірге диалог жоқ',
+  'inbox.emptyHint': 'Мұнда ассистенттің WhatsApp-тағы жазысулары пайда болады.',
+  'inbox.nothingFound': 'Ештеңе табылмады',
   'nav.appointments': 'Жазбалар',
   'nav.business': 'Бизнес',
   'nav.profile': 'Профиль',

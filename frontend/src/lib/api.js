@@ -370,3 +370,63 @@ export function resetPassword({ email, code, newPassword }) {
     body: { email, code, new_password: newPassword },
   })
 }
+
+/* --- the inbox ------------------------------------------------------------
+ *
+ * The conversations the assistant is having and the messages inside them. The
+ * endpoints behind these are finished; what does not exist yet is the WhatsApp
+ * channel that would put anything in them, so a new account's inbox is
+ * genuinely empty rather than unfinished.
+ */
+
+/**
+ * The thread list, newest first.
+ *
+ * Everything is optional and the defaults are the server's: archived threads
+ * are left out unless asked for, and no filter means every thread that is not
+ * archived. `archived: null` includes both, which is why it is checked against
+ * `undefined` rather than for truthiness — `false` and `null` are two different
+ * questions here.
+ *
+ * The list never carries messages. A hundred rows each dragging their history
+ * behind them is what makes a list endpoint slow, so the transcript comes from
+ * `getConversation` when a thread is actually opened.
+ */
+export function listConversations(
+  accessToken,
+  { query, archived, starred, status, limit, offset } = {},
+) {
+  const params = new URLSearchParams()
+  if (query) params.set('query', query)
+  if (archived !== undefined) params.set('archived', String(archived))
+  if (starred !== undefined) params.set('starred', String(starred))
+  if (limit !== undefined) params.set('limit', String(limit))
+  if (offset !== undefined) params.set('offset', String(offset))
+  // Repeated rather than comma-joined, like the bookings list.
+  for (const item of status ?? []) params.append('status', item)
+
+  return request(`/conversations?${params}`, { method: 'GET', accessToken })
+}
+
+/** One thread with its messages — the only shape that carries the transcript. */
+export function getConversation(accessToken, id) {
+  return request(`/conversations/${id}`, { method: 'GET', accessToken })
+}
+
+/**
+ * The owner's own decisions about a thread: what to call the client, whether it
+ * is dealt with, starred, out of the way — and whether the assistant may speak
+ * in it. A PATCH, so an omitted field is left alone.
+ */
+export function updateConversation(accessToken, id, changes) {
+  return request(`/conversations/${id}`, {
+    method: 'PATCH',
+    body: changes,
+    accessToken,
+  })
+}
+
+/** Clears the thread's unread count. Opening it is what calls this. */
+export function markConversationRead(accessToken, id) {
+  return request(`/conversations/${id}/read`, { method: 'POST', accessToken })
+}

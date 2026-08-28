@@ -2,6 +2,13 @@
 export default {
   'nav.dashboard': 'Home',
   'nav.inbox': 'Chats',
+  'inbox.all': 'All',
+  'inbox.starred': 'Starred',
+  'inbox.archived': 'Archive',
+  'inbox.actions': 'Chat actions',
+  'inbox.empty': 'No conversations yet',
+  'inbox.emptyHint': 'The chats your assistant handles on WhatsApp will show up here.',
+  'inbox.nothingFound': 'Nothing found',
   'nav.appointments': 'Bookings',
   'nav.business': 'Business',
   'nav.profile': 'Profile',

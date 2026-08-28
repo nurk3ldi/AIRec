@@ -8,6 +8,13 @@ export default {
   // ── Navigation and shell ───────────────────────────────────────────────────
   'nav.dashboard': 'Главная',
   'nav.inbox': 'Диалоги',
+  'inbox.all': 'Все',
+  'inbox.starred': 'Избранное',
+  'inbox.archived': 'Архив',
+  'inbox.actions': 'Действия с чатом',
+  'inbox.empty': 'Пока нет диалогов',
+  'inbox.emptyHint': 'Здесь появятся переписки, которые ассистент ведёт в WhatsApp.',
+  'inbox.nothingFound': 'Ничего не найдено',
   'nav.appointments': 'Записи',
   'nav.business': 'Бизнес',
   'nav.profile': 'Профиль',
