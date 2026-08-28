@@ -441,3 +441,37 @@ export function markConversationRead(accessToken, id) {
 export function deleteConversation(accessToken, id) {
   return request(`/conversations/${id}`, { method: 'DELETE', accessToken })
 }
+
+/**
+ * The transcript, oldest first.
+ *
+ * Separate from `getConversation` even though that one can carry messages too:
+ * this is what a thread already on screen re-reads after something is said, and
+ * it does not need the conversation's own row back with it.
+ */
+export function listMessages(accessToken, id, { limit, before } = {}) {
+  const params = new URLSearchParams()
+  if (limit !== undefined) params.set('limit', String(limit))
+  if (before) params.set('before', before)
+  return request(`/conversations/${id}/messages?${params}`, {
+    method: 'GET',
+    accessToken,
+  })
+}
+
+/**
+ * Records something we are saying. **It does not send it** — there is no
+ * outbound channel yet, so this writes to the transcript and nothing leaves the
+ * building. The screen has to say so.
+ *
+ * The author defaults to the owner on the server, and an owner's message
+ * switches the assistant off for that thread. That is the rule the whole inbox
+ * exists around: whoever steps in takes the thread over.
+ */
+export function createMessage(accessToken, id, body) {
+  return request(`/conversations/${id}/messages`, {
+    method: 'POST',
+    body: { body },
+    accessToken,
+  })
+}

@@ -10,6 +10,7 @@ import {
 import { authed } from '../lib/auth'
 import { useT } from '../lib/i18n'
 import ChatRow from '../components/inbox/ChatRow'
+import Thread from '../components/inbox/Thread'
 import styles from '../styles/Inbox.module.css'
 
 /**
@@ -124,6 +125,12 @@ const DEMO_CHATS = [
     last_message_preview: 'Можно перенести на завтра?',
     archived: false,
     pinned: false,
+    assistant_enabled: true,
+    demoMessages: [
+      { id: 'm1', author: 'client', body: 'Здравствуйте! Записывалась на завтра в 11.', sent_at: demoAt(16, 30) },
+      { id: 'm2', author: 'assistant', body: 'Здравствуйте! Да, вижу запись на завтра в 11:00.', sent_at: demoAt(16, 32) },
+      { id: 'm3', author: 'client', body: 'Можно перенести на завтра?', sent_at: demoAt(16, 35) },
+    ],
   },
   {
     id: 'demo-maksat',
@@ -137,6 +144,11 @@ const DEMO_CHATS = [
     // Pinned, so it leads the list even though Ақзере wrote more recently —
     // which is the whole of what pinning does.
     pinned: true,
+    assistant_enabled: true,
+    demoMessages: [
+      { id: 'm1', author: 'client', body: 'Добрый день, есть время в четверг?', sent_at: demoAt(14, 12) },
+      { id: 'm2', author: 'assistant', body: 'Записал вас на четверг, 15:00. До встречи!', sent_at: demoAt(14, 20) },
+    ],
   },
   {
     id: 'demo-unknown',
@@ -149,6 +161,10 @@ const DEMO_CHATS = [
     last_message_preview: 'Сколько стоит окрашивание?',
     archived: false,
     pinned: false,
+    assistant_enabled: true,
+    demoMessages: [
+      { id: 'm1', author: 'client', body: 'Сколько стоит окрашивание?', sent_at: demoAt(11, 5) },
+    ],
   },
 ]
 
@@ -210,6 +226,15 @@ export default function InboxPage() {
   // these. Delete with the block above.
   const [demoRows, setDemoRows] = useState(DEMO_CHATS)
 
+  /**
+   * Which thread is open, by id.
+   *
+   * The id rather than the row, so the pane always reads the *current* version
+   * of it: starring or pausing the assistant rewrites the row, and a copy taken
+   * when it was opened would go stale the moment anything changed.
+   */
+  const [openId, setOpenId] = useState(null)
+
   // Bumped after a menu action. A counter rather than a boolean, because two
   // actions in a row have to be two reloads and `true → true` is no change —
   // the same reason `/appointments` counts its reloads.
@@ -266,8 +291,10 @@ export default function InboxPage() {
     // the server, so the change is made here instead of being asked for.
     if (String(chat.id).startsWith('demo-')) {
       setDemoRows((rows) => demoAfter(rows, chat, action))
+      if (action === 'delete' && chat.id === openId) setOpenId(null)
       return
     }
+    if (action === 'delete' && chat.id === openId) setOpenId(null)
 
     try {
       if (action === 'delete') {
@@ -296,6 +323,25 @@ export default function InboxPage() {
       ? []
       : demoFor(demoRows, filter)
 
+  /** The row the pane is drawing, read back out of the list every render. */
+  const open = shown.find((chat) => chat.id === openId) ?? null
+
+  /**
+   * A change the thread made to its own row — so far only the assistant being
+   * switched on or off, including the switch the server throws when the owner
+   * says something.
+   *
+   * Applied to the demo rows in memory and re-read from the server for real
+   * ones, which is the same split every action on this screen makes.
+   */
+  const onChanged = (chat, changes) => {
+    if (String(chat.id).startsWith('demo-')) {
+      setDemoRows((rows) => demoAfter(rows, chat, changes))
+      return
+    }
+    setReload((n) => n + 1)
+  }
+
   return (
     // **A definite height, not a minimum**, exactly as `/appointments` carries
     // one and for the same reason: the two panels each scroll inside
@@ -308,7 +354,7 @@ export default function InboxPage() {
     // height: 68px header plus the 50px bottom bar and the home indicator below
     // `sm`, and the header alone from `sm` up. The two must move together.
     <div
-      className={`${styles.page} flex h-[calc(100vh-118px-env(safe-area-inset-bottom))] overflow-hidden sm:h-[calc(100vh-68px)]`}
+      className={`${styles.page} relative flex h-[calc(100vh-118px-env(safe-area-inset-bottom))] overflow-hidden sm:h-[calc(100vh-68px)]`}
       aria-label={t('nav.inbox')}
     >
       {/* **The list, on the left and the full height of the page.**
@@ -417,6 +463,8 @@ export default function InboxPage() {
                 key={chat.id}
                 chat={chat}
                 timeZone={timeZone}
+                isOpen={chat.id === openId}
+                onOpen={() => setOpenId(chat.id)}
                 onAction={onAction}
               />
             ))
@@ -434,9 +482,23 @@ export default function InboxPage() {
         </div>
       </aside>
 
-      {/* The thread. Empty ground for now, and hidden below `sm` — on a phone
-          this is a screen you go to rather than a panel you look at. */}
-      <section className="hidden min-w-0 flex-1 flex-col overflow-hidden sm:flex" />
+      {/* **The thread.** A panel beside the list on a desktop, and on a phone a
+          screen that covers it — `inset-0` over the whole page rather than a
+          column beside one, because 340px of list and a conversation do not
+          both fit on 390 points. It is only mounted when something is open, so
+          the empty pane is the desktop's alone. */}
+      <section
+        className={`min-w-0 flex-1 flex-col overflow-hidden ${
+          open ? 'absolute inset-0 z-20 flex bg-ground sm:relative' : 'hidden sm:flex'
+        }`}
+      >
+        <Thread
+          chat={open}
+          timeZone={timeZone}
+          onBack={() => setOpenId(null)}
+          onChanged={onChanged}
+        />
+      </section>
     </div>
   )
 }

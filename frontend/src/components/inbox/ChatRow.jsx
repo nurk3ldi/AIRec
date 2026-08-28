@@ -56,7 +56,7 @@ function stampOf(iso, timeZone) {
   }).format(at)
 }
 
-export default function ChatRow({ chat, timeZone, onOpen, onAction }) {
+export default function ChatRow({ chat, timeZone, isOpen, onOpen, onAction }) {
   const t = useT()
   /**
    * Whether the delete row is armed.
@@ -94,7 +94,9 @@ export default function ChatRow({ chat, timeZone, onOpen, onAction }) {
         onClick={() => onOpen?.(chat)}
         // `px-4` is the panel's own gutter, so the client's name starts on the
         // same line as the search pill's edge and the filters above it.
-        className="w-full px-4 py-2.5 pr-16 text-left outline-none transition-colors hover:bg-ink/4 focus-visible:bg-ink/6"
+        className={`w-full px-4 py-2.5 pr-16 text-left outline-none transition-colors ${
+          isOpen ? 'bg-ink/6' : 'hover:bg-ink/4 focus-visible:bg-ink/6'
+        }`}
       >
         {/* **The pin sits beside the name, not on the far side of the row.**
             It explains why this thread is at the top, and an explanation four
