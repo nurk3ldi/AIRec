@@ -8,8 +8,9 @@ import {
   uploadBusinessLogo,
 } from '../../lib/api'
 import { authed } from '../../lib/auth'
-import { PAYMENT_METHODS, SERVICE_LANGUAGES, timeZoneLabel } from '../../lib/businessOptions'
+import { PAYMENT_METHODS, SERVICE_LANGUAGES } from '../../lib/businessOptions'
 import { useT } from '../../lib/i18n'
+import MultiSelect from './MultiSelect'
 
 /**
  * What the assistant knows about the business it answers for.
@@ -19,20 +20,21 @@ import { useT } from '../../lib/i18n'
  * one is the things a client might ask — what you are called, where you are,
  * what you take, which languages you speak.
  *
- * **The two closed sets are chips, not a dropdown.** Languages is three options
- * and payment is nine, both multiple-choice: a row of toggles shows every
- * answer and the current state at once, where a select hides both behind a
- * press. It also needs no library — the combobox this project used for the
- * eighty-odd cities went out with `cmdk`, and none of that machinery is worth
- * it for twelve toggles.
+ * **The two closed sets are answered differently, and by their length.**
+ * Languages is three options, so they are chips: the whole set and the current
+ * answer are one line, and a list would hide both behind a press. Payment is
+ * nine, which as chips wrapped to two rows and took most of the card's height
+ * for a field that is set once — so it is a `MultiSelect`, one line that says
+ * what was chosen.
  *
  * **The city is a plain field for now.** Eighty cities need filtering to be
- * pickable, which is that same combobox; the column is a free string, so typing
- * one is correct rather than a stopgap that stores something wrong.
+ * pickable, which is a combobox this project no longer has; the column is a
+ * free string, so typing one is correct rather than a stopgap that stores
+ * something wrong.
  *
- * **The time zone is read-only, and that is the right amount of choice** — see
- * `businessOptions.js`. Kazakhstan has run on one offset since March 2024, so a
- * picker would be seven ways to choose the same answer.
+ * **No time zone.** Kazakhstan has run on one offset since March 2024 — the
+ * backend defaults the column and nothing here can usefully change it, so a row
+ * stating it was a line the owner had to read past on every visit.
  */
 
 /** Free strings on the backend; the comma is this side's encoding of a set. */
@@ -133,11 +135,18 @@ export default function BusinessCard({ business, onSaved }) {
     // thing that can separate them.
     <form
       onSubmit={save}
-      className="flex flex-col rounded-2xl border border-line bg-surface p-6"
+      className="flex h-full min-h-0 flex-col rounded-2xl border border-line bg-surface p-6"
     >
-      <h2 className="font-display text-[15px] font-semibold text-ink">
+      <h2 className="shrink-0 font-display text-[15px] font-semibold text-ink">
         {t('assistant.business')}
       </h2>
+
+      {/* **The card fills the column and its contents scroll inside it.** The
+          title stays put and so does the save button, which is the point: a
+          form whose only way to reach «Сохранить» is to scroll past every field
+          is one where the button is easy to lose. `min-h-0` is what lets this
+          shrink — a flex item refuses to go below its content without it. */}
+      <div className="-mx-6 min-h-0 flex-1 overflow-y-auto px-6">
 
       {/* The logo and the name on one row: the mark and the word it belongs to
           are one statement, and stacking them spends a whole row on a square. */}
@@ -220,6 +229,13 @@ export default function BusinessCard({ business, onSaved }) {
           value={form.landmark}
           onChange={(value) => set({ landmark: value })}
         />
+        <MultiSelect
+          label={t('assistant.payment')}
+          options={PAYMENT_METHODS}
+          value={form.payment}
+          onChange={(next) => set({ payment: next })}
+          placeholder={t('assistant.pick')}
+        />
       </div>
 
       <Chips
@@ -229,18 +245,8 @@ export default function BusinessCard({ business, onSaved }) {
         onToggle={(item) => toggle('languages', item)}
       />
 
-      <Chips
-        label={t('assistant.payment')}
-        options={PAYMENT_METHODS}
-        value={form.payment}
-        onToggle={(item) => toggle('payment', item)}
-      />
 
-      {/* Stated, not offered — see the note at the head of this file. */}
-      <p className="mt-6 flex items-baseline justify-between gap-3 border-t border-line pt-4 text-[13px]">
-        <span className="text-muted">{t('assistant.timezone')}</span>
-        <span className="text-ink">{timeZoneLabel(business?.timezone)}</span>
-      </p>
+      </div>
 
       {/* **The button appears only when there is something to save.** A card
           that always offers it invites a press that does nothing, and with four
@@ -250,7 +256,7 @@ export default function BusinessCard({ business, onSaved }) {
         <button
           type="submit"
           disabled={saving}
-          className="mt-6 h-10 self-end rounded-full bg-accent px-5 text-[14px] font-medium text-surface outline-none transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+          className="mt-6 h-10 shrink-0 self-end rounded-full bg-accent px-5 text-[14px] font-medium text-surface outline-none transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {t(saving ? 'assistant.saving' : 'assistant.save')}
         </button>
