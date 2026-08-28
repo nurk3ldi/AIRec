@@ -8,6 +8,7 @@ import {
   updateConversation,
 } from '../../lib/api'
 import { authed } from '../../lib/auth'
+import { clockOf } from '../../lib/appointments'
 import { useT } from '../../lib/i18n'
 
 /**
@@ -31,7 +32,7 @@ import { useT } from '../../lib/i18n'
  * screen, so the note under it is not decoration and should not be removed
  * until there is something behind it.
  */
-export default function Thread({ chat, onBack, onChanged }) {
+export default function Thread({ chat, onBack, onChanged, timeZone }) {
   const t = useT()
   const [messages, setMessages] = useState(null)
   const [draft, setDraft] = useState('')
@@ -157,7 +158,7 @@ export default function Thread({ chat, onBack, onChanged }) {
       >
         {messages === null ? null : messages.length > 0 ? (
           messages.map((message) => (
-            <Bubble key={message.id} message={message} />
+            <Bubble key={message.id} message={message} timeZone={timeZone} />
           ))
         ) : (
           <p className="pt-8 text-center text-[13px] text-muted">
@@ -167,7 +168,13 @@ export default function Thread({ chat, onBack, onChanged }) {
       </div>
 
       <form onSubmit={send} className="shrink-0 border-t border-line px-4 py-3">
-        <div className="flex items-end gap-2">
+        {/* **The send button sits inside the field.** One pill rather than a
+            pill and a circle beside it: the two are one control — you type and
+            you send — and on a 340px-narrower pane the separate button was
+            taking width from the thing being typed into. The field reserves
+            `pr-11` for it, and the 8px button inside a 10px field leaves 4px of
+            air all round. */}
+        <div className="relative flex h-10 items-center">
           <input
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
@@ -175,24 +182,28 @@ export default function Thread({ chat, onBack, onChanged }) {
             aria-label={t('inbox.composerPlaceholder')}
             // 16px below `sm` like every other field here — iOS magnifies the
             // page when a smaller one takes focus and never magnifies back.
-            className="h-10 min-w-0 flex-1 appearance-none rounded-full bg-surface-card px-4 text-[16px] text-ink outline-none transition-shadow duration-150 placeholder:text-muted focus:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)] sm:text-[14px]"
+            className="h-full w-full appearance-none rounded-full bg-surface-card pr-11 pl-4 text-[16px] text-ink outline-none transition-shadow duration-150 placeholder:text-muted focus:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)] sm:text-[14px]"
           />
           <button
             type="submit"
             disabled={!draft.trim() || sending}
             aria-label={t('inbox.send')}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent text-surface outline-none transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+            className="absolute right-1 grid h-8 w-8 place-items-center rounded-full bg-accent text-surface outline-none transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <HugeiconsIcon icon={SentIcon} size={18} strokeWidth={2} />
+            {/* **Nudged, because the glyph is not centred in its own box.**
+                The paper plane is drawn pointing up and to the right, so its
+                mass sits high and right of the 24×24 viewBox's middle — and a
+                grid that centres the *box* therefore leaves the shape looking
+                off inside a circle. Half a pixel down and left puts the plane
+                itself in the middle. */}
+            <HugeiconsIcon
+              icon={SentIcon}
+              size={16}
+              strokeWidth={2}
+              className="translate-x-[-0.5px] translate-y-[0.5px]"
+            />
           </button>
         </div>
-
-        {/* Not a toast and not a tooltip: this is true of every message sent
-            from here until a channel exists, so it is written where it can be
-            read before the message is written rather than after. */}
-        <p className="mt-2 text-[12px] leading-tight text-muted">
-          {t('inbox.notDelivered')}
-        </p>
       </form>
     </>
   )
@@ -207,12 +218,22 @@ export default function Thread({ chat, onBack, onChanged }) {
  * of the two said it is written above the bubble, because that is the one
  * distinction this product cares about and a side cannot carry it.
  */
-function Bubble({ message }) {
+function Bubble({ message, timeZone }) {
   const t = useT()
   const mine = message.author !== 'client'
 
   return (
-    <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+    // **The time appears on hover and lives outside the bubble.** Inside it, it
+    // is a second line on every message forever, for a fact nobody needs on
+    // most of them; on hover it is there the moment it is wanted and gone the
+    // rest of the time. `group` is what makes hovering the row reveal it, and
+    // it sits on the side the bubble is not so it never covers a word.
+    <div
+      className={`group flex items-center gap-2 ${
+        mine ? 'justify-end' : 'justify-start'
+      }`}
+    >
+      {mine && <Stamp at={message.sent_at} timeZone={timeZone} />}
       <div className="max-w-[75%] min-w-0">
         {mine && (
           <p className="mb-0.5 pr-1 text-right text-[11px] text-muted">
@@ -231,6 +252,17 @@ function Bubble({ message }) {
           {message.body}
         </div>
       </div>
+
+      {!mine && <Stamp at={message.sent_at} timeZone={timeZone} />}
     </div>
+  )
+}
+
+/** When it was said, shown only while the row is under the pointer. */
+function Stamp({ at, timeZone }) {
+  return (
+    <span className="shrink-0 text-[11px] text-muted opacity-0 transition-opacity tabular-nums group-hover:opacity-100">
+      {clockOf(at, timeZone)}
+    </span>
   )
 }

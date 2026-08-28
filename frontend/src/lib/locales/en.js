@@ -17,7 +17,6 @@ export default {
   'inbox.pickChat': 'Pick a chat on the left',
   'inbox.noMessages': 'No messages in this chat yet',
   'inbox.composerPlaceholder': 'Write a message…',
-  'inbox.notDelivered': 'The message is kept in the history but will not reach the client — WhatsApp is not connected yet.',
   'inbox.send': 'Send',
   'inbox.byAssistant': 'Assistant',
   'inbox.delete': 'Delete',

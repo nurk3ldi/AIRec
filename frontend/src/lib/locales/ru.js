@@ -23,7 +23,6 @@ export default {
   'inbox.pickChat': 'Выберите чат слева',
   'inbox.noMessages': 'В этом чате пока нет сообщений',
   'inbox.composerPlaceholder': 'Написать сообщение…',
-  'inbox.notDelivered': 'Сообщение сохранится в истории, но не уйдёт клиенту — WhatsApp ещё не подключён.',
   'inbox.send': 'Отправить',
   'inbox.byAssistant': 'Ассистент',
   'inbox.delete': 'Удалить',

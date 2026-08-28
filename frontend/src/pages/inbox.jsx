@@ -360,6 +360,7 @@ export default function InboxPage() {
       >
         <Thread
           chat={open}
+          timeZone={timeZone}
           onBack={() => setOpenId(null)}
           onChanged={onChanged}
         />

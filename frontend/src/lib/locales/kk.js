@@ -17,7 +17,6 @@ export default {
   'inbox.pickChat': 'Сол жақтан чат таңдаңыз',
   'inbox.noMessages': 'Бұл чатта әзірге хабарлама жоқ',
   'inbox.composerPlaceholder': 'Хабарлама жазу…',
-  'inbox.notDelivered': 'Хабарлама жазбада сақталады, бірақ клиентке жетпейді — WhatsApp әлі қосылмаған.',
   'inbox.send': 'Жіберу',
   'inbox.byAssistant': 'Ассистент',
   'inbox.delete': 'Жою',
