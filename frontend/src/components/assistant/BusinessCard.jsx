@@ -1,12 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { HugeiconsIcon } from '@hugeicons/react'
-import { Building03Icon } from '@hugeicons/core-free-icons'
-import {
-  deleteBusinessLogo,
-  mediaUrl,
-  updateBusiness,
-  uploadBusinessLogo,
-} from '../../lib/api'
+import { useEffect, useState } from 'react'
+import { updateBusiness } from '../../lib/api'
 import { authed } from '../../lib/auth'
 import { PAYMENT_METHODS, SERVICE_LANGUAGES } from '../../lib/businessOptions'
 import { useT } from '../../lib/i18n'
@@ -14,6 +7,11 @@ import MultiSelect from './MultiSelect'
 
 /**
  * What the assistant knows about the business it answers for.
+ *
+ * **No logo.** The upload was here and is gone: a mark is something a client
+ * sees on a receipt or a page, and the assistant does not show anyone a
+ * picture — it answers in text. The endpoints stay (`POST`/`DELETE
+ * /auth/../business/logo`) for the day something displays one.
  *
  * **Identity, not rules.** How far ahead it may book and how many people fit in
  * the chair are the assistant's *behaviour* and belong in their own card; this
@@ -62,15 +60,6 @@ export default function BusinessCard({ business, onSaved }) {
   const t = useT()
   const [form, setForm] = useState(() => formOf(business))
   const [saving, setSaving] = useState(false)
-  const logoInput = useRef(null)
-
-  // Re-seeded whenever the row itself changes — after a save, or when the first
-  // fetch lands on a card that rendered before it. Keyed on the row's
-  // `updated_at` rather than the object, which is a new reference every fetch.
-  useEffect(() => {
-    setForm(formOf(business))
-  }, [business])
-
   const set = (changes) => setForm((was) => ({ ...was, ...changes }))
 
   const toggle = (field, value) =>
@@ -114,28 +103,13 @@ export default function BusinessCard({ business, onSaved }) {
     }
   }
 
-  const pickLogo = async (event) => {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file) return
-    await authed((token) => uploadBusinessLogo(token, file)).catch(() => {})
-    onSaved?.()
-  }
-
-  const dropLogo = async () => {
-    await authed(deleteBusinessLogo).catch(() => {})
-    onSaved?.()
-  }
-
-  const logo = mediaUrl(business?.logo_url)
-
   return (
     // The project's card: a hairline rather than a shadow, because on the dark
     // theme the page and the card are the same black and an edge is the only
     // thing that can separate them.
     <form
       onSubmit={save}
-      className="flex h-full min-h-0 flex-col rounded-2xl border border-line bg-surface p-6"
+      className="flex h-full min-h-0 flex-col rounded-2xl bg-surface-raised p-6"
     >
       <h2 className="shrink-0 font-display text-[15px] font-semibold text-ink">
         {t('assistant.business')}
@@ -148,56 +122,7 @@ export default function BusinessCard({ business, onSaved }) {
           shrink — a flex item refuses to go below its content without it. */}
       <div className="-mx-6 min-h-0 flex-1 overflow-y-auto px-6">
 
-      {/* The logo and the name on one row: the mark and the word it belongs to
-          are one statement, and stacking them spends a whole row on a square. */}
-      <div className="mt-5 flex items-center gap-4">
-        <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl bg-ground ring-1 ring-line">
-          {logo ? (
-            <img src={logo} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <HugeiconsIcon
-              icon={Building03Icon}
-              size={22}
-              strokeWidth={1.8}
-              className="text-muted"
-            />
-          )}
-        </div>
-
-        <div className="flex min-w-0 flex-col gap-2">
-          <span className="text-[13px] text-muted">{t('assistant.logo')}</span>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => logoInput.current?.click()}
-              className="h-8 rounded-full bg-surface-chip px-3 text-[13px] font-medium text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85"
-            >
-              {t('assistant.logoUpload')}
-            </button>
-            {logo && (
-              <button
-                type="button"
-                onClick={dropLogo}
-                className="h-8 rounded-full px-3 text-[13px] font-medium text-danger outline-none transition-colors hover:bg-danger/8 focus-visible:bg-danger/8"
-              >
-                {t('assistant.logoRemove')}
-              </button>
-            )}
-          </div>
-          {/* The picker is the input; the buttons above are what a person
-              presses. `hidden` rather than an invisible overlay, so the label
-              order and the tab order stay what they look like. */}
-          <input
-            ref={logoInput}
-            type="file"
-            accept="image/*"
-            onChange={pickLogo}
-            className="hidden"
-          />
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4">
         <Field
           label={t('assistant.name')}
           value={form.name}

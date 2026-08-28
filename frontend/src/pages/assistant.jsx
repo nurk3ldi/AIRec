@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { getServices, getWorkingHours } from '../lib/api'
+import { getBusiness, getServices, getWorkingHours } from '../lib/api'
 import { authed } from '../lib/auth'
 import { useT } from '../lib/i18n'
+import BusinessCard from '../components/assistant/BusinessCard'
 import ServicesCard from '../components/assistant/ServicesCard'
 import HoursCard from '../components/assistant/HoursCard'
 import styles from '../styles/Assistant.module.css'
@@ -41,6 +42,7 @@ const FULL =
 
 export default function AssistantPage() {
   const t = useT()
+  const [business, setBusiness] = useState(null)
   const [services, setServices] = useState(null)
   const [week, setWeek] = useState(null)
   // Bumped after a save. A counter rather than a boolean: two saves in a row
@@ -49,6 +51,9 @@ export default function AssistantPage() {
 
   useEffect(() => {
     let alive = true
+    authed(getBusiness)
+      .then((row) => alive && setBusiness(row))
+      .catch(() => {})
     authed(getServices)
       .then((rows) => alive && setServices(rows))
       // Swallowed: the card draws its empty state, which is also what a
@@ -86,9 +91,12 @@ export default function AssistantPage() {
             carried was the other way of doing it; a card can have one or the
             other, and two is an outline around a shape that already has an
             edge. */}
-        <div
-          className={`w-full max-w-[350px] rounded-2xl bg-surface-raised p-6 ${FULL}`}
-        />
+        <div className={`w-full max-w-[350px] ${FULL}`}>
+          <BusinessCard
+            business={business}
+            onSaved={() => setReload((n) => n + 1)}
+          />
+        </div>
 
         {/* The second column, split in two down the height. `flex-1` on both
             rather than a fixed share, so the gap between them comes out of the
