@@ -1,4 +1,9 @@
+import { useEffect, useState } from 'react'
+import { getServices, getWorkingHours } from '../lib/api'
+import { authed } from '../lib/auth'
 import { useT } from '../lib/i18n'
+import ServicesCard from '../components/assistant/ServicesCard'
+import HoursCard from '../components/assistant/HoursCard'
 import styles from '../styles/Assistant.module.css'
 
 /**
@@ -18,19 +23,52 @@ import styles from '../styles/Assistant.module.css'
  * часовой пояс, вместимость, услуги, часы работы. Ассистент их *читает*, но не
  * является ими. Переименовали экран, а не сущность.
  */
+/**
+ * How tall a card that has nothing in it yet should still be.
+ *
+ * **The viewport, less the chrome and the page's own padding** — the same sum
+ * the definite height used to be, written as a *minimum* instead. That is the
+ * whole difference: at rest the cards fill the screen exactly as they did, and
+ * a card that unfolds can still grow past it and push what is under it down,
+ * which a fixed height gave it nowhere to do.
+ *
+ * 118px below `sm` is the 68px header plus the 50px bottom bar; from `sm` the
+ * bar is gone. The `2rem`/`3rem` are the row's own `p-4` / `sm:p-6`, counted
+ * top and bottom.
+ */
+const FULL =
+  'min-h-[calc(100vh-118px-env(safe-area-inset-bottom)-2rem)] sm:min-h-[calc(100vh-68px-3rem)]'
+
 export default function AssistantPage() {
   const t = useT()
+  const [services, setServices] = useState(null)
+  const [week, setWeek] = useState(null)
+  // Bumped after a save. A counter rather than a boolean: two saves in a row
+  // have to be two reloads, and `true → true` is no change at all.
+  const [reload, setReload] = useState(0)
+
+  useEffect(() => {
+    let alive = true
+    authed(getServices)
+      .then((rows) => alive && setServices(rows))
+      // Swallowed: the card draws its empty state, which is also what a
+      // business that has never added a service looks like.
+      .catch(() => {})
+    authed(getWorkingHours)
+      .then((rows) => alive && setWeek(rows))
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [reload])
 
   return (
-    // **A definite height, not a minimum**, so a card can be 100% of it — the
-    // same chain `/appointments` uses and for the same reason: under a
-    // `min-height` the cross size is indefinite, `h-full` inside resolves to
-    // the content, and nothing fills anything. The numbers are the module's
-    // own, written a second time as a real height; the two move together.
-    <div
-      className={`${styles.page} h-[calc(100vh-118px-env(safe-area-inset-bottom))] overflow-hidden sm:h-[calc(100vh-68px)]`}
-      aria-label={t('nav.assistant')}
-    >
+    // **A minimum height, and the page scrolls.** It carried a definite one so
+    // a card could be 100% of it — but a card that unfolds has to be able to
+    // push what is under it down, and inside a fixed viewport there is nowhere
+    // for it to go. The empty placeholders keep their own `min-h`, so the
+    // layout still reads while there is nothing in them.
+    <div className={styles.page} aria-label={t('nav.assistant')}>
       {/* Flush left rather than centred: the rail is already on that edge, so a
           centred column left a gutter between the navigation and the content
           that belonged to neither. */}
@@ -39,7 +77,7 @@ export default function AssistantPage() {
           a 1100px grid sat half a screen apart with nothing between them. A
           flex row puts each at its own width, side by side, and drops the next
           one to a new line when the room runs out. */}
-      <div className="flex h-full w-full flex-wrap content-start gap-6 p-4 sm:p-6">
+      <div className="flex w-full flex-wrap content-start gap-6 p-4 sm:p-6">
         {/* **`surface-raised`, and no edge at all.** That token exists for
             exactly this: `surface` is the same black as the page on the dark
             theme, so a borderless card drawn in it is nothing — `surface-raised`
@@ -48,21 +86,28 @@ export default function AssistantPage() {
             carried was the other way of doing it; a card can have one or the
             other, and two is an outline around a shape that already has an
             edge. */}
-        <div className="h-full w-full max-w-[350px] rounded-2xl bg-surface-raised p-6" />
+        <div
+          className={`w-full max-w-[350px] rounded-2xl bg-surface-raised p-6 ${FULL}`}
+        />
 
         {/* The second column, split in two down the height. `flex-1` on both
             rather than a fixed share, so the gap between them comes out of the
             column once instead of being subtracted from each half by hand. */}
-        <div className="flex h-full w-full max-w-[350px] flex-col gap-6">
-          <div className="min-h-0 flex-1 rounded-2xl bg-surface-raised p-6" />
-          <div className="min-h-0 flex-1 rounded-2xl bg-surface-raised p-6" />
+        <div className={`flex w-full max-w-[350px] flex-col gap-6 ${FULL}`}>
+          <ServicesCard
+            services={services}
+            onSaved={() => setReload((n) => n + 1)}
+          />
+          <HoursCard week={week} onSaved={() => setReload((n) => n + 1)} />
         </div>
 
         {/* Everything that is left. `flex-1` takes the leftover of the row
             rather than a width of its own, so it is whatever the two fixed
             columns did not use; `min-w` is what stops it being squeezed to
             nothing on a narrow window — past that it wraps to its own line. */}
-        <div className="h-full min-w-[320px] flex-1 rounded-2xl bg-surface-raised p-6" />
+        <div
+          className={`min-w-[320px] flex-1 rounded-2xl bg-surface-raised p-6 ${FULL}`}
+        />
       </div>
     </div>
   )
