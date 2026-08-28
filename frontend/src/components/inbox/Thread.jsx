@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowLeft01Icon, SentIcon } from '@hugeicons/core-free-icons'
+import {
+  ArrowLeft01Icon,
+  BotIcon,
+  SentIcon,
+} from '@hugeicons/core-free-icons'
 import {
   createMessage,
   listMessages,
