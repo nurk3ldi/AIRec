@@ -21,10 +21,8 @@ import {
 import {
   dayKey,
   dayLabel,
-  rangeLabel,
   sameDay,
   shiftDate,
-  weekDays,
   weekdayLabels,
 } from '../../lib/dates'
 import { closedRanges, toMinutes } from '../../lib/schedule'
@@ -36,10 +34,8 @@ import {
   WINDOW_TO,
 } from './grid'
 import BookingPopover from './BookingPopover'
-import StatusFilter from './StatusFilter'
 import { PANEL_MOTION } from './panel'
 import { useT } from '../../lib/i18n'
-import { useRemembered } from '../../lib/viewState'
 
 const ROW_MINUTES = 90
 /**
@@ -70,12 +66,6 @@ const HOURS_ON_SCREEN = 3
  * goes to the rest of the day.
  */
 const GRID_SHARE = 0.65
-
-// Monday to Friday. The week helper hands back seven and this takes the front
-// of it, so Saturday and Sunday are dropped rather than reordered — `weekDays`
-// is Monday-first for the same reason the backend's `weekday` is, and slicing
-// the tail off keeps both agreeing about which day is which.
-const WORK_DAYS = 5
 
 /**
  * How wide a booking is in the day view, and the air between two of them.
@@ -135,13 +125,6 @@ const CARD_WIDTH = {
 
 
 
-// Two views, and both do something — a switcher whose segments are decoration
-// is worse than no switcher, which is why the reference's Today/Month/Year are
-// not here. `step` is what an arrow moves by in each: one day, or one work week.
-const VIEWS = [
-  { id: 'day', labelKey: 'appointments.viewDay', step: 'day' },
-  { id: 'week', labelKey: 'appointments.viewWeek', step: 'week' },
-]
 
 /**
  * One day or one work week, as a timetable.
@@ -183,12 +166,6 @@ export default function Timetable({
   // this grid *to*, and rebuilding them on every return from another screen is
   // the page forgetting a decision that was made on purpose. See
   // `lib/viewState.js`.
-  const [view, setView] = useRemembered('appointments.view', 'week')
-  // Empty means "everything", not "nothing" — see the note on `StatusFilter`.
-  const [statuses, setStatuses] = useRemembered(
-    'appointments.statuses',
-    () => new Set(),
-  )
   // **Which way the last step went**, so the days can arrive from the side they
   // came from. A week that simply replaces the one before it says the date
   // changed; a week that slides in from the right says you went *forward*,
@@ -209,16 +186,14 @@ export default function Timetable({
   const [entrance, setEntrance] = useState(null)
   const reduce = useReducedMotion()
 
-  const step = VIEWS.find((item) => item.id === view)?.step ?? 'week'
-  const days =
-    view === 'day' ? [selected] : weekDays(selected).slice(0, WORK_DAYS)
-  // `weekdayLabels()` is Monday-first, so a week view can index it directly.
-  // A single day has to be looked up by its own weekday instead, and
-  // `getDay()` is Sunday-first — hence the shift.
-  const labels =
-    view === 'day'
-      ? [weekdayLabels()[(selected.getDay() + 6) % 7]]
-      : weekdayLabels()
+  // **One day, always.** The five-day view and the status filter were both
+  // taken out on 2026-08-28: what the grid is for is the day in front of you,
+  // and a week of five columns split every booking into a fifth of the width
+  // for a question the calendar beside it already answers.
+  const days = [selected]
+  // `weekdayLabels()` is Monday-first and `getDay()` is Sunday-first, hence the
+  // shift.
+  const labels = [weekdayLabels()[(selected.getDay() + 6) % 7]]
   // The rows, as the minute each begins at. Not hours any more — see
   // `ROW_MINUTES` — and derived rather than written out, so the two constants
   // are the only place the extent of the day is decided.
@@ -267,13 +242,7 @@ export default function Timetable({
    */
   const bookingsFor = (day) => {
     const key = dayKey(day)
-    const sorted = (bookings ?? [])
-      .filter(
-        (b) =>
-          b.day === key &&
-          (statuses.size === 0 || statuses.has(stateOf(b.status))),
-      )
-      .sort(byStart)
+    const sorted = (bookings ?? []).filter((b) => b.day === key).sort(byStart)
     return layoutDay(sorted)
   }
 
@@ -392,36 +361,21 @@ export default function Timetable({
    */
   const drawFor = (day) => {
     const blocks = bookingsFor(day)
-    const single = []
-    const groups = new Map()
-
-    for (const block of blocks) {
-      const lane = columnWidth / block.lanes - LANE_INSET * 2
-      if (view === 'day' || block.lanes === 1 || lane >= CARD_WIDTH.RANGE) {
-        single.push(block)
-        continue
-      }
-      const found = groups.get(block.cluster)
-      if (found) found.push(block)
-      else groups.set(block.cluster, [block])
-    }
-
-    return {
-      single,
-      groups: [...groups.values()].map((list) => list.sort(byStart)),
-    }
+    // **Nothing is ever grouped now.** Clustering existed for the week view,
+    // where five columns split an hour between however many bookings shared it
+    // and a lane could fall under the width a name needs. One day gives every
+    // booking a fixed `LANE_WIDTH` and scrolls sideways instead, so there is no
+    // lane too narrow to draw.
+    return { single: blocks, groups: [] }
   }
 
   // The widest cluster of the day, which is how many lanes the column has to
   // be able to hold. Only the day view asks: the week view sizes its columns by
   // the days, not by what is in them.
-  const dayLanes =
-    view === 'day'
-      ? bookingsFor(selected).reduce(
-          (most, block) => Math.max(most, block.lanes),
-          1,
-        )
-      : 1
+  const dayLanes = bookingsFor(selected).reduce(
+    (most, block) => Math.max(most, block.lanes),
+    1,
+  )
 
   /**
    * Put the working day at the top of the grid, once.
@@ -465,11 +419,7 @@ export default function Timetable({
   // today is one of the five *drawn* days hid it every Saturday and Sunday, on
   // a work-week view that by definition never contains them. The day view still
   // asks about the day, because there it is the same question.
-  const showNow =
-    withinGrid &&
-    (view === 'day'
-      ? sameDay(selected, now)
-      : weekDays(selected).some((day) => sameDay(day, now)))
+  const showNow = withinGrid && sameDay(selected, now)
   const nowOffset = ((nowMinutes - START_HOUR * 60) / 60) * rowHeight
 
   return (
@@ -550,14 +500,9 @@ export default function Timetable({
             and should not be its loudest line; it is the toolbar's anchor, and
             a real step down from the 24 above it rather than the near-miss that
             was there before. */}
-        <div className="flex min-w-0 items-center gap-2">
-          <h2 className="min-w-0 truncate font-display text-[17px] font-semibold tracking-[-0.01em] text-ink">
-            {view === 'day'
-              ? dayLabel(days[0])
-              : rangeLabel(days[0], days[days.length - 1])}
-          </h2>
-          <StatusFilter value={statuses} onChange={setStatuses} />
-        </div>
+        <h2 className="min-w-0 truncate font-display text-[17px] font-semibold tracking-[-0.01em] text-ink">
+          {dayLabel(days[0])}
+        </h2>
 
         {/* Arrows and views travel together against the right edge: both answer
             "which days am I looking at", and splitting them across the bar
@@ -570,7 +515,7 @@ export default function Timetable({
             onClick={() => {
               setDirection(-1)
               setEntrance('step')
-              onSelect?.(shiftDate(selected, step, -1))
+              onSelect?.(shiftDate(selected, 'day', -1))
             }}
           />
           <StepButton
@@ -579,52 +524,34 @@ export default function Timetable({
             onClick={() => {
               setDirection(1)
               setEntrance('step')
-              onSelect?.(shiftDate(selected, step, 1))
+              onSelect?.(shiftDate(selected, 'day', 1))
             }}
           />
 
-          {/* **The chosen segment is a raised chip, not the accent.** The
-              accent is pure white on the dark theme, so marking the current
-              view with it put a solid white block in the middle of a black
-              toolbar — the loudest thing on the page, for a switch that only
-              says how many days are on screen. A switch is not an action.
+          {/* **«Сегодня» replaced the day/week switcher.** With one view left
+              there is nothing to switch between, and what the arrows made
+              awkward is getting *back*: stepping four days out and returning
+              was four presses. This is the one press.
 
-              `surface-chip` is a step *up* from the track in either theme —
-              white on the light one, `#2a2a2a` on the dark — which is how a
-              segmented control has always shown its choice: the pill lifts, it
-              does not light up. The track stays an ink tint rather than
-              `ground`, which on the dark theme is the same black as everything
-              behind it. */}
-          <div
-            role="group"
-            className="flex items-center gap-0.5 rounded-full bg-ink/6 p-0.5"
+              It is not a segmented control any more, so it does not wear the
+              lifted pill — it is an action, and the shape it takes is the
+              toolbar's plain button. Muted while today is already on screen:
+              still pressable, and saying plainly that it would do nothing. */}
+          <button
+            type="button"
+            onClick={() => {
+              setDirection(0)
+              setEntrance(null)
+              onSelect?.(new Date())
+            }}
+            className={`h-8 shrink-0 rounded-full px-4 text-[14px] font-medium outline-none transition-colors ${
+              sameDay(selected, new Date())
+                ? 'text-muted'
+                : 'bg-ink/6 text-ink hover:bg-ink/10 focus-visible:bg-ink/10'
+            }`}
           >
-            {VIEWS.map((item) => {
-              const isActive = item.id === view
-
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    // A fade, not a slide: one day and five are the same days
-                    // seen at a different width, and nothing about that is a
-                    // movement in a direction.
-                    setEntrance('switch')
-                    setView(item.id)
-                  }}
-                  aria-pressed={isActive}
-                  className={`grid h-8 place-items-center rounded-full px-4 text-[14px] font-medium outline-none transition-colors ${
-                    isActive
-                      ? 'bg-surface-chip text-ink'
-                      : 'text-muted hover:text-ink focus-visible:text-ink'
-                  }`}
-                >
-                  {t(item.labelKey)}
-                </button>
-              )
-            })}
-          </div>
+            {t('appointments.today')}
+          </button>
 
           {/* **32px, matching the filled pill beside it rather than the box
               around it.** The track next door is 36px, but 2px of it is gutter
@@ -715,13 +642,9 @@ export default function Timetable({
           className="grid"
           style={{
             gridTemplateColumns: `56px repeat(${days.length}, minmax(0, 1fr))`,
-            // A week needs room for five readable columns; a day needs room
-            // for however many bookings share its busiest hour. Either way the
-            // grid scrolls sideways rather than squeezing.
-            minWidth:
-              view === 'day'
-                ? 56 + LANE_INSET + dayLanes * (LANE_WIDTH + LANE_GAP)
-                : 56 + days.length * 120,
+            // Room for however many bookings share the busiest hour; past that
+            // the grid scrolls sideways rather than squeezing them.
+            minWidth: 56 + LANE_INSET + dayLanes * (LANE_WIDTH + LANE_GAP),
           }}
         >
           {/* Sticky, because scrolling to the evening with no idea which
@@ -750,11 +673,7 @@ export default function Timetable({
               // their keys change with the week too. Between the two, the whole
               // grid reads as arriving.
               <m.div
-                // **The view is part of the key.** Switching between one day
-                // and five leaves the selected date in both, so keyed on the
-                // date alone that one column would be the only thing on the
-                // grid that did not react to the switch.
-                key={`${view}-${day.toISOString()}`}
+                key={day.toISOString()}
                 initial={
                   reduce || !entrance
                     ? false
@@ -884,14 +803,9 @@ export default function Timetable({
               // any one booking in it.
               //
               // Keyed on the view as well as the date for the same reason the
-              // heading above is: switching between one day and five keeps the
-              // selected date in both, so on the date alone this column would
-              // be the only part of the grid that sat still.
               <m.div
-                key={`${view}-${day.toISOString()}`}
-                initial={
-                  reduce || entrance !== 'switch' ? false : { opacity: 0 }
-                }
+                key={day.toISOString()}
+                initial={false}
                 animate={{ opacity: 1 }}
                 transition={{ duration: reduce ? 0 : 0.2, ease: [0.16, 1, 0.3, 1] }}
                 // **The column publishes its own fill as `--column-bg`**, and
@@ -935,7 +849,7 @@ export default function Timetable({
                   `dayLanes - 1` of them: lines go *between* lanes, so a day
                   that never doubles up draws none. Centred in the gap, drawn
                   before everything else so the cards paint over them. */}
-                {view === 'day' &&
+                {
                   Array.from({ length: dayLanes - 1 }, (_, index) => (
                     <div
                       key={`lane-${index}`}
@@ -986,7 +900,7 @@ export default function Timetable({
                       key={block.id}
                       block={block}
                       rowHeight={rowHeight}
-                      laneWidth={view === 'day' ? LANE_WIDTH : null}
+                      laneWidth={LANE_WIDTH}
                       columnWidth={columnWidth}
                       services={services}
                       week={week}
