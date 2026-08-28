@@ -3,7 +3,6 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Notification01Icon,
   Search01Icon,
-  Wallet01Icon,
 } from '@hugeicons/core-free-icons'
 import { useT } from '../lib/i18n'
 
@@ -21,7 +20,6 @@ const PAGE_TITLE_KEYS = {
   '/business': 'nav.business',
   '/profile': 'nav.profile',
   '/notifications': 'nav.notifications',
-  '/wallet': 'nav.wallet',
 }
 
 export default function Header({ className = '' }) {
@@ -30,7 +28,6 @@ export default function Header({ className = '' }) {
   const titleKey = PAGE_TITLE_KEYS[pathname]
   const title = titleKey ? t(titleKey) : 'AIRec'
   const isOnNotifications = pathname === '/notifications'
-  const isOnWallet = pathname === '/wallet'
 
   return (
     // No white strip, but a rule. Dropping the fill was right — a filled bar is
@@ -77,28 +74,20 @@ export default function Header({ className = '' }) {
       <div className="flex shrink-0 items-center gap-3">
         <HeaderSearch />
 
-        {/* Both live in the header rather than the sidebar rail, and for the
-            same reason: these are things you *check*, not places you work. The
-            four screens in the rail are where the day is spent; the wallet and
-            the bell are glanced at and left.
+        {/* It lives in the header rather than the sidebar rail, and for the
+            same reason: this is something you *check*, not a place you work.
+            The four screens in the rail are where the day is spent; the bell is
+            glanced at and left.
 
-            They are also why neither is in `NAVIGATION` — the bottom bar's five
-            slots are full, and this row is present on a phone too, so both stay
+            That is also why it is not in `NAVIGATION` — the bottom bar's five
+            slots are full, and this row is present on a phone too, so it stays
             reachable there without a sixth glyph squeezing the others. */}
-        <div className="flex shrink-0 items-center gap-1">
-          <HeaderLink
-            to="/wallet"
-            label={t('nav.wallet')}
-            icon={Wallet01Icon}
-            isActive={isOnWallet}
-          />
-          <HeaderLink
-            to="/notifications"
-            label={t('nav.notifications')}
-            icon={Notification01Icon}
-            isActive={isOnNotifications}
-          />
-        </div>
+        <HeaderLink
+          to="/notifications"
+          label={t('nav.notifications')}
+          icon={Notification01Icon}
+          isActive={isOnNotifications}
+        />
       </div>
     </header>
   )

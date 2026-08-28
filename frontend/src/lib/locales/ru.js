@@ -12,8 +12,6 @@ export default {
   'nav.business': 'Бизнес',
   'nav.profile': 'Профиль',
   'nav.notifications': 'Уведомления',
-  'nav.wallet': 'Кошелёк',
-
   'appointments.viewDay': 'День',
   'appointments.viewWeek': '5 дней',
   'appointments.prev': 'Назад',
@@ -206,11 +204,6 @@ export default {
   'settings.language': 'Язык',
 
   // ── Notifications, empty states, errors ───────────────────────────────────
-  'wallet.aria': 'Кошелёк',
-  'wallet.empty': 'Кошелёк пока пуст',
-  'wallet.emptyLead':
-    'Здесь будут баланс, пополнения и оплата подписки.',
-
   'notifications.aria': 'Страница уведомлений',
   'notifications.empty': 'Пока нет уведомлений',
   'notifications.emptyLead':

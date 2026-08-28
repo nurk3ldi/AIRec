@@ -6,8 +6,6 @@ export default {
   'nav.business': 'Business',
   'nav.profile': 'Profile',
   'nav.notifications': 'Notifications',
-  'nav.wallet': 'Wallet',
-
   'appointments.viewDay': 'Day',
   'appointments.viewWeek': '5 days',
   'appointments.prev': 'Back',
@@ -189,11 +187,6 @@ export default {
   'settings.theme.light': 'Light',
   'settings.theme.dark': 'Dark',
   'settings.language': 'Language',
-
-  'wallet.aria': 'Wallet',
-  'wallet.empty': 'The wallet is empty for now',
-  'wallet.emptyLead':
-    'Your balance, top-ups and subscription payments will live here.',
 
   'notifications.aria': 'Notifications page',
   'notifications.empty': 'No notifications yet',

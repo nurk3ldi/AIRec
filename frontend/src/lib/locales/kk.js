@@ -6,8 +6,6 @@ export default {
   'nav.business': 'Бизнес',
   'nav.profile': 'Профиль',
   'nav.notifications': 'Хабарламалар',
-  'nav.wallet': 'Әмиян',
-
   'appointments.viewDay': 'Күн',
   'appointments.viewWeek': '5 күн',
   'appointments.prev': 'Артқа',
@@ -189,11 +187,6 @@ export default {
   'settings.theme.light': 'Ашық',
   'settings.theme.dark': 'Қараңғы',
   'settings.language': 'Тіл',
-
-  'wallet.aria': 'Әмиян',
-  'wallet.empty': 'Әмиян әзірге бос',
-  'wallet.emptyLead':
-    'Мұнда баланс, толықтыру және жазылым төлемі болады.',
 
   'notifications.aria': 'Хабарламалар беті',
   'notifications.empty': 'Әзірге хабарлама жоқ',
