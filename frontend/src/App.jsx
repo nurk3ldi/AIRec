@@ -3,7 +3,6 @@ import { Route, Routes } from 'react-router-dom'
 import { applyTheme, getThemePreference } from './lib/theme'
 import { applyLanguage } from './lib/i18n'
 import DashboardLayout from './components/DashboardLayout'
-import DevClientPage from './pages/dev-client'
 import PublicLayout from './components/PublicLayout'
 import AppointmentsPage from './pages/appointments'
 import BusinessPage from './pages/business'
@@ -72,14 +71,6 @@ export default function App() {
             points at it and a back gesture has to have somewhere to go. */}
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
-
-        {/* **Developer-only, and deliberately not in `NAVIGATION`.** It writes
-            messages into the inbox as though a client had sent them, which is
-            the tool the assistant will be built against and the last thing a
-            real business owner should find in their panel. The page itself
-            checks the account and redirects anyone else — see
-            `lib/devAccess.js`. */}
-        <Route path="/dev/client" element={<DevClientPage />} />
         {/* Like `/notifications`, reachable only from the header — the rail and
             the bottom bar both stop at the four screens in `NAVIGATION`. */}
       </Route>

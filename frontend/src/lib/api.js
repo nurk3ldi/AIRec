@@ -475,28 +475,3 @@ export function createMessage(accessToken, id, body) {
     accessToken,
   })
 }
-
-/**
- * A client wrote — the one entrance for anything inbound.
- *
- * **What the real WhatsApp webhook will call**, and until it exists, what the
- * dev console on `/dev/client` calls so an inbox can be looked at with real
- * messages in it. It finds the thread by the provider's id or the number, opens
- * one if there is none, and drops a redelivery — hence `messageExternalId`,
- * which has to differ per message or the second one is recognised as a repeat.
- */
-export function ingestMessage(
-  accessToken,
-  { clientPhone, clientName, body, messageExternalId },
-) {
-  return request('/conversations/ingest', {
-    method: 'POST',
-    body: {
-      client_phone: clientPhone,
-      client_name: clientName || null,
-      body,
-      message_external_id: messageExternalId,
-    },
-    accessToken,
-  })
-}
