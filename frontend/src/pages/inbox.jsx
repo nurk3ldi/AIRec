@@ -91,111 +91,6 @@ const FILTERS = [
  */
 const DEBOUNCE_MS = 300
 
-/* --- TEMPORARY: three invented threads ------------------------------------
- *
- * **Delete this block and the one line that reads it** (`const shown = …`
- * below) the moment the WhatsApp channel puts anything real in the inbox. The
- * list underneath is already wired to `GET /conversations` and works; this only
- * stands in front of it so the rows can be looked at and argued with.
- *
- * It is marked rather than trusted to be remembered because this project has
- * been here before: the `/dashboard` analytics screen was built on invented
- * figures and had to be removed whole. `/appointments` carries the same warning
- * over its own `DEMO_CHATS`, and these three continue those — same clients,
- * same conversations, so the two screens are not inventing different fictions.
- *
- * The three are chosen to show the three shapes a row can take, not to fill
- * space: one waiting on us, one the assistant has answered, and one from a
- * number that has never given a name.
- */
-const demoAt = (hours, minutes) => {
-  const at = new Date()
-  at.setHours(hours, minutes, 0, 0)
-  return at.toISOString()
-}
-
-const DEMO_CHATS = [
-  {
-    id: 'demo-akzere',
-    client_name: 'Ақзере',
-    client_phone: '+7 701 555 33 22',
-    last_message_at: demoAt(16, 35),
-    // The client spoke last, so no tick: this thread is waiting on us.
-    last_message_author: 'client',
-    last_message_preview: 'Можно перенести на завтра?',
-    archived: false,
-    pinned: false,
-    assistant_enabled: true,
-    demoMessages: [
-      { id: 'm1', author: 'client', body: 'Здравствуйте! Записывалась на завтра в 11.', sent_at: demoAt(16, 30) },
-      { id: 'm2', author: 'assistant', body: 'Здравствуйте! Да, вижу запись на завтра в 11:00.', sent_at: demoAt(16, 32) },
-      { id: 'm3', author: 'client', body: 'Можно перенести на завтра?', sent_at: demoAt(16, 35) },
-    ],
-  },
-  {
-    id: 'demo-maksat',
-    client_name: 'Мақсат',
-    client_phone: '+7 705 118 40 90',
-    last_message_at: demoAt(14, 20),
-    // Answered by the assistant — the row carries the tick.
-    last_message_author: 'assistant',
-    last_message_preview: 'Записал вас на четверг, 15:00. До встречи!',
-    archived: false,
-    // Pinned, so it leads the list even though Ақзере wrote more recently —
-    // which is the whole of what pinning does.
-    pinned: true,
-    assistant_enabled: true,
-    demoMessages: [
-      { id: 'm1', author: 'client', body: 'Добрый день, есть время в четверг?', sent_at: demoAt(14, 12) },
-      { id: 'm2', author: 'assistant', body: 'Записал вас на четверг, 15:00. До встречи!', sent_at: demoAt(14, 20) },
-    ],
-  },
-  {
-    id: 'demo-unknown',
-    // No name at all, which is the ordinary case for a first message: the row
-    // is titled by the number and the avatar falls back to its last two digits.
-    client_name: null,
-    client_phone: '+7 747 902 11 08',
-    last_message_at: demoAt(11, 5),
-    last_message_author: 'client',
-    last_message_preview: 'Сколько стоит окрашивание?',
-    archived: false,
-    pinned: false,
-    assistant_enabled: true,
-    demoMessages: [
-      { id: 'm1', author: 'client', body: 'Сколько стоит окрашивание?', sent_at: demoAt(11, 5) },
-    ],
-  },
-]
-
-/**
- * The filter and the ordering, applied to the demo rows — the server does both
- * for real ones. Pinned first, then the newest message, which is exactly
- * `ConversationRepository.list`'s `ORDER BY`.
- */
-const demoFor = (rows, filter) =>
-  rows
-    .filter((chat) => (filter === 'archived' ? chat.archived : !chat.archived))
-    .sort(
-      (a, b) =>
-        Number(b.pinned) - Number(a.pinned) ||
-        new Date(b.last_message_at) - new Date(a.last_message_at),
-    )
-
-/**
- * The menu's actions, applied to the demo rows in memory.
- *
- * **The demo has to answer the menu or the menu looks broken.** These rows are
- * the only ones on screen until a channel exists, so a pin that does nothing to
- * them is a pin that does nothing at all as far as anybody can see. The same
- * three changes the server makes: a flag flipped, or the row gone.
- */
-const demoAfter = (rows, chat, action) =>
-  action === 'delete'
-    ? rows.filter((row) => row.id !== chat.id)
-    : rows.map((row) => (row.id === chat.id ? { ...row, ...action } : row))
-/* --- end TEMPORARY ------------------------------------------------------- */
-
 export default function InboxPage() {
   const t = useT()
 
@@ -221,10 +116,6 @@ export default function InboxPage() {
    * way to a list that turns out to have rows in it.
    */
   const [chats, setChats] = useState(null)
-
-  // TEMPORARY — state rather than the constant, so the menu can actually change
-  // these. Delete with the block above.
-  const [demoRows, setDemoRows] = useState(DEMO_CHATS)
 
   /**
    * Which thread is open, by id.
@@ -287,13 +178,6 @@ export default function InboxPage() {
    * already applies.
    */
   const onAction = async (chat, action) => {
-    // TEMPORARY — delete with the demo block above. These rows have no id on
-    // the server, so the change is made here instead of being asked for.
-    if (String(chat.id).startsWith('demo-')) {
-      setDemoRows((rows) => demoAfter(rows, chat, action))
-      if (action === 'delete' && chat.id === openId) setOpenId(null)
-      return
-    }
     if (action === 'delete' && chat.id === openId) setOpenId(null)
 
     try {
@@ -310,37 +194,19 @@ export default function InboxPage() {
     }
   }
 
-  // **TEMPORARY.** Delete this line together with the block above and render
-  // `chats` directly — it is the real answer and is already being fetched.
-  //
-  // Real threads win whenever there are any, so the demo only ever stands in
-  // for an inbox that is genuinely empty. A search returns nothing rather than
-  // the invented rows: the one thing worse than fake data is fake data that
-  // answers a question you actually asked.
-  const shown = chats?.length
-    ? chats
-    : query.trim()
-      ? []
-      : demoFor(demoRows, filter)
 
   /** The row the pane is drawing, read back out of the list every render. */
-  const open = shown.find((chat) => chat.id === openId) ?? null
+  const open = chats?.find((chat) => chat.id === openId) ?? null
 
   /**
    * A change the thread made to its own row — so far only the assistant being
    * switched on or off, including the switch the server throws when the owner
    * says something.
    *
-   * Applied to the demo rows in memory and re-read from the server for real
-   * ones, which is the same split every action on this screen makes.
+   * The list is re-read rather than patched, for the reason `onAction` gives:
+   * the server is where the rules are.
    */
-  const onChanged = (chat, changes) => {
-    if (String(chat.id).startsWith('demo-')) {
-      setDemoRows((rows) => demoAfter(rows, chat, changes))
-      return
-    }
-    setReload((n) => n + 1)
-  }
+  const onChanged = () => setReload((n) => n + 1)
 
   return (
     // **A definite height, not a minimum**, exactly as `/appointments` carries
@@ -457,8 +323,8 @@ export default function InboxPage() {
             content without it, so the list would push the panel taller than the
             page instead of scrolling inside it. */}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4">
-          {shown === null ? null : shown.length > 0 ? (
-            shown.map((chat) => (
+          {chats === null ? null : chats.length > 0 ? (
+            chats.map((chat) => (
               <ChatRow
                 key={chat.id}
                 chat={chat}
@@ -494,7 +360,6 @@ export default function InboxPage() {
       >
         <Thread
           chat={open}
-          timeZone={timeZone}
           onBack={() => setOpenId(null)}
           onChanged={onChanged}
         />

@@ -42,70 +42,6 @@ import styles from '../styles/Appointments.module.css'
  * `/appointments/slots` and archiving all work, and the rules underneath them
  * live in `lib/appointments.js`, `lib/dates.js` and `lib/schedule.js`.
  */
-/* --- TEMPORARY: three invented chats -------------------------------------
- *
- * **Delete this block and the `chats={DEMO_CHATS}` below when `/inbox` gets a
- * backend.** It exists so the feed's layout can be looked at and argued with;
- * it is not a placeholder that should survive into anything real. Invented
- * figures are how the `/dashboard` analytics screen ended up being built and
- * then removed whole, so this one is marked rather than trusted to be
- * remembered.
- *
- * The times are built from *today* rather than written as literals, so the
- * rows read as this afternoon whenever the page is opened instead of quietly
- * becoming a date in the past.
- *
- * **Newest first**, because that is what the feed is for: a chat that has just
- * opened has to arrive where the eye already is, and a list that appends puts
- * every new one at the bottom of a box that scrolls. The one still waiting for
- * an answer is the most recent here on purpose — that is the row the colour is
- * spent on, and burying it under four answered ones would be spending it on
- * something nobody can see.
- */
-const demoAt = (hours, minutes) => {
-  const day = new Date()
-  day.setHours(hours, minutes, 0, 0)
-  return day.toISOString()
-}
-
-const DEMO_CHATS = [
-  {
-    id: 'demo-waiting',
-    at: demoAt(16, 35),
-    client: 'Ақзере',
-    preview: 'Можно перенести на завтра?',
-    state: 'waiting',
-  },
-  {
-    id: 'demo-new-price',
-    at: demoAt(15, 10),
-    client: '+7 747 902 11 08',
-    preview: 'Сколько стоит окрашивание?',
-    state: 'new',
-  },
-  {
-    id: 'demo-answered-bye',
-    at: demoAt(14, 20),
-    client: 'Мақсат',
-    preview: 'Спасибо, до встречи',
-    state: 'answered',
-  },
-  {
-    id: 'demo-new',
-    at: demoAt(11, 5),
-    client: '+7 707 415 22 90',
-    preview: 'Здравствуйте, есть свободное время сегодня?',
-    state: 'new',
-  },
-  {
-    id: 'demo-answered',
-    at: demoAt(9, 40),
-    client: 'Нұрдәулет',
-    preview: 'Подтверждаю, буду в 18:00',
-    state: 'answered',
-  },
-]
-
 export default function AppointmentsPage() {
   const t = useT()
   const reduce = useReducedMotion()
@@ -567,14 +503,13 @@ export default function AppointmentsPage() {
             still to be designed — see the note on the page element — and this
             waits for it rather than pretending the problem is not there.
 
-            **`DEMO_CHATS` is temporary and marked as such** — see the block
-            above. `/inbox` has no channel and no message table behind it, so
-            there is nothing real to hand this yet; the three rows are here to
-            be looked at, and the fetch replaces them the day the endpoint
-            exists. Passing `null` instead is what draws the honest empty
-            state. */}
+            **It is handed nothing, so it draws its empty state.** The three
+            invented rows that used to be here are gone — `/inbox` reads the
+            real `GET /conversations` now, and this feed should show the same
+            answer rather than a second, fictional one. Wiring it to that
+            endpoint is the next thing it wants; until then an empty feed is
+            true. */}
         <ChatFeed
-          chats={DEMO_CHATS}
           timeZone={timeZone}
           className="hidden xl:flex"
         />

@@ -8,7 +8,6 @@ import {
   updateConversation,
 } from '../../lib/api'
 import { authed } from '../../lib/auth'
-import { clockOf } from '../../lib/appointments'
 import { useT } from '../../lib/i18n'
 
 /**
@@ -32,18 +31,16 @@ import { useT } from '../../lib/i18n'
  * screen, so the note under it is not decoration and should not be removed
  * until there is something behind it.
  */
-export default function Thread({ chat, onBack, onChanged, timeZone }) {
+export default function Thread({ chat, onBack, onChanged }) {
   const t = useT()
   const [messages, setMessages] = useState(null)
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const scroller = useRef(null)
 
-  const isDemo = String(chat?.id ?? '').startsWith('demo-')
-
   useEffect(() => {
-    if (!chat || isDemo) {
-      setMessages(chat?.demoMessages ?? null)
+    if (!chat) {
+      setMessages(null)
       return
     }
     let alive = true
@@ -56,7 +53,7 @@ export default function Thread({ chat, onBack, onChanged, timeZone }) {
     return () => {
       alive = false
     }
-  }, [chat, isDemo])
+  }, [chat])
 
   // **Pinned to the bottom, like every transcript.** A conversation is read
   // from its newest end, and landing at the top of a year of messages would
@@ -78,10 +75,6 @@ export default function Thread({ chat, onBack, onChanged, timeZone }) {
   const paused = chat.assistant_enabled === false
 
   const toggleAssistant = async () => {
-    if (isDemo) {
-      onChanged?.(chat, { assistant_enabled: !chat.assistant_enabled })
-      return
-    }
     await authed((token) =>
       updateConversation(token, chat.id, {
         assistant_enabled: !chat.assistant_enabled,
@@ -96,24 +89,6 @@ export default function Thread({ chat, onBack, onChanged, timeZone }) {
     if (!body || sending) return
 
     setSending(true)
-    if (isDemo) {
-      // TEMPORARY — the demo threads have no server row. The rest of this
-      // function is what really happens.
-      setMessages((rows) => [
-        ...(rows ?? []),
-        {
-          id: `demo-${Date.now()}`,
-          author: 'owner',
-          body,
-          sent_at: new Date().toISOString(),
-        },
-      ])
-      setDraft('')
-      setSending(false)
-      onChanged?.(chat, { assistant_enabled: false })
-      return
-    }
-
     try {
       await authed((token) => createMessage(token, chat.id, body))
       setDraft('')
@@ -182,7 +157,7 @@ export default function Thread({ chat, onBack, onChanged, timeZone }) {
       >
         {messages === null ? null : messages.length > 0 ? (
           messages.map((message) => (
-            <Bubble key={message.id} message={message} timeZone={timeZone} />
+            <Bubble key={message.id} message={message} />
           ))
         ) : (
           <p className="pt-8 text-center text-[13px] text-muted">
@@ -232,7 +207,7 @@ export default function Thread({ chat, onBack, onChanged, timeZone }) {
  * of the two said it is written above the bubble, because that is the one
  * distinction this product cares about and a side cannot carry it.
  */
-function Bubble({ message, timeZone }) {
+function Bubble({ message }) {
   const t = useT()
   const mine = message.author !== 'client'
 
@@ -254,9 +229,6 @@ function Bubble({ message, timeZone }) {
           }`}
         >
           {message.body}
-          <span className="mt-1 block text-[11px] text-muted tabular-nums">
-            {clockOf(message.sent_at, timeZone)}
-          </span>
         </div>
       </div>
     </div>
