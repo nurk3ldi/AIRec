@@ -67,6 +67,10 @@ export default function ChatRow({ chat, timeZone, onOpen, onAction }) {
    * the menu closes, so an armed row never survives to the next opening.
    */
   const [armed, setArmed] = useState(false)
+  // Controlled, so an action can close the menu itself. `Popover.Close` would
+  // do it for pin and archive, but not for delete — that one has to stay open
+  // through its first press to show the confirm.
+  const [menuOpen, setMenuOpen] = useState(false)
   const title = chat.client_name || chat.client_phone
   // Ours, whoever said it — the owner stepping in and the assistant answering
   // are the same fact from the list's point of view: this thread is not waiting
@@ -133,7 +137,13 @@ export default function ChatRow({ chat, timeZone, onOpen, onAction }) {
           {chat.last_message_at ? stampOf(chat.last_message_at, timeZone) : ''}
         </span>
 
-        <Popover.Root onOpenChange={(open) => !open && setArmed(false)}>
+        <Popover.Root
+          open={menuOpen}
+          onOpenChange={(open) => {
+            setMenuOpen(open)
+            if (!open) setArmed(false)
+          }}
+        >
           <Popover.Trigger asChild>
             <button
               type="button"
@@ -160,12 +170,18 @@ export default function ChatRow({ chat, timeZone, onOpen, onAction }) {
               <MenuItem
                 icon={Pin02Icon}
                 label={t(chat.pinned ? 'inbox.unpin' : 'inbox.pin')}
-                onClick={() => onAction?.(chat, { pinned: !chat.pinned })}
+                onClick={() => {
+                  setMenuOpen(false)
+                  onAction?.(chat, { pinned: !chat.pinned })
+                }}
               />
               <MenuItem
                 icon={Archive02Icon}
                 label={t(chat.archived ? 'inbox.unarchive' : 'inbox.archive')}
-                onClick={() => onAction?.(chat, { archived: !chat.archived })}
+                onClick={() => {
+                  setMenuOpen(false)
+                  onAction?.(chat, { archived: !chat.archived })
+                }}
               />
               <MenuItem
                 icon={Delete02Icon}
@@ -176,6 +192,7 @@ export default function ChatRow({ chat, timeZone, onOpen, onAction }) {
                     setArmed(true)
                     return
                   }
+                  setMenuOpen(false)
                   onAction?.(chat, 'delete')
                 }}
               />
