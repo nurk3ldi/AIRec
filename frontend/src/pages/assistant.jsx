@@ -113,9 +113,16 @@ export default function AssistantPage() {
             rather than a width of its own, so it is whatever the two fixed
             columns did not use; `min-w` is what stops it being squeezed to
             nothing on a narrow window — past that it wraps to its own line. */}
+        {/* The assistant's own settings — how it answers, what it is allowed
+            to do — go here. Only the heading for now, so the card says what it
+            is for while the controls are still being decided. */}
         <div
           className={`min-w-[320px] flex-1 rounded-2xl bg-surface-raised p-6 ${FULL}`}
-        />
+        >
+          <h2 className="font-display text-[15px] font-semibold text-ink">
+            {t('assistant.settings')}
+          </h2>
+        </div>
       </div>
     </div>
   )

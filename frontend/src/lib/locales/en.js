@@ -129,6 +129,7 @@ export default {
   'form.hidePasswords': 'Hide passwords',
   'form.cancel': 'Cancel',
   'assistant.business': 'About the business',
+  'assistant.settings': 'Assistant settings',
   'assistant.name': 'Name',
   'assistant.industry': 'Industry',
   'assistant.phone': 'Phone',

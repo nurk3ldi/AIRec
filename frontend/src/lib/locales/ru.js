@@ -138,6 +138,7 @@ export default {
   'form.hidePasswords': 'Скрыть пароли',
   'form.cancel': 'Отменить',
   'assistant.business': 'О бизнесе',
+  'assistant.settings': 'Настройки ассистента',
   'assistant.name': 'Название',
   'assistant.industry': 'Сфера',
   'assistant.phone': 'Телефон',

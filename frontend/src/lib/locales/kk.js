@@ -130,6 +130,7 @@ export default {
   'form.hidePasswords': 'Құпиясөздерді жасыру',
   'form.cancel': 'Бас тарту',
   'assistant.business': 'Бизнес туралы',
+  'assistant.settings': 'Ассистент баптаулары',
   'assistant.name': 'Атауы',
   'assistant.industry': 'Сала',
   'assistant.phone': 'Телефон',
