@@ -533,10 +533,9 @@ export default function Timetable({
               awkward is getting *back*: stepping four days out and returning
               was four presses. This is the one press.
 
-              It is not a segmented control any more, so it does not wear the
-              lifted pill — it is an action, and the shape it takes is the
-              toolbar's plain button. Muted while today is already on screen:
-              still pressable, and saying plainly that it would do nothing. */}
+              It wears the same `surface-chip` fill as «+ Добавить» beside it:
+              both are actions the toolbar offers, and two filled shapes in one
+              row that are filled differently read as two kinds of thing. */}
           <button
             type="button"
             onClick={() => {
@@ -544,11 +543,7 @@ export default function Timetable({
               setEntrance(null)
               onSelect?.(new Date())
             }}
-            className={`h-8 shrink-0 rounded-full px-4 text-[14px] font-medium outline-none transition-colors ${
-              sameDay(selected, new Date())
-                ? 'text-muted'
-                : 'bg-ink/6 text-ink hover:bg-ink/10 focus-visible:bg-ink/10'
-            }`}
+            className="h-8 shrink-0 rounded-full bg-surface-chip px-4 text-[14px] font-medium text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85"
           >
             {t('appointments.today')}
           </button>
