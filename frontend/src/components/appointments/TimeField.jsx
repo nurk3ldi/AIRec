@@ -23,7 +23,7 @@ const pad = (number) => String(number).padStart(2, '0')
  * pulls the prop back down for the case that matters: the end field, which is
  * re-proposed whenever the start or the service moves.
  */
-export default function TimeField({ value, onChange, label, compact }) {
+export default function TimeField({ value, onChange, label, compact, readOnly }) {
   const [draft, setDraft] = useState(value ?? '')
 
   useEffect(() => {
@@ -89,6 +89,12 @@ export default function TimeField({ value, onChange, label, compact }) {
       // The label rather than `--:--`: the two fields are «Начало» and «Конец»,
       // and a pair of identical dash patterns said which *shape* was wanted
       // while leaving which of the two ends it was to be worked out.
+      // `readOnly` rather than `disabled`: the value is the point of the
+      // field when it is not being edited, and a disabled input dims the very
+      // thing you came to read. Out of the tab order all the same — there is
+      // nothing to do in it.
+      readOnly={readOnly}
+      tabIndex={readOnly ? -1 : undefined}
       placeholder={label}
       aria-label={label}
       autoComplete="off"
@@ -103,7 +109,7 @@ export default function TimeField({ value, onChange, label, compact }) {
       // not be: iOS magnifies the page when a smaller field takes focus and
       // never magnifies back.
       className={`${FIELD} min-w-0 flex-1 text-center font-display text-[16px] font-medium ${
-        compact ? 'h-8 px-1.5 sm:text-[13px]' : 'h-9 px-2.5 sm:text-[14px]'
+        compact ? 'h-7 px-1 sm:text-[12px]' : 'h-9 px-2.5 sm:text-[14px]'
       }`}
     />
   )

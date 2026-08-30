@@ -203,8 +203,9 @@ export default function HoursCard({ week, onSaved }) {
         })}
       </div>
 
-      {/* The day that was pressed. One set of controls rather than seven. */}
-      {editing && (
+      {/* The day that was pressed. One set of controls rather than seven.
+          Always visible — it is how the day *reads* as well as how it is set —
+          and only pressable while the card is being edited. */}
       <div
         role="group"
         aria-label={t('assistant.hours')}
@@ -235,10 +236,15 @@ export default function HoursCard({ week, onSaved }) {
                 )
               }
               aria-pressed={isOn}
+              disabled={!editing}
               className={`grid h-7 min-w-0 flex-1 place-items-center truncate rounded-full px-2 text-[12px] font-medium outline-none transition-colors ${
                 isOn
                   ? 'bg-surface-chip text-ink'
-                  : 'text-muted hover:text-ink focus-visible:text-ink'
+                  : `text-muted ${
+                      editing
+                        ? 'hover:text-ink focus-visible:text-ink'
+                        : 'cursor-default'
+                    }`
               }`}
             >
               {t(item.labelKey)}
@@ -246,42 +252,6 @@ export default function HoursCard({ week, onSaved }) {
           )
         })}
       </div>
-      )}
-
-      {/* **Read-only unless the card is being edited.** What a glance wants is
-          the day's hours, not four fields and a switch; the controls arrive
-          when they are asked for. */}
-      {!editing && (
-        <p className="mt-3 flex items-baseline gap-2 text-[14px]">
-          <span className="shrink-0 text-[12px] text-muted">
-            {t(
-              stateOf(day) === 'working'
-                ? 'assistant.workingTime'
-                : 'assistant.hours',
-            )}
-          </span>
-          <span className="text-ink tabular-nums">
-            {stateOf(day) === 'working'
-              ? `${day.from} — ${day.to}`
-              : t(
-                  stateOf(day) === 'allDay'
-                    ? 'assistant.allDay'
-                    : 'assistant.dayOff',
-                )}
-          </span>
-        </p>
-      )}
-
-      {!editing && stateOf(day) === 'working' && (day.breakFrom || day.breakTo) && (
-        <p className="mt-1 flex items-baseline gap-2 text-[14px]">
-          <span className="shrink-0 text-[12px] text-muted">
-            {t('assistant.break')}
-          </span>
-          <span className="text-ink tabular-nums">
-            {day.breakFrom} — {day.breakTo}
-          </span>
-        </p>
-      )}
 
       {/* **Both rows are the same three cells**, so the four fields come out
           identical: a label of its own width, then the pair. The break's ✕
@@ -290,7 +260,7 @@ export default function HoursCard({ week, onSaved }) {
 
           The label is what the numbers are *of* — «10:00 — 21:00» on its own
           says a span and not which span, and this card holds two of them. */}
-      {editing && stateOf(day) === 'working' && (
+      {stateOf(day) === 'working' && (
         <div className="mt-3 flex flex-col gap-1.5">
           <div className="flex items-center gap-1.5">
             <span className="w-[64px] shrink-0 text-[12px] text-muted">
@@ -298,6 +268,7 @@ export default function HoursCard({ week, onSaved }) {
             </span>
             <TimeField
               compact
+              readOnly={!editing}
               value={day.from}
               onChange={(value) => edit({ from: value })}
               label={t('appointments.start')}
@@ -307,6 +278,7 @@ export default function HoursCard({ week, onSaved }) {
             </span>
             <TimeField
               compact
+              readOnly={!editing}
               value={day.to}
               onChange={(value) => edit({ to: value })}
               label={t('appointments.end')}
@@ -324,6 +296,7 @@ export default function HoursCard({ week, onSaved }) {
               </span>
               <TimeField
                 compact
+                readOnly={!editing}
                 value={day.breakFrom}
                 onChange={(value) => edit({ breakFrom: value })}
                 label={t('appointments.start')}
@@ -333,20 +306,25 @@ export default function HoursCard({ week, onSaved }) {
               </span>
               <TimeField
                 compact
+                readOnly={!editing}
                 value={day.breakTo}
                 onChange={(value) => edit({ breakTo: value })}
                 label={t('appointments.end')}
               />
-              <button
-                type="button"
-                onClick={() => edit({ breakFrom: '', breakTo: '' })}
-                aria-label={t('assistant.breakRemove')}
-                className="w-5 shrink-0 text-[12px] text-muted outline-none transition-colors hover:text-danger focus-visible:text-danger"
-              >
-                ✕
-              </button>
+              {editing ? (
+                <button
+                  type="button"
+                  onClick={() => edit({ breakFrom: '', breakTo: '' })}
+                  aria-label={t('assistant.breakRemove')}
+                  className="w-5 shrink-0 text-[12px] text-muted outline-none transition-colors hover:text-danger focus-visible:text-danger"
+                >
+                  ✕
+                </button>
+              ) : (
+                <span className="w-5 shrink-0" aria-hidden="true" />
+              )}
             </div>
-          ) : (
+          ) : editing ? (
             <button
               type="button"
               onClick={() => edit({ breakFrom: '13:00', breakTo: '14:00' })}
@@ -354,7 +332,7 @@ export default function HoursCard({ week, onSaved }) {
             >
               {t('assistant.breakAdd')}
             </button>
-          )}
+          ) : null}
         </div>
       )}
 
