@@ -77,6 +77,12 @@ export default function HoursCard({ week, onSaved }) {
   const [days, setDays] = useState(() => weekOf(week))
   const [picked, setPicked] = useState(0)
   const [saving, setSaving] = useState(false)
+  // **Read-only until asked.** The week is looked at far more often than it is
+  // changed — it is set once and then glanced at — so the card shows the day
+  // and keeps its controls behind «Редактировать», the same bargain the price
+  // list makes with its remove button. Local and forgotten on reload: it is a
+  // mode you are in for a moment, not a preference.
+  const [editing, setEditing] = useState(false)
   const labels = weekdayLabels()
 
   useEffect(() => {
@@ -140,9 +146,18 @@ export default function HoursCard({ week, onSaved }) {
       // it when its list is unfolded, which is the whole point of the fold.
       className="flex min-h-[300px] flex-col rounded-2xl bg-surface-raised p-4"
     >
-      <h2 className="font-display text-[15px] font-semibold text-ink">
-        {t('assistant.hours')}
-      </h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-display text-[15px] font-semibold text-ink">
+          {t('assistant.hours')}
+        </h2>
+        <button
+          type="button"
+          onClick={() => setEditing((was) => !was)}
+          className="h-8 shrink-0 rounded-full px-2.5 text-[13px] font-medium text-ink outline-none transition-opacity hover:opacity-70 focus-visible:opacity-70"
+        >
+          {t(editing ? 'assistant.editDone' : 'assistant.edit')}
+        </button>
+      </div>
 
       {/* The week itself. Seven equal cells, so the row is the same shape
           whatever the labels are in — `flex-1` rather than a fixed width, which
@@ -189,6 +204,7 @@ export default function HoursCard({ week, onSaved }) {
       </div>
 
       {/* The day that was pressed. One set of controls rather than seven. */}
+      {editing && (
       <div
         role="group"
         aria-label={t('assistant.hours')}
@@ -230,6 +246,42 @@ export default function HoursCard({ week, onSaved }) {
           )
         })}
       </div>
+      )}
+
+      {/* **Read-only unless the card is being edited.** What a glance wants is
+          the day's hours, not four fields and a switch; the controls arrive
+          when they are asked for. */}
+      {!editing && (
+        <p className="mt-3 flex items-baseline gap-2 text-[14px]">
+          <span className="shrink-0 text-[12px] text-muted">
+            {t(
+              stateOf(day) === 'working'
+                ? 'assistant.workingTime'
+                : 'assistant.hours',
+            )}
+          </span>
+          <span className="text-ink tabular-nums">
+            {stateOf(day) === 'working'
+              ? `${day.from} — ${day.to}`
+              : t(
+                  stateOf(day) === 'allDay'
+                    ? 'assistant.allDay'
+                    : 'assistant.dayOff',
+                )}
+          </span>
+        </p>
+      )}
+
+      {!editing && stateOf(day) === 'working' && (day.breakFrom || day.breakTo) && (
+        <p className="mt-1 flex items-baseline gap-2 text-[14px]">
+          <span className="shrink-0 text-[12px] text-muted">
+            {t('assistant.break')}
+          </span>
+          <span className="text-ink tabular-nums">
+            {day.breakFrom} — {day.breakTo}
+          </span>
+        </p>
+      )}
 
       {/* **Both rows are the same three cells**, so the four fields come out
           identical: a label of its own width, then the pair. The break's ✕
@@ -238,7 +290,7 @@ export default function HoursCard({ week, onSaved }) {
 
           The label is what the numbers are *of* — «10:00 — 21:00» on its own
           says a span and not which span, and this card holds two of them. */}
-      {stateOf(day) === 'working' && (
+      {editing && stateOf(day) === 'working' && (
         <div className="mt-3 flex flex-col gap-1.5">
           <div className="flex items-center gap-1.5">
             <span className="w-[64px] shrink-0 text-[12px] text-muted">
