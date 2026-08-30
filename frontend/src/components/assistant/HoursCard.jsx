@@ -51,6 +51,27 @@ const weekOf = (rows) =>
 /** Closed: no times at all, and not round the clock either. */
 const isClosed = (day) => !day.is24h && !day.from && !day.to
 
+/**
+ * The three things a day can be, as one closed set.
+ *
+ * **They were three controls and are one.** A chip for «24 ч», a text button
+ * for «Выходной» and the presence of two time fields for everything else — one
+ * question answered by three shapes that did not look related, in a card 350px
+ * wide. They are mutually exclusive by definition, which is exactly what a
+ * segmented control says and three separate toggles cannot.
+ *
+ * The times move underneath and appear only for `working`, so the card is
+ * quiet on the two states that have no hours to show.
+ */
+const STATES = [
+  { id: 'working', labelKey: 'assistant.dayWorking' },
+  { id: 'allDay', labelKey: 'assistant.allDay' },
+  { id: 'closed', labelKey: 'assistant.dayOff' },
+]
+
+const stateOf = (day) =>
+  day.is24h ? 'allDay' : isClosed(day) ? 'closed' : 'working'
+
 export default function HoursCard({ week, onSaved }) {
   const t = useT()
   const [days, setDays] = useState(() => weekOf(week))
@@ -168,73 +189,75 @@ export default function HoursCard({ week, onSaved }) {
       </div>
 
       {/* The day that was pressed. One set of controls rather than seven. */}
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        {day.is24h ? (
-          <span className="flex-1 text-[14px] text-ink">
-            {t('assistant.allDay')}
-          </span>
-        ) : isClosed(day) ? (
-          <button
-            type="button"
-            onClick={() => edit({ from: '10:00', to: '20:00' })}
-            aria-label={t('assistant.openDay')}
-            className="flex-1 text-left text-[14px] text-muted outline-none transition-colors hover:text-ink focus-visible:text-ink"
-          >
-            {t('assistant.dayOff')}
-          </button>
-        ) : (
-          <span className="flex flex-1 items-center gap-1.5">
-            <TimeField
-              value={day.from}
-              onChange={(value) => edit({ from: value })}
-              label={t('assistant.hours')}
-            />
-            <span aria-hidden="true" className="text-[13px] text-muted">
-              —
-            </span>
-            <TimeField
-              value={day.to}
-              onChange={(value) => edit({ to: value })}
-              label={t('assistant.hours')}
-            />
-          </span>
-        )}
+      <div
+        role="group"
+        aria-label={t('assistant.hours')}
+        className="mt-4 flex items-center gap-0.5 rounded-full bg-ink/6 p-0.5"
+      >
+        {STATES.map((item) => {
+          const isOn = item.id === stateOf(day)
 
-        {/* **Visible while it is off**, muted rather than appearing on hover:
-            this is the only place in the product that offers a round-the-clock
-            day, and a hover-only affordance would leave it undiscoverable. */}
-        <button
-          type="button"
-          onClick={() => edit({ is24h: !day.is24h, ...blank })}
-          aria-pressed={day.is24h}
-          className={`h-7 shrink-0 rounded-full border px-2.5 text-[12px] font-medium outline-none transition-colors ${
-            day.is24h
-              ? 'border-transparent bg-surface-chip text-ink'
-              : 'border-line text-muted hover:text-ink focus-visible:text-ink'
-          }`}
-        >
-          {t('assistant.allDay')}
-        </button>
-
-        {!isClosed(day) && (
-          <button
-            type="button"
-            onClick={() => edit({ is24h: false, ...blank })}
-            className="h-7 shrink-0 rounded-full px-2.5 text-[12px] font-medium text-muted outline-none transition-colors hover:text-danger focus-visible:text-danger"
-          >
-            {t('assistant.dayOff')}
-          </button>
-        )}
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() =>
+                edit(
+                  item.id === 'allDay'
+                    ? { is24h: true, ...blank }
+                    : item.id === 'closed'
+                      ? { is24h: false, ...blank }
+                      : // Coming back to working: keep whatever hours the day
+                        // had, and fall back to a plausible pair only when it
+                        // has none — a day being reopened has usually just been
+                        // closed by mistake.
+                        {
+                          is24h: false,
+                          from: day.from || '10:00',
+                          to: day.to || '20:00',
+                        },
+                )
+              }
+              aria-pressed={isOn}
+              className={`grid h-7 min-w-0 flex-1 place-items-center truncate rounded-full px-2 text-[12px] font-medium outline-none transition-colors ${
+                isOn
+                  ? 'bg-surface-chip text-ink'
+                  : 'text-muted hover:text-ink focus-visible:text-ink'
+              }`}
+            >
+              {t(item.labelKey)}
+            </button>
+          )
+        })}
       </div>
+
+      {/* The hours, and only for the state that has any. */}
+      {stateOf(day) === 'working' && (
+        <div className="mt-3 flex items-center gap-1.5">
+          <TimeField
+            value={day.from}
+            onChange={(value) => edit({ from: value })}
+            label={t('assistant.hours')}
+          />
+          <span aria-hidden="true" className="text-[13px] text-muted">
+            —
+          </span>
+          <TimeField
+            value={day.to}
+            onChange={(value) => edit({ to: value })}
+            label={t('assistant.hours')}
+          />
+        </div>
+      )}
 
       {/* The break, and only for a day that has hours to interrupt — nothing
           can break a closed day or one that never closes, which is also what
           the server drops. */}
-      {!day.is24h && !isClosed(day) && (
+      {stateOf(day) === 'working' && (
         <div className="mt-2 flex items-center gap-1.5">
           {day.breakFrom || day.breakTo ? (
             <>
-              <span className="text-[12px] text-muted">
+              <span className="shrink-0 text-[12px] text-muted">
                 {t('assistant.break')}
               </span>
               <TimeField
@@ -254,7 +277,7 @@ export default function HoursCard({ week, onSaved }) {
                 type="button"
                 onClick={() => edit({ breakFrom: '', breakTo: '' })}
                 aria-label={t('assistant.breakRemove')}
-                className="h-7 shrink-0 rounded-full px-2 text-[12px] text-muted outline-none transition-colors hover:text-danger focus-visible:text-danger"
+                className="h-7 shrink-0 rounded-full px-1.5 text-[12px] text-muted outline-none transition-colors hover:text-danger focus-visible:text-danger"
               >
                 ✕
               </button>
