@@ -23,7 +23,7 @@ const pad = (number) => String(number).padStart(2, '0')
  * pulls the prop back down for the case that matters: the end field, which is
  * re-proposed whenever the start or the service moves.
  */
-export default function TimeField({ value, onChange, label }) {
+export default function TimeField({ value, onChange, label, compact }) {
   const [draft, setDraft] = useState(value ?? '')
 
   useEffect(() => {
@@ -98,7 +98,13 @@ export default function TimeField({ value, onChange, label }) {
       // as eighteen. The date has its own line now and the two clocks have
       // theirs, so an even split is exactly right: the pair is one span, and
       // one end of it is not more important than the other.
-      className={`${FIELD} h-9 min-w-0 flex-1 px-2.5 text-center font-display text-[16px] font-medium sm:text-[14px]`}
+      // `compact` is for the assistant's schedule card, where four of these
+      // share a 350px column. The 16px below `sm` is not part of it and must
+      // not be: iOS magnifies the page when a smaller field takes focus and
+      // never magnifies back.
+      className={`${FIELD} min-w-0 flex-1 text-center font-display text-[16px] font-medium ${
+        compact ? 'h-8 px-1.5 sm:text-[13px]' : 'h-9 px-2.5 sm:text-[14px]'
+      }`}
     />
   )
 }

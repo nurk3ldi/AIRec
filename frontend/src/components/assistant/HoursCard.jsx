@@ -231,62 +231,74 @@ export default function HoursCard({ week, onSaved }) {
         })}
       </div>
 
-      {/* The hours, and only for the state that has any. */}
-      {stateOf(day) === 'working' && (
-        <div className="mt-3 flex items-center gap-1.5">
-          <TimeField
-            value={day.from}
-            onChange={(value) => edit({ from: value })}
-            label={t('assistant.hours')}
-          />
-          <span aria-hidden="true" className="text-[13px] text-muted">
-            —
-          </span>
-          <TimeField
-            value={day.to}
-            onChange={(value) => edit({ to: value })}
-            label={t('assistant.hours')}
-          />
-        </div>
-      )}
+      {/* **Both rows are the same three cells**, so the four fields come out
+          identical: a label of its own width, then the pair. The break's ✕
+          hangs off the end rather than sitting between them, which is what used
+          to squeeze its two fields narrower than the day's.
 
-      {/* The break, and only for a day that has hours to interrupt — nothing
-          can break a closed day or one that never closes, which is also what
-          the server drops. */}
+          The label is what the numbers are *of* — «10:00 — 21:00» on its own
+          says a span and not which span, and this card holds two of them. */}
       {stateOf(day) === 'working' && (
-        <div className="mt-2 flex items-center gap-1.5">
+        <div className="mt-3 flex flex-col gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="w-[64px] shrink-0 text-[12px] text-muted">
+              {t('assistant.workingTime')}
+            </span>
+            <TimeField
+              compact
+              value={day.from}
+              onChange={(value) => edit({ from: value })}
+              label={t('appointments.start')}
+            />
+            <span aria-hidden="true" className="text-[12px] text-muted">
+              —
+            </span>
+            <TimeField
+              compact
+              value={day.to}
+              onChange={(value) => edit({ to: value })}
+              label={t('appointments.end')}
+            />
+            <span className="w-5 shrink-0" aria-hidden="true" />
+          </div>
+
+          {/* The break, and only for a day that has hours to interrupt —
+              nothing can break a closed day or one that never closes, which is
+              also what the server drops. */}
           {day.breakFrom || day.breakTo ? (
-            <>
-              <span className="shrink-0 text-[12px] text-muted">
+            <div className="flex items-center gap-1.5">
+              <span className="w-[64px] shrink-0 text-[12px] text-muted">
                 {t('assistant.break')}
               </span>
               <TimeField
+                compact
                 value={day.breakFrom}
                 onChange={(value) => edit({ breakFrom: value })}
-                label={t('assistant.break')}
+                label={t('appointments.start')}
               />
-              <span aria-hidden="true" className="text-[13px] text-muted">
+              <span aria-hidden="true" className="text-[12px] text-muted">
                 —
               </span>
               <TimeField
+                compact
                 value={day.breakTo}
                 onChange={(value) => edit({ breakTo: value })}
-                label={t('assistant.break')}
+                label={t('appointments.end')}
               />
               <button
                 type="button"
                 onClick={() => edit({ breakFrom: '', breakTo: '' })}
                 aria-label={t('assistant.breakRemove')}
-                className="h-7 shrink-0 rounded-full px-1.5 text-[12px] text-muted outline-none transition-colors hover:text-danger focus-visible:text-danger"
+                className="w-5 shrink-0 text-[12px] text-muted outline-none transition-colors hover:text-danger focus-visible:text-danger"
               >
                 ✕
               </button>
-            </>
+            </div>
           ) : (
             <button
               type="button"
               onClick={() => edit({ breakFrom: '13:00', breakTo: '14:00' })}
-              className="text-[12px] text-muted outline-none transition-colors hover:text-ink focus-visible:text-ink"
+              className="self-start pl-[70px] text-[12px] text-muted outline-none transition-colors hover:text-ink focus-visible:text-ink"
             >
               {t('assistant.breakAdd')}
             </button>

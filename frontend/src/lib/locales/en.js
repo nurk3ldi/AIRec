@@ -151,6 +151,7 @@ export default {
   'assistant.dayWorking': 'Open',
   'assistant.allDay': '24 h',
   'assistant.break': 'Break',
+  'assistant.workingTime': 'Working hours',
   'assistant.breakAdd': '+ break',
   'assistant.breakRemove': 'Remove break',
   'assistant.save': 'Save',

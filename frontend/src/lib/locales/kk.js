@@ -152,6 +152,7 @@ export default {
   'assistant.dayWorking': 'Жұмыс істейді',
   'assistant.allDay': '24 сағ',
   'assistant.break': 'Үзіліс',
+  'assistant.workingTime': 'Жұмыс уақыты',
   'assistant.breakAdd': '+ үзіліс',
   'assistant.breakRemove': 'Үзілісті алу',
   'assistant.save': 'Сақтау',

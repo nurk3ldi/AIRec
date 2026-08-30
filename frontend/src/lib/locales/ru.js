@@ -160,6 +160,7 @@ export default {
   'assistant.dayWorking': 'Работает',
   'assistant.allDay': '24 ч',
   'assistant.break': 'Перерыв',
+  'assistant.workingTime': 'Рабочее время',
   'assistant.breakAdd': '+ перерыв',
   'assistant.breakRemove': 'Убрать перерыв',
   'assistant.save': 'Сохранить',
