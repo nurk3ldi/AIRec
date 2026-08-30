@@ -147,7 +147,12 @@ export default function ServicesCard({ services, onSaved }) {
       //
       // `surface-raised` and no edge: the same fill every other card on this
       // page wears — see the note there.
-      className="flex flex-col rounded-2xl bg-surface-raised p-4"
+      // **The same resting height as the card beside it in the column.** The
+      // two are content-sized, so an empty price list and a full week came out
+      // as two boxes of visibly different size stacked on each other. A shared
+      // minimum settles that without freezing either: «Услуги» still grows past
+      // it when its list is unfolded, which is the whole point of the fold.
+      className="flex min-h-[300px] flex-col rounded-2xl bg-surface-raised p-4"
     >
       <div className="flex shrink-0 items-center justify-between gap-3">
         <h2 className="font-display text-[15px] font-semibold text-ink">
