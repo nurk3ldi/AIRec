@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { HugeiconsIcon } from '@hugeicons/react'
+import { MinusSignCircleIcon } from '@hugeicons/core-free-icons'
 import { saveWorkingHours } from '../../lib/api'
 import { authed } from '../../lib/auth'
 import { weekdayLabels } from '../../lib/dates'
@@ -105,8 +107,14 @@ export default function HoursCard({ week, onSaved }) {
   // seven at once is a wall, and the first is the one to fix.
   const problem = days.map((row) => dayProblem(row)).find(Boolean) ?? null
 
-  const save = async (event) => {
-    event.preventDefault()
+  /**
+   * **«Готово» is the save.** A separate «Сохранить» underneath was a second
+   * button for the same moment: you finish editing and you want it kept, and
+   * two controls for one intention is one of them you have to explain. Leaving
+   * edit mode commits, and a day that cannot be read as opening hours keeps
+   * you in it — the message is already on screen.
+   */
+  const commit = async () => {
     if (!isDirty || saving || problem) return
 
     setSaving(true)
@@ -134,11 +142,20 @@ export default function HoursCard({ week, onSaved }) {
     }
   }
 
+  const done = async () => {
+    if (problem) return
+    await commit()
+    setEditing(false)
+  }
+
   if (!day) return null
 
   return (
     <form
-      onSubmit={save}
+      onSubmit={(event) => {
+        event.preventDefault()
+        done()
+      }}
       // **The same resting height as the card beside it in the column.** The
       // two are content-sized, so an empty price list and a full week came out
       // as two boxes of visibly different size stacked on each other. A shared
@@ -152,10 +169,17 @@ export default function HoursCard({ week, onSaved }) {
         </h2>
         <button
           type="button"
-          onClick={() => setEditing((was) => !was)}
-          className="h-8 shrink-0 rounded-full px-2.5 text-[13px] font-medium text-ink outline-none transition-opacity hover:opacity-70 focus-visible:opacity-70"
+          onClick={() => (editing ? done() : setEditing(true))}
+          disabled={saving || (editing && Boolean(problem))}
+          className="h-8 shrink-0 rounded-full px-2.5 text-[13px] font-medium text-ink outline-none transition-opacity hover:opacity-70 focus-visible:opacity-70 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {t(editing ? 'assistant.editDone' : 'assistant.edit')}
+          {t(
+            saving
+              ? 'assistant.saving'
+              : editing
+                ? 'assistant.editDone'
+                : 'assistant.edit',
+          )}
         </button>
       </div>
 
@@ -283,7 +307,6 @@ export default function HoursCard({ week, onSaved }) {
               onChange={(value) => edit({ to: value })}
               label={t('appointments.end')}
             />
-            <span className="w-5 shrink-0" aria-hidden="true" />
           </div>
 
           {/* The break, and only for a day that has hours to interrupt —
@@ -294,6 +317,27 @@ export default function HoursCard({ week, onSaved }) {
               <span className="min-w-0 flex-1 truncate text-[12px] text-muted">
                 {t('assistant.break')}
               </span>
+              {/* **Between the label and the fields**, which is the only slot
+                  that leaves both ends alone: at the head it pushed the labels
+                  off the left edge, at the tail it held the fields off the
+                  right one. It lives in the gap the label's `flex-1` was
+                  absorbing anyway. */}
+              {editing && (
+                <button
+                  type="button"
+                  onClick={() => edit({ breakFrom: '', breakTo: '' })}
+                  aria-label={t('assistant.breakRemove')}
+                  className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-danger outline-none transition-colors hover:bg-danger/10 focus-visible:bg-danger/10"
+                >
+                  {/* The same red minus the price list removes a row with —
+                      one vocabulary for "take this out" across the page. */}
+                  <HugeiconsIcon
+                    icon={MinusSignCircleIcon}
+                    size={15}
+                    strokeWidth={2}
+                  />
+                </button>
+              )}
               <TimeField
                 compact
                 readOnly={!editing}
@@ -311,18 +355,7 @@ export default function HoursCard({ week, onSaved }) {
                 onChange={(value) => edit({ breakTo: value })}
                 label={t('appointments.end')}
               />
-              {editing ? (
-                <button
-                  type="button"
-                  onClick={() => edit({ breakFrom: '', breakTo: '' })}
-                  aria-label={t('assistant.breakRemove')}
-                  className="w-5 shrink-0 text-[12px] text-muted outline-none transition-colors hover:text-danger focus-visible:text-danger"
-                >
-                  ✕
-                </button>
-              ) : (
-                <span className="w-5 shrink-0" aria-hidden="true" />
-              )}
+
             </div>
           ) : editing ? (
             <button
@@ -340,15 +373,6 @@ export default function HoursCard({ week, onSaved }) {
           weekday number. Save is held until it is fixed. */}
       {problem && <p className="mt-3 text-[13px] text-danger">{problem}</p>}
 
-      {isDirty && (
-        <button
-          type="submit"
-          disabled={saving || Boolean(problem)}
-          className="mt-4 h-10 shrink-0 self-end rounded-full bg-accent px-5 text-[14px] font-medium text-surface outline-none transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {t(saving ? 'assistant.saving' : 'assistant.save')}
-        </button>
-      )}
     </form>
   )
 }

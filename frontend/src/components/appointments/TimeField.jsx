@@ -117,10 +117,13 @@ export default function TimeField({ value, onChange, label, compact, readOnly })
       // order they are written — so `w-[62px]` lost and the fields ran off the
       // card. A flex basis is a different property and settles it outright,
       // which is also why the non-compact `flex-1` worked all along.
-      className={`${FIELD} min-w-0 text-center font-display text-[16px] font-medium ${
+      // The alignment lives in the branches rather than the base: two
+      // `text-*` utilities on one element are resolved by stylesheet order, not
+      // by the order they are written, so one would silently win.
+      className={`${FIELD} min-w-0 font-display text-[16px] font-medium ${
         compact
-          ? 'h-[26px] shrink-0 grow-0 basis-[76px] px-1 sm:text-[12px]'
-          : 'h-9 flex-1 px-2.5 sm:text-[14px]'
+          ? 'h-[26px] shrink-0 grow-0 basis-[76px] px-1 text-center sm:text-[12px]'
+          : 'h-9 flex-1 px-2.5 text-center sm:text-[14px]'
       }`}
     />
   )
