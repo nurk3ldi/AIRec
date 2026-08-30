@@ -298,7 +298,7 @@ export default function HoursCard({ week, onSaved }) {
             <button
               type="button"
               onClick={() => edit({ breakFrom: '13:00', breakTo: '14:00' })}
-              className="self-start pl-[70px] text-[12px] text-muted outline-none transition-colors hover:text-ink focus-visible:text-ink"
+              className="self-end text-[14px] font-medium text-ink outline-none transition-opacity hover:opacity-70 focus-visible:opacity-70"
             >
               {t('assistant.breakAdd')}
             </button>
