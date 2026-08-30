@@ -119,7 +119,7 @@ export default function TimeField({ value, onChange, label, compact, readOnly })
       // which is also why the non-compact `flex-1` worked all along.
       className={`${FIELD} min-w-0 text-center font-display text-[16px] font-medium ${
         compact
-          ? 'h-7 shrink-0 grow-0 basis-[62px] px-1 sm:text-[12px]'
+          ? 'h-[26px] shrink-0 grow-0 basis-[76px] px-1 sm:text-[12px]'
           : 'h-9 flex-1 px-2.5 sm:text-[14px]'
       }`}
     />
