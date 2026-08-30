@@ -263,7 +263,7 @@ export default function HoursCard({ week, onSaved }) {
       {stateOf(day) === 'working' && (
         <div className="mt-3 flex flex-col gap-1.5">
           <div className="flex items-center gap-1.5">
-            <span className="w-[64px] shrink-0 text-[12px] text-muted">
+            <span className="min-w-0 flex-1 truncate text-[12px] text-muted">
               {t('assistant.workingTime')}
             </span>
             <TimeField
@@ -291,7 +291,7 @@ export default function HoursCard({ week, onSaved }) {
               also what the server drops. */}
           {day.breakFrom || day.breakTo ? (
             <div className="flex items-center gap-1.5">
-              <span className="w-[64px] shrink-0 text-[12px] text-muted">
+              <span className="min-w-0 flex-1 truncate text-[12px] text-muted">
                 {t('assistant.break')}
               </span>
               <TimeField

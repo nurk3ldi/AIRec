@@ -108,8 +108,19 @@ export default function TimeField({ value, onChange, label, compact, readOnly })
       // share a 350px column. The 16px below `sm` is not part of it and must
       // not be: iOS magnifies the page when a smaller field takes focus and
       // never magnifies back.
-      className={`${FIELD} min-w-0 flex-1 text-center font-display text-[16px] font-medium ${
-        compact ? 'h-7 px-1 sm:text-[12px]' : 'h-9 px-2.5 sm:text-[14px]'
+      // `compact` is a fixed width rather than a share of the row: the schedule
+      // card pushes its pair to the right edge, which it cannot do while the
+      // fields are what absorbs the leftover.
+      //
+      // **`basis`, not `w-`.** `FIELD` carries `w-full` from `CONTROL`, and two
+      // width utilities are resolved by stylesheet order rather than by the
+      // order they are written — so `w-[62px]` lost and the fields ran off the
+      // card. A flex basis is a different property and settles it outright,
+      // which is also why the non-compact `flex-1` worked all along.
+      className={`${FIELD} min-w-0 text-center font-display text-[16px] font-medium ${
+        compact
+          ? 'h-7 shrink-0 grow-0 basis-[62px] px-1 sm:text-[12px]'
+          : 'h-9 flex-1 px-2.5 sm:text-[14px]'
       }`}
     />
   )
