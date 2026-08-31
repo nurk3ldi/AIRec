@@ -472,7 +472,7 @@ export default function Timetable({
         )}
         className="group grid h-4 shrink-0 place-items-center outline-none"
       >
-        <span className="h-1 w-9 rounded-full bg-ink/15 transition-colors group-hover:bg-ink/30 group-focus-visible:bg-ink/30" />
+        <span className="h-1 w-9 rounded-full bg-ink/15 transition-colors group-hover:bg-ink/30 group-focus-visible:bg-ink/30 group-active:bg-ink/40" />
       </button>
       {/* **Outside the grid's border, above its top rule.** The heading and the
           controls are what you steer the grid *with*, not part of it, so the
@@ -543,7 +543,7 @@ export default function Timetable({
               setEntrance(null)
               onSelect?.(new Date())
             }}
-            className="h-8 shrink-0 rounded-full bg-surface-chip px-4 text-[14px] font-medium text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85"
+            className="h-8 shrink-0 rounded-full bg-surface-chip px-4 text-[14px] font-medium text-ink outline-none transition-[opacity,scale] hover:opacity-85 focus-visible:opacity-85 active:scale-[0.97]"
           >
             {t('appointments.today')}
           </button>
@@ -597,7 +597,7 @@ export default function Timetable({
             <button
               type="button"
               aria-label={t('appointments.create')}
-              className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-surface-chip pr-4 pl-3 text-[14px] font-medium text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85 max-sm:w-8 max-sm:justify-center max-sm:px-0"
+              className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-surface-chip pr-4 pl-3 text-[14px] font-medium text-ink outline-none transition-[opacity,scale] hover:opacity-85 focus-visible:opacity-85 max-sm:w-8 max-sm:justify-center max-sm:px-0 active:scale-[0.95]"
             >
               <HugeiconsIcon
                 icon={Add01Icon}
@@ -1390,7 +1390,7 @@ function GroupRow({ block, services, week, timeZone, onDayChange, onSaved }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`flex w-full flex-col gap-0.5 rounded-xl px-2 py-2 text-left outline-none transition-colors hover:bg-ink/6 focus-visible:bg-ink/6 ${
+        className={`flex w-full flex-col gap-0.5 rounded-xl px-2 py-2 text-left outline-none transition-colors hover:bg-ink/6 focus-visible:bg-ink/6 active:bg-ink/10 ${
           state === 'cancelled' ? 'opacity-45' : ''
         }`}
       >
@@ -1485,7 +1485,7 @@ function StepButton({ label, icon, onClick }) {
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/12 text-ink outline-none transition-colors hover:bg-ink/20 focus-visible:bg-ink/20"
+      className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/12 text-ink outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/20 focus-visible:bg-ink/20 active:scale-[0.95]"
     >
       <HugeiconsIcon
         icon={icon}

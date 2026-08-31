@@ -119,7 +119,7 @@ function PasswordInput({ show, onToggleShow, ...inputProps }) {
         type="button"
         onClick={onToggleShow}
         aria-label={t(show ? 'form.hidePassword' : 'form.showPassword')}
-        className="absolute right-3 grid place-items-center text-muted transition-colors hover:text-ink"
+        className="absolute right-3 grid place-items-center text-muted transition-[color,background-color,border-color,scale] hover:text-ink active:scale-[0.97]"
       >
         <HugeiconsIcon
           icon={show ? EyeIcon : EyeOffIcon}
@@ -160,7 +160,7 @@ function ActionRow({
           type="button"
           onClick={onAction}
           disabled={disabled}
-          className="shrink-0 text-[13px] font-medium text-accent outline-none hover:underline disabled:text-muted disabled:no-underline"
+          className="shrink-0 text-[13px] font-medium text-accent outline-none hover:underline disabled:text-muted disabled:no-underline transition-opacity duration-150 ease-out active:opacity-60"
         >
           {action}
         </button>
@@ -205,7 +205,7 @@ function StatusAction({ onClick, disabled, tone = 'accent', children }) {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`shrink-0 text-[13px] font-medium outline-none hover:underline disabled:text-muted disabled:no-underline ${
+      className={`shrink-0 text-[13px] font-medium outline-none hover:underline disabled:text-muted disabled:no-underline transition-opacity duration-150 ease-out active:opacity-60 ${
         tone === 'muted' ? 'text-muted' : 'ml-auto text-accent'
       }`}
     >
@@ -811,7 +811,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
                   type="button"
                   onClick={handleResendPasswordCode}
                   disabled={pwResendCooldown > 0}
-                  className="text-[13px] font-medium text-accent outline-none hover:underline disabled:text-muted disabled:no-underline"
+                  className="text-[13px] font-medium text-accent outline-none hover:underline disabled:text-muted disabled:no-underline transition-opacity duration-150 ease-out active:opacity-60"
                 >
                   {pwResendCooldown > 0
                     ? t('account.resendCodeIn', { seconds: pwResendCooldown })
@@ -820,7 +820,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
                 <button
                   type="button"
                   onClick={handleSwitchToPassword}
-                  className="text-[13px] font-medium text-muted outline-none hover:underline"
+                  className="text-[13px] font-medium text-muted outline-none hover:underline transition-opacity duration-150 ease-out active:opacity-60"
                 >
                   {t('account.usePassword')}
                 </button>
@@ -830,7 +830,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
                 type="button"
                 onClick={handleSwitchToCode}
                 disabled={isSaving}
-                className="text-[13px] font-medium text-accent outline-none hover:underline disabled:text-muted disabled:no-underline"
+                className="text-[13px] font-medium text-accent outline-none hover:underline disabled:text-muted disabled:no-underline transition-opacity duration-150 ease-out active:opacity-60"
               >
                 {t(
                   isSaving
@@ -850,7 +850,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
           <button
             type="button"
             onClick={handleClosePasswordStep}
-            className="rounded-xl border border-line px-5 py-2.5 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/5 focus-visible:bg-ink/5"
+            className="rounded-xl border border-line px-5 py-2.5 text-[14px] font-medium text-ink outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/5 focus-visible:bg-ink/5 active:scale-[0.97]"
           >
             {t('form.cancel')}
           </button>
@@ -863,7 +863,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
               !confirmPassword ||
               isChangingPassword
             }
-            className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-surface outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
+            className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-surface outline-none transition-[color,background-color,border-color,scale] hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.97]"
           >
             {t(isChangingPassword ? 'form.saving' : 'form.save')}
           </button>
@@ -923,7 +923,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
           <button
             type="button"
             onClick={() => setEmailStep(null)}
-            className="rounded-xl border border-line px-5 py-2.5 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/5 focus-visible:bg-ink/5"
+            className="rounded-xl border border-line px-5 py-2.5 text-[14px] font-medium text-ink outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/5 focus-visible:bg-ink/5 active:scale-[0.97]"
           >
             {t('form.cancel')}
           </button>
@@ -931,7 +931,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
             type="submit"
             form={EMAIL_FORM_ID}
             disabled={!newEmail.trim() || isSaving}
-            className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-surface outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
+            className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-surface outline-none transition-[color,background-color,border-color,scale] hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.97]"
           >
             {t(isSaving ? 'account.sendingCode' : 'account.sendCode')}
           </button>
@@ -977,7 +977,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
               type="button"
               onClick={handleResendCode}
               disabled={resendCooldown > 0}
-              className="text-[13px] font-medium text-accent outline-none hover:underline disabled:text-muted disabled:no-underline"
+              className="text-[13px] font-medium text-accent outline-none hover:underline disabled:text-muted disabled:no-underline transition-opacity duration-150 ease-out active:opacity-60"
             >
               {resendCooldown > 0
                 ? t('account.resendCodeIn', { seconds: resendCooldown })
@@ -987,7 +987,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
               <button
                 type="button"
                 onClick={handleCancelEmailChange}
-                className="text-[13px] font-medium text-muted outline-none hover:underline"
+                className="text-[13px] font-medium text-muted outline-none hover:underline transition-opacity duration-150 ease-out active:opacity-60"
               >
                 {t('account.cancelEmailChange')}
               </button>
@@ -999,7 +999,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
           <button
             type="button"
             onClick={handleCloseCodeStep}
-            className="rounded-xl border border-line px-5 py-2.5 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/5 focus-visible:bg-ink/5"
+            className="rounded-xl border border-line px-5 py-2.5 text-[14px] font-medium text-ink outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/5 focus-visible:bg-ink/5 active:scale-[0.97]"
           >
             {t('form.cancel')}
           </button>
@@ -1007,7 +1007,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
             type="button"
             onClick={handleConfirmEmail}
             disabled={code.length !== 6 || isConfirming}
-            className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-surface outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
+            className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-surface outline-none transition-[color,background-color,border-color,scale] hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.97]"
           >
             {t(isConfirming ? 'account.checking' : 'account.confirm')}
           </button>
@@ -1077,7 +1077,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
               aria-label={t(
                 avatarSrc ? 'account.replacePhoto' : 'account.uploadPhoto',
               )}
-              className="absolute right-1.5 bottom-1.5 grid h-10 w-10 place-items-center rounded-full border border-line bg-surface text-ink shadow-[0_4px_12px_rgba(23,18,21,0.14)] outline-none transition-colors hover:bg-ground focus-visible:bg-ground disabled:cursor-not-allowed disabled:opacity-60"
+              className="absolute right-1.5 bottom-1.5 grid h-10 w-10 place-items-center rounded-full border border-line bg-surface text-ink shadow-[0_4px_12px_rgba(23,18,21,0.14)] outline-none transition-[color,background-color,border-color,scale] hover:bg-ground focus-visible:bg-ground disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.95]"
             >
               <HugeiconsIcon
                 icon={Camera01Icon}
@@ -1096,7 +1096,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
               type="button"
               onClick={handleRemoveAvatar}
               disabled={isSaving}
-              className="rounded-lg px-2 py-0.5 text-[13px] font-medium text-muted outline-none transition-colors hover:text-danger focus-visible:text-danger disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg px-2 py-0.5 text-[13px] font-medium text-muted outline-none transition-[color,background-color,border-color,scale] hover:text-danger focus-visible:text-danger disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.97]"
             >
               {t('account.deletePhoto')}
             </button>
@@ -1223,7 +1223,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
         <button
           type="button"
           onClick={onClose}
-          className="rounded-xl border border-line px-5 py-2.5 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/5 focus-visible:bg-ink/5"
+          className="rounded-xl border border-line px-5 py-2.5 text-[14px] font-medium text-ink outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/5 focus-visible:bg-ink/5 active:scale-[0.97]"
         >
           {t('form.cancel')}
         </button>
@@ -1231,7 +1231,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
           type="submit"
           form={FORM_ID}
           disabled={!isDirty || isSaving}
-          className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-surface outline-none transition-colors hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45"
+          className="rounded-xl bg-accent px-5 py-2.5 text-[14px] font-medium text-surface outline-none transition-[color,background-color,border-color,scale] hover:bg-accent-strong focus-visible:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.97]"
         >
           {t(isSaving ? 'form.saving' : 'form.save')}
         </button>

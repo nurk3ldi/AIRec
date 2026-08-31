@@ -423,7 +423,7 @@ export default function BookingPopover({
         type="button"
         onClick={() => setOpen(false)}
         aria-label={t('appointments.close')}
-        className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted outline-none transition-colors hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6 focus-visible:text-ink"
+        className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6 focus-visible:text-ink active:scale-[0.97]"
       >
         <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
       </button>
@@ -453,7 +453,7 @@ export default function BookingPopover({
         // not the thing to press, so it is a step quieter — and unlike
         // `surface-chip` an ink tint is visible on both themes here, where the
         // sheet is white on one and black on the other.
-        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink/8 text-ink outline-none transition-colors hover:bg-ink/14 focus-visible:bg-ink/14"
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink/8 text-ink outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/14 focus-visible:bg-ink/14 active:scale-[0.95]"
       >
         <HugeiconsIcon icon={Cancel01Icon} size={20} strokeWidth={2} />
       </button>
@@ -468,7 +468,7 @@ export default function BookingPopover({
         form={formId}
         disabled={saving}
         aria-label={t('appointments.save')}
-        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-chip text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85 disabled:cursor-not-allowed disabled:opacity-60"
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-chip text-ink outline-none transition-[opacity,scale] hover:opacity-85 focus-visible:opacity-85 disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.95]"
       >
         <HugeiconsIcon icon={Tick02Icon} size={20} strokeWidth={2.4} />
       </button>
@@ -696,7 +696,7 @@ export default function BookingPopover({
                   type="button"
                   onClick={remove}
                   disabled={saving}
-                  className="h-10 flex-1 rounded-xl bg-danger/10 px-3 text-[14px] font-medium text-danger outline-none transition-colors hover:bg-danger/20 focus-visible:bg-danger/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="h-10 flex-1 rounded-xl bg-danger/10 px-3 text-[14px] font-medium text-danger outline-none transition-[color,background-color,border-color,scale] hover:bg-danger/20 focus-visible:bg-danger/20 disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.97]"
                 >
                   {t(
                     confirmingDelete
@@ -717,7 +717,7 @@ export default function BookingPopover({
                   <button
                     type="button"
                     onClick={() => setOpen(false)}
-                    className="h-10 flex-1 rounded-xl bg-ink/[0.06] px-3 text-[14px] font-medium text-ink outline-none transition-colors hover:bg-ink/12 focus-visible:bg-ink/12"
+                    className="h-10 flex-1 rounded-xl bg-ink/[0.06] px-3 text-[14px] font-medium text-ink outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/12 focus-visible:bg-ink/12 active:scale-[0.97]"
                   >
                     {t('appointments.cancel')}
                   </button>
@@ -725,7 +725,7 @@ export default function BookingPopover({
                   <button
                     type="submit"
                     disabled={saving}
-                    className="h-10 flex-1 rounded-xl bg-surface-chip px-3 text-[14px] font-semibold text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="h-10 flex-1 rounded-xl bg-surface-chip px-3 text-[14px] font-semibold text-ink outline-none transition-[opacity,scale] hover:opacity-85 focus-visible:opacity-85 disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.97]"
                   >
                     {saving ? t('appointments.saving') : t('appointments.save')}
                   </button>

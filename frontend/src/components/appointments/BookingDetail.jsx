@@ -67,7 +67,7 @@ export default function BookingDetail({
               type="button"
               onClick={() => onOpenChange?.(false)}
               aria-label={t('appointments.close')}
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink/8 text-ink outline-none transition-colors hover:bg-ink/14 focus-visible:bg-ink/14"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink/8 text-ink outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/14 focus-visible:bg-ink/14 active:scale-[0.95]"
             >
               <HugeiconsIcon icon={Cancel01Icon} size={20} strokeWidth={2} />
             </button>
@@ -83,7 +83,7 @@ export default function BookingDetail({
                 setEditing(true)
                 onOpenChange?.(false)
               }}
-              className="grid h-10 shrink-0 place-items-center rounded-full bg-surface-chip px-4 text-[14px] font-semibold text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85"
+              className="grid h-10 shrink-0 place-items-center rounded-full bg-surface-chip px-4 text-[14px] font-semibold text-ink outline-none transition-[opacity,scale] hover:opacity-85 focus-visible:opacity-85 active:scale-[0.97]"
             >
               {t('appointments.edit')}
             </button>

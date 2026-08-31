@@ -85,7 +85,7 @@ export default function ProfilePage() {
               type="button"
               onClick={() => onOpenSection('account')}
               aria-label={t('profile.edit')}
-              className="absolute right-0 bottom-0 grid h-7 w-7 place-items-center rounded-full border-2 border-ground bg-ink text-surface"
+              className="absolute right-0 bottom-0 grid h-7 w-7 place-items-center rounded-full border-2 border-ground bg-ink text-surface transition-transform duration-150 ease-out active:scale-[0.95]"
             >
               <HugeiconsIcon
                 icon={PencilEdit02Icon}

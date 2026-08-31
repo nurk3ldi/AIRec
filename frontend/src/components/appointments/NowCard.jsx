@@ -158,7 +158,7 @@ function Step({ icon, label, onClick }) {
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted outline-none transition-colors hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6 focus-visible:text-ink"
+      className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6 focus-visible:text-ink active:scale-[0.95]"
     >
       <HugeiconsIcon
         icon={icon}

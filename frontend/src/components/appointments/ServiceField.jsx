@@ -69,7 +69,7 @@ export default function ServiceField({
               // nothing more; the field beside it is already labelled.
               aria-label={label}
               onClick={() => setOpen((was) => !was)}
-              className="absolute inset-y-0 right-0 grid w-9 place-items-center text-muted outline-none transition-colors hover:text-ink focus-visible:text-ink"
+              className="absolute inset-y-0 right-0 grid w-9 place-items-center text-muted outline-none transition-[color,background-color,border-color,scale] hover:text-ink focus-visible:text-ink active:scale-[0.97]"
             >
               <HugeiconsIcon
                 icon={ArrowDown01Icon}
@@ -109,7 +109,7 @@ export default function ServiceField({
                 // A service is a name, a length and a price, and the two
                 // numbers are most of what decides which one this booking is —
                 // so all three are on the row rather than the name alone.
-                className={`flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left outline-none transition-colors ${
+                className={`flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left outline-none transition-colors active:bg-ink/10 ${
                   chosen
                     ? 'bg-surface-chip'
                     : 'hover:bg-ink/6 focus-visible:bg-ink/6'

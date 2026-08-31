@@ -91,7 +91,7 @@ export default function MultiSelect({
                   type="button"
                   onClick={() => toggle(option)}
                   aria-pressed={isOn}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[14px] text-ink outline-none transition-colors hover:bg-ink/6 focus-visible:bg-ink/6"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[14px] text-ink outline-none transition-colors hover:bg-ink/6 focus-visible:bg-ink/6 active:bg-ink/10"
                 >
                   <span className="min-w-0 flex-1 truncate">{option}</span>
                   {/* The tick is the whole of the state, so the row keeps its

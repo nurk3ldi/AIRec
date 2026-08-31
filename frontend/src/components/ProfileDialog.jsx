@@ -185,7 +185,7 @@ export default function ProfileDialog({ section, user, onClose, onUserChange }) 
                 <button
                   type="button"
                   aria-label={t('form.close')}
-                  className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted outline-none transition-colors hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6 focus-visible:text-ink"
+                  className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6 focus-visible:text-ink active:scale-[0.97]"
                 >
                   <HugeiconsIcon
                     icon={Cancel01Icon}

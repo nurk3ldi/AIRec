@@ -221,7 +221,7 @@ export default function SessionsSettings({ user }) {
                   onClick={() => handleRevoke(session.id)}
                   disabled={busyId === session.id}
                   aria-label={t('security.revoke')}
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted outline-none transition-colors hover:bg-danger/8 hover:text-danger focus-visible:bg-danger/8 focus-visible:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted outline-none transition-[color,background-color,border-color,scale] hover:bg-danger/8 hover:text-danger focus-visible:bg-danger/8 focus-visible:text-danger disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.97]"
                 >
                   <HugeiconsIcon
                     icon={Cancel01Icon}
@@ -240,7 +240,7 @@ export default function SessionsSettings({ user }) {
               type="button"
               onClick={handleRevokeOthers}
               disabled={isRevokingOthers}
-              className="mt-2 self-start rounded-xl border border-danger/30 px-4 py-2 text-[13px] font-medium text-danger outline-none transition-colors hover:bg-danger/6 focus-visible:bg-danger/6 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-2 self-start rounded-xl border border-danger/30 px-4 py-2 text-[13px] font-medium text-danger outline-none transition-[color,background-color,border-color,scale] hover:bg-danger/6 focus-visible:bg-danger/6 disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.97]"
             >
               {isRevokingOthers
                 ? t('security.revoking')
@@ -280,7 +280,7 @@ export default function SessionsSettings({ user }) {
                   setIsDeleteOpen(true)
                   setDeleteError('')
                 }}
-                className="mt-3 ml-auto block rounded-xl border border-danger/40 px-4 py-2 text-[13px] font-medium text-danger outline-none transition-colors hover:bg-danger/8 focus-visible:bg-danger/8"
+                className="mt-3 ml-auto block rounded-xl border border-danger/40 px-4 py-2 text-[13px] font-medium text-danger outline-none transition-[color,background-color,border-color,scale] hover:bg-danger/8 focus-visible:bg-danger/8 active:scale-[0.97]"
               >
                 {t('security.deleteAction')}
               </button>
@@ -315,7 +315,7 @@ export default function SessionsSettings({ user }) {
                       ? 'form.hidePassword'
                       : 'form.showPassword',
                   )}
-                  className="absolute right-3 grid place-items-center text-muted transition-colors hover:text-ink"
+                  className="absolute right-3 grid place-items-center text-muted transition-[color,background-color,border-color,scale] hover:text-ink active:scale-[0.97]"
                 >
                   <HugeiconsIcon
                     icon={showDeletePassword ? EyeIcon : EyeOffIcon}
@@ -364,14 +364,14 @@ export default function SessionsSettings({ user }) {
                     setConfirmation('')
                     setDeleteError('')
                   }}
-                  className="rounded-xl border border-line px-4 py-2 text-[13px] font-medium text-ink outline-none transition-colors hover:bg-ink/5 focus-visible:bg-ink/5"
+                  className="rounded-xl border border-line px-4 py-2 text-[13px] font-medium text-ink outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/5 focus-visible:bg-ink/5 active:scale-[0.97]"
                 >
                   {t('form.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={!deletePassword || !confirmation || isDeleting}
-                  className="rounded-xl bg-danger px-4 py-2 text-[13px] font-medium text-white outline-none transition-colors hover:bg-[#B91C1C] focus-visible:bg-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-45"
+                  className="rounded-xl bg-danger px-4 py-2 text-[13px] font-medium text-white outline-none transition-[color,background-color,border-color,scale] hover:bg-[#B91C1C] focus-visible:bg-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-45 active:scale-[0.97]"
                 >
                   {t(
                     isDeleting ? 'security.deleting' : 'security.deleteAction',

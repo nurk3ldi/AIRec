@@ -130,7 +130,7 @@ export default function WeekStrip({
           )}
           className="group grid h-5 w-full place-items-center outline-none"
         >
-          <span className="h-1 w-9 rounded-full bg-ink/15 transition-colors group-hover:bg-ink/30 group-focus-visible:bg-ink/30" />
+          <span className="h-1 w-9 rounded-full bg-ink/15 transition-colors group-hover:bg-ink/30 group-focus-visible:bg-ink/30 group-active:bg-ink/40" />
         </button>
       )}
     </div>

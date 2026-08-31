@@ -129,7 +129,7 @@ export default function MobileSearch({
           type="button"
           onClick={onClose}
           aria-label={t('appointments.close')}
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink/8 text-ink outline-none transition-colors hover:bg-ink/14 focus-visible:bg-ink/14"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink/8 text-ink outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/14 focus-visible:bg-ink/14 active:scale-[0.95]"
         >
           <HugeiconsIcon icon={Cancel01Icon} size={20} strokeWidth={2} />
         </button>

@@ -139,7 +139,7 @@ export default function ProfileMenu({ user, onOpenSection, onClose }) {
             // outline-none kills the browser's default ring on click;
             // focus-visible keeps a keyboard indicator, reusing the hover fill
             // so it reads as part of the design rather than a stray outline.
-            className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-[14px] text-ink outline-none transition-colors hover:bg-ground focus-visible:bg-ground"
+            className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-[14px] text-ink outline-none transition-colors hover:bg-ground focus-visible:bg-ground active:bg-ink/10"
           >
             <HugeiconsIcon
               icon={item.icon}
@@ -161,7 +161,7 @@ export default function ProfileMenu({ user, onOpenSection, onClose }) {
           type="button"
           role="menuitem"
           onClick={handleSignOut}
-          className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-[14px] text-danger outline-none transition-colors hover:bg-danger/8 focus-visible:bg-danger/8"
+          className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-[14px] text-danger outline-none transition-colors hover:bg-danger/8 focus-visible:bg-danger/8 active:bg-ink/10"
         >
           <HugeiconsIcon
             icon={Logout01Icon}

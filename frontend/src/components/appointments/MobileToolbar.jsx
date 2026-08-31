@@ -153,7 +153,7 @@ function ViewSwitch({ value, onChange }) {
               <button
                 type="button"
                 onClick={() => onChange?.(option.id)}
-                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-left text-[15px] text-ink outline-none transition-colors hover:bg-ink/6 focus-visible:bg-ink/6"
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-left text-[15px] text-ink outline-none transition-colors hover:bg-ink/6 focus-visible:bg-ink/6 active:bg-ink/10"
               >
                 <HugeiconsIcon
                   icon={option.icon}
