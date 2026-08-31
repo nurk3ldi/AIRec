@@ -1,4 +1,5 @@
 import { useT } from '../lib/i18n'
+import AssistantNow from '../components/home/AssistantNow'
 import styles from '../styles/Dashboard.module.css'
 
 /**
@@ -55,9 +56,7 @@ export default function DashboardHomePage() {
           фона. Рамка поверх неё — обводка вокруг фигуры, у которой край уже
           есть. */}
       <div className="flex w-full flex-col gap-4 p-4 sm:flex-row sm:gap-6 sm:p-6">
-        <div
-          className={`w-full min-w-0 rounded-2xl bg-surface-raised sm:flex-[35] ${ROW}`}
-        />
+        <AssistantNow className={`w-full min-w-0 sm:flex-[35] ${ROW}`} />
         <div
           className={`w-full min-w-0 rounded-2xl bg-surface-raised sm:flex-[65] ${ROW}`}
         />
