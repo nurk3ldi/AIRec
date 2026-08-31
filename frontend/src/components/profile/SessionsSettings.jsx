@@ -15,6 +15,7 @@ import {
 } from '../../lib/api'
 import { authed, clearTokens } from '../../lib/auth'
 import { getLocale, translate, useT } from '../../lib/i18n'
+import Skeleton, { SkeletonRegion } from '../Skeleton'
 
 // Mirrors `account_deletion_grace_days` on the backend. Only used for copy —
 // the deadline the user is actually held to is the server's.
@@ -165,9 +166,27 @@ export default function SessionsSettings({ user }) {
       )}
 
       {sessions === null ? (
-        <p className="mt-4 shrink-0 text-[14px] text-muted">
-          {t('security.loading')}
-        </p>
+        // **The rows, not the word.** «Загрузка…» is a sentence where a list is
+        // about to be, so the panel changed shape twice — once to say it was
+        // asking and once to answer. Three placeholder rows at the real row's
+        // height say the same thing and leave the layout alone.
+        <SkeletonRegion
+          label={t('security.loading')}
+          className="mt-4 flex shrink-0 flex-col gap-2"
+        >
+          {Array.from({ length: 3 }, (_, index) => (
+            <div
+              key={index}
+              className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3"
+            >
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <Skeleton className="h-3.5 w-40" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+              <Skeleton className="h-4 w-16" />
+            </div>
+          ))}
+        </SkeletonRegion>
       ) : (
         <div className="mt-4 flex shrink-0 flex-col gap-2">
           {sessions.map((session) => (

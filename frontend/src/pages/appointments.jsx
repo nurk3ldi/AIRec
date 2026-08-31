@@ -6,6 +6,9 @@ import MobileToolbar from '../components/appointments/MobileToolbar'
 import MobileSearch from '../components/appointments/MobileSearch'
 import MobileDay from '../components/appointments/MobileDay'
 import MobileList from '../components/appointments/MobileList'
+import CardSkeleton from '../components/CardSkeleton'
+import Skeleton, { SkeletonRegion } from '../components/Skeleton'
+import { useSkeleton } from '../lib/skeleton'
 import ChatFeed from '../components/appointments/ChatFeed'
 import NowCard from '../components/appointments/NowCard'
 import FreeSlotCard from '../components/appointments/FreeSlotCard'
@@ -169,6 +172,16 @@ export default function AppointmentsPage() {
   // made in a row have to be two reloads and `true → true` is no change at all.
   const [reload, setReload] = useState(0)
 
+  // **`bookings` starts `[]`, and `[]` is a real answer** — a day with nothing
+  // on it. So unlike `/assistant`, where `null` already says "not asked yet",
+  // the wait needs a flag of its own; without it the three cards said «Сейчас
+  // никого» about a question the screen had not put yet.
+  const [loaded, setLoaded] = useState(false)
+  // Only whether the bars have waited long enough. The placeholders themselves
+  // are drawn for the whole of `!loaded`, so the three cards never say «Сейчас
+  // никого» about a question that has not been asked.
+  const bars = useSkeleton(!loaded)
+
   // **The whole week, whichever view is showing.** The timetable switches
   // between one day and five without telling the page, and re-fetching on that
   // switch would trade a request for nothing: seven days of one business is a
@@ -200,10 +213,19 @@ export default function AppointmentsPage() {
         // `GET /business` answers, `undefined` means the browser's own zone,
         // which is right for everyone using this from inside the country and
         // is corrected a moment later for everyone else.
-        if (alive) setBookings(rows.map((row) => toBlock(row, timeZone)))
+        if (alive) {
+          setBookings(rows.map((row) => toBlock(row, timeZone)))
+          setLoaded(true)
+        }
       })
       .catch(() => {
-        if (alive) setBookings([])
+        if (alive) {
+          setBookings([])
+          // A failed read is still an answer: the empty state is what the
+          // screen has, and a skeleton that never resolves is a page that
+          // looks broken rather than empty.
+          setLoaded(true)
+        }
       })
     return () => {
       alive = false
@@ -315,9 +337,35 @@ export default function AppointmentsPage() {
           {/* Now, next, and where somebody could still be fitted in — the
               three questions asked with a client on the phone, in the order
               they come up. */}
-          <NowCard bookings={bookings} timeZone={timeZone} />
-          <UpNextCard bookings={bookings} timeZone={timeZone} />
-          <FreeSlotCard bookings={bookings} week={week} timeZone={timeZone} />
+          {!loaded ? (
+            <>
+              <CardSkeleton
+                rows={2}
+                visible={bars}
+                label={t('appointments.now')}
+              />
+              <CardSkeleton
+                rows={3}
+                visible={bars}
+                label={t('appointments.upNext')}
+              />
+              <CardSkeleton
+                rows={2}
+                visible={bars}
+                label={t('appointments.freeSlot')}
+              />
+            </>
+          ) : (
+            <>
+              <NowCard bookings={bookings} timeZone={timeZone} />
+              <UpNextCard bookings={bookings} timeZone={timeZone} />
+              <FreeSlotCard
+                bookings={bookings}
+                week={week}
+                timeZone={timeZone}
+              />
+            </>
+          )}
         </div>
 
         <Timetable
@@ -368,7 +416,31 @@ export default function AppointmentsPage() {
           *definite* height and `overflow-hidden`, so a child that will not
           shrink below its content puts a year of months where there is nowhere
           to put them. */}
-      {mobileView === 'list' ? (
+      {mobileView === 'list' && !loaded ? (
+        <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 sm:hidden">
+          {/* Outside the fade: the bar is real, and it works while the list is
+              still on its way. */}
+          {mobileBar}
+          <SkeletonRegion
+            label={t('nav.appointments')}
+            visible={bars}
+            className="flex flex-col gap-3"
+          >
+          {Array.from({ length: 5 }, (_, index) => (
+            <div key={index} className="flex gap-3">
+              {/* The span down the left, which is the column the eye runs — so
+                  it is the one part of the row worth drawing exactly. */}
+              <div className="flex shrink-0 flex-col items-center gap-1 pt-1">
+                <Skeleton className="h-3 w-10" />
+                <Skeleton className="h-6 w-px rounded-none" />
+                <Skeleton className="h-3 w-10" />
+              </div>
+              <Skeleton className="h-[72px] flex-1 rounded-2xl" />
+            </div>
+          ))}
+          </SkeletonRegion>
+        </div>
+      ) : mobileView === 'list' ? (
         <MobileList
           day={selected}
           marked={marked}

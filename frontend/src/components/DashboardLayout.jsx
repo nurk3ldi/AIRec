@@ -8,6 +8,8 @@ import Header from './Header'
 import PageTransition from './PageTransition'
 import ProfileMenu from './ProfileMenu'
 import ProfileDialog from './ProfileDialog'
+import Skeleton, { SkeletonRegion } from './Skeleton'
+import { useSkeleton } from '../lib/skeleton'
 
 /**
  * The authenticated shell, in two shapes: a fixed rail on the left above `sm`,
@@ -26,6 +28,54 @@ import ProfileDialog from './ProfileDialog'
  */
 const HEADERLESS = new Set(['/profile', '/appointments', '/assistant'])
 
+/**
+ * The shell with nothing in it yet.
+ *
+ * **The chrome and not the content.** Nothing here comes from the session — no
+ * name, no avatar, no page — so it can be drawn before the answer arrives
+ * without showing anybody anything they have not been cleared for, which is the
+ * whole reason the shell used to render `null`.
+ *
+ * It copies the three fixed measurements exactly, so nothing moves when the
+ * real shell replaces it: the 64px rail from `sm`, the 68px header, and the
+ * 50px bar plus the home indicator below `sm`.
+ */
+function ShellSkeleton({ visible }) {
+  return (
+    <SkeletonRegion
+      label="AIRec"
+      visible={visible}
+      className="min-h-screen bg-ground"
+    >
+      <div className="fixed inset-y-0 left-0 hidden w-16 flex-col items-center gap-4 bg-rail py-4 sm:flex">
+        <Skeleton className="h-9 w-9 rounded-xl bg-rail-ink/10" />
+        <div className="mt-2 flex flex-col gap-3">
+          {Array.from({ length: 4 }, (_, index) => (
+            <Skeleton
+              key={index}
+              className="h-9 w-9 rounded-xl bg-rail-ink/10"
+            />
+          ))}
+        </div>
+        <Skeleton className="mt-auto h-9 w-9 rounded-full bg-rail-ink/10" />
+      </div>
+
+      <div className="min-h-screen sm:pl-16">
+        <div className="flex h-[68px] items-center justify-between border-b border-line px-4 sm:px-6">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-8 w-8 rounded-full" />
+        </div>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 flex h-[calc(50px+env(safe-area-inset-bottom))] items-start justify-around border-t border-line px-6 pt-3 sm:hidden">
+        {Array.from({ length: 5 }, (_, index) => (
+          <Skeleton key={index} className="h-6 w-6 rounded-lg" />
+        ))}
+      </div>
+    </SkeletonRegion>
+  )
+}
+
 export default function DashboardLayout() {
   const verifiedUser = useRequireAuth()
   const { pathname } = useLocation()
@@ -35,6 +85,13 @@ export default function DashboardLayout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   // null = dialog closed; otherwise the section id it's showing.
   const [dialogSection, setDialogSection] = useState(null)
+  // **The whole app is blank until the session is confirmed** — `/auth/me`,
+  // and a `/auth/refresh` behind it when the access token has expired, which is
+  // two round trips on the slowest path there is. It rendered `null` for all of
+  // it. `null` is right about the *content* — protected content must never
+  // flash before it is allowed — and wrong about the room around it: a page
+  // that is white for a second and then complete is a page you assume failed.
+  const showShell = useSkeleton(!user)
 
   useEffect(() => {
     if (verifiedUser) setUser(verifiedUser)
@@ -50,7 +107,7 @@ export default function DashboardLayout() {
     setDialogSection(id)
   }
 
-  if (!user) return null
+  if (!user) return <ShellSkeleton visible={showShell} />
 
   return (
     <div className="min-h-screen bg-ground text-ink">

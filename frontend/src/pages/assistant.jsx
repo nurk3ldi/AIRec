@@ -5,6 +5,8 @@ import { useT } from '../lib/i18n'
 import BusinessCard from '../components/assistant/BusinessCard'
 import ServicesCard from '../components/assistant/ServicesCard'
 import SettingsCard from '../components/assistant/SettingsCard'
+import CardSkeleton from '../components/CardSkeleton'
+import { useSkeleton } from '../lib/skeleton'
 import HoursCard from '../components/assistant/HoursCard'
 import styles from '../styles/Assistant.module.css'
 
@@ -52,6 +54,17 @@ export default function AssistantPage() {
   // Bumped after a save. A counter rather than a boolean: two saves in a row
   // have to be two reloads, and `true → true` is no change at all.
   const [reload, setReload] = useState(0)
+
+  // **`null` is already the loading state here**, and that is why no flag was
+  // added: every one of the three starts null and is set to whatever the server
+  // answered — including an empty list, which is a real answer and not a
+  // missing one. `useSkeleton` holds each back for 150ms, so a backend that
+  // answers at once draws nothing at all.
+  // The card is drawn while its row is `null`; these say only whether the bars
+  // inside it have waited long enough to be worth showing.
+  const barsBusiness = useSkeleton(business === null)
+  const barsServices = useSkeleton(services === null)
+  const barsWeek = useSkeleton(week === null)
 
   useEffect(() => {
     let alive = true
@@ -105,11 +118,30 @@ export default function AssistantPage() {
             rather than a fixed share, so the gap between them comes out of the
             column once instead of being subtracted from each half by hand. */}
         <div className={`flex w-full flex-col gap-4 sm:max-w-[350px] sm:gap-6 ${FULL}`}>
-          <ServicesCard
-            services={services}
-            onSaved={() => setReload((n) => n + 1)}
-          />
-          <HoursCard week={week} onSaved={() => setReload((n) => n + 1)} />
+          {services === null ? (
+            <CardSkeleton
+              rows={4}
+              visible={barsServices}
+              label={t('assistant.services')}
+              className="min-h-[240px]"
+            />
+          ) : (
+            <ServicesCard
+              services={services}
+              onSaved={() => setReload((n) => n + 1)}
+            />
+          )}
+          {week === null ? (
+            <CardSkeleton
+              rows={2}
+              strip
+              visible={barsWeek}
+              label={t('assistant.hours')}
+              className="min-h-[240px] flex-1"
+            />
+          ) : (
+            <HoursCard week={week} onSaved={() => setReload((n) => n + 1)} />
+          )}
         </div>
 
         {/* **`surface-raised`, and no edge at all.** That token exists for
@@ -120,21 +152,39 @@ export default function AssistantPage() {
             carried was the other way of doing it; a card can have one or the
             other, and two is an outline around a shape that already has an
             edge. */}
-        <BusinessCard
-          business={business}
-          onSaved={() => setReload((n) => n + 1)}
-          className={`w-full sm:max-w-[350px] ${FULL}`}
-        />
+        {business === null ? (
+          <CardSkeleton
+            rows={6}
+            visible={barsBusiness}
+            label={t('assistant.business')}
+            className={`w-full sm:max-w-[350px] ${FULL}`}
+          />
+        ) : (
+          <BusinessCard
+            business={business}
+            onSaved={() => setReload((n) => n + 1)}
+            className={`w-full sm:max-w-[350px] ${FULL}`}
+          />
+        )}
 
         {/* Everything that is left. `flex-1` takes the leftover of the row
             rather than a width of its own, so it is whatever the two fixed
             columns did not use; `min-w` is what stops it being squeezed to
             nothing on a narrow window — past that it wraps to its own line. */}
-        <SettingsCard
-          business={business}
-          onSaved={() => setReload((n) => n + 1)}
-          className={`w-full sm:min-w-[320px] sm:flex-1 ${FULL}`}
-        />
+        {business === null ? (
+          <CardSkeleton
+            rows={2}
+            visible={barsBusiness}
+            label={t('assistant.settings')}
+            className={`w-full sm:min-w-[320px] sm:flex-1 ${FULL}`}
+          />
+        ) : (
+          <SettingsCard
+            business={business}
+            onSaved={() => setReload((n) => n + 1)}
+            className={`w-full sm:min-w-[320px] sm:flex-1 ${FULL}`}
+          />
+        )}
       </div>
     </div>
   )

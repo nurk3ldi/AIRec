@@ -91,6 +91,25 @@ const FILTERS = [
  */
 const DEBOUNCE_MS = 300
 
+/**
+ * **The screen is deliberately blank, and everything behind it is intact.**
+ *
+ * One flag, not a deletion: the list, the filters, the row menu and the thread
+ * pane are all still below, and so is the backend they read — conversations,
+ * messages, the assistant's pause rule. Turning it back on is `false` here.
+ *
+ * It is off because there is no WhatsApp behind it yet: `POST
+ * /conversations/ingest` is authenticated as the owner, which is not where a
+ * webhook arrives, and there is no outbound transport at all. A screen that
+ * looks like a working inbox and cannot send or receive is a screen that
+ * promises something nothing is building toward — the same reason the invented
+ * analytics went off `/dashboard`.
+ *
+ * The route stays registered and the sidebar keeps its «Диалоги» item: an empty
+ * page is an honest answer where a 404 is not.
+ */
+const HIDDEN = true
+
 export default function InboxPage() {
   const t = useT()
 
@@ -138,6 +157,7 @@ export default function InboxPage() {
   const [timeZone, setTimeZone] = useState(undefined)
 
   useEffect(() => {
+    if (HIDDEN) return
     let alive = true
     authed(getBusiness)
       .then((row) => alive && setTimeZone(row.timezone))
@@ -148,6 +168,7 @@ export default function InboxPage() {
   }, [])
 
   useEffect(() => {
+    if (HIDDEN) return
     const text = query.trim()
     let alive = true
     const timer = setTimeout(() => {
@@ -207,6 +228,10 @@ export default function InboxPage() {
    * the server is where the rules are.
    */
   const onChanged = () => setReload((n) => n + 1)
+
+  // Hooks first, then the blank: a return above them would change how many run
+  // between renders, which is the one thing React does not allow.
+  if (HIDDEN) return <div className={styles.page} aria-label={t('nav.inbox')} />
 
   return (
     // **A definite height, not a minimum**, exactly as `/appointments` carries
