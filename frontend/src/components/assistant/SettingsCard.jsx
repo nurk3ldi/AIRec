@@ -97,7 +97,7 @@ export default function SettingsCard({ business, onSaved, className = '' }) {
         event.preventDefault()
         done()
       }}
-      className={`flex flex-col rounded-2xl bg-surface-raised p-6 ${className}`}
+      className={`flex flex-col rounded-2xl bg-surface-raised p-4 ${className}`}
     >
       <div className="flex shrink-0 items-center justify-between gap-3">
         <h2 className="font-display text-[15px] font-semibold text-ink">
@@ -119,7 +119,7 @@ export default function SettingsCard({ business, onSaved, className = '' }) {
         </button>
       </div>
 
-      <div className="mt-5 flex flex-col gap-5">
+      <div className="mt-4 flex flex-col gap-3">
         <Chips
           label={t('assistant.languages')}
           options={SERVICE_LANGUAGES}

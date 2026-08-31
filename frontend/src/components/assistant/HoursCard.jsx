@@ -156,12 +156,17 @@ export default function HoursCard({ week, onSaved }) {
         event.preventDefault()
         done()
       }}
-      // **The same resting height as the card beside it in the column.** The
-      // two are content-sized, so an empty price list and a full week came out
-      // as two boxes of visibly different size stacked on each other. A shared
-      // minimum settles that without freezing either: «Услуги» still grows past
+      // **The same resting floor as the card above it in the column**, so an
+      // empty price list and a full week do not come out as two boxes of
+      // visibly different size stacked on each other. «Услуги» still grows past
       // it when its list is unfolded, which is the whole point of the fold.
-      className="flex min-h-[300px] flex-col rounded-2xl bg-surface-raised p-4"
+      //
+      // **And it takes whatever the column has left** — `flex-1`, which is what
+      // lands its bottom edge on the same line as the two cards beside it
+      // rather than somewhere short of them. A `min-height` on the column is
+      // enough for that: the main axis resolves against it, so there is real
+      // leftover to grow into.
+      className="flex min-h-[240px] flex-1 flex-col rounded-2xl bg-surface-raised p-4"
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-display text-[15px] font-semibold text-ink">

@@ -152,7 +152,7 @@ export default function ServicesCard({ services, onSaved }) {
       // as two boxes of visibly different size stacked on each other. A shared
       // minimum settles that without freezing either: «Услуги» still grows past
       // it when its list is unfolded, which is the whole point of the fold.
-      className="flex min-h-[300px] flex-col rounded-2xl bg-surface-raised p-4"
+      className="flex min-h-[240px] flex-col rounded-2xl bg-surface-raised p-4"
     >
       <div className="flex shrink-0 items-center justify-between gap-3">
         <h2 className="font-display text-[15px] font-semibold text-ink">

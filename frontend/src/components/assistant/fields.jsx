@@ -20,7 +20,7 @@
  */
 export function Field({ label, value, onChange, type = 'text', readOnly }) {
   return (
-    <label className="flex min-w-0 flex-col gap-1.5">
+    <label className="flex min-w-0 flex-col gap-1">
       <span className="text-[13px] text-muted">{label}</span>
       <input
         type={type}
@@ -30,7 +30,7 @@ export function Field({ label, value, onChange, type = 'text', readOnly }) {
         tabIndex={readOnly ? -1 : undefined}
         // 16px below `sm`, like every field in this app: iOS magnifies the page
         // when a smaller one takes focus and never magnifies back.
-        className={`h-10 w-full appearance-none rounded-xl bg-surface px-3 text-[16px] text-ink shadow-[0_0_0_1px_var(--color-field)] outline-none transition-shadow duration-150 placeholder:text-muted sm:text-[14px] ${
+        className={`h-8 w-full appearance-none rounded-xl bg-surface px-3 text-[16px] text-ink shadow-[0_0_0_1px_var(--color-field)] outline-none transition-shadow duration-150 placeholder:text-muted sm:text-[14px] ${
           readOnly
             ? 'cursor-default'
             : 'hover:shadow-[0_0_0_1px_var(--color-field-hover)] focus:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)]'

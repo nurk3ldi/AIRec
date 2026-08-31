@@ -130,7 +130,7 @@ export default function BusinessCard({ business, onSaved, className = '' }) {
         event.preventDefault()
         done()
       }}
-      className={`flex flex-col rounded-2xl bg-surface-raised p-6 ${className}`}
+      className={`flex flex-col rounded-2xl bg-surface-raised p-4 ${className}`}
     >
       <div className="flex shrink-0 items-center justify-between gap-3">
         <h2 className="font-display text-[15px] font-semibold text-ink">
@@ -152,7 +152,7 @@ export default function BusinessCard({ business, onSaved, className = '' }) {
         </button>
       </div>
 
-      <div className="mt-5 grid gap-4">
+      <div className="mt-4 grid gap-2.5">
         <Field
           label={t('assistant.name')}
           value={form.name}
