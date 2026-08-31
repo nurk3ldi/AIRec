@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { updateBusiness } from '../../lib/api'
 import { authed } from '../../lib/auth'
-import { PAYMENT_METHODS, SERVICE_LANGUAGES } from '../../lib/businessOptions'
+import { PAYMENT_METHODS } from '../../lib/businessOptions'
 import { useT } from '../../lib/i18n'
+import { Field } from './fields'
 import MultiSelect from './MultiSelect'
 
 /**
@@ -18,12 +19,14 @@ import MultiSelect from './MultiSelect'
  * one is the things a client might ask — what you are called, where you are,
  * what you take, which languages you speak.
  *
- * **The two closed sets are answered differently, and by their length.**
- * Languages is three options, so they are chips: the whole set and the current
- * answer are one line, and a list would hide both behind a press. Payment is
- * nine, which as chips wrapped to two rows and took most of the card's height
- * for a field that is set once — so it is a `MultiSelect`, one line that says
- * what was chosen.
+ * **The languages and the landmark moved to «Настройки ассистента».** Both sat
+ * here as facts about the business and are really instructions to the bot — see
+ * that card. What is left is what a client would ask about, which is also what
+ * brought this card back under the height of the screen.
+ *
+ * **Payment is a `MultiSelect`, not chips.** Nine options wrapped to two rows
+ * and took most of the card for a field that is set once; one line that says
+ * what was chosen is the same answer in a tenth of the space.
  *
  * **The city is a plain field for now.** Eighty cities need filtering to be
  * pickable, which is a combobox this project no longer has; the column is a
@@ -51,24 +54,22 @@ const formOf = (business) => ({
   phone: business?.phone ?? '',
   city: business?.city ?? '',
   address: business?.address ?? '',
-  landmark: business?.landmark ?? '',
-  languages: toList(business?.languages),
   payment: toList(business?.payment_methods),
 })
 
-export default function BusinessCard({ business, onSaved }) {
+export default function BusinessCard({ business, onSaved, className = '' }) {
   const t = useT()
   const [form, setForm] = useState(() => formOf(business))
   const [saving, setSaving] = useState(false)
   const set = (changes) => setForm((was) => ({ ...was, ...changes }))
 
-  const toggle = (field, value) =>
-    setForm((was) => ({
-      ...was,
-      [field]: was[field].includes(value)
-        ? was[field].filter((item) => item !== value)
-        : [...was[field], value],
-    }))
+  // The row arrives after the first render — the page fetches it — so the
+  // initialiser alone leaves the card permanently blank and permanently dirty.
+  // `business` changes only on that fetch and on a reload after a save, so this
+  // cannot land on top of something being typed.
+  useEffect(() => {
+    setForm(formOf(business))
+  }, [business])
 
   // **Compared against the row, not tracked as a flag.** A flag has to be
   // cleared in every path that saves or resets; a comparison cannot go stale.
@@ -90,8 +91,6 @@ export default function BusinessCard({ business, onSaved }) {
           phone: form.phone.trim() || null,
           city: form.city.trim() || null,
           address: form.address.trim() || null,
-          landmark: form.landmark.trim() || null,
-          languages: fromList(form.languages),
           payment_methods: fromList(form.payment),
         }),
       )
@@ -104,25 +103,19 @@ export default function BusinessCard({ business, onSaved }) {
   }
 
   return (
-    // The project's card: a hairline rather than a shadow, because on the dark
-    // theme the page and the card are the same black and an edge is the only
-    // thing that can separate them.
+    // **Sized by its contents.** It carried `h-full`, which resolves to `auto`
+    // under a parent that has only a `min-height` — so the card grew to its
+    // fields instead of the column, overran the viewport and put a scrollbar on
+    // the page. Two fields fewer and no false height, and it fits.
     <form
       onSubmit={save}
-      className="flex h-full min-h-0 flex-col rounded-2xl bg-surface-raised p-6"
+      className={`flex flex-col rounded-2xl bg-surface-raised p-6 ${className}`}
     >
       <h2 className="shrink-0 font-display text-[15px] font-semibold text-ink">
         {t('assistant.business')}
       </h2>
 
-      {/* **The card fills the column and its contents scroll inside it.** The
-          title stays put and so does the save button, which is the point: a
-          form whose only way to reach «Сохранить» is to scroll past every field
-          is one where the button is easy to lose. `min-h-0` is what lets this
-          shrink — a flex item refuses to go below its content without it. */}
-      <div className="-mx-6 min-h-0 flex-1 overflow-y-auto px-6">
-
-      <div className="grid gap-4">
+      <div className="mt-5 grid gap-4">
         <Field
           label={t('assistant.name')}
           value={form.name}
@@ -149,11 +142,6 @@ export default function BusinessCard({ business, onSaved }) {
           value={form.address}
           onChange={(value) => set({ address: value })}
         />
-        <Field
-          label={t('assistant.landmark')}
-          value={form.landmark}
-          onChange={(value) => set({ landmark: value })}
-        />
         <MultiSelect
           label={t('assistant.payment')}
           options={PAYMENT_METHODS}
@@ -161,16 +149,6 @@ export default function BusinessCard({ business, onSaved }) {
           onChange={(next) => set({ payment: next })}
           placeholder={t('assistant.pick')}
         />
-      </div>
-
-      <Chips
-        label={t('assistant.languages')}
-        options={SERVICE_LANGUAGES}
-        value={form.languages}
-        onToggle={(item) => toggle('languages', item)}
-      />
-
-
       </div>
 
       {/* **The button appears only when there is something to save.** A card
@@ -187,55 +165,5 @@ export default function BusinessCard({ business, onSaved }) {
         </button>
       )}
     </form>
-  )
-}
-
-/** One labelled text field. The label sits above rather than inside, because
- *  every one of these carries a value and there is no empty state a
- *  placeholder could stand in for. */
-function Field({ label, value, onChange, type = 'text' }) {
-  return (
-    <label className="flex min-w-0 flex-col gap-1.5">
-      <span className="text-[13px] text-muted">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        // 16px below `sm`, like every field in this app: iOS magnifies the page
-        // when a smaller one takes focus and never magnifies back.
-        className="h-10 w-full appearance-none rounded-xl bg-surface px-3 text-[16px] text-ink shadow-[0_0_0_1px_var(--color-field)] outline-none transition-shadow duration-150 placeholder:text-muted hover:shadow-[0_0_0_1px_var(--color-field-hover)] focus:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)] sm:text-[14px]"
-      />
-    </label>
-  )
-}
-
-/** A closed set, small enough to show whole. Chosen is `surface-chip` — the
- *  same lift every other choice in this app uses. */
-function Chips({ label, options, value, onToggle }) {
-  return (
-    <div className="mt-6 flex flex-col gap-2">
-      <span className="text-[13px] text-muted">{label}</span>
-      <div className="flex flex-wrap gap-1.5">
-        {options.map((option) => {
-          const isOn = value.includes(option)
-
-          return (
-            <button
-              key={option}
-              type="button"
-              onClick={() => onToggle(option)}
-              aria-pressed={isOn}
-              className={`h-8 rounded-full border px-3 text-[13px] font-medium outline-none transition-colors ${
-                isOn
-                  ? 'border-transparent bg-surface-chip text-ink'
-                  : 'border-line text-muted hover:text-ink focus-visible:text-ink'
-              }`}
-            >
-              {option}
-            </button>
-          )
-        })}
-      </div>
-    </div>
   )
 }

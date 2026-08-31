@@ -1,0 +1,66 @@
+/**
+ * The two field shapes the assistant's cards share.
+ *
+ * They were written inside `BusinessCard` and are here because a second card
+ * now needs them — two copies of a labelled input are two inputs that agree
+ * until one of them is restyled.
+ */
+
+/**
+ * One labelled text field.
+ *
+ * The label sits above rather than inside: every one of these carries a value,
+ * so there is no empty state a placeholder could stand in for, and a label that
+ * vanishes the moment the field is filled is a label you have to remember.
+ */
+export function Field({ label, value, onChange, type = 'text' }) {
+  return (
+    <label className="flex min-w-0 flex-col gap-1.5">
+      <span className="text-[13px] text-muted">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        // 16px below `sm`, like every field in this app: iOS magnifies the page
+        // when a smaller one takes focus and never magnifies back.
+        className="h-10 w-full appearance-none rounded-xl bg-surface px-3 text-[16px] text-ink shadow-[0_0_0_1px_var(--color-field)] outline-none transition-shadow duration-150 placeholder:text-muted hover:shadow-[0_0_0_1px_var(--color-field-hover)] focus:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)] sm:text-[14px]"
+      />
+    </label>
+  )
+}
+
+/**
+ * A closed set small enough to show whole.
+ *
+ * Chosen is `surface-chip` — the same lift every other choice in this app uses.
+ * Both states carry a border, the chosen one's transparent, so a chip does not
+ * change size when it is picked.
+ */
+export function Chips({ label, options, value, onToggle }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-[13px] text-muted">{label}</span>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((option) => {
+          const isOn = value.includes(option)
+
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => onToggle(option)}
+              aria-pressed={isOn}
+              className={`h-8 rounded-full border px-3 text-[13px] font-medium outline-none transition-colors ${
+                isOn
+                  ? 'border-transparent bg-surface-chip text-ink'
+                  : 'border-line text-muted hover:text-ink focus-visible:text-ink'
+              }`}
+            >
+              {option}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
