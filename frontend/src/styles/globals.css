@@ -101,8 +101,9 @@
   --surface-chip: #ffffff;
   /* A card drawn *on* something rather than on the page — a booking on the
      timetable's grid. It has to stand off a ground that is pure black on the
-     dark side, which `surface-raised` at #0e0e0e does not: that reads as no
-     fill at all. And it must not be `surface-chip`, which is a step too far
+     dark side, and which has to stand off `surface-raised` as well — a booking
+     is drawn on a card, not only on a page. And it must not be `surface-chip`,
+     which is a step too far
      and already means "the chosen one" everywhere else. Two literals for the
      usual reason: lighter than the ground is *less* ink here and *more* ink
      there. */
@@ -200,11 +201,24 @@
      hairline, not its fill. */
   --ground: #000000;
   --surface: #000000;
-  /* Lifted off the page by ~5% rather than by a line. Low enough that the
-     unbroken-black look survives, high enough to read as a block. */
-  --surface-raised: #0e0e0e;
-  --surface-chip: #2a2a2a;
-  --surface-card: #1c1c1c;
+  /* **The ladder off pure black, and it is spaced by what is visible, not by
+     what is tidy.** These were #0e0e0e / #1c1c1c / #2a2a2a — even steps of 14,
+     which reads well in a table of hex values and fails on a screen: the first
+     step is the one that has to separate a card from a pure-black page, and 14
+     out of 255 is a number you can measure and cannot see. Cards on
+     `/dashboard` and `/assistant` sank into the ground.
+
+     iOS is the reference for the first step: black to `systemGray6` (#1c1c1e)
+     is 28, twice what this had. So `raised` moves to 23 — enough to read as a
+     block on every panel this ships on, still short of the point where the
+     unbroken-black look of the dark theme turns into a page of grey boxes.
+
+     The two above it move with it, or the gain is spent immediately: `card`
+     drawn *on* something has to clear `raised`, and `chip` — the chosen thing —
+     has to clear both. Steps of 23 / 14 / 14. */
+  --surface-raised: #171717;
+  --surface-card: #252525;
+  --surface-chip: #333333;
   --hatch: rgb(255 255 255 / 0.2);
   /* White at 4% over the pure-black ground — see the note on the light value. */
   --column-tint: #0a0a0a;
