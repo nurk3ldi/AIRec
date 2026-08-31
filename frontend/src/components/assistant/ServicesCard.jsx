@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AnimatePresence, domMax, LazyMotion, m, useReducedMotion } from 'motion/react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Add01Icon,
@@ -78,6 +79,7 @@ export default function ServicesCard({ services, onSaved }) {
   // Whether the whole list is showing. Local and forgotten on reload: it is
   // a look you took, not a preference.
   const [open, setOpen] = useState(false)
+  const reduce = useReducedMotion()
 
   useEffect(() => {
     setRows(rowsOf(services))
@@ -90,7 +92,11 @@ export default function ServicesCard({ services, onSaved }) {
 
   const remove = (id) => setRows((was) => was.filter((row) => row.id !== id))
 
-  const add = () =>
+  // **A row added behind a closed fold is a row nobody can fill in.** Not a
+  // motion fix: with five services the new row landed in the collapsed half of
+  // the list and could not be seen, let alone named.
+  const add = () => {
+    setOpen(true)
     setRows((was) => [
       ...was,
       {
@@ -100,6 +106,7 @@ export default function ServicesCard({ services, onSaved }) {
         price: '',
       },
     ])
+  }
 
   // Compared against the fetched list rather than tracked as a flag — a flag
   // has to be cleared in every path that saves or resets.
@@ -170,11 +177,32 @@ export default function ServicesCard({ services, onSaved }) {
    * the rows that always show and the ones behind the fold — and two copies of
    * a row are two rows that agree until one is edited.
    */
+  /**
+   * **A row opens and closes; it does not blink in and out.**
+   *
+   * The removal is the one that matters, and it is not polish: taking a row out
+   * on one frame slides the next row up under the finger that is still on the
+   * minus, so a second press lands on a service nobody meant to delete.
+   * Collapsing it over 180ms puts the movement where the eye can follow it, and
+   * `layout` on the siblings means they travel rather than jump.
+   *
+   * Height is measured by Motion rather than transitioned in CSS — which is the
+   * difference between this and everything else here that refuses to animate a
+   * height. `overflow-hidden` is what the collapse clips against.
+   */
   const renderRow = (row) => (
     // No `gap`: the remove control's own margin lives inside the part that
     // animates, so a collapsed control leaves nothing behind — a flex gap would
     // sit there as 8px of dead space whether or not anything was in it.
-    <li key={row.id} className="flex items-center py-2">
+    <m.li
+      key={row.id}
+      layout={!reduce}
+      initial={reduce ? false : { opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
+      transition={{ duration: reduce ? 0 : 0.18, ease: [0.32, 0.72, 0, 1] }}
+      className="flex items-center overflow-hidden py-2"
+    >
       {/* **The row opens to let the control in**, rather than the control
           appearing inside a row that jumps sideways to make space. Same `fr`
           trick as the fold, on the other axis: `1fr` in an auto-width track
@@ -228,7 +256,7 @@ export default function ServicesCard({ services, onSaved }) {
         suffix="₸"
         width="ml-2 w-[116px]"
       />
-    </li>
+    </m.li>
   )
 
   return (
@@ -305,6 +333,7 @@ export default function ServicesCard({ services, onSaved }) {
 
       {/* The list scrolls inside the card, so the heading and the save button
           stay where they are however long the price list grows. */}
+      <LazyMotion features={domMax}>
       <div className="-mx-4 mt-3 px-4">
         {rows.length === 0 ? (
           // **It says what an empty list costs**, not merely that it is empty:
@@ -316,7 +345,12 @@ export default function ServicesCard({ services, onSaved }) {
         ) : (
           <>
             <ul className="divide-y divide-line">
-              {rows.slice(0, VISIBLE_ROWS).map(renderRow)}
+              {/* `initial={false}` so arriving at the page does not play five
+                  rows in: `PageTransition` already fades the screen, and a
+                  second entrance underneath it reads as a stutter. */}
+              <AnimatePresence initial={false}>
+                {rows.slice(0, VISIBLE_ROWS).map(renderRow)}
+              </AnimatePresence>
             </ul>
 
             {/* **The rest of the list unfolds; it does not appear.** The card
@@ -341,13 +375,16 @@ export default function ServicesCard({ services, onSaved }) {
                     why the divider between the fourth row and the fifth is put
                     on that row rather than on this list. */}
                 <ul className="divide-y divide-line overflow-hidden [&>li:first-child]:border-t [&>li:first-child]:border-line">
-                  {rows.slice(VISIBLE_ROWS).map(renderRow)}
+                  <AnimatePresence initial={false}>
+                    {rows.slice(VISIBLE_ROWS).map(renderRow)}
+                  </AnimatePresence>
                 </ul>
               </div>
             )}
           </>
         )}
       </div>
+      </LazyMotion>
 
       {/* **The fold sits on the card's bottom edge**, centred and overlapping
           it, the way the reference does: the control belongs to the boundary it
