@@ -10,13 +10,9 @@ import { useSkeleton } from '../../lib/skeleton'
 /**
  * Что ассистент делает прямо сейчас.
  *
- * **Читает настоящие разговоры, а не выдуманные.** `GET /conversations` уже
- * работает; «сейчас» — это `last_message_at` внутри окна, `awaiting_reply` — из
- * того, кто написал последним, `assistant_enabled` — выключен ли он в этой
- * ветке рукой. Ничего из этого не придумано, и поэтому сегодня карточка чаще
- * всего пустая: WhatsApp ещё не подключён, входящих нет. Пустое состояние —
- * честный ответ, выдуманные цифры — нет; аналитику на выдуманных числах в этом
- * проекте уже снимали целиком.
+ * **Читает настоящие разговоры.** `GET /conversations` уже работает; «сейчас» —
+ * это `last_message_at` внутри окна, `awaiting_reply` — из того, кто написал
+ * последним, `assistant_enabled` — выключен ли он в этой ветке рукой.
  *
  * **Окно, а не хранимый флаг.** «Активен» нельзя записать в базу: что-то должно
  * его снимать, а снимать некому — ветка, помеченная активной в два часа дня,
@@ -33,11 +29,68 @@ const ACTIVE_MINUTES = 15
 
 const POLL_MS = 15000
 
+/**
+ * ВРЕМЕННО: рисовать ли под знаком строку состояния.
+ *
+ * Выключено, чтобы посмотреть на один знак посреди карточки. Всё остальное —
+ * запрос, окно «сейчас», выбор состояния и сама разметка — на месте; вернуть
+ * значит поставить `true`.
+ */
+const SHOW_STATUS = false
+
+/* --------------------------------------------------------------------------
+ * ВРЕМЕННО — УДАЛИТЬ ВМЕСТЕ С ЭТИМ БЛОКОМ.
+ *
+ * WhatsApp не подключён, входящих сообщений нет, и карточка на настоящих
+ * данных пуста — смотреть и спорить не на что. Это три выдуманные ветки, чтобы
+ * посмотреть на раскладку. Тот же приём и та же пометка, что у `DEMO_CHATS` в
+ * `ChatFeed`.
+ *
+ * Поставить `null` — и карточка снова читает сервер и рисует честное пустое
+ * состояние, которое увидит новый аккаунт.
+ * ----------------------------------------------------------------------- */
+const minutesAgo = (minutes) =>
+  new Date(Date.now() - minutes * 60000).toISOString()
+
+const DEMO_CHATS = [
+  {
+    id: 'demo-1',
+    client_name: 'Айгерим',
+    client_phone: '+7 701 555 33 22',
+    assistant_enabled: true,
+    awaiting_reply: true,
+    last_message_at: minutesAgo(1),
+    last_message_preview: 'А на четверг в 15:00 есть окно? И сколько будет стоить окрашивание?',
+  },
+  {
+    id: 'demo-2',
+    client_name: 'Данияр',
+    client_phone: '+7 705 214 87 09',
+    assistant_enabled: true,
+    awaiting_reply: false,
+    last_message_at: minutesAgo(4),
+    last_message_preview: 'Записал вас на пятницу, 11:30. Стрижка, 4 000 ₸.',
+  },
+  {
+    id: 'demo-3',
+    client_name: null,
+    client_phone: '+7 747 908 11 40',
+    assistant_enabled: false,
+    awaiting_reply: true,
+    last_message_at: minutesAgo(9),
+    last_message_preview: 'Можно перенести на другой день?',
+  },
+]
+/* ------------------------------------------------------------ конец блока */
+
 const minutesSince = (iso) => (Date.now() - new Date(iso).getTime()) / 60000
 
 export default function AssistantNow({ className = '' }) {
   const t = useT()
-  const [chats, setChats] = useState(null)
+  const [fetched, setFetched] = useState(null)
+  // Пока стоит демо-блок выше, он и есть источник; убрать его — и остаётся
+  // ответ сервера, одной строкой и без правок ниже.
+  const chats = DEMO_CHATS ?? fetched
   const bars = useSkeleton(chats === null)
 
   useEffect(() => {
@@ -45,11 +98,11 @@ export default function AssistantNow({ className = '' }) {
 
     const read = () => {
       authed((token) => listConversations(token, { archived: false }))
-        .then((rows) => alive && setChats(rows))
+        .then((rows) => alive && setFetched(rows))
         // Проглатываем, как и все чтения на экранах: полоса ошибки над пустой
         // карточкой говорит меньше, чем сама пустая карточка, и починка в обоих
         // случаях одна — посмотреть ещё раз.
-        .catch(() => alive && setChats([]))
+        .catch(() => alive && setFetched([]))
     }
 
     read()
@@ -60,8 +113,8 @@ export default function AssistantNow({ className = '' }) {
     }
   }, [])
 
-  // Идущие разговоры, самый свежий первым. Отменённые окном отсекаются сами:
-  // у ветки, где час никто не писал, `minutesSince` больше порога.
+  // Идущие разговоры, самый свежий первым. Остывшие ветки отсекаются сами: у
+  // той, где час никто не писал, `minutesSince` больше порога.
   const live = (chats ?? [])
     .filter((row) => row.last_message_at)
     .filter((row) => minutesSince(row.last_message_at) <= ACTIVE_MINUTES)
@@ -89,74 +142,80 @@ export default function AssistantNow({ className = '' }) {
     <section
       className={`flex flex-col rounded-2xl bg-surface-raised p-6 ${className}`}
     >
-      <div className="flex shrink-0 items-center gap-3">
-        {/* Тот же значок, что у «Ассистента» в навигации: одна вещь называется
-            одним знаком, иначе на двух экранах это два разных предмета. */}
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface-chip text-ink">
-          <HugeiconsIcon icon={AiScanIcon} size={22} strokeWidth={1.8} />
-        </span>
-        <h2 className="min-w-0 truncate font-display text-[15px] font-semibold text-ink">
-          {t('nav.assistant')}
-        </h2>
+      {/* **Знак без подложки и без круга.** Тот же `AiScanIcon`, что у
+          «Ассистента» в навигации — одна вещь называется одним знаком, иначе на
+          двух экранах это два разных предмета, — но здесь он не значок в
+          строке, а то, чья это карточка.
+
+          `h-full w-auto` вместо `size` в пикселях: размер берётся от карточки,
+          а карточка — от экрана, так что число в пикселях было бы верным ровно
+          для одного окна. `max-h`/`max-w` в паре — знак квадратный и упирается
+          в ту сторону карточки, которая короче, какой бы ни была пропорция
+          окна. Тонкая обводка: знак вырос в разы, а `strokeWidth` вместе с ним
+          не масштабируется. */}
+      <div className="grid min-h-0 flex-1 place-items-center">
+        <HugeiconsIcon
+          icon={AiScanIcon}
+          strokeWidth={0.9}
+          className="h-full max-h-[70%] w-auto max-w-[70%] text-ink"
+        />
       </div>
 
-      {chats === null ? (
-        <SkeletonRegion
-          label={t('nav.assistant')}
-          visible={bars}
-          className="mt-6 flex flex-col gap-3"
-        >
-          <Skeleton className="h-6 w-[70%]" />
-          <Skeleton className="h-4 w-[45%]" />
-          <Skeleton className="h-3.5 w-full" />
-        </SkeletonRegion>
-      ) : (
-        // Прижато к низу: строка состояния — вывод карточки, а вывод читается
-        // с той стороны, где взгляд останавливается, а не сразу под заголовком,
-        // где над ним висит пустое место переменной высоты.
-        <div className="mt-6 flex min-h-0 flex-1 flex-col justify-end gap-1.5">
-          {/* Точка горит, только когда что-то действительно идёт, и цвет у неё
-              `--now` — тот же, которым размечено «настоящее время» на сетке
-              записей. */}
-          <div className="flex items-center gap-2">
+      {SHOW_STATUS &&
+        (chats === null ? (
+          <SkeletonRegion
+            label={t('nav.assistant')}
+            visible={bars}
+            className="mt-6 flex shrink-0 flex-col gap-3"
+          >
+            <Skeleton className="h-6 w-[70%]" />
+            <Skeleton className="h-4 w-[45%]" />
+            <Skeleton className="h-3.5 w-full" />
+          </SkeletonRegion>
+        ) : (
+          <div className="mt-6 flex shrink-0 flex-col gap-1.5">
+            {/* Точка горит, только когда что-то действительно идёт, и цвет у
+                неё `--now` — тот же, которым размечено «настоящее время» на
+                сетке записей. */}
+            <div className="flex items-center gap-2">
+              {current && (
+                <span
+                  aria-hidden="true"
+                  className="h-2 w-2 shrink-0 rounded-full bg-now"
+                />
+              )}
+              <p className="min-w-0 font-display text-[20px] leading-tight font-semibold text-ink">
+                {t(`home.assistant.${state}`)}
+              </p>
+            </div>
+
             {current && (
-              <span
-                aria-hidden="true"
-                className="h-2 w-2 shrink-0 rounded-full bg-now"
-              />
+              <p className="min-w-0 truncate text-[15px] text-ink">
+                {current.client_name || current.client_phone}
+              </p>
             )}
-            <p className="min-w-0 font-display text-[20px] leading-tight font-semibold text-ink">
-              {t(`home.assistant.${state}`)}
-            </p>
+
+            {/* Последняя реплика — то, чем он занят, сказанное словами. Без неё
+                карточка сообщает состояние и не сообщает содержание. */}
+            {current?.last_message_preview && (
+              <p className="line-clamp-2 text-[13px] leading-relaxed text-muted">
+                {current.last_message_preview}
+              </p>
+            )}
+
+            {live.length > 1 && (
+              <p className="mt-1 text-[13px] text-muted">
+                {t('home.assistant.more', { count: live.length - 1 })}
+              </p>
+            )}
+
+            {!current && (
+              <p className="text-[13px] leading-relaxed text-muted">
+                {t('home.assistant.idleHint')}
+              </p>
+            )}
           </div>
-
-          {current && (
-            <p className="min-w-0 truncate text-[15px] text-ink">
-              {current.client_name || current.client_phone}
-            </p>
-          )}
-
-          {/* Последняя реплика — то, чем он занят, сказанное словами. Без неё
-              карточка сообщает состояние и не сообщает содержание. */}
-          {current?.last_message_preview && (
-            <p className="line-clamp-2 text-[13px] leading-relaxed text-muted">
-              {current.last_message_preview}
-            </p>
-          )}
-
-          {live.length > 1 && (
-            <p className="mt-1 text-[13px] text-muted">
-              {t('home.assistant.more', { count: live.length - 1 })}
-            </p>
-          )}
-
-          {!current && (
-            <p className="text-[13px] leading-relaxed text-muted">
-              {t('home.assistant.idleHint')}
-            </p>
-          )}
-        </div>
-      )}
+        ))}
     </section>
   )
 }
