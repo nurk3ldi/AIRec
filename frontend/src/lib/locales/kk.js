@@ -155,6 +155,7 @@ export default {
   'assistant.workingTime': 'Жұмыс уақыты',
   'assistant.breakAdd': '+ үзіліс',
   'assistant.breakRemove': 'Үзілісті алу',
+  'assistant.cancel': 'Болдырмау',
   'assistant.save': 'Сақтау',
   'assistant.saving': 'Сақталуда…',
   'form.save': 'Сақтау',

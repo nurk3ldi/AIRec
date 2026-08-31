@@ -154,6 +154,7 @@ export default {
   'assistant.workingTime': 'Working hours',
   'assistant.breakAdd': '+ break',
   'assistant.breakRemove': 'Remove break',
+  'assistant.cancel': 'Cancel',
   'assistant.save': 'Save',
   'assistant.saving': 'Saving…',
   'form.save': 'Save',

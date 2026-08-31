@@ -120,6 +120,15 @@ export default function BusinessCard({ business, onSaved, className = '' }) {
     setEditing(false)
   }
 
+  // **Back to the row, not to nothing.** The form is a copy of the business
+  // record, so abandoning an edit is reading that record again — there is no
+  // separate "original" to keep, which is the same reason `isDirty` is a
+  // comparison rather than a flag.
+  const cancel = () => {
+    setForm(formOf(business))
+    setEditing(false)
+  }
+
   return (
     // **Sized by its contents.** It carried `h-full`, which resolves to `auto`
     // under a parent that has only a `min-height` — so the card grew to its
@@ -133,9 +142,20 @@ export default function BusinessCard({ business, onSaved, className = '' }) {
       className={`flex flex-col rounded-2xl bg-surface-raised p-4 ${className}`}
     >
       <div className="flex shrink-0 items-center justify-between gap-3">
-        <h2 className="font-display text-[15px] font-semibold text-ink">
+        <h2 className="min-w-0 truncate font-display text-[15px] font-semibold text-ink">
           {t('assistant.business')}
         </h2>
+        <div className="flex shrink-0 items-center gap-1">
+        {editing && (
+          <button
+            type="button"
+            onClick={cancel}
+            disabled={saving}
+            className="h-10 shrink-0 rounded-full px-2.5 text-[13px] font-medium text-muted outline-none transition-[opacity,color,scale] duration-150 ease-out hover:text-ink focus-visible:text-ink active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 sm:h-8"
+          >
+            {t('assistant.cancel')}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => (editing ? done() : setEditing(true))}
@@ -150,6 +170,7 @@ export default function BusinessCard({ business, onSaved, className = '' }) {
                 : 'assistant.edit',
           )}
         </button>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-2.5">

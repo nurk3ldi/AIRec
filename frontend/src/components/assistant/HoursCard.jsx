@@ -155,6 +155,13 @@ export default function HoursCard({ week, onSaved }) {
     setEditing(false)
   }
 
+  // Straight back to the week the server holds — which also clears whatever
+  // made `problem` true, so a day edited into nonsense is never a trap.
+  const cancel = () => {
+    setDays(weekOf(week))
+    setEditing(false)
+  }
+
   if (!day) return null
 
   return (
@@ -176,9 +183,20 @@ export default function HoursCard({ week, onSaved }) {
       className="flex min-h-[240px] flex-1 flex-col rounded-2xl bg-surface-raised p-4"
     >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-display text-[15px] font-semibold text-ink">
+        <h2 className="min-w-0 truncate font-display text-[15px] font-semibold text-ink">
           {t('assistant.hours')}
         </h2>
+        <div className="flex shrink-0 items-center gap-1">
+        {editing && (
+          <button
+            type="button"
+            onClick={cancel}
+            disabled={saving}
+            className="h-10 shrink-0 rounded-full px-2.5 text-[13px] font-medium text-muted outline-none transition-[opacity,color,scale] duration-150 ease-out hover:text-ink focus-visible:text-ink active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 sm:h-8"
+          >
+            {t('assistant.cancel')}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => (editing ? done() : setEditing(true))}
@@ -193,6 +211,7 @@ export default function HoursCard({ week, onSaved }) {
                 : 'assistant.edit',
           )}
         </button>
+        </div>
       </div>
 
       {/* The week itself. Seven equal cells, so the row is the same shape

@@ -103,8 +103,16 @@ export default function ServicesCard({ services, onSaved }) {
   // has to be cleared in every path that saves or resets.
   const isDirty = JSON.stringify(rows) !== JSON.stringify(rowsOf(services))
 
-  const save = async (event) => {
-    event.preventDefault()
+  /**
+   * **«Готово» is the save, and «Отмена» is the way out** — the same two words
+   * the three cards beside this one answer to. It had a third shape of its own:
+   * «Редактировать» revealed the minus while the fields stayed live, and a
+   * «Сохранить» appeared at the foot the moment anything was typed. Two ways of
+   * committing on one page is one of them somebody has to be told about, and
+   * a card whose fields are always live has no state for «Отмена» to go back
+   * to.
+   */
+  const commit = async () => {
     if (!isDirty || saving) return
 
     setSaving(true)
@@ -136,6 +144,18 @@ export default function ServicesCard({ services, onSaved }) {
     } finally {
       setSaving(false)
     }
+  }
+
+  const done = async () => {
+    await commit()
+    setEditing(false)
+  }
+
+  // Back to the list the server holds — which is also what drops a row that was
+  // added and never named.
+  const cancel = () => {
+    setRows(rowsOf(services))
+    setEditing(false)
   }
 
   /**
@@ -183,9 +203,15 @@ export default function ServicesCard({ services, onSaved }) {
       <input
         value={row.name}
         onChange={(event) => edit(row.id, { name: event.target.value })}
+        readOnly={!editing}
+        tabIndex={editing ? undefined : -1}
         placeholder={t('assistant.serviceName')}
         aria-label={t('assistant.serviceName')}
-        className="h-10 min-w-0 flex-1 appearance-none rounded-lg bg-transparent px-2 text-[16px] sm:h-9 text-ink outline-none transition-shadow duration-150 placeholder:text-muted hover:shadow-[0_0_0_1px_var(--color-field)] focus:shadow-[0_0_0_1px_var(--color-field-focus)] sm:text-[14px]"
+        className={`h-10 min-w-0 flex-1 appearance-none rounded-lg bg-transparent px-2 text-[16px] text-ink outline-none transition-shadow duration-150 placeholder:text-muted sm:h-9 sm:text-[14px] ${
+          editing
+            ? 'hover:shadow-[0_0_0_1px_var(--color-field)] focus:shadow-[0_0_0_1px_var(--color-field-focus)]'
+            : 'cursor-default'
+        }`}
       />
 
       {/* Suffixed rather than labelled: «₸» beside the number is the unit, and
@@ -193,6 +219,7 @@ export default function ServicesCard({ services, onSaved }) {
       <Suffixed
         value={row.price}
         onChange={(value) => edit(row.id, { price: digits(value) })}
+        readOnly={!editing}
         suffix="₸"
         width="ml-2 w-[116px]"
       />
@@ -201,7 +228,10 @@ export default function ServicesCard({ services, onSaved }) {
 
   return (
     <form
-      onSubmit={save}
+      onSubmit={(event) => {
+        event.preventDefault()
+        done()
+      }}
       // **Sized by its contents, not by the slot.** The card grows as the list
       // is unfolded and the page scrolls, which is what lets the card under it
       // move down rather than be squeezed.
@@ -216,20 +246,37 @@ export default function ServicesCard({ services, onSaved }) {
       className="flex min-h-[240px] flex-col rounded-2xl bg-surface-raised p-4"
     >
       <div className="flex shrink-0 items-center justify-between gap-3">
-        <h2 className="font-display text-[15px] font-semibold text-ink">
+        <h2 className="min-w-0 truncate font-display text-[15px] font-semibold text-ink">
           {t('assistant.services')}
         </h2>
         <div className="flex shrink-0 items-center gap-1">
           {/* Plain text rather than a filled pill: «Добавить» is the action
               this card is for, and a second filled shape beside it would make
               two of them look equally like the thing to press. */}
+          {editing && (
+            <button
+              type="button"
+              onClick={cancel}
+              disabled={saving}
+              className="h-10 shrink-0 rounded-full px-2.5 text-[13px] font-medium text-muted outline-none transition-[opacity,color,scale] duration-150 ease-out hover:text-ink focus-visible:text-ink active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 sm:h-8"
+            >
+              {t('assistant.cancel')}
+            </button>
+          )}
           {rows.length > 0 && (
             <button
               type="button"
-              onClick={() => setEditing((was) => !was)}
-              className={`h-10 rounded-full px-2.5 text-[13px] text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97] sm:h-8 ${editing ? 'font-semibold' : 'font-medium'}`}
+              onClick={() => (editing ? done() : setEditing(true))}
+              disabled={saving}
+              className={`h-10 rounded-full px-2.5 text-[13px] text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 sm:h-8 ${editing ? 'font-semibold' : 'font-medium'}`}
             >
-              {t(editing ? 'assistant.editDone' : 'assistant.edit')}
+              {t(
+                saving
+                  ? 'assistant.saving'
+                  : editing
+                    ? 'assistant.editDone'
+                    : 'assistant.edit',
+              )}
             </button>
           )}
           {/* The glyph alone: the word beside a plus said the same thing
@@ -237,7 +284,10 @@ export default function ServicesCard({ services, onSaved }) {
               name for a screen reader. */}
           <button
             type="button"
-            onClick={add}
+            onClick={() => {
+              setEditing(true)
+              add()
+            }}
             aria-label={t('assistant.serviceAdd')}
             className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-chip text-ink outline-none transition-[opacity,scale] sm:h-8 sm:w-8 duration-150 ease-out hover:opacity-85 focus-visible:opacity-85 active:scale-[0.95]"
           >
@@ -312,15 +362,6 @@ export default function ServicesCard({ services, onSaved }) {
         </button>
       )}
 
-      {isDirty && (
-        <button
-          type="submit"
-          disabled={saving}
-          className="mt-6 h-10 shrink-0 self-end rounded-full bg-accent px-5 text-[14px] font-medium text-surface outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-85 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {t(saving ? 'assistant.saving' : 'assistant.save')}
-        </button>
-      )}
     </form>
   )
 }
@@ -331,15 +372,21 @@ export default function ServicesCard({ services, onSaved }) {
  * The unit is `pointer-events-none` so a click anywhere on the box lands in the
  * input — a suffix that eats clicks is a field with a dead corner.
  */
-function Suffixed({ value, onChange, onBlur, suffix, width }) {
+function Suffixed({ value, onChange, onBlur, suffix, width, readOnly }) {
   return (
     <div className={`relative shrink-0 ${width}`}>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}
+        readOnly={readOnly}
+        tabIndex={readOnly ? -1 : undefined}
         inputMode="numeric"
-        className="h-10 w-full appearance-none rounded-lg bg-transparent pr-8 pl-1 text-right text-[16px] sm:h-9 text-ink outline-none transition-shadow duration-150 hover:shadow-[0_0_0_1px_var(--color-field)] focus:shadow-[0_0_0_1px_var(--color-field-focus)] sm:text-[14px]"
+        className={`h-10 w-full appearance-none rounded-lg bg-transparent pr-8 pl-1 text-right text-[16px] text-ink outline-none transition-shadow duration-150 sm:h-9 sm:text-[14px] ${
+          readOnly
+            ? 'cursor-default'
+            : 'hover:shadow-[0_0_0_1px_var(--color-field)] focus:shadow-[0_0_0_1px_var(--color-field-focus)]'
+        }`}
       />
       {/* **The same size as the number it belongs to.** At 13px against a 14px
           value the ₸ read as a different, thinner glyph rather than as the

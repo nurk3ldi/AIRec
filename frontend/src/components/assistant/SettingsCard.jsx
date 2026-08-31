@@ -91,6 +91,11 @@ export default function SettingsCard({ business, onSaved, className = '' }) {
     setEditing(false)
   }
 
+  const cancel = () => {
+    setForm(formOf(business))
+    setEditing(false)
+  }
+
   return (
     <form
       onSubmit={(event) => {
@@ -100,9 +105,20 @@ export default function SettingsCard({ business, onSaved, className = '' }) {
       className={`flex flex-col rounded-2xl bg-surface-raised p-4 ${className}`}
     >
       <div className="flex shrink-0 items-center justify-between gap-3">
-        <h2 className="font-display text-[15px] font-semibold text-ink">
+        <h2 className="min-w-0 truncate font-display text-[15px] font-semibold text-ink">
           {t('assistant.settings')}
         </h2>
+        <div className="flex shrink-0 items-center gap-1">
+        {editing && (
+          <button
+            type="button"
+            onClick={cancel}
+            disabled={saving}
+            className="h-10 shrink-0 rounded-full px-2.5 text-[13px] font-medium text-muted outline-none transition-[opacity,color,scale] duration-150 ease-out hover:text-ink focus-visible:text-ink active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 sm:h-8"
+          >
+            {t('assistant.cancel')}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => (editing ? done() : setEditing(true))}
@@ -117,6 +133,7 @@ export default function SettingsCard({ business, onSaved, className = '' }) {
                 : 'assistant.edit',
           )}
         </button>
+        </div>
       </div>
 
       <div className="mt-4 flex flex-col gap-3">

@@ -163,6 +163,7 @@ export default {
   'assistant.workingTime': 'Рабочее время',
   'assistant.breakAdd': '+ перерыв',
   'assistant.breakRemove': 'Убрать перерыв',
+  'assistant.cancel': 'Отмена',
   'assistant.save': 'Сохранить',
   'assistant.saving': 'Сохраняем…',
   'form.save': 'Сохранить',
