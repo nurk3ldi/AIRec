@@ -138,6 +138,67 @@ export default function ServicesCard({ services, onSaved }) {
     }
   }
 
+  /**
+   * One row of the price list.
+   *
+   * A function rather than an inline map, because the list is drawn twice now —
+   * the rows that always show and the ones behind the fold — and two copies of
+   * a row are two rows that agree until one is edited.
+   */
+  const renderRow = (row) => (
+    // No `gap`: the remove control's own margin lives inside the part that
+    // animates, so a collapsed control leaves nothing behind — a flex gap would
+    // sit there as 8px of dead space whether or not anything was in it.
+    <li key={row.id} className="flex items-center py-2">
+      {/* **The row opens to let the control in**, rather than the control
+          appearing inside a row that jumps sideways to make space. Same `fr`
+          trick as the fold, on the other axis: `1fr` in an auto-width track
+          resolves to the button's own max-content width, so nothing here is a
+          measured pixel value that could drift from the button's size. */}
+      <div
+        className={`grid shrink-0 transition-[grid-template-columns] duration-200 ease-out motion-reduce:transition-none ${
+          editing ? 'grid-cols-[1fr]' : 'grid-cols-[0fr]'
+        }`}
+      >
+        <div className="overflow-hidden">
+          {/* On the left, where iOS puts it and where it cannot be confused
+              with the field it would delete. */}
+          <button
+            type="button"
+            onClick={() => remove(row.id)}
+            disabled={!editing}
+            tabIndex={editing ? undefined : -1}
+            aria-label={t('assistant.serviceRemove')}
+            className="mr-2 grid h-7 w-7 place-items-center rounded-full text-danger outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-danger/10 focus-visible:bg-danger/10 active:scale-[0.95]"
+          >
+            <HugeiconsIcon
+              icon={MinusSignCircleIcon}
+              size={18}
+              strokeWidth={2}
+            />
+          </button>
+        </div>
+      </div>
+
+      <input
+        value={row.name}
+        onChange={(event) => edit(row.id, { name: event.target.value })}
+        placeholder={t('assistant.serviceName')}
+        aria-label={t('assistant.serviceName')}
+        className="h-9 min-w-0 flex-1 appearance-none rounded-lg bg-transparent px-2 text-[16px] text-ink outline-none transition-shadow duration-150 placeholder:text-muted hover:shadow-[0_0_0_1px_var(--color-field)] focus:shadow-[0_0_0_1px_var(--color-field-focus)] sm:text-[14px]"
+      />
+
+      {/* Suffixed rather than labelled: «₸» beside the number is the unit, and
+          a column header for one field is a heading with nothing to head. */}
+      <Suffixed
+        value={row.price}
+        onChange={(value) => edit(row.id, { price: digits(value) })}
+        suffix="₸"
+        width="ml-2 w-[116px]"
+      />
+    </li>
+  )
+
   return (
     <form
       onSubmit={save}
@@ -166,7 +227,7 @@ export default function ServicesCard({ services, onSaved }) {
             <button
               type="button"
               onClick={() => setEditing((was) => !was)}
-              className="h-8 rounded-full px-2.5 text-[13px] font-medium text-ink outline-none transition-opacity hover:opacity-70 focus-visible:opacity-70"
+              className="h-8 rounded-full px-2.5 text-[13px] font-medium text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
             >
               {t(editing ? 'assistant.editDone' : 'assistant.edit')}
             </button>
@@ -178,7 +239,7 @@ export default function ServicesCard({ services, onSaved }) {
             type="button"
             onClick={add}
             aria-label={t('assistant.serviceAdd')}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-chip text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-chip text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-85 focus-visible:opacity-85 active:scale-[0.95]"
           >
             <HugeiconsIcon icon={Add01Icon} size={16} strokeWidth={2.2} />
           </button>
@@ -196,45 +257,38 @@ export default function ServicesCard({ services, onSaved }) {
             {t('assistant.servicesEmpty')}
           </p>
         ) : (
-          <ul className="divide-y divide-line">
-            {(open ? rows : rows.slice(0, VISIBLE_ROWS)).map((row) => (
-              <li key={row.id} className="flex items-center gap-2 py-2">
-                {/* On the left, where iOS puts it and where it cannot be
-                    confused with the field it would delete. */}
-                {editing && (
-                  <button
-                    type="button"
-                    onClick={() => remove(row.id)}
-                    aria-label={t('assistant.serviceRemove')}
-                    className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-danger outline-none transition-colors hover:bg-danger/10 focus-visible:bg-danger/10"
-                  >
-                    <HugeiconsIcon
-                      icon={MinusSignCircleIcon}
-                      size={18}
-                      strokeWidth={2}
-                    />
-                  </button>
-                )}
-                <input
-                  value={row.name}
-                  onChange={(event) => edit(row.id, { name: event.target.value })}
-                  placeholder={t('assistant.serviceName')}
-                  aria-label={t('assistant.serviceName')}
-                  className="h-9 min-w-0 flex-1 appearance-none rounded-lg bg-transparent px-2 text-[16px] text-ink outline-none transition-shadow duration-150 placeholder:text-muted hover:shadow-[0_0_0_1px_var(--color-field)] focus:shadow-[0_0_0_1px_var(--color-field-focus)] sm:text-[14px]"
-                />
+          <>
+            <ul className="divide-y divide-line">
+              {rows.slice(0, VISIBLE_ROWS).map(renderRow)}
+            </ul>
 
-                {/* Suffixed rather than labelled: «₸» beside the number is the
-                    unit, and a column header for one field is a heading with
-                    nothing to head. */}
-                <Suffixed
-                  value={row.price}
-                  onChange={(value) => edit(row.id, { price: digits(value) })}
-                  suffix="₸"
-                  width="w-[116px]"
-                />
-              </li>
-            ))}
-          </ul>
+            {/* **The rest of the list unfolds; it does not appear.** The card
+                growing by four rows in one frame is the page jumping, and the
+                reader then has to find their place again — where a boundary
+                that opens says what happened and where the new rows came from.
+
+                `grid-template-rows: 0fr → 1fr` is this project's one exception
+                to animating only transform and opacity, and it earns it the
+                same way it does in `WeekStrip`: the height of an unknown number
+                of rows is not a number the component can know, and the `fr`
+                trick is the only way to animate to *content* without measuring
+                it. The sheet curve, because this is a surface opening. */}
+            {rows.length > VISIBLE_ROWS && (
+              <div
+                className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none ${
+                  open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+                }`}
+              >
+                {/* `overflow-hidden` is what the collapsed row clips against —
+                    and it clips the first row's own top rule with it, which is
+                    why the divider between the fourth row and the fifth is put
+                    on that row rather than on this list. */}
+                <ul className="divide-y divide-line overflow-hidden [&>li:first-child]:border-t [&>li:first-child]:border-line">
+                  {rows.slice(VISIBLE_ROWS).map(renderRow)}
+                </ul>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -247,7 +301,7 @@ export default function ServicesCard({ services, onSaved }) {
           onClick={() => setOpen((was) => !was)}
           aria-expanded={open}
           aria-label={t('assistant.services')}
-          className="-mb-6 grid h-7 w-7 shrink-0 place-items-center self-center rounded-full bg-surface-chip text-ink outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85"
+          className="-mb-6 grid h-7 w-7 shrink-0 place-items-center self-center rounded-full bg-surface-chip text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-85 focus-visible:opacity-85 active:scale-[0.95]"
         >
           <HugeiconsIcon
             icon={ArrowDown01Icon}
@@ -262,7 +316,7 @@ export default function ServicesCard({ services, onSaved }) {
         <button
           type="submit"
           disabled={saving}
-          className="mt-6 h-10 shrink-0 self-end rounded-full bg-accent px-5 text-[14px] font-medium text-surface outline-none transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
+          className="mt-6 h-10 shrink-0 self-end rounded-full bg-accent px-5 text-[14px] font-medium text-surface outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-85 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
         >
           {t(saving ? 'assistant.saving' : 'assistant.save')}
         </button>

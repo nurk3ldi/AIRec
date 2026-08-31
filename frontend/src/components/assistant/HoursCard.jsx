@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
+import { domMax, LazyMotion, m, useReducedMotion } from 'motion/react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { MinusSignCircleIcon } from '@hugeicons/core-free-icons'
 import { saveWorkingHours } from '../../lib/api'
@@ -85,6 +86,12 @@ export default function HoursCard({ week, onSaved }) {
   // list makes with its remove button. Local and forgotten on reload: it is a
   // mode you are in for a moment, not a preference.
   const [editing, setEditing] = useState(false)
+  const reduce = useReducedMotion()
+  // **One id per marker, from `useId`.** Two selections travel on this card and
+  // a shared name would fly the pill from the week strip into the segmented
+  // control the moment both were on screen — which is always.
+  const weekMarker = useId()
+  const stateMarker = useId()
   const labels = weekdayLabels()
 
   useEffect(() => {
@@ -176,7 +183,7 @@ export default function HoursCard({ week, onSaved }) {
           type="button"
           onClick={() => (editing ? done() : setEditing(true))}
           disabled={saving || (editing && Boolean(problem))}
-          className="h-8 shrink-0 rounded-full px-2.5 text-[13px] font-medium text-ink outline-none transition-opacity hover:opacity-70 focus-visible:opacity-70 disabled:cursor-not-allowed disabled:opacity-40"
+          className="h-8 shrink-0 rounded-full px-2.5 text-[13px] font-medium text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
         >
           {t(
             saving
@@ -191,96 +198,142 @@ export default function HoursCard({ week, onSaved }) {
       {/* The week itself. Seven equal cells, so the row is the same shape
           whatever the labels are in — `flex-1` rather than a fixed width, which
           would only be right for one language. */}
-      <div className="mt-3 flex gap-1">
-        {days.map((item) => {
-          const closed = isClosed(item)
-          const isPicked = item.weekday === picked
+      {/* **`domMax`, not the `domAnimation` the rest of the app runs on.**
+          Layout projection — the thing that carries a fill from one cell to
+          another — is the one feature the smaller bundle leaves out. It costs
+          nothing extra: the sidebar's active marker already pulls it in on
+          every dashboard page. Nested inside the shell's own `LazyMotion`,
+          which is allowed; the inner features win for this subtree. */}
+      <LazyMotion features={domMax}>
+        <div className="mt-3 flex gap-1">
+          {days.map((item) => {
+            const closed = isClosed(item)
+            const isPicked = item.weekday === picked
 
-          return (
-            <button
-              key={item.weekday}
-              type="button"
-              onClick={() => setPicked(item.weekday)}
-              aria-pressed={isPicked}
-              className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg py-1.5 outline-none transition-colors ${
-                isPicked ? 'bg-surface-chip' : 'hover:bg-ink/6'
-              }`}
-            >
-              <span
-                className={`text-[11px] font-medium ${
-                  isPicked ? 'text-ink' : 'text-muted'
+            return (
+              <button
+                key={item.weekday}
+                type="button"
+                onClick={() => setPicked(item.weekday)}
+                aria-pressed={isPicked}
+                className={`relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg py-1.5 outline-none transition-[background-color,scale] duration-150 ease-out active:scale-[0.96] ${
+                  isPicked ? '' : 'hover:bg-ink/6'
                 }`}
               >
-                {labels[item.weekday]}
-              </span>
-              {/* **A mark, not the hours.** Two times will not fit in a
-                  forty-five-pixel cell at a size anybody can read, and they are
-                  not the question this row answers — it says which days are
-                  worked, and the editor underneath says when. */}
-              <span
-                aria-hidden="true"
-                className={`h-1.5 w-1.5 rounded-full ${
-                  closed
-                    ? 'bg-transparent ring-1 ring-line-strong'
-                    : item.is24h
-                      ? 'bg-now'
-                      : 'bg-ink'
+                {/* **The chosen day is one fill that moves**, not seven that take
+                    turns being coloured — `layoutId` is what makes Motion read
+                    the cell you left and the one you picked as the same object.
+                    A spring rather than a duration: Monday to Sunday and Monday
+                    to Tuesday are the same gesture at very different distances,
+                    and one fixed time cannot be right for both. */}
+                {isPicked && (
+                  <m.span
+                    layoutId={weekMarker}
+                    aria-hidden="true"
+                    className="absolute inset-0 rounded-lg bg-surface-chip"
+                    transition={
+                      reduce
+                        ? { duration: 0 }
+                        : { type: 'spring', stiffness: 520, damping: 42 }
+                    }
+                  />
+                )}
+                {/* Above the fill: an absolutely positioned sibling paints over
+                    static content whatever the DOM order says. */}
+                <span
+                  className={`relative z-10 text-[11px] font-medium ${
+                    isPicked ? 'text-ink' : 'text-muted'
+                  }`}
+                >
+                  {labels[item.weekday]}
+                </span>
+                {/* **A mark, not the hours.** Two times will not fit in a
+                    forty-five-pixel cell at a size anybody can read, and they are
+                    not the question this row answers — it says which days are
+                    worked, and the editor underneath says when. */}
+                <span
+                  aria-hidden="true"
+                  className={`relative z-10 h-1.5 w-1.5 rounded-full ${
+                    closed
+                      ? 'bg-transparent ring-1 ring-line-strong'
+                      : item.is24h
+                        ? 'bg-now'
+                        : 'bg-ink'
+                  }`}
+                />
+              </button>
+            )
+          })}
+        </div>
+
+        {/* The day that was pressed. One set of controls rather than seven.
+            Always visible — it is how the day *reads* as well as how it is set —
+            and only pressable while the card is being edited. */}
+        <div
+          role="group"
+          aria-label={t('assistant.hours')}
+          className="mt-4 flex items-center gap-0.5 rounded-full bg-ink/6 p-0.5"
+        >
+          {STATES.map((item) => {
+            const isOn = item.id === stateOf(day)
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() =>
+                  edit(
+                    item.id === 'allDay'
+                      ? { is24h: true, ...blank }
+                      : item.id === 'closed'
+                        ? { is24h: false, ...blank }
+                        : // Coming back to working: keep whatever hours the day
+                          // had, and fall back to a plausible pair only when it
+                          // has none — a day being reopened has usually just been
+                          // closed by mistake.
+                          {
+                            is24h: false,
+                            from: day.from || '10:00',
+                            to: day.to || '20:00',
+                          },
+                  )
+                }
+                aria-pressed={isOn}
+                disabled={!editing}
+                className={`relative grid h-7 min-w-0 flex-1 place-items-center truncate rounded-full px-2 text-[12px] font-medium outline-none transition-[color,scale] duration-150 ease-out ${
+                  editing ? 'active:scale-[0.96]' : ''
+                } ${
+                  isOn
+                    ? 'text-ink'
+                    : `text-muted ${
+                        editing
+                          ? 'hover:text-ink focus-visible:text-ink'
+                          : 'cursor-default'
+                      }`
                 }`}
-              />
-            </button>
-          )
-        })}
-      </div>
-
-      {/* The day that was pressed. One set of controls rather than seven.
-          Always visible — it is how the day *reads* as well as how it is set —
-          and only pressable while the card is being edited. */}
-      <div
-        role="group"
-        aria-label={t('assistant.hours')}
-        className="mt-4 flex items-center gap-0.5 rounded-full bg-ink/6 p-0.5"
-      >
-        {STATES.map((item) => {
-          const isOn = item.id === stateOf(day)
-
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() =>
-                edit(
-                  item.id === 'allDay'
-                    ? { is24h: true, ...blank }
-                    : item.id === 'closed'
-                      ? { is24h: false, ...blank }
-                      : // Coming back to working: keep whatever hours the day
-                        // had, and fall back to a plausible pair only when it
-                        // has none — a day being reopened has usually just been
-                        // closed by mistake.
-                        {
-                          is24h: false,
-                          from: day.from || '10:00',
-                          to: day.to || '20:00',
-                        },
-                )
-              }
-              aria-pressed={isOn}
-              disabled={!editing}
-              className={`grid h-7 min-w-0 flex-1 place-items-center truncate rounded-full px-2 text-[12px] font-medium outline-none transition-colors ${
-                isOn
-                  ? 'bg-surface-chip text-ink'
-                  : `text-muted ${
-                      editing
-                        ? 'hover:text-ink focus-visible:text-ink'
-                        : 'cursor-default'
-                    }`
-              }`}
-            >
-              {t(item.labelKey)}
-            </button>
-          )
-        })}
-      </div>
+              >
+                {/* The pill lifts and slides, the way a segmented control has
+                    always shown its choice — the same moving fill as the week
+                    strip above, so one card does not have two ways of saying
+                    "this one". */}
+                {isOn && (
+                  <m.span
+                    layoutId={stateMarker}
+                    aria-hidden="true"
+                    className="absolute inset-0 rounded-full bg-surface-chip"
+                    transition={
+                      reduce
+                        ? { duration: 0 }
+                        : { type: 'spring', stiffness: 520, damping: 42 }
+                    }
+                  />
+                )}
+                <span className="relative z-10 truncate">{t(item.labelKey)}</span>
+              </button>
+            )
+          })}
+        </div>
+      </LazyMotion>
 
       {/* **Both rows are the same three cells**, so the four fields come out
           identical: a label of its own width, then the pair. The break's ✕
@@ -326,23 +379,30 @@ export default function HoursCard({ week, onSaved }) {
                   that leaves both ends alone: at the head it pushed the labels
                   off the left edge, at the tail it held the fields off the
                   right one. It lives in the gap the label's `flex-1` was
-                  absorbing anyway. */}
-              {editing && (
-                <button
-                  type="button"
-                  onClick={() => edit({ breakFrom: '', breakTo: '' })}
-                  aria-label={t('assistant.breakRemove')}
-                  className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-danger outline-none transition-colors hover:bg-danger/10 focus-visible:bg-danger/10"
-                >
-                  {/* The same red minus the price list removes a row with —
-                      one vocabulary for "take this out" across the page. */}
-                  <HugeiconsIcon
-                    icon={MinusSignCircleIcon}
-                    size={15}
-                    strokeWidth={2}
-                  />
-                </button>
-              )}
+                  absorbing anyway.
+
+                  **Kept mounted and faded rather than mounted and unmounted**,
+                  for that same reason: the space is already spare, so nothing
+                  moves when it arrives, and a control that grows into place is
+                  one the eye has found by the time it can be pressed. */}
+              <button
+                type="button"
+                onClick={() => edit({ breakFrom: '', breakTo: '' })}
+                disabled={!editing}
+                aria-hidden={!editing}
+                aria-label={t('assistant.breakRemove')}
+                className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-danger outline-none transition-[opacity,background-color,scale] duration-200 ease-out hover:bg-danger/10 focus-visible:bg-danger/10 active:scale-[0.9] ${
+                  editing ? 'opacity-100' : 'pointer-events-none scale-75 opacity-0'
+                }`}
+              >
+                {/* The same red minus the price list removes a row with — one
+                    vocabulary for "take this out" across the page. */}
+                <HugeiconsIcon
+                  icon={MinusSignCircleIcon}
+                  size={15}
+                  strokeWidth={2}
+                />
+              </button>
               <TimeField
                 compact
                 readOnly={!editing}
@@ -366,7 +426,7 @@ export default function HoursCard({ week, onSaved }) {
             <button
               type="button"
               onClick={() => edit({ breakFrom: '13:00', breakTo: '14:00' })}
-              className="self-end text-[14px] font-medium text-ink outline-none transition-opacity hover:opacity-70 focus-visible:opacity-70"
+              className="self-end text-[14px] font-medium text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
             >
               {t('assistant.breakAdd')}
             </button>
