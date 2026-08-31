@@ -173,7 +173,17 @@ export default function BusinessCard({ business, onSaved, className = '' }) {
         </div>
       </div>
 
-      <div className="mt-4 grid gap-2.5">
+      {/* **Hairlines between the rows, not gaps.** Once a field outside edit
+          mode stopped drawing its own box, the block became six labels and six
+          values with nothing saying where one ended and the next began — air
+          alone reads as spacing, not as a boundary. A rule is what the project
+          reaches for before a second card, and it is what iOS's grouped lists
+          are made of: one surface, divided.
+
+          The padding is applied from here (`[&>*]:py-2.5`) rather than added to
+          `Field`, because the field is shared with the card beside this one and
+          only this block is divided. */}
+      <div className="mt-2 grid divide-y divide-line [&>*]:py-2.5">
         <Field
           label={t('assistant.name')}
           value={form.name}
