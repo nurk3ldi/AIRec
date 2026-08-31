@@ -221,7 +221,7 @@ export default function SessionsSettings({ user }) {
                   onClick={() => handleRevoke(session.id)}
                   disabled={busyId === session.id}
                   aria-label={t('security.revoke')}
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted outline-none transition-[color,background-color,border-color,scale] hover:bg-danger/8 hover:text-danger focus-visible:bg-danger/8 focus-visible:text-danger disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.97]"
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted relative after:absolute after:-inset-2 after:content-[''] outline-none transition-[color,background-color,border-color,scale] hover:bg-danger/8 hover:text-danger focus-visible:bg-danger/8 focus-visible:text-danger disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.97]"
                 >
                   <HugeiconsIcon
                     icon={Cancel01Icon}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { updateBusiness } from '../../lib/api'
 import { authed } from '../../lib/auth'
 import { PAYMENT_METHODS } from '../../lib/businessOptions'
+import { haptic } from '../../lib/haptics'
 import { useT } from '../../lib/i18n'
 import { Field } from './fields'
 import MultiSelect from './MultiSelect'
@@ -107,6 +108,9 @@ export default function BusinessCard({ business, onSaved, className = '' }) {
           payment_methods: fromList(form.payment),
         }),
       )
+      // Two ticks: something was written. Fired here rather than on the
+      // press, because the press is a request and this is the answer.
+      haptic('commit')
       onSaved?.()
     } catch {
       // Left as typed: a save that failed is one the owner still means to make.

@@ -7,6 +7,7 @@ import {
 } from '@hugeicons/core-free-icons'
 import { saveServices } from '../../lib/api'
 import { authed } from '../../lib/auth'
+import { haptic } from '../../lib/haptics'
 import { useT } from '../../lib/i18n'
 
 /**
@@ -138,6 +139,9 @@ export default function ServicesCard({ services, onSaved }) {
             })),
         ),
       )
+      // Two ticks: something was written. Fired here rather than on the
+      // press, because the press is a request and this is the answer.
+      haptic('commit')
       onSaved?.()
     } catch {
       // Left as typed: a save that failed is one the owner still means to make.

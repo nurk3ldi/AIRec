@@ -260,7 +260,7 @@ export default function MonthCalendar({
                   //
                   // `text-white`, not `text-surface`: this fill is a real colour in
                   // both themes, so the text on it does not flip with them.
-                  className={`relative grid h-9 place-items-center rounded-[10px] font-display text-[13px] font-semibold outline-none transition-[color,background-color,border-color,scale] active:scale-[0.97] ${
+                  className={`relative grid h-11 place-items-center rounded-[10px] font-display text-[13px] font-semibold sm:h-9 outline-none transition-[color,background-color,border-color,scale] active:scale-[0.97] ${
                     isSelected
                       ? 'text-white'
                       : isToday
@@ -347,7 +347,7 @@ function StepButton({ label, icon, onClick }) {
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/12 text-ink outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/20 focus-visible:bg-ink/20 active:scale-[0.95]"
+      className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink/12 text-ink sm:h-9 sm:w-9 outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/20 focus-visible:bg-ink/20 active:scale-[0.95]"
     >
       <HugeiconsIcon
         icon={icon}

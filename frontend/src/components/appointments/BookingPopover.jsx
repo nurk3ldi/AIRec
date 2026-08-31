@@ -423,7 +423,7 @@ export default function BookingPopover({
         type="button"
         onClick={() => setOpen(false)}
         aria-label={t('appointments.close')}
-        className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6 focus-visible:text-ink active:scale-[0.97]"
+        className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted relative after:absolute after:-inset-2 after:content-[''] outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6 focus-visible:text-ink active:scale-[0.97]"
       >
         <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
       </button>

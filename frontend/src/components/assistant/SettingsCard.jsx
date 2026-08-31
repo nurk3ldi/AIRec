@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { updateBusiness } from '../../lib/api'
 import { authed } from '../../lib/auth'
 import { SERVICE_LANGUAGES } from '../../lib/businessOptions'
+import { haptic } from '../../lib/haptics'
 import { useT } from '../../lib/i18n'
 import { Chips, Field } from './fields'
 
@@ -78,6 +79,9 @@ export default function SettingsCard({ business, onSaved, className = '' }) {
             form.languages.length > 0 ? form.languages.join(', ') : null,
         }),
       )
+      // Two ticks: something was written. Fired here rather than on the
+      // press, because the press is a request and this is the answer.
+      haptic('commit')
       onSaved?.()
     } catch {
       // Left as typed: a save that failed is one the owner still means to make.

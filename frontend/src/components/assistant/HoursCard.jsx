@@ -6,6 +6,7 @@ import { saveWorkingHours } from '../../lib/api'
 import { authed } from '../../lib/auth'
 import { weekdayLabels } from '../../lib/dates'
 import { dayProblem } from '../../lib/schedule'
+import { haptic } from '../../lib/haptics'
 import { useT } from '../../lib/i18n'
 import TimeField from '../appointments/TimeField'
 
@@ -141,6 +142,9 @@ export default function HoursCard({ week, onSaved }) {
           })),
         ),
       )
+      // Two ticks: something was written. Fired here rather than on the
+      // press, because the press is a request and this is the answer.
+      haptic('commit')
       onSaved?.()
     } catch {
       // Left as typed: a save that failed is one the owner still means to make.
@@ -233,7 +237,12 @@ export default function HoursCard({ week, onSaved }) {
               <button
                 key={item.weekday}
                 type="button"
-                onClick={() => setPicked(item.weekday)}
+                onClick={() => {
+                  // One tick, on the press that changes it — the selection
+                  // landing somewhere new is exactly what a snap is for.
+                  if (item.weekday !== picked) haptic('snap')
+                  setPicked(item.weekday)
+                }}
                 aria-pressed={isPicked}
                 className={`relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg py-3 outline-none sm:py-1.5 transition-[background-color,scale] duration-150 ease-out active:scale-[0.96] ${
                   isPicked ? '' : 'hover:bg-ink/6'
@@ -300,7 +309,8 @@ export default function HoursCard({ week, onSaved }) {
               <button
                 key={item.id}
                 type="button"
-                onClick={() =>
+                onClick={() => {
+                  if (!isOn) haptic('snap')
                   edit(
                     item.id === 'allDay'
                       ? { is24h: true, ...blank }
@@ -316,7 +326,7 @@ export default function HoursCard({ week, onSaved }) {
                             to: day.to || '20:00',
                           },
                   )
-                }
+                }}
                 aria-pressed={isOn}
                 disabled={!editing}
                 className={`relative grid h-9 min-w-0 flex-1 place-items-center truncate rounded-full px-2 text-[12px] font-medium outline-none sm:h-7 transition-[color,scale] duration-150 ease-out ${
