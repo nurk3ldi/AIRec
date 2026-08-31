@@ -1,9 +1,11 @@
 .page {
-  /* 68px header + a 50px bottom bar, plus the iPhone home indicator under it.
-     The bar is fixed and takes no layout height of its own, so the page has to
-     leave the room or the two together overrun the viewport. From `sm` the bar
-     is gone and only the header is subtracted. */
-  min-height: calc(100vh - 118px - env(safe-area-inset-bottom));
+  /* Only the 50px bottom bar and the iPhone home indicator under it: below
+     `sm` this screen draws no header, the way `/profile` and `/appointments`
+     do not — see `DashboardLayout`. The bar is fixed and takes no layout height
+     of its own, so the page has to leave the room or the two together overrun
+     the viewport. From `sm` the bar is gone and the header is back, and only it
+     is subtracted. */
+  min-height: calc(100vh - 50px - env(safe-area-inset-bottom));
   background: var(--ground);
 }
 

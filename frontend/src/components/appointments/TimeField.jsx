@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FIELD } from '../controls'
+import { CONTROL, FIELD } from '../controls'
 
 const pad = (number) => String(number).padStart(2, '0')
 
@@ -120,7 +120,11 @@ export default function TimeField({ value, onChange, label, compact, readOnly })
       // The alignment lives in the branches rather than the base: two
       // `text-*` utilities on one element are resolved by stylesheet order, not
       // by the order they are written, so one would silently win.
-      className={`${FIELD} min-w-0 font-display text-[16px] font-medium ${
+      className={`${
+        readOnly
+          ? `${CONTROL} bg-transparent text-ink outline-none placeholder:text-muted`
+          : FIELD
+      } min-w-0 font-display text-[16px] font-medium ${
         compact
           ? 'h-9 shrink-0 grow-0 basis-[76px] px-1 text-center sm:h-[26px] sm:text-[12px]'
           : 'h-9 flex-1 px-2.5 text-center sm:text-[14px]'

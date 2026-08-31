@@ -86,7 +86,21 @@ export default function AssistantPage() {
           a 1100px grid sat half a screen apart with nothing between them. A
           flex row puts each at its own width, side by side, and drops the next
           one to a new line when the room runs out. */}
-      <div className="flex w-full flex-wrap content-start gap-4 p-4 sm:gap-6 sm:p-6">
+      {/* **The phone's title, in the flow rather than pinned.** Below `sm` this
+          screen draws no header (see `DashboardLayout`), so this is the only
+          thing that says where you are — and being part of the page, it scrolls
+          away once you are past it instead of holding 68px for the rest of the
+          visit. That is Apple's large title, minus the compact one that takes
+          over in the bar, because there is no bar here to hand it to.
+
+          The inset is added rather than assumed: 0 in a browser tab, where the
+          status bar is the browser's own chrome and outside the viewport
+          already; the notch's height once this is installed. */}
+      <h1 className="px-4 pt-[calc(1rem+env(safe-area-inset-top))] font-display text-[28px] leading-tight font-bold tracking-[-0.02em] text-ink sm:hidden">
+        {t('nav.assistant')}
+      </h1>
+
+      <div className="flex w-full flex-wrap content-start gap-4 p-4 pt-3 sm:gap-6 sm:p-6">
         {/* The first column, split in two down the height. `flex-1` on both
             rather than a fixed share, so the gap between them comes out of the
             column once instead of being subtracted from each half by hand. */}

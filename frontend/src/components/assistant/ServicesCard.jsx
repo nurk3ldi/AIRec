@@ -227,7 +227,7 @@ export default function ServicesCard({ services, onSaved }) {
             <button
               type="button"
               onClick={() => setEditing((was) => !was)}
-              className="h-10 rounded-full px-2.5 text-[13px] font-medium text-ink outline-none transition-[opacity,scale] sm:h-8 duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
+              className={`h-10 rounded-full px-2.5 text-[13px] text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97] sm:h-8 ${editing ? 'font-semibold' : 'font-medium'}`}
             >
               {t(editing ? 'assistant.editDone' : 'assistant.edit')}
             </button>

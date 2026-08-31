@@ -140,7 +140,7 @@ export default function BusinessCard({ business, onSaved, className = '' }) {
           type="button"
           onClick={() => (editing ? done() : setEditing(true))}
           disabled={saving}
-          className="h-8 shrink-0 rounded-full px-2.5 text-[13px] font-medium text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+          className={`h-10 shrink-0 rounded-full px-2.5 text-[13px] text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 sm:h-8 ${editing ? 'font-semibold' : 'font-medium'}`}
         >
           {t(
             saving

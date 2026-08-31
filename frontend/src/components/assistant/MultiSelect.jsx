@@ -49,10 +49,10 @@ export default function MultiSelect({
             // that has nothing to press — but the text keeps its full contrast,
             // because reading the answer is what the row is for.
             disabled={readOnly}
-            className={`flex h-10 w-full items-center gap-2 rounded-xl sm:h-8 bg-surface px-3 text-left text-[16px] text-ink shadow-[0_0_0_1px_var(--color-field)] outline-none transition-[box-shadow,scale] duration-150 ease-out active:scale-[0.99] sm:text-[14px] ${
+            className={`flex h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-[16px] text-ink outline-none transition-[box-shadow,background-color,scale] duration-150 ease-out sm:h-8 sm:text-[14px] ${
               readOnly
-                ? 'cursor-default'
-                : 'hover:shadow-[0_0_0_1px_var(--color-field-hover)] focus-visible:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)]'
+                ? 'cursor-default bg-transparent'
+                : 'bg-surface shadow-[0_0_0_1px_var(--color-field)] hover:shadow-[0_0_0_1px_var(--color-field-hover)] focus-visible:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)] active:scale-[0.99]'
             }`}
           >
             <span
@@ -62,12 +62,14 @@ export default function MultiSelect({
             >
               {value.length > 0 ? value.join(', ') : placeholder}
             </span>
-            <HugeiconsIcon
-              icon={ArrowDown01Icon}
-              size={16}
-              strokeWidth={2}
-              className="shrink-0 text-muted"
-            />
+            {!readOnly && (
+              <HugeiconsIcon
+                icon={ArrowDown01Icon}
+                size={16}
+                strokeWidth={2}
+                className="shrink-0 text-muted"
+              />
+            )}
           </button>
         </Popover.Trigger>
 

@@ -18,6 +18,14 @@ import ProfileDialog from './ProfileDialog'
  * also why the flags are here — a second copy of `isMenuOpen` in the bar would
  * be a second menu that the rail's outside-click handler could not close.
  */
+/**
+ * The screens that draw no header below `sm`.
+ *
+ * A set rather than a chain of comparisons: it is read once per render and the
+ * next screen to join is a line, not an edit to a condition.
+ */
+const HEADERLESS = new Set(['/profile', '/appointments', '/assistant'])
+
 export default function DashboardLayout() {
   const verifiedUser = useRequireAuth()
   const { pathname } = useLocation()
@@ -69,12 +77,19 @@ export default function DashboardLayout() {
             hours do not get. The bottom bar still says which screen this is and
             still leads to the other four, which is what the header was doing
             there. Above `sm` it comes back: a desktop has the room, and the
-            page title and search belong on it. */}
+            page title and search belong on it.
+
+            **`/assistant` is the third, and the reason is what the bar says
+            rather than what it costs.** Below `sm` the header carries the
+            wordmark and a bell — it does not carry the page title, which only
+            appears from `sm`. So on a phone it is 68px pinned to the top of a
+            long scrolling form, naming neither the app's screen nor anything
+            you came for, while the bottom bar already says where you are. That
+            screen carries its own large title instead, in the flow, which
+            scrolls away once you are past it. */}
         <Header
           className={
-            pathname === '/profile' || pathname === '/appointments'
-              ? 'hidden sm:flex'
-              : 'flex'
+            HEADERLESS.has(pathname) ? 'hidden sm:flex' : 'flex'
           }
         />
         {/* The shells sit outside this and update instantly — a click should be

@@ -30,10 +30,10 @@ export function Field({ label, value, onChange, type = 'text', readOnly }) {
         tabIndex={readOnly ? -1 : undefined}
         // 16px below `sm`, like every field in this app: iOS magnifies the page
         // when a smaller one takes focus and never magnifies back.
-        className={`h-10 w-full appearance-none rounded-xl sm:h-8 bg-surface px-3 text-[16px] text-ink shadow-[0_0_0_1px_var(--color-field)] outline-none transition-shadow duration-150 placeholder:text-muted sm:text-[14px] ${
+        className={`h-10 w-full appearance-none rounded-xl px-3 text-[16px] text-ink outline-none transition-[box-shadow,background-color] duration-150 placeholder:text-muted sm:h-8 sm:text-[14px] ${
           readOnly
-            ? 'cursor-default'
-            : 'hover:shadow-[0_0_0_1px_var(--color-field-hover)] focus:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)]'
+            ? 'cursor-default bg-transparent'
+            : 'bg-surface shadow-[0_0_0_1px_var(--color-field)] hover:shadow-[0_0_0_1px_var(--color-field-hover)] focus:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)]'
         }`}
       />
     </label>
