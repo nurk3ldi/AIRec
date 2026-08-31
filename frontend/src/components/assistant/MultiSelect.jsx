@@ -49,7 +49,7 @@ export default function MultiSelect({
             // that has nothing to press — but the text keeps its full contrast,
             // because reading the answer is what the row is for.
             disabled={readOnly}
-            className={`flex h-8 w-full items-center gap-2 rounded-xl bg-surface px-3 text-left text-[16px] text-ink shadow-[0_0_0_1px_var(--color-field)] outline-none transition-[box-shadow,scale] duration-150 ease-out active:scale-[0.99] sm:text-[14px] ${
+            className={`flex h-10 w-full items-center gap-2 rounded-xl sm:h-8 bg-surface px-3 text-left text-[16px] text-ink shadow-[0_0_0_1px_var(--color-field)] outline-none transition-[box-shadow,scale] duration-150 ease-out active:scale-[0.99] sm:text-[14px] ${
               readOnly
                 ? 'cursor-default'
                 : 'hover:shadow-[0_0_0_1px_var(--color-field-hover)] focus-visible:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)]'

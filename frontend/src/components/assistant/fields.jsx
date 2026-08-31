@@ -30,7 +30,7 @@ export function Field({ label, value, onChange, type = 'text', readOnly }) {
         tabIndex={readOnly ? -1 : undefined}
         // 16px below `sm`, like every field in this app: iOS magnifies the page
         // when a smaller one takes focus and never magnifies back.
-        className={`h-8 w-full appearance-none rounded-xl bg-surface px-3 text-[16px] text-ink shadow-[0_0_0_1px_var(--color-field)] outline-none transition-shadow duration-150 placeholder:text-muted sm:text-[14px] ${
+        className={`h-10 w-full appearance-none rounded-xl sm:h-8 bg-surface px-3 text-[16px] text-ink shadow-[0_0_0_1px_var(--color-field)] outline-none transition-shadow duration-150 placeholder:text-muted sm:text-[14px] ${
           readOnly
             ? 'cursor-default'
             : 'hover:shadow-[0_0_0_1px_var(--color-field-hover)] focus:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)]'
@@ -65,7 +65,7 @@ export function Chips({ label, options, value, onToggle, disabled }) {
               onClick={() => onToggle(option)}
               aria-pressed={isOn}
               disabled={disabled}
-              className={`h-8 rounded-full border px-3 text-[13px] font-medium outline-none transition-[color,background-color,border-color,scale] duration-150 ease-out active:scale-[0.97] ${
+              className={`h-9 rounded-full border px-3 text-[13px] font-medium sm:h-8 outline-none transition-[color,background-color,border-color,scale] duration-150 ease-out active:scale-[0.97] ${
                 isOn
                   ? 'border-transparent bg-surface-chip text-ink'
                   : `border-line text-muted ${

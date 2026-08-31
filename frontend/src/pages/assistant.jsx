@@ -26,20 +26,23 @@ import styles from '../styles/Assistant.module.css'
  * является ими. Переименовали экран, а не сущность.
  */
 /**
- * How tall a card that has nothing in it yet should still be.
+ * How tall a card that has nothing in it yet should still be — **on a desktop
+ * only**.
  *
- * **The viewport, less the chrome and the page's own padding** — the same sum
- * the definite height used to be, written as a *minimum* instead. That is the
- * whole difference: at rest the cards fill the screen exactly as they did, and
- * a card that unfolds can still grow past it and push what is under it down,
- * which a fixed height gave it nowhere to do.
+ * The viewport, less the chrome and the page's own padding, written as a
+ * *minimum*: at rest the cards fill the screen, and a card that unfolds can
+ * still grow past it and push what is under it down, which a fixed height gave
+ * it nowhere to do. The `3rem` is the row's own `sm:p-6`, counted top and
+ * bottom.
  *
- * 118px below `sm` is the 68px header plus the 50px bottom bar; from `sm` the
- * bar is gone. The `2rem`/`3rem` are the row's own `p-4` / `sm:p-6`, counted
- * top and bottom.
+ * **Below `sm` there is no minimum at all**, and that is the whole of the phone
+ * layout's arithmetic. The number exists to make three columns of different
+ * content end on one line; stacked into a single column it is not a floor but a
+ * quota — four cards each as tall as the screen, three of them mostly empty,
+ * and two thousand pixels of scrolling to reach the last one. On a phone a card
+ * is as tall as what is in it.
  */
-const FULL =
-  'min-h-[calc(100vh-118px-env(safe-area-inset-bottom)-2rem)] sm:min-h-[calc(100vh-68px-3rem)]'
+const FULL = 'sm:min-h-[calc(100vh-68px-3rem)]'
 
 export default function AssistantPage() {
   const t = useT()
@@ -83,11 +86,11 @@ export default function AssistantPage() {
           a 1100px grid sat half a screen apart with nothing between them. A
           flex row puts each at its own width, side by side, and drops the next
           one to a new line when the room runs out. */}
-      <div className="flex w-full flex-wrap content-start gap-6 p-4 sm:p-6">
+      <div className="flex w-full flex-wrap content-start gap-4 p-4 sm:gap-6 sm:p-6">
         {/* The first column, split in two down the height. `flex-1` on both
             rather than a fixed share, so the gap between them comes out of the
             column once instead of being subtracted from each half by hand. */}
-        <div className={`flex w-full max-w-[350px] flex-col gap-6 ${FULL}`}>
+        <div className={`flex w-full flex-col gap-4 sm:max-w-[350px] sm:gap-6 ${FULL}`}>
           <ServicesCard
             services={services}
             onSaved={() => setReload((n) => n + 1)}
@@ -106,7 +109,7 @@ export default function AssistantPage() {
         <BusinessCard
           business={business}
           onSaved={() => setReload((n) => n + 1)}
-          className={`w-full max-w-[350px] ${FULL}`}
+          className={`w-full sm:max-w-[350px] ${FULL}`}
         />
 
         {/* Everything that is left. `flex-1` takes the leftover of the row
@@ -116,7 +119,7 @@ export default function AssistantPage() {
         <SettingsCard
           business={business}
           onSaved={() => setReload((n) => n + 1)}
-          className={`min-w-[320px] flex-1 ${FULL}`}
+          className={`w-full sm:min-w-[320px] sm:flex-1 ${FULL}`}
         />
       </div>
     </div>

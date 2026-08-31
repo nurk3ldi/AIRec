@@ -169,7 +169,7 @@ export default function ServicesCard({ services, onSaved }) {
             disabled={!editing}
             tabIndex={editing ? undefined : -1}
             aria-label={t('assistant.serviceRemove')}
-            className="mr-2 grid h-7 w-7 place-items-center rounded-full text-danger outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-danger/10 focus-visible:bg-danger/10 active:scale-[0.95]"
+            className="mr-2 grid h-9 w-9 place-items-center rounded-full text-danger outline-none transition-[background-color,scale] sm:h-7 sm:w-7 duration-150 ease-out hover:bg-danger/10 focus-visible:bg-danger/10 active:scale-[0.95]"
           >
             <HugeiconsIcon
               icon={MinusSignCircleIcon}
@@ -185,7 +185,7 @@ export default function ServicesCard({ services, onSaved }) {
         onChange={(event) => edit(row.id, { name: event.target.value })}
         placeholder={t('assistant.serviceName')}
         aria-label={t('assistant.serviceName')}
-        className="h-9 min-w-0 flex-1 appearance-none rounded-lg bg-transparent px-2 text-[16px] text-ink outline-none transition-shadow duration-150 placeholder:text-muted hover:shadow-[0_0_0_1px_var(--color-field)] focus:shadow-[0_0_0_1px_var(--color-field-focus)] sm:text-[14px]"
+        className="h-10 min-w-0 flex-1 appearance-none rounded-lg bg-transparent px-2 text-[16px] sm:h-9 text-ink outline-none transition-shadow duration-150 placeholder:text-muted hover:shadow-[0_0_0_1px_var(--color-field)] focus:shadow-[0_0_0_1px_var(--color-field-focus)] sm:text-[14px]"
       />
 
       {/* Suffixed rather than labelled: «₸» beside the number is the unit, and
@@ -227,7 +227,7 @@ export default function ServicesCard({ services, onSaved }) {
             <button
               type="button"
               onClick={() => setEditing((was) => !was)}
-              className="h-8 rounded-full px-2.5 text-[13px] font-medium text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
+              className="h-10 rounded-full px-2.5 text-[13px] font-medium text-ink outline-none transition-[opacity,scale] sm:h-8 duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
             >
               {t(editing ? 'assistant.editDone' : 'assistant.edit')}
             </button>
@@ -239,7 +239,7 @@ export default function ServicesCard({ services, onSaved }) {
             type="button"
             onClick={add}
             aria-label={t('assistant.serviceAdd')}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface-chip text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-85 focus-visible:opacity-85 active:scale-[0.95]"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-chip text-ink outline-none transition-[opacity,scale] sm:h-8 sm:w-8 duration-150 ease-out hover:opacity-85 focus-visible:opacity-85 active:scale-[0.95]"
           >
             <HugeiconsIcon icon={Add01Icon} size={16} strokeWidth={2.2} />
           </button>
@@ -301,7 +301,7 @@ export default function ServicesCard({ services, onSaved }) {
           onClick={() => setOpen((was) => !was)}
           aria-expanded={open}
           aria-label={t('assistant.services')}
-          className="-mb-6 grid h-7 w-7 shrink-0 place-items-center self-center rounded-full bg-surface-chip text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-85 focus-visible:opacity-85 active:scale-[0.95]"
+          className="-mb-6 grid h-9 w-9 shrink-0 place-items-center self-center rounded-full bg-surface-chip text-ink outline-none transition-[opacity,scale] sm:h-7 sm:w-7 duration-150 ease-out hover:opacity-85 focus-visible:opacity-85 active:scale-[0.95]"
         >
           <HugeiconsIcon
             icon={ArrowDown01Icon}
@@ -339,7 +339,7 @@ function Suffixed({ value, onChange, onBlur, suffix, width }) {
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}
         inputMode="numeric"
-        className="h-9 w-full appearance-none rounded-lg bg-transparent pr-8 pl-1 text-right text-[16px] text-ink outline-none transition-shadow duration-150 hover:shadow-[0_0_0_1px_var(--color-field)] focus:shadow-[0_0_0_1px_var(--color-field-focus)] sm:text-[14px]"
+        className="h-10 w-full appearance-none rounded-lg bg-transparent pr-8 pl-1 text-right text-[16px] sm:h-9 text-ink outline-none transition-shadow duration-150 hover:shadow-[0_0_0_1px_var(--color-field)] focus:shadow-[0_0_0_1px_var(--color-field-focus)] sm:text-[14px]"
       />
       {/* **The same size as the number it belongs to.** At 13px against a 14px
           value the ₸ read as a different, thinner glyph rather than as the

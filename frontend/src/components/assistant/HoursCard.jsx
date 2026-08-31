@@ -183,7 +183,7 @@ export default function HoursCard({ week, onSaved }) {
           type="button"
           onClick={() => (editing ? done() : setEditing(true))}
           disabled={saving || (editing && Boolean(problem))}
-          className="h-8 shrink-0 rounded-full px-2.5 text-[13px] font-medium text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
+          className="h-10 shrink-0 rounded-full px-2.5 text-[13px] font-medium text-ink outline-none transition-[opacity,scale] sm:h-8 duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
         >
           {t(
             saving
@@ -216,7 +216,7 @@ export default function HoursCard({ week, onSaved }) {
                 type="button"
                 onClick={() => setPicked(item.weekday)}
                 aria-pressed={isPicked}
-                className={`relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg py-1.5 outline-none transition-[background-color,scale] duration-150 ease-out active:scale-[0.96] ${
+                className={`relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg py-3 outline-none sm:py-1.5 transition-[background-color,scale] duration-150 ease-out active:scale-[0.96] ${
                   isPicked ? '' : 'hover:bg-ink/6'
                 }`}
               >
@@ -300,7 +300,7 @@ export default function HoursCard({ week, onSaved }) {
                 }
                 aria-pressed={isOn}
                 disabled={!editing}
-                className={`relative grid h-7 min-w-0 flex-1 place-items-center truncate rounded-full px-2 text-[12px] font-medium outline-none transition-[color,scale] duration-150 ease-out ${
+                className={`relative grid h-9 min-w-0 flex-1 place-items-center truncate rounded-full px-2 text-[12px] font-medium outline-none sm:h-7 transition-[color,scale] duration-150 ease-out ${
                   editing ? 'active:scale-[0.96]' : ''
                 } ${
                   isOn
@@ -391,7 +391,7 @@ export default function HoursCard({ week, onSaved }) {
                 disabled={!editing}
                 aria-hidden={!editing}
                 aria-label={t('assistant.breakRemove')}
-                className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-danger outline-none transition-[opacity,background-color,scale] duration-200 ease-out hover:bg-danger/10 focus-visible:bg-danger/10 active:scale-[0.9] ${
+                className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-danger outline-none sm:h-5 sm:w-5 transition-[opacity,background-color,scale] duration-200 ease-out hover:bg-danger/10 focus-visible:bg-danger/10 active:scale-[0.9] ${
                   editing ? 'opacity-100' : 'pointer-events-none scale-75 opacity-0'
                 }`}
               >
@@ -426,7 +426,7 @@ export default function HoursCard({ week, onSaved }) {
             <button
               type="button"
               onClick={() => edit({ breakFrom: '13:00', breakTo: '14:00' })}
-              className="self-end text-[14px] font-medium text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
+              className="-my-2 self-end py-2 text-[14px] font-medium text-ink outline-none transition-[opacity,scale] sm:my-0 sm:py-0 duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
             >
               {t('assistant.breakAdd')}
             </button>
