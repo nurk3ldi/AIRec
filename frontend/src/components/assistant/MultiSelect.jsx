@@ -19,7 +19,14 @@ import { PANEL_MOTION } from '../appointments/panel'
  * It truncates rather than wrapping, so the field stays one line however many
  * are ticked.
  */
-export default function MultiSelect({ label, options, value, onChange, placeholder }) {
+export default function MultiSelect({
+  label,
+  options,
+  value,
+  onChange,
+  placeholder,
+  readOnly,
+}) {
   const toggle = (option) =>
     onChange(
       value.includes(option)
@@ -38,7 +45,15 @@ export default function MultiSelect({ label, options, value, onChange, placehold
               into the form. */}
           <button
             type="button"
-            className="flex h-10 w-full items-center gap-2 rounded-xl bg-surface px-3 text-left text-[16px] text-ink shadow-[0_0_0_1px_var(--color-field)] outline-none transition-shadow duration-150 hover:shadow-[0_0_0_1px_var(--color-field-hover)] focus-visible:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)] sm:text-[14px]"
+            // Not pressable outside edit mode, and no ring reacting to a cursor
+            // that has nothing to press — but the text keeps its full contrast,
+            // because reading the answer is what the row is for.
+            disabled={readOnly}
+            className={`flex h-10 w-full items-center gap-2 rounded-xl bg-surface px-3 text-left text-[16px] text-ink shadow-[0_0_0_1px_var(--color-field)] outline-none transition-shadow duration-150 sm:text-[14px] ${
+              readOnly
+                ? 'cursor-default'
+                : 'hover:shadow-[0_0_0_1px_var(--color-field-hover)] focus-visible:shadow-[0_0_0_1px_var(--color-field-focus),0_0_0_4px_var(--color-field-halo)]'
+            }`}
           >
             <span
               className={`min-w-0 flex-1 truncate ${

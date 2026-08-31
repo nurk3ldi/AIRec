@@ -38,6 +38,7 @@ export default function SettingsCard({ business, onSaved, className = '' }) {
   const t = useT()
   const [form, setForm] = useState(() => formOf(business))
   const [saving, setSaving] = useState(false)
+  const [editing, setEditing] = useState(false)
 
   useEffect(() => {
     setForm(formOf(business))
@@ -56,8 +57,14 @@ export default function SettingsCard({ business, onSaved, className = '' }) {
   // stale.
   const isDirty = JSON.stringify(form) !== JSON.stringify(formOf(business))
 
-  const save = async (event) => {
-    event.preventDefault()
+  /**
+   * **«Готово» is the save.** The card follows «График работы»: a separate
+   * «Сохранить» underneath was a second button for the same moment — you finish
+   * editing and you want it kept — and two controls for one intention is one of
+   * them you have to explain. Leaving edit mode commits; nothing changed means
+   * nothing is sent.
+   */
+  const commit = async () => {
     if (!isDirty || saving) return
 
     setSaving(true)
@@ -79,14 +86,38 @@ export default function SettingsCard({ business, onSaved, className = '' }) {
     }
   }
 
+  const done = async () => {
+    await commit()
+    setEditing(false)
+  }
+
   return (
     <form
-      onSubmit={save}
+      onSubmit={(event) => {
+        event.preventDefault()
+        done()
+      }}
       className={`flex flex-col rounded-2xl bg-surface-raised p-6 ${className}`}
     >
-      <h2 className="shrink-0 font-display text-[15px] font-semibold text-ink">
-        {t('assistant.settings')}
-      </h2>
+      <div className="flex shrink-0 items-center justify-between gap-3">
+        <h2 className="font-display text-[15px] font-semibold text-ink">
+          {t('assistant.settings')}
+        </h2>
+        <button
+          type="button"
+          onClick={() => (editing ? done() : setEditing(true))}
+          disabled={saving}
+          className="h-8 shrink-0 rounded-full px-2.5 text-[13px] font-medium text-ink outline-none transition-opacity hover:opacity-70 focus-visible:opacity-70 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {t(
+            saving
+              ? 'assistant.saving'
+              : editing
+                ? 'assistant.editDone'
+                : 'assistant.edit',
+          )}
+        </button>
+      </div>
 
       <div className="mt-5 flex flex-col gap-5">
         <Chips
@@ -94,23 +125,16 @@ export default function SettingsCard({ business, onSaved, className = '' }) {
           options={SERVICE_LANGUAGES}
           value={form.languages}
           onToggle={toggleLanguage}
+          disabled={!editing}
         />
         <Field
           label={t('assistant.landmark')}
           value={form.landmark}
           onChange={(value) => setForm((was) => ({ ...was, landmark: value }))}
+          readOnly={!editing}
         />
       </div>
 
-      {isDirty && (
-        <button
-          type="submit"
-          disabled={saving}
-          className="mt-6 h-10 shrink-0 self-end rounded-full bg-accent px-5 text-[14px] font-medium text-surface outline-none transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {t(saving ? 'assistant.saving' : 'assistant.save')}
-        </button>
-      )}
     </form>
   )
 }

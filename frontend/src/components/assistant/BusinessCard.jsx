@@ -28,6 +28,12 @@ import MultiSelect from './MultiSelect'
  * and took most of the card for a field that is set once; one line that says
  * what was chosen is the same answer in a tenth of the space.
  *
+ * **Read-only until «Редактировать».** Four cards on this page and every one
+ * of them a form meant every field on the screen was live at once, so a cursor
+ * crossing the page landed in something editable wherever it stopped. The
+ * fields still show their values — that is what the card is mostly *for* — they
+ * simply cannot be typed into until the card is opened.
+ *
  * **The city is a plain field for now.** Eighty cities need filtering to be
  * pickable, which is a combobox this project no longer has; the column is a
  * free string, so typing one is correct rather than a stopgap that stores
@@ -61,6 +67,7 @@ export default function BusinessCard({ business, onSaved, className = '' }) {
   const t = useT()
   const [form, setForm] = useState(() => formOf(business))
   const [saving, setSaving] = useState(false)
+  const [editing, setEditing] = useState(false)
   const set = (changes) => setForm((was) => ({ ...was, ...changes }))
 
   // The row arrives after the first render — the page fetches it — so the
@@ -76,8 +83,14 @@ export default function BusinessCard({ business, onSaved, className = '' }) {
   const clean = formOf(business)
   const isDirty = JSON.stringify(form) !== JSON.stringify(clean)
 
-  const save = async (event) => {
-    event.preventDefault()
+  /**
+   * **«Готово» is the save.** The card follows «График работы»: a separate
+   * «Сохранить» underneath was a second button for the same moment — you finish
+   * editing and you want it kept — and two controls for one intention is one of
+   * them you have to explain. Leaving edit mode commits; nothing changed means
+   * nothing is sent.
+   */
+  const commit = async () => {
     if (!isDirty || saving) return
 
     setSaving(true)
@@ -102,45 +115,74 @@ export default function BusinessCard({ business, onSaved, className = '' }) {
     }
   }
 
+  const done = async () => {
+    await commit()
+    setEditing(false)
+  }
+
   return (
     // **Sized by its contents.** It carried `h-full`, which resolves to `auto`
     // under a parent that has only a `min-height` — so the card grew to its
     // fields instead of the column, overran the viewport and put a scrollbar on
     // the page. Two fields fewer and no false height, and it fits.
     <form
-      onSubmit={save}
+      onSubmit={(event) => {
+        event.preventDefault()
+        done()
+      }}
       className={`flex flex-col rounded-2xl bg-surface-raised p-6 ${className}`}
     >
-      <h2 className="shrink-0 font-display text-[15px] font-semibold text-ink">
-        {t('assistant.business')}
-      </h2>
+      <div className="flex shrink-0 items-center justify-between gap-3">
+        <h2 className="font-display text-[15px] font-semibold text-ink">
+          {t('assistant.business')}
+        </h2>
+        <button
+          type="button"
+          onClick={() => (editing ? done() : setEditing(true))}
+          disabled={saving}
+          className="h-8 shrink-0 rounded-full px-2.5 text-[13px] font-medium text-ink outline-none transition-opacity hover:opacity-70 focus-visible:opacity-70 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {t(
+            saving
+              ? 'assistant.saving'
+              : editing
+                ? 'assistant.editDone'
+                : 'assistant.edit',
+          )}
+        </button>
+      </div>
 
       <div className="mt-5 grid gap-4">
         <Field
           label={t('assistant.name')}
           value={form.name}
           onChange={(value) => set({ name: value })}
+          readOnly={!editing}
         />
         <Field
           label={t('assistant.industry')}
           value={form.industry}
           onChange={(value) => set({ industry: value })}
+          readOnly={!editing}
         />
         <Field
           label={t('assistant.phone')}
           value={form.phone}
           onChange={(value) => set({ phone: value })}
+          readOnly={!editing}
           type="tel"
         />
         <Field
           label={t('assistant.city')}
           value={form.city}
           onChange={(value) => set({ city: value })}
+          readOnly={!editing}
         />
         <Field
           label={t('assistant.address')}
           value={form.address}
           onChange={(value) => set({ address: value })}
+          readOnly={!editing}
         />
         <MultiSelect
           label={t('assistant.payment')}
@@ -148,22 +190,10 @@ export default function BusinessCard({ business, onSaved, className = '' }) {
           value={form.payment}
           onChange={(next) => set({ payment: next })}
           placeholder={t('assistant.pick')}
+          readOnly={!editing}
         />
       </div>
 
-      {/* **The button appears only when there is something to save.** A card
-          that always offers it invites a press that does nothing, and with four
-          cards on this page each saving separately, a row of idle buttons would
-          be four of them. */}
-      {isDirty && (
-        <button
-          type="submit"
-          disabled={saving}
-          className="mt-6 h-10 shrink-0 self-end rounded-full bg-accent px-5 text-[14px] font-medium text-surface outline-none transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {t(saving ? 'assistant.saving' : 'assistant.save')}
-        </button>
-      )}
     </form>
   )
 }
