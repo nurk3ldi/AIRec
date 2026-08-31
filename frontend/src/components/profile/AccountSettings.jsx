@@ -11,6 +11,8 @@ import {
 import AvatarCropper from '../AvatarCropper'
 import OtpInput from '../OtpInput'
 import { useT } from '../../lib/i18n'
+import Skeleton, { SkeletonRegion } from '../Skeleton'
+import { useSkeleton } from '../../lib/skeleton'
 import {
   cancelEmailChange,
   checkUsernameAvailability,
@@ -242,6 +244,11 @@ export default function AccountSettings({ onUserChange, onClose }) {
   // outlives the dialog — reloaded from the server on mount — so a half-finished
   // change is still visible (and finishable) after closing and reopening.
   const [pendingEmail, setPendingEmail] = useState('')
+  // **The panel opens before it knows whose account it is.** `verifySession()`
+  // runs from inside this component, so for one round trip the form rendered
+  // with every field empty — which reads as an account with no name rather
+  // than as a panel that has not been told yet.
+  const bars = useSkeleton(!user)
   // null | 'address' (typing the new one) | 'code' (entering what was mailed).
   // Separate from `pendingEmail`: a pending change exists whether or not the
   // user is currently on one of those screens.
@@ -1006,6 +1013,32 @@ export default function AccountSettings({ onUserChange, onClose }) {
           </button>
         </div>
       </>
+    )
+  }
+
+  // Hooks are all above; the guard is the last thing before the real panel.
+  if (!user) {
+    return (
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-2 pb-6">
+        {/* The avatar's circle is drawn as itself rather than as a bar: it is
+            the one shape on this panel that is the same size whoever the
+            account belongs to, so it is never a guess. */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-[185px] w-[185px] rounded-full bg-ground" />
+        </div>
+        <SkeletonRegion
+          label={t('profile.section.account')}
+          visible={bars}
+          className="mt-6 flex flex-col gap-4"
+        >
+          {Array.from({ length: 5 }, (_, index) => (
+            <div key={index} className="flex flex-col gap-2">
+              <Skeleton className="h-2.5 w-24" />
+              <Skeleton className="h-9 w-full rounded-md" />
+            </div>
+          ))}
+        </SkeletonRegion>
+      </div>
     )
   }
 
