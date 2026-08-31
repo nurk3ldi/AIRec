@@ -201,7 +201,16 @@ export default function AvatarCropper({
       // Marks this as a nested overlay so ProfileDialog's Escape handler
       // stands down while the cropper is up — otherwise one Escape closes both.
       data-nested-overlay
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-scrim p-4"
+      // **It arrives the way every other layer in this app does.** It was
+      // the one overlay that simply existed on the next frame — a full-screen
+      // dim and a panel, both at once, over a dialog that had itself faded in.
+      // A layer that appears without arriving does not say it is a layer.
+      //
+      // Entrance only: the parent unmounts this rather than closing it, so
+      // there is no frame left to play an exit on. The same limitation
+      // `ProfileDialog` solves with Motion, which is not worth pulling in for
+      // a nested panel that opens once.
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-scrim p-4 animate-[scrim-in_.22s_ease-out] motion-reduce:animate-none"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onCancel()
       }}
@@ -209,7 +218,7 @@ export default function AvatarCropper({
       {/* A border as well as the shadow: in dark mode the panel, the page and
           the shadow are all black, and the hairline is the only thing left
           that says this is a layer over something. */}
-      <div className="w-full max-w-[360px] rounded-2xl border border-line bg-surface p-5 shadow-[0_24px_48px_-12px_rgba(23,18,21,0.3)]">
+      <div className="w-full max-w-[360px] animate-[popover-in_.26s_cubic-bezier(0.32,0.72,0,1)] rounded-2xl border border-line bg-surface p-5 shadow-[0_24px_48px_-12px_rgba(23,18,21,0.3)] motion-reduce:animate-none">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-[16px] font-semibold text-ink">
             {title ?? t('cropper.title')}

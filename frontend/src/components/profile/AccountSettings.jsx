@@ -27,6 +27,7 @@ import {
   uploadAvatar,
 } from '../../lib/api'
 import { authed, saveTokens, verifySession } from '../../lib/auth'
+import Reveal from '../Reveal'
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 const FORM_ID = 'account-settings-form'
@@ -795,14 +796,14 @@ export default function AccountSettings({ onUserChange, onClose }) {
             />
           </form>
 
-          {pwError && (
+          <Reveal open={Boolean(pwError)}>
             <p
               role="alert"
               className="mt-3 text-center text-[13px] text-danger"
             >
               {pwError}
             </p>
-          )}
+          </Reveal>
 
           <div className="mt-3 flex flex-col items-center gap-1.5">
             {pwMode === 'code' ? (
@@ -963,14 +964,14 @@ export default function AccountSettings({ onUserChange, onClose }) {
             />
           </form>
 
-          {codeError && (
+          <Reveal open={Boolean(codeError)}>
             <p
               role="alert"
               className="mt-3 text-center text-[13px] text-danger"
             >
               {codeError}
             </p>
-          )}
+          </Reveal>
 
           <div className="mt-3 flex flex-col items-center gap-1.5">
             <button
@@ -1102,11 +1103,11 @@ export default function AccountSettings({ onUserChange, onClose }) {
             </button>
           )}
 
-          {avatarError && (
+          <Reveal open={Boolean(avatarError)}>
             <p role="alert" className="text-center text-[13px] text-danger">
               {avatarError}
             </p>
-          )}
+          </Reveal>
 
           <input
             ref={fileInputRef}
@@ -1211,11 +1212,11 @@ export default function AccountSettings({ onUserChange, onClose }) {
 
         {/* Failures only — a successful save shows its result in the fields
             themselves, so a confirmation line would just be noise. */}
-        {error && (
+        <Reveal open={Boolean(error)}>
           <p role="alert" className="mt-3 text-center text-[13px] text-danger">
             {error}
           </p>
-        )}
+        </Reveal>
       </div>
 
       {/* Pinned: the actions stay reachable however far the column scrolls. */}

@@ -9,6 +9,7 @@ import { dayProblem } from '../../lib/schedule'
 import { haptic } from '../../lib/haptics'
 import { useT } from '../../lib/i18n'
 import TimeField from '../appointments/TimeField'
+import Reveal from '../Reveal'
 
 /**
  * The working week — the hours the assistant may offer, and the ones it may
@@ -191,7 +192,12 @@ export default function HoursCard({ week, onSaved }) {
           {t('assistant.hours')}
         </h2>
         <div className="flex shrink-0 items-center gap-1">
-        {editing && (
+        {/* **The row opens to let it in.** «Отмена» is the direct result of
+            pressing «Редактировать», so it has to arrive from somewhere rather
+            than be there on the next frame — and the somewhere is the row it
+            widens. Same shape as the price list's red minus, which is the one
+            other control on this page that a mode reveals. */}
+        <Reveal open={editing} axis="x">
           <button
             type="button"
             onClick={cancel}
@@ -200,7 +206,7 @@ export default function HoursCard({ week, onSaved }) {
           >
             {t('assistant.cancel')}
           </button>
-        )}
+        </Reveal>
         <button
           type="button"
           onClick={() => (editing ? done() : setEditing(true))}
@@ -371,7 +377,13 @@ export default function HoursCard({ week, onSaved }) {
 
           The label is what the numbers are *of* — «10:00 — 21:00» on its own
           says a span and not which span, and this card holds two of them. */}
-      {stateOf(day) === 'working' && (
+      {/* **Closing a day takes its hours away, so they leave the way they
+          arrived.** Pressing «Выходной» removed two rows of fields on one
+          frame and the card jumped up by their height; pressing «Работает»
+          put them back the same way. It is the clearest cause-and-effect on
+          this card — a press, and the thing the press is about — so it is
+          worth the only motion here that changes a height. */}
+      <Reveal open={stateOf(day) === 'working'}>
         <div className="mt-3 flex flex-col gap-1.5">
           <div className="flex items-center gap-1.5">
             <span className="min-w-0 flex-1 truncate text-[12px] text-muted">
@@ -461,7 +473,7 @@ export default function HoursCard({ week, onSaved }) {
             </button>
           ) : null}
         </div>
-      )}
+      </Reveal>
 
       {/* The first unreadable day, said in words rather than as a 422 naming a
           weekday number. Save is held until it is fixed. */}

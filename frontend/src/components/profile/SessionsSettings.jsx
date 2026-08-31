@@ -16,6 +16,7 @@ import {
 import { authed, clearTokens } from '../../lib/auth'
 import { getLocale, translate, useT } from '../../lib/i18n'
 import Skeleton, { SkeletonRegion } from '../Skeleton'
+import Reveal from '../Reveal'
 
 // Mirrors `account_deletion_grace_days` on the backend. Only used for copy —
 // the deadline the user is actually held to is the server's.
@@ -149,7 +150,7 @@ export default function SessionsSettings({ user }) {
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pt-2 pb-6">
       <p className="shrink-0 text-[14px] text-muted">{t('security.lead')}</p>
 
-      {error && (
+      <Reveal open={Boolean(error)} className="shrink-0">
         <p
           role="alert"
           className="mt-4 inline-flex shrink-0 items-center gap-1.5 text-[13px] text-danger"
@@ -163,7 +164,7 @@ export default function SessionsSettings({ user }) {
           />
           {error}
         </p>
-      )}
+      </Reveal>
 
       {sessions === null ? (
         // **The rows, not the word.** «Загрузка…» is a sentence where a list is
@@ -349,11 +350,11 @@ export default function SessionsSettings({ user }) {
                 />
               </div>
 
-              {deleteError && (
+              <Reveal open={Boolean(deleteError)}>
                 <p role="alert" className="text-[13px] text-danger">
                   {deleteError}
                 </p>
-              )}
+              </Reveal>
 
               <div className="flex items-center justify-end gap-2">
                 <button

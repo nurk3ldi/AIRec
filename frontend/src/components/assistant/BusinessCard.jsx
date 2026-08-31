@@ -6,6 +6,7 @@ import { haptic } from '../../lib/haptics'
 import { useT } from '../../lib/i18n'
 import { Field } from './fields'
 import MultiSelect from './MultiSelect'
+import Reveal from '../Reveal'
 
 /**
  * What the assistant knows about the business it answers for.
@@ -150,7 +151,12 @@ export default function BusinessCard({ business, onSaved, className = '' }) {
           {t('assistant.business')}
         </h2>
         <div className="flex shrink-0 items-center gap-1">
-        {editing && (
+        {/* **The row opens to let it in.** «Отмена» is the direct result of
+            pressing «Редактировать», so it has to arrive from somewhere rather
+            than be there on the next frame — and the somewhere is the row it
+            widens. Same shape as the price list's red minus, which is the one
+            other control on this page that a mode reveals. */}
+        <Reveal open={editing} axis="x">
           <button
             type="button"
             onClick={cancel}
@@ -159,7 +165,7 @@ export default function BusinessCard({ business, onSaved, className = '' }) {
           >
             {t('assistant.cancel')}
           </button>
-        )}
+        </Reveal>
         <button
           type="button"
           onClick={() => (editing ? done() : setEditing(true))}

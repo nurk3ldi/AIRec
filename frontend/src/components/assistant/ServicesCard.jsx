@@ -9,6 +9,7 @@ import { saveServices } from '../../lib/api'
 import { authed } from '../../lib/auth'
 import { haptic } from '../../lib/haptics'
 import { useT } from '../../lib/i18n'
+import Reveal from '../Reveal'
 
 /**
  * The price list — what the assistant can offer, how long each takes and what
@@ -257,7 +258,9 @@ export default function ServicesCard({ services, onSaved }) {
           {/* Plain text rather than a filled pill: «Добавить» is the action
               this card is for, and a second filled shape beside it would make
               two of them look equally like the thing to press. */}
-          {editing && (
+          {/* The row opens to let it in — see the same note on the other
+              three cards. */}
+          <Reveal open={editing} axis="x">
             <button
               type="button"
               onClick={cancel}
@@ -266,7 +269,7 @@ export default function ServicesCard({ services, onSaved }) {
             >
               {t('assistant.cancel')}
             </button>
-          )}
+          </Reveal>
           {rows.length > 0 && (
             <button
               type="button"
