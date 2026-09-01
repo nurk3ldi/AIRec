@@ -19,9 +19,11 @@ import { PANEL_MOTION } from '../appointments/panel'
  * же полоса узкая, и собственные поля карточки съедали бы у каждой строки
  * сорок с лишним пикселей на то, чтобы сообщить, что она карточка.
  *
- * **Время стоит у реплики, а не у имени.** Оно относится к тому, что было
- * сказано последним, и рядом с ним и читается; у имени оно оказалось бы
- * подписью к человеку, а человек не происходил в 14:22.
+ * **Время — в верхней строке, у правого края.** Так его собирают все списки
+ * переписок, и не по привычке: время — то, по чему список отсортирован, а
+ * колонка, задающая порядок, читается сверху вниз одним движением. Уехав вниз,
+ * к реплике, оно вставало в неровный столбец — реплики разной длины, и правый
+ * край у них у каждой свой.
  *
  * **Меню — три точки у правого края, по центру строки.** По центру, потому что
  * оно относится ко всей строке, а не к одной из двух её линий. В нём два
@@ -58,7 +60,7 @@ export default function ChatRow({ chat, selected, onSelect, onAction }) {
         }`}
       >
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-baseline gap-2">
             {chat.pinned && (
               <HugeiconsIcon
                 icon={PinIcon}
@@ -67,31 +69,31 @@ export default function ChatRow({ chat, selected, onSelect, onAction }) {
                 aria-hidden="true"
                 // Залитая, а не контурная: на тринадцати пикселях контур
                 // читается как пятно, а закреплённость — состояние, а не намёк.
-                className="shrink-0 text-muted [&_path]:fill-current"
+                className="shrink-0 self-center text-muted [&_path]:fill-current"
               />
             )}
             <p className="min-w-0 flex-1 truncate text-[15px] font-medium text-ink">
               {chat.client_name || chat.client_phone}
             </p>
-          </div>
-
-          <div className="mt-0.5 flex items-baseline gap-2">
-            <p className="min-w-0 flex-1 truncate text-[13px] text-muted">
-              {/* Кто сказал — половина смысла реплики: «записал вас на четверг»
-                  от ассистента и от клиента значат разное. Клиента не
-                  подписываем: он и есть тот, чьё имя стоит строкой выше. */}
-              {chat.last_message_author === 'assistant' && (
-                <span className="text-ink/70">{t('inbox.byAssistant')}: </span>
-              )}
-              {chat.last_message_author === 'owner' && (
-                <span className="text-ink/70">{t('inbox.byYou')}: </span>
-              )}
-              {chat.last_message_preview}
-            </p>
+            {/* `tabular-nums`, чтобы столбец не дёргался, когда «9:05» сменяется
+                на «14:22»: у пропорциональных цифр разная ширина. */}
             <time className="shrink-0 text-[12px] text-muted tabular-nums">
               {stamp(chat.last_message_at)}
             </time>
           </div>
+
+          <p className="mt-0.5 truncate text-[13px] text-muted">
+            {/* Кто сказал — половина смысла реплики: «записал вас на четверг»
+                от ассистента и от клиента значат разное. Клиента не
+                подписываем: он и есть тот, чьё имя стоит строкой выше. */}
+            {chat.last_message_author === 'assistant' && (
+              <span className="text-ink/70">{t('inbox.byAssistant')}: </span>
+            )}
+            {chat.last_message_author === 'owner' && (
+              <span className="text-ink/70">{t('inbox.byYou')}: </span>
+            )}
+            {chat.last_message_preview}
+          </p>
         </div>
       </button>
 
