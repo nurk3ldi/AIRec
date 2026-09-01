@@ -3,7 +3,7 @@ import * as Popover from '@radix-ui/react-popover'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Delete02Icon,
-  More02Icon,
+  MoreHorizontalIcon,
   PinIcon,
   PinOffIcon,
 } from '@hugeicons/core-free-icons'
@@ -19,15 +19,14 @@ import { PANEL_MOTION } from '../appointments/panel'
  * же полоса узкая, и собственные поля карточки съедали бы у каждой строки
  * сорок с лишним пикселей на то, чтобы сообщить, что она карточка.
  *
- * **Время — в верхней строке, у правого края.** Так его собирают все списки
- * переписок, и не по привычке: время — то, по чему список отсортирован, а
- * колонка, задающая порядок, читается сверху вниз одним движением. Уехав вниз,
- * к реплике, оно вставало в неровный столбец — реплики разной длины, и правый
- * край у них у каждой свой.
+ * **Справа — колонка из двух: время сверху, меню снизу.** Оба относятся ко
+ * всей строке, а не к одной из её линий, и стоят в собственном столбце, чтобы
+ * левая часть могла усекаться, ни на что не наезжая. Время наверху потому, что
+ * по нему список отсортирован, а колонка, задающая порядок, читается сверху
+ * вниз одним движением.
  *
- * **Меню — три точки у правого края, по центру строки.** По центру, потому что
- * оно относится ко всей строке, а не к одной из двух её линий. В нём два
- * действия: закрепить и удалить.
+ * Знак меню — `MoreHorizontal`, три точки. `More02` рисует сетку три на три:
+ * девять точек — это «все приложения», а не «действия над этой строкой».
  *
  * **Удаление просит второго нажатия, а не диалога.** Диалог поверх поповера —
  * слой на слое ради вопроса в два слова; а одна красная кнопка рядом с
@@ -48,103 +47,109 @@ export default function ChatRow({ chat, selected, onSelect, onAction }) {
   }
 
   return (
-    <li className="relative">
+    // **Заливка живёт на строке, а не на кнопке.** Справа от кнопки стоит
+    // собственная колонка со временем и меню, и подсветка обязана накрывать её
+    // тоже — иначе выделенная строка обрывается посередине.
+    <li
+      className={`flex items-stretch rounded-xl transition-colors ${
+        selected ? 'bg-ink/6' : 'hover:bg-ink/4'
+      }`}
+    >
       <button
         type="button"
         onClick={() => onSelect?.(chat)}
-        // **`pr-10` держит место под меню.** Кнопка с тремя точками лежит
-        // поверх строки абсолютом, и без этого запаса реплика уезжала бы под
-        // неё: текст обрезался бы там, где его ничто не обрезает на вид.
-        className={`flex w-full items-center gap-2 rounded-xl py-3 pr-10 pl-3 text-left outline-none transition-colors ${
-          selected ? 'bg-ink/6' : 'hover:bg-ink/4 active:bg-ink/8'
-        }`}
+        className="min-w-0 flex-1 py-3 pr-2 pl-3 text-left outline-none"
       >
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-2">
-            {chat.pinned && (
-              <HugeiconsIcon
-                icon={PinIcon}
-                size={13}
-                strokeWidth={2}
-                aria-hidden="true"
-                // Залитая, а не контурная: на тринадцати пикселях контур
-                // читается как пятно, а закреплённость — состояние, а не намёк.
-                className="shrink-0 self-center text-muted [&_path]:fill-current"
-              />
-            )}
-            <p className="min-w-0 flex-1 truncate text-[15px] font-medium text-ink">
-              {chat.client_name || chat.client_phone}
-            </p>
-            {/* `tabular-nums`, чтобы столбец не дёргался, когда «9:05» сменяется
-                на «14:22»: у пропорциональных цифр разная ширина. */}
-            <time className="shrink-0 text-[12px] text-muted tabular-nums">
-              {stamp(chat.last_message_at)}
-            </time>
-          </div>
-
-          <p className="mt-0.5 truncate text-[13px] text-muted">
-            {/* Кто сказал — половина смысла реплики: «записал вас на четверг»
-                от ассистента и от клиента значат разное. Клиента не
-                подписываем: он и есть тот, чьё имя стоит строкой выше. */}
-            {chat.last_message_author === 'assistant' && (
-              <span className="text-ink/70">{t('inbox.byAssistant')}: </span>
-            )}
-            {chat.last_message_author === 'owner' && (
-              <span className="text-ink/70">{t('inbox.byYou')}: </span>
-            )}
-            {chat.last_message_preview}
+        <div className="flex items-center gap-1.5">
+          {chat.pinned && (
+            <HugeiconsIcon
+              icon={PinIcon}
+              size={13}
+              strokeWidth={2}
+              aria-hidden="true"
+              // Залитая, а не контурная: на тринадцати пикселях контур читается
+              // как пятно, а закреплённость — состояние, а не намёк.
+              className="shrink-0 text-muted [&_path]:fill-current"
+            />
+          )}
+          <p className="min-w-0 flex-1 truncate text-[15px] font-medium text-ink">
+            {chat.client_name || chat.client_phone}
           </p>
         </div>
+
+        <p className="mt-0.5 truncate text-[13px] text-muted">
+          {/* Кто сказал — половина смысла реплики: «записал вас на четверг» от
+              ассистента и от клиента значат разное. Клиента не подписываем: он
+              и есть тот, чьё имя стоит строкой выше. */}
+          {chat.last_message_author === 'assistant' && (
+            <span className="text-ink/70">{t('inbox.byAssistant')}: </span>
+          )}
+          {chat.last_message_author === 'owner' && (
+            <span className="text-ink/70">{t('inbox.byYou')}: </span>
+          )}
+          {chat.last_message_preview}
+        </p>
       </button>
 
-      {/* Вне кнопки строки, а не внутри: кнопка в кнопке — недопустимая
-          вложенность, и нажатие на меню открывало бы заодно и разговор. */}
-      <Popover.Root
-        open={menuOpen}
-        onOpenChange={(next) => {
-          setMenuOpen(next)
-          // Закрыли, не подтвердив, — значит передумали; в следующий раз меню
-          // должно открыться в спокойном состоянии.
-          if (!next) setConfirming(false)
-        }}
-      >
-        <Popover.Trigger asChild>
-          <button
-            type="button"
-            aria-label={t('inbox.actions')}
-            className="absolute top-1/2 right-1 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-muted outline-none transition-[color,background-color,scale] duration-150 ease-out hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6 focus-visible:text-ink active:scale-[0.95]"
-          >
-            <HugeiconsIcon icon={More02Icon} size={16} strokeWidth={2} />
-          </button>
-        </Popover.Trigger>
+      {/* Колонка справа. Меню вне кнопки строки, а не внутри: кнопка в кнопке —
+          недопустимая вложенность, и нажатие на меню открывало бы заодно и
+          разговор. */}
+      <div className="flex shrink-0 flex-col items-end justify-between py-3 pr-2">
+        {/* `tabular-nums`, чтобы столбец не дёргался, когда «9:05» сменяется на
+            «14:22»: у пропорциональных цифр разная ширина. */}
+        <time className="text-[12px] leading-none text-muted tabular-nums">
+          {stamp(chat.last_message_at)}
+        </time>
 
-        <Popover.Portal>
-          <Popover.Content
-            align="end"
-            side="bottom"
-            sideOffset={4}
-            collisionPadding={12}
-            className={`z-50 w-44 rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none ${PANEL_MOTION}`}
-          >
-            <MenuItem
-              icon={chat.pinned ? PinOffIcon : PinIcon}
-              onClick={() => act(chat.pinned ? 'unpin' : 'pin')}
+        <Popover.Root
+          open={menuOpen}
+          onOpenChange={(next) => {
+            setMenuOpen(next)
+            // Закрыли, не подтвердив, — значит передумали; в следующий раз меню
+            // должно открыться в спокойном состоянии.
+            if (!next) setConfirming(false)
+          }}
+        >
+          <Popover.Trigger asChild>
+            <button
+              type="button"
+              aria-label={t('inbox.actions')}
+              className="-mr-1 -mb-1 grid h-7 w-7 place-items-center rounded-lg text-muted outline-none transition-[color,background-color,scale] duration-150 ease-out hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6 focus-visible:text-ink active:scale-[0.95]"
             >
-              {t(chat.pinned ? 'inbox.unpin' : 'inbox.pin')}
-            </MenuItem>
+              <HugeiconsIcon
+                icon={MoreHorizontalIcon}
+                size={16}
+                strokeWidth={2}
+              />
+            </button>
+          </Popover.Trigger>
 
-            <MenuItem
-              icon={Delete02Icon}
-              tone="danger"
-              onClick={() =>
-                confirming ? act('delete') : setConfirming(true)
-              }
+          <Popover.Portal>
+            <Popover.Content
+              align="end"
+              side="bottom"
+              sideOffset={4}
+              collisionPadding={12}
+              className={`z-50 w-44 rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none ${PANEL_MOTION}`}
             >
-              {t(confirming ? 'inbox.deleteConfirm' : 'inbox.delete')}
-            </MenuItem>
-          </Popover.Content>
-        </Popover.Portal>
-      </Popover.Root>
+              <MenuItem
+                icon={chat.pinned ? PinOffIcon : PinIcon}
+                onClick={() => act(chat.pinned ? 'unpin' : 'pin')}
+              >
+                {t(chat.pinned ? 'inbox.unpin' : 'inbox.pin')}
+              </MenuItem>
+
+              <MenuItem
+                icon={Delete02Icon}
+                tone="danger"
+                onClick={() => (confirming ? act('delete') : setConfirming(true))}
+              >
+                {t(confirming ? 'inbox.deleteConfirm' : 'inbox.delete')}
+              </MenuItem>
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
+      </div>
     </li>
   )
 }
