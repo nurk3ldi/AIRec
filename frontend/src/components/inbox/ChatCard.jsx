@@ -98,11 +98,11 @@ export default function ChatCard({ chat, className = '' }) {
  * слабее: на карточке, где всё одного цвета, линия — единственное, что задаёт
  * структуру.
  *
- * **Прижат вправо и поднят под шапку.** Правый край — потому что слева уже
- * стоит, чей это разговор: две колонки, каждая со своим краем, вместо одной
- * ленты по центру. Вверх — потому что по центру карточки над блоком оставалась
- * полоса пустоты, которая ничего не разделяла; воздух внизу, где ещё встанут
- * состояние и время, работает, а воздух посередине просто был.
+ * **Прижат влево и поднят под шапку.** Влево — к тому же краю, что номер и
+ * имя: одна вертикаль, вдоль которой читается вся карточка, вместо двух, между
+ * которыми взгляд ходит туда-обратно. Вверх — потому что по центру карточки над
+ * блоком оставалась полоса пустоты, которая ничего не разделяла; воздух внизу,
+ * где ещё встанут состояние и время, работает, а воздух посередине просто был.
  *
  * **Всё в `ink`.** Ни одна строка здесь не приписка к другой: услуга, цена и
  * время — три равноправные части одного факта.
@@ -120,25 +120,25 @@ function Booking({ booking }) {
 
   return (
     <div className="mt-5 flex min-w-0 flex-col">
-      <p className="truncate text-right text-[13px] text-ink">
+      <p className="truncate text-[13px] text-ink">
         {from.toLocaleDateString(getLocale(), {
           day: 'numeric',
           month: 'long',
         })}
       </p>
 
-      <p className="mt-1 truncate text-right font-display text-[24px] leading-tight font-semibold tracking-[-0.02em] text-ink tabular-nums">
+      <p className="mt-1 truncate font-display text-[24px] leading-tight font-semibold tracking-[-0.02em] text-ink tabular-nums">
         {clock(from)}
         {to && ` — ${clock(to)}`}
       </p>
 
       {/* Линия во всю ширину — она делит карточку, а не строку; сами ячейки
-          прижаты вправо, к тому же краю, что и всё выше. */}
-      <div className="mt-4 flex min-w-0 items-center justify-end divide-x divide-line border-t border-line pt-4">
-        <p className="min-w-0 truncate pr-3 text-right text-[15px] text-ink">
+          прижаты влево, к тому же краю, что и всё выше. */}
+      <div className="mt-4 flex min-w-0 items-center divide-x divide-line border-t border-line pt-4">
+        <p className="min-w-0 truncate pr-3 text-[15px] text-ink">
           {booking.service_name}
         </p>
-        <p className="shrink-0 pl-3 text-right text-[15px] text-ink">
+        <p className="shrink-0 pl-3 text-[15px] text-ink">
           {formatPrice(booking.price)}
         </p>
       </div>
