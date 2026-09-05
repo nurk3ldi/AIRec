@@ -23,8 +23,8 @@ import {
  */
 export const NAVIGATION = [
   { labelKey: 'nav.dashboard', href: '/dashboard', icon: Home01Icon },
-  { labelKey: 'nav.inbox', href: '/inbox', icon: Chat01Icon },
   { labelKey: 'nav.appointments', href: '/appointments', icon: NoteIcon },
+  { labelKey: 'nav.inbox', href: '/inbox', icon: Chat01Icon },
   { labelKey: 'nav.assistant', href: '/assistant', icon: AiScanIcon },
 ]
 
