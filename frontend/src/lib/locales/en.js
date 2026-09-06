@@ -29,6 +29,8 @@ export default {
   'notes.noText': 'No additional text',
   'notes.placeholder': 'Start writing…',
   'notes.deleteConfirm': 'Delete?',
+  'notes.bold': 'Bold',
+  'notes.todo': 'To-do list',
   'notes.all': 'All notes',
   'notes.archive': 'Archive',
   'notes.trash': 'Trash',

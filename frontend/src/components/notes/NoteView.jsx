@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Delete02Icon, NoteAddIcon } from '@hugeicons/core-free-icons'
+import {
+  CheckListIcon,
+  Delete02Icon,
+  NoteAddIcon,
+  TextBoldIcon,
+} from '@hugeicons/core-free-icons'
 import { useT } from '../../lib/i18n'
 
 /** Через сколько тишины сохранять написанное. */
@@ -35,6 +40,15 @@ const SAVE_AFTER_MS = 600
  * двух слов был бы слоем поверх слоя, а одна красная кнопка рядом с текстом —
  * один промах от чужого дня.
  *
+ * **Посередине — жирный и список задач.** Оба правят текст, а не оформление
+ * поля: заметка лежит в базе одной колонкой обычного текста, так что жирное —
+ * это `**слово**`, а пункт списка — `- [ ] строка`. Разметка остаётся видимой,
+ * потому что показывать её иначе нечем: чтобы текст в самом поле стал жирным,
+ * нужен редактор с форматированием и другой формат хранения — HTML вместо
+ * текста, а с ним и другой поиск, и другой заголовок, и очистка чужого HTML.
+ * Это отдельная работа, и делать её вслепую дороже, чем сначала посмотреть на
+ * разметку.
+ *
  * **Черновик живёт здесь, а не на странице.** Пока в поле печатают, состояние
  * меняется на каждом символе, и держать его выше значило бы перерисовывать при
  * этом обе соседние полосы.
@@ -52,6 +66,7 @@ export default function NoteView({
   // «удалить ещё раз» относилось к той, что была открыта, а не к следующей.
   const [confirming, setConfirming] = useState(false)
   const timer = useRef(null)
+  const field = useRef(null)
 
   // Открыли другую заметку — в поле её текст. Ключ — id, а не тело, и это
   // намеренно: сохранение возвращает `note.body` с сервера, и будь он в
@@ -72,6 +87,76 @@ export default function NoteView({
     clearTimeout(timer.current)
     timer.current = setTimeout(() => onChange(note.id, value), SAVE_AFTER_MS)
   }
+
+  /**
+   * Правка вокруг курсора, с возвратом фокуса и выделения.
+   *
+   * Без этого каждая кнопка выбрасывала бы из текста: нажатие уводит фокус на
+   * неё, и печатать после этого приходится, снова прицелившись мышью. Позиция
+   * ставится в следующем кадре — до перерисовки её негде выставлять.
+   */
+  const edit = (change) => {
+    const el = field.current
+    if (!el) return
+
+    const { value, selectionStart: from, selectionEnd: to } = el
+    const next = change(value, from, to)
+    write(next.value)
+
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(next.from, next.to)
+    })
+  }
+
+  /** Оборачивает выделенное в `**…**`, а снятое — разворачивает обратно. */
+  const bold = () =>
+    edit((value, from, to) => {
+      const picked = value.slice(from, to)
+      const wrapped =
+        value.slice(from - 2, from) === '**' && value.slice(to, to + 2) === '**'
+
+      if (wrapped) {
+        return {
+          value: value.slice(0, from - 2) + picked + value.slice(to + 2),
+          from: from - 2,
+          to: to - 2,
+        }
+      }
+
+      return {
+        value: `${value.slice(0, from)}**${picked}**${value.slice(to)}`,
+        // Без выделения курсор встаёт между звёздочками — туда, где начнут
+        // печатать.
+        from: from + 2,
+        to: to + 2,
+      }
+    })
+
+  /** Помечает строки под курсором как пункты списка — или снимает пометку. */
+  const todo = () =>
+    edit((value, from, to) => {
+      const head = value.lastIndexOf('\n', from - 1) + 1
+      const tailAt = value.indexOf('\n', to)
+      const tail = tailAt === -1 ? value.length : tailAt
+
+      const lines = value.slice(head, tail).split('\n')
+      const marked = lines.every((line) => /^\s*- \[[ x]\] /.test(line))
+      const next = lines
+        .map((line) =>
+          marked
+            ? line.replace(/^(\s*)- \[[ x]\] /, '$1')
+            : line.replace(/^(\s*)/, '$1- [ ] '),
+        )
+        .join('\n')
+
+      const shift = next.length - (tail - head)
+      return {
+        value: value.slice(0, head) + next + value.slice(tail),
+        from: from + (marked ? -6 : 6),
+        to: to + shift,
+      }
+    })
 
   return (
     <section className={`flex flex-col ${className}`}>
@@ -109,6 +194,15 @@ export default function NoteView({
           <span className="h-9" />
         )}
 
+        {/* Правки текста — посередине, между тем, что убирает заметку, и тем,
+            что заводит следующую: они относятся к открытой, а не к списку. */}
+        {note && (
+          <div className="flex items-center gap-1">
+            <ToolButton icon={TextBoldIcon} label={t('notes.bold')} onClick={bold} />
+            <ToolButton icon={CheckListIcon} label={t('notes.todo')} onClick={todo} />
+          </div>
+        )}
+
         <button
           type="button"
           onClick={onCreate}
@@ -127,6 +221,7 @@ export default function NoteView({
 
       {note ? (
         <textarea
+          ref={field}
           value={draft}
           onChange={(event) => write(event.target.value)}
           placeholder={t('notes.placeholder')}
@@ -142,5 +237,25 @@ export default function NoteView({
         <div className="min-h-0 flex-1" />
       )}
     </section>
+  )
+}
+
+/** Одна кнопка правки: значок и подпись только для чтения с экрана. */
+function ToolButton({ icon, label, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="grid h-9 w-9 place-items-center rounded-lg text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/6 focus-visible:bg-ink/6 active:scale-[0.95]"
+    >
+      <HugeiconsIcon
+        icon={icon}
+        size={18}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.9}
+      />
+    </button>
   )
 }

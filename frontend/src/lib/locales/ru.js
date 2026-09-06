@@ -35,6 +35,8 @@ export default {
   'notes.noText': 'Нет дополнительного текста',
   'notes.placeholder': 'Начните писать…',
   'notes.deleteConfirm': 'Удалить?',
+  'notes.bold': 'Жирный',
+  'notes.todo': 'Список задач',
   'notes.all': 'Все заметки',
   'notes.archive': 'Архив',
   'notes.trash': 'Корзина',

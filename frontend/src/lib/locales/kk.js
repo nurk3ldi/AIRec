@@ -29,6 +29,8 @@ export default {
   'notes.noText': 'Қосымша мәтін жоқ',
   'notes.placeholder': 'Жаза бастаңыз…',
   'notes.deleteConfirm': 'Өшірілсін бе?',
+  'notes.bold': 'Қалың',
+  'notes.todo': 'Тапсырмалар тізімі',
   'notes.all': 'Барлық жазбалар',
   'notes.archive': 'Архив',
   'notes.trash': 'Себет',
