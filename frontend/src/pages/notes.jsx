@@ -52,6 +52,17 @@ export default function NotesPage() {
     setFolder(id)
   }
 
+  const renameFolder = (id, name) =>
+    setCustom((was) => was.map((f) => (f.id === id ? { ...f, name } : f)))
+
+  // В архив и в корзину — пока просто «убрать из списка»: показывать
+  // содержимое этих двух папок ещё нечем, а держать строку на месте после
+  // «удалить» значит соврать о том, что действие произошло.
+  const moveFolder = (id) => {
+    setCustom((was) => was.filter((f) => f.id !== id))
+    setFolder((open) => (open === id ? 'all' : open))
+  }
+
   return (
     <div
       className={`${styles.page} flex h-[calc(100vh-118px-env(safe-area-inset-bottom))] divide-x divide-line overflow-hidden sm:h-[calc(100vh-68px)]`}
@@ -62,6 +73,8 @@ export default function NotesPage() {
         onChange={setFolder}
         custom={custom}
         onCreate={createFolder}
+        onRename={renameFolder}
+        onMove={moveFolder}
         className="hidden w-[20%] shrink-0 sm:flex"
       />
 
