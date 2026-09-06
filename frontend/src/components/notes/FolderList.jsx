@@ -160,8 +160,10 @@ function Row({
   onMove,
 }) {
   return (
+    // `group` — то, за что цепляется появление меню: три точки показываются,
+    // когда курсор на строке, а не когда он на них самих.
     <div
-      className={`flex items-center rounded-lg transition-colors ${
+      className={`group flex items-center rounded-lg transition-colors ${
         isActive ? 'bg-surface-chip' : 'hover:bg-ink/5'
       }`}
     >
@@ -228,7 +230,23 @@ function NameField({ value, onDone }) {
   )
 }
 
-/** Три точки и то, что за ними. */
+/**
+ * Три точки и то, что за ними.
+ *
+ * **Показываются по наведению, а не всегда.** В спокойном списке три точки у
+ * каждой строки — это столбец значков, который читается как часть названий и
+ * соревнуется с ними за внимание; действие же нужно раз в сотню открытий.
+ *
+ * Видны в трёх случаях: курсор на строке, кнопка получила фокус с клавиатуры и
+ * меню открыто — последнее обязательно, иначе точки исчезали бы в тот момент,
+ * когда курсор уходит с них на пункт меню, и меню оставалось бы висеть без
+ * своего основания.
+ *
+ * **На телефоне наведения нет** — Tailwind заворачивает `hover:` в
+ * `@media (hover: hover)`, — но эта полоса и так скрыта ниже `sm`: как папки
+ * попадут на телефон, решается отдельно, и вместе с этим решится, чем там
+ * открывать меню.
+ */
 function FolderMenu({ onRename, onMove }) {
   const t = useT()
   const [open, setOpen] = useState(false)
@@ -244,7 +262,9 @@ function FolderMenu({ onRename, onMove }) {
         <button
           type="button"
           aria-label={t('notes.folderActions')}
-          className="mr-1 grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted outline-none transition-[color,background-color,scale] duration-150 ease-out hover:bg-ink/8 hover:text-ink focus-visible:bg-ink/8 focus-visible:text-ink active:scale-[0.95]"
+          className={`mr-1 grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted opacity-0 outline-none transition-[color,background-color,opacity,scale] duration-150 ease-out group-hover:opacity-100 hover:bg-ink/8 hover:text-ink focus-visible:bg-ink/8 focus-visible:text-ink focus-visible:opacity-100 active:scale-[0.95] ${
+            open ? 'opacity-100' : ''
+          }`}
         >
           <HugeiconsIcon icon={MoreHorizontalIcon} size={16} strokeWidth={2} />
         </button>
