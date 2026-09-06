@@ -38,12 +38,12 @@ export default function NotesPage() {
       aria-label={t('nav.notes')}
     >
       {/* Папки */}
-      <div className="hidden w-1/4 shrink-0 sm:block" />
+      <div className="hidden w-[20%] shrink-0 sm:block" />
 
       {/* Список заметок */}
-      <div className="hidden w-1/4 shrink-0 sm:block" />
+      <div className="hidden w-[25%] shrink-0 sm:block" />
 
-      {/* Сама заметка — половина ширины, и она же единственная на телефоне. */}
+      {/* Сама заметка — оставшиеся 55%, и она же единственная на телефоне. */}
       <div className="min-w-0 flex-1" />
     </div>
   )
