@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Query, status
 
-from app.api.deps import CurrentUser, NoteFolderServiceDep
+from app.api.deps import CurrentUser, NoteFolderServiceDep, NoteServiceDep
+from app.schemas.note import (
+    CreateNoteRequest,
+    NotePublic,
+    UpdateNoteRequest,
+)
 from app.schemas.note_folder import (
     CreateNoteFolderRequest,
     NoteFolderPublic,
@@ -69,3 +75,70 @@ async def delete_folder(
     """Removes the row. Putting a folder *into* the bin is a PATCH with
     `{"trashed": true}` — this is the act that follows it."""
     await folders.delete(user, folder_id)
+
+
+@router.get("", response_model=list[NotePublic], summary="Notes, newest first")
+async def list_notes(
+    user: CurrentUser,
+    notes: NoteServiceDep,
+    folder: Annotated[
+        uuid.UUID | None,
+        Query(description="Only this folder. Omit for every note."),
+    ] = None,
+    archived: Annotated[
+        bool | None, Query(description="Default false. Null includes both.")
+    ] = False,
+    trashed: Annotated[
+        bool | None, Query(description="Default false. Null includes both.")
+    ] = False,
+    query: Annotated[
+        str | None,
+        Query(max_length=200, description="Anything written in the note."),
+    ] = None,
+):
+    return await notes.list(
+        user,
+        folder_id=folder,
+        archived=archived,
+        trashed=trashed,
+        query=query,
+    )
+
+
+@router.post(
+    "",
+    response_model=NotePublic,
+    status_code=status.HTTP_201_CREATED,
+    summary="Start a note",
+)
+async def create_note(
+    payload: CreateNoteRequest,
+    user: CurrentUser,
+    notes: NoteServiceDep,
+):
+    """Empty, and in whichever folder is open. The owner pressed this to write;
+    anything pre-filled would be something to delete first."""
+    return await notes.create(user, payload)
+
+
+@router.patch(
+    "/{note_id}", response_model=NotePublic, summary="Write into it, or move it"
+)
+async def update_note(
+    note_id: uuid.UUID,
+    payload: UpdateNoteRequest,
+    user: CurrentUser,
+    notes: NoteServiceDep,
+):
+    return await notes.update(user, note_id, payload)
+
+
+@router.delete(
+    "/{note_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Empty it out of the bin",
+)
+async def delete_note(
+    note_id: uuid.UUID, user: CurrentUser, notes: NoteServiceDep
+):
+    await notes.delete(user, note_id)

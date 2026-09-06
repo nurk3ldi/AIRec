@@ -18,6 +18,7 @@ from app.repositories.conversation import (
     MessageRepository,
 )
 from app.repositories.email_change import EmailChangeRepository
+from app.repositories.note import NoteRepository
 from app.repositories.note_folder import NoteFolderRepository
 from app.repositories.password_reset import PasswordResetRepository
 from app.repositories.refresh_token import RefreshTokenRepository
@@ -27,6 +28,7 @@ from app.services.appointment import AppointmentService
 from app.services.auth import AuthService, ClientInfo
 from app.services.business import BusinessService
 from app.services.conversation import ConversationService
+from app.services.note import NoteService
 from app.services.note_folder import NoteFolderService
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
@@ -80,6 +82,17 @@ def get_appointment_service(session: SessionDep) -> AppointmentService:
 AppointmentServiceDep = Annotated[
     AppointmentService, Depends(get_appointment_service)
 ]
+
+
+def get_note_service(session: SessionDep) -> NoteService:
+    return NoteService(
+        session=session,
+        businesses=get_business_service(session),
+        notes=NoteRepository(session),
+    )
+
+
+NoteServiceDep = Annotated[NoteService, Depends(get_note_service)]
 
 
 def get_note_folder_service(session: SessionDep) -> NoteFolderService:

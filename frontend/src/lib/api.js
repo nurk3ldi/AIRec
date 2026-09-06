@@ -395,6 +395,37 @@ export function resetPassword({ email, code, newPassword }) {
 /* --------------------------------------------------------------- Заметки */
 
 /**
+ * Заметки. `folder` не передан — все; `query` ищет по тексту, а раз заголовок —
+ * это первая строка тела, одно поле покрывает и то и другое.
+ */
+export function listNotes(accessToken, { folder, query } = {}) {
+  const params = new URLSearchParams()
+  if (folder) params.set('folder', folder)
+  if (query) params.set('query', query)
+
+  return request(`/notes?${params}`, { method: 'GET', accessToken })
+}
+
+/** Пустая заметка в открытой папке. */
+export function createNote(accessToken, folderId) {
+  return request('/notes', {
+    method: 'POST',
+    accessToken,
+    body: { folder_id: folderId ?? null },
+  })
+}
+
+export function updateNote(accessToken, id, changes) {
+  return request(`/notes/${id}`, { method: 'PATCH', accessToken, body: changes })
+}
+
+export function deleteNote(accessToken, id) {
+  return request(`/notes/${id}`, { method: 'DELETE', accessToken })
+}
+
+
+
+/**
  * Папки владельца — все, включая убранные в архив и в корзину.
  *
  * Одним списком, а не тремя запросами: боковая полоса рисует все три состояния

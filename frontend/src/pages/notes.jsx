@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
 import {
+  createNote,
   createNoteFolder,
   listNoteFolders,
+  listNotes,
+  updateNote,
   updateNoteFolder,
 } from '../lib/api'
 import { authed } from '../lib/auth'
@@ -96,6 +99,67 @@ export default function NotesPage() {
   // собственные содержимое, когда им будет что показывать.
   const shelf = (custom ?? []).filter((f) => !f.archived && !f.trashed)
 
+  /* ---------------------------------------------------------- заметки --- */
+
+  // `null`, пока не пришёл первый ответ, — это отличает «ещё спрашиваем» от
+  // «спросили, и их нет».
+  const [notes, setNotes] = useState(null)
+  const [openId, setOpenId] = useState(null)
+  const [query, setQuery] = useState('')
+
+  /**
+   * Что показывать в списке, решают папка и запрос.
+   *
+   * Спрашивает сервер, а не фильтр в памяти: искать нужно по всему тексту всех
+   * заметок, и держать их все в браузере ради этого значило бы грузить архив
+   * целиком, чтобы показать три строки.
+   */
+  useEffect(() => {
+    let alive = true
+    const params =
+      folder === 'archive'
+        ? { archived: true }
+        : folder === 'trash'
+          ? { trashed: true }
+          : folder === 'all'
+            ? {}
+            : { folder }
+
+    authed((token) => listNotes(token, { ...params, query: query || undefined }))
+      .then((rows) => alive && setNotes(rows))
+      .catch(() => alive && setNotes([]))
+    return () => {
+      alive = false
+    }
+  }, [folder, query])
+
+  // Открытой считается только та, что есть в текущем списке: сменили папку —
+  // и заметка из прошлой уже не на экране, а третья полоса не должна
+  // показывать то, чего нет во второй.
+  const open = (notes ?? []).find((note) => note.id === openId) ?? null
+
+  const newNote = async () => {
+    // В открытой папке, если это папка. «Все заметки», архив и корзина — не
+    // папки, а состояния, и заводить заметку «в корзине» бессмысленно.
+    const inFolder = shelf.some((f) => f.id === folder) ? folder : null
+    const made = await authed((token) => createNote(token, inFolder))
+    setNotes((was) => [made, ...(was ?? [])])
+    // Открывается сразу: её завели, чтобы писать, а не чтобы увидеть строку.
+    setOpenId(made.id)
+  }
+
+  /**
+   * Написанное уходит на сервер, ответ заменяет строку в списке.
+   *
+   * Ответом, а не тем, что мы послали: `updated_at` считает сервер, а список
+   * отсортирован по нему — время в строке разошлось бы с базой на первой же
+   * правке.
+   */
+  const writeNote = async (id, body) => {
+    const saved = await authed((token) => updateNote(token, id, { body }))
+    setNotes((was) => (was ?? []).map((n) => (n.id === id ? saved : n)))
+  }
+
   return (
     <div
       className={`${styles.page} flex h-[calc(100vh-118px-env(safe-area-inset-bottom))] divide-x divide-line overflow-hidden sm:h-[calc(100vh-68px)]`}
@@ -111,10 +175,22 @@ export default function NotesPage() {
         className="hidden w-[20%] shrink-0 sm:flex"
       />
 
-      <NoteList className="hidden w-[25%] shrink-0 sm:flex" />
+      <NoteList
+        notes={notes}
+        selected={openId}
+        onSelect={setOpenId}
+        query={query}
+        onQuery={setQuery}
+        className="hidden w-[25%] shrink-0 sm:flex"
+      />
 
       {/* Сама заметка — оставшиеся 55%, и она же единственная на телефоне. */}
-      <NoteView className="min-w-0 flex-1" />
+      <NoteView
+        note={open}
+        onCreate={newNote}
+        onChange={writeNote}
+        className="min-w-0 flex-1"
+      />
     </div>
   )
 }
