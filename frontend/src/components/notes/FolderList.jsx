@@ -42,11 +42,20 @@ import { useT } from '../../lib/i18n'
  * Строки подсвечиваются, а не сжимаются: `active:bg-ink/10`. Сжимать имеет
  * смысл предмет, а строка списка — область, и уменьшать её под пальцем некуда.
  */
-const FOLDERS = [
+const ABOVE = [
   { id: 'all', labelKey: 'notes.all', icon: Folder01Icon },
   { id: 'archive', labelKey: 'notes.archive', icon: Archive02Icon },
-  { id: 'trash', labelKey: 'notes.trash', icon: Delete02Icon },
 ]
+
+/**
+ * Корзина стоит после папок владельца, а не перед ними.
+ *
+ * Список растёт сверху вниз, и новая папка появляется там, где кончилась
+ * предыдущая. Останься корзина выше, каждая заведённая папка уезжала бы под
+ * неё, и строка «выброшенное» оказывалась бы посреди того, что не выброшено.
+ * Внизу же она — дно списка, куда всё в итоге и падает.
+ */
+const BELOW = [{ id: 'trash', labelKey: 'notes.trash', icon: Delete02Icon }]
 
 export default function FolderList({
   value,
@@ -65,7 +74,7 @@ export default function FolderList({
   return (
     <nav className={`flex flex-col p-2 ${className}`}>
       <div className="flex flex-col gap-0.5">
-        {FOLDERS.map((folder) => (
+        {ABOVE.map((folder) => (
           <Row
             key={folder.id}
             folder={folder}
@@ -91,6 +100,16 @@ export default function FolderList({
               if (name && name !== folder.name) onRename?.(folder.id, name)
             }}
             onMove={(to) => onMove?.(folder.id, to)}
+          />
+        ))}
+
+        {BELOW.map((folder) => (
+          <Row
+            key={folder.id}
+            folder={folder}
+            label={t(folder.labelKey)}
+            isActive={folder.id === value}
+            onSelect={() => onChange(folder.id)}
           />
         ))}
       </div>
