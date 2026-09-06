@@ -28,6 +28,7 @@ export default {
   'notes.untitled': 'New note',
   'notes.noText': 'No additional text',
   'notes.placeholder': 'Start writing…',
+  'notes.deleteConfirm': 'Delete?',
   'notes.all': 'All notes',
   'notes.archive': 'Archive',
   'notes.trash': 'Trash',

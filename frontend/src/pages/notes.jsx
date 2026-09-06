@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   createNote,
   createNoteFolder,
+  deleteNote,
   listNoteFolders,
   listNotes,
   updateNote,
@@ -155,6 +156,23 @@ export default function NotesPage() {
    * отсортирован по нему — время в строке разошлось бы с базой на первой же
    * правке.
    */
+  /**
+   * Корзина у открытой заметки: сначала отложить, потом выбросить.
+   *
+   * Заметка не в корзине переезжает туда и может вернуться; та, что уже там,
+   * удаляется насовсем. Одна кнопка на два действия — но и состояния разные, и
+   * второе видно по тому, в какой папке смотрят.
+   */
+  const removeNote = async (note) => {
+    if (note.trashed) {
+      await authed((token) => deleteNote(token, note.id))
+    } else {
+      await authed((token) => updateNote(token, note.id, { trashed: true }))
+    }
+    setNotes((was) => (was ?? []).filter((n) => n.id !== note.id))
+    setOpenId(null)
+  }
+
   const writeNote = async (id, body) => {
     const saved = await authed((token) => updateNote(token, id, { body }))
     setNotes((was) => (was ?? []).map((n) => (n.id === id ? saved : n)))
@@ -189,6 +207,7 @@ export default function NotesPage() {
         note={open}
         onCreate={newNote}
         onChange={writeNote}
+        onRemove={removeNote}
         className="min-w-0 flex-1"
       />
     </div>

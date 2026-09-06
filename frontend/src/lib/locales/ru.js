@@ -34,6 +34,7 @@ export default {
   'notes.untitled': 'Новая заметка',
   'notes.noText': 'Нет дополнительного текста',
   'notes.placeholder': 'Начните писать…',
+  'notes.deleteConfirm': 'Удалить?',
   'notes.all': 'Все заметки',
   'notes.archive': 'Архив',
   'notes.trash': 'Корзина',

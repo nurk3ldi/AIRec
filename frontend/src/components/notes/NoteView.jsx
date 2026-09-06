@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { NoteAddIcon } from '@hugeicons/core-free-icons'
+import { Delete02Icon, NoteAddIcon } from '@hugeicons/core-free-icons'
 import { useT } from '../../lib/i18n'
 
 /** Через сколько тишины сохранять написанное. */
@@ -25,13 +25,32 @@ const SAVE_AFTER_MS = 600
  * сервер; таймер сбрасывается на каждом нажатии, так что запрос уходит один на
  * абзац, а не один на букву.
  *
+ * **Слева — корзина, справа — новая заметка.** Два конца панели: то, что
+ * убирает открытое, и то, что заводит следующее. Рядом друг с другом они
+ * стояли бы как пара, и рука промахивалась бы между «выбросить» и «начать».
+ *
+ * **Корзина сначала откладывает, а не удаляет.** Первое нажатие переносит
+ * заметку в «Корзину», откуда её можно достать; насовсем удаляет то же место и
+ * только у заметки, которая уже там, и только со второго нажатия. Диалог ради
+ * двух слов был бы слоем поверх слоя, а одна красная кнопка рядом с текстом —
+ * один промах от чужого дня.
+ *
  * **Черновик живёт здесь, а не на странице.** Пока в поле печатают, состояние
  * меняется на каждом символе, и держать его выше значило бы перерисовывать при
  * этом обе соседние полосы.
  */
-export default function NoteView({ note, onCreate, onChange, className = '' }) {
+export default function NoteView({
+  note,
+  onCreate,
+  onChange,
+  onRemove,
+  className = '',
+}) {
   const t = useT()
   const [draft, setDraft] = useState(note?.body ?? '')
+  // Подтверждение окончательного удаления. Сбрасывается вместе с заметкой:
+  // «удалить ещё раз» относилось к той, что была открыта, а не к следующей.
+  const [confirming, setConfirming] = useState(false)
   const timer = useRef(null)
 
   // Открыли другую заметку — в поле её текст. Ключ — id, а не тело, и это
@@ -40,6 +59,7 @@ export default function NoteView({ note, onCreate, onChange, className = '' }) {
   // сейчас.
   useEffect(() => {
     setDraft(note?.body ?? '')
+    setConfirming(false)
     // `note.body` намеренно не в зависимостях — oxlint это отмечает, и
     // предупреждение здесь ожидаемое.
   }, [note?.id])
@@ -57,7 +77,38 @@ export default function NoteView({ note, onCreate, onChange, className = '' }) {
     <section className={`flex flex-col ${className}`}>
       {/* Панель без линии под собой: полосы на этом экране разделены только
           вертикалями, и горизонталь здесь была бы вторым видом границы. */}
-      <div className="flex shrink-0 items-center justify-end p-3">
+      <div className="flex shrink-0 items-center justify-between p-3">
+        {/* Место занято всегда, даже когда удалять нечего: иначе кнопка справа
+            переезжала бы туда-сюда при каждом открытии заметки. */}
+        {note ? (
+          <button
+            type="button"
+            onClick={() => {
+              if (note.trashed && !confirming) {
+                setConfirming(true)
+                return
+              }
+              onRemove(note)
+            }}
+            className={`flex h-9 items-center gap-2 rounded-lg px-2.5 text-[14px] font-medium text-danger outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-danger/10 focus-visible:bg-danger/10 active:scale-[0.97] ${
+              confirming ? 'bg-danger/10' : ''
+            }`}
+          >
+            <HugeiconsIcon
+              icon={Delete02Icon}
+              size={18}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.9}
+            />
+            {/* Слово появляется только когда нажатие уже необратимо: обычной
+                кнопке значка довольно, этой — нет. */}
+            {confirming && <span>{t('notes.deleteConfirm')}</span>}
+          </button>
+        ) : (
+          <span className="h-9" />
+        )}
+
         <button
           type="button"
           onClick={onCreate}
