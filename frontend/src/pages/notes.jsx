@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useT } from '../lib/i18n'
+import FolderList from '../components/notes/FolderList'
 import styles from '../styles/Notes.module.css'
 
 /**
@@ -31,14 +33,20 @@ import styles from '../styles/Notes.module.css'
  */
 export default function NotesPage() {
   const t = useT()
+  // Какая папка открыта. Локально и без запоминания между визитами: три
+  // состояния, и «все заметки» — то, с чего начинают каждый раз.
+  const [folder, setFolder] = useState('all')
 
   return (
     <div
       className={`${styles.page} flex h-[calc(100vh-118px-env(safe-area-inset-bottom))] divide-x divide-line overflow-hidden sm:h-[calc(100vh-68px)]`}
       aria-label={t('nav.notes')}
     >
-      {/* Папки */}
-      <div className="hidden w-[20%] shrink-0 sm:block" />
+      <FolderList
+        value={folder}
+        onChange={setFolder}
+        className="hidden w-[20%] shrink-0 sm:flex"
+      />
 
       {/* Список заметок */}
       <div className="hidden w-[25%] shrink-0 sm:block" />
