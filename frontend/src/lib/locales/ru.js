@@ -21,6 +21,7 @@ export default {
   'home.assistant.waiting': 'Ждёт ответа клиента',
   'home.assistant.human': 'Отвечаете вы',
   'home.assistant.more': 'И ещё {count} — рядом',
+  'notes.newFolder': 'Новая папка',
   'notes.all': 'Все заметки',
   'notes.archive': 'Архив',
   'notes.trash': 'Корзина',

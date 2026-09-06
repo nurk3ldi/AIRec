@@ -15,6 +15,7 @@ export default {
   'home.assistant.waiting': 'Клиенттің жауабын күтуде',
   'home.assistant.human': 'Жауапты сіз бересіз',
   'home.assistant.more': 'Тағы {count} — қасында',
+  'notes.newFolder': 'Жаңа қалта',
   'notes.all': 'Барлық жазбалар',
   'notes.archive': 'Архив',
   'notes.trash': 'Себет',

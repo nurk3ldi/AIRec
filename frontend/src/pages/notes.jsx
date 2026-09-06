@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useT } from '../lib/i18n'
+import { Folder01Icon } from '@hugeicons/core-free-icons'
 import FolderList from '../components/notes/FolderList'
 import styles from '../styles/Notes.module.css'
 
@@ -36,6 +37,20 @@ export default function NotesPage() {
   // Какая папка открыта. Локально и без запоминания между визитами: три
   // состояния, и «все заметки» — то, с чего начинают каждый раз.
   const [folder, setFolder] = useState('all')
+  // Папки, заведённые владельцем. Пока живут только здесь: таблицы под ними
+  // нет — см. `FolderList`.
+  const [custom, setCustom] = useState([])
+
+  const createFolder = () => {
+    const id = `folder-${Date.now()}`
+    setCustom((was) => [
+      ...was,
+      { id, name: `${t('notes.newFolder')} ${was.length + 1}`, icon: Folder01Icon },
+    ])
+    // Заведённая папка сразу открывается: её завели, чтобы в неё что-то
+    // положить, а не чтобы посмотреть на строку в списке.
+    setFolder(id)
+  }
 
   return (
     <div
@@ -45,6 +60,8 @@ export default function NotesPage() {
       <FolderList
         value={folder}
         onChange={setFolder}
+        custom={custom}
+        onCreate={createFolder}
         className="hidden w-[20%] shrink-0 sm:flex"
       />
 

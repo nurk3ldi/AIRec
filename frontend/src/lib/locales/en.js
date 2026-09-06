@@ -15,6 +15,7 @@ export default {
   'home.assistant.waiting': 'Waiting on the client',
   'home.assistant.human': 'You are replying',
   'home.assistant.more': '{count} more, beside this',
+  'notes.newFolder': 'New folder',
   'notes.all': 'All notes',
   'notes.archive': 'Archive',
   'notes.trash': 'Trash',
