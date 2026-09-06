@@ -392,6 +392,40 @@ export function resetPassword({ email, code, newPassword }) {
  * behind them is what makes a list endpoint slow, so the transcript comes from
  * `getConversation` when a thread is actually opened.
  */
+/* --------------------------------------------------------------- Заметки */
+
+/**
+ * Папки владельца — все, включая убранные в архив и в корзину.
+ *
+ * Одним списком, а не тремя запросами: боковая полоса рисует все три состояния
+ * сразу, и делить это на вызовы значило бы три round trip ради одной колонки.
+ */
+export function listNoteFolders(accessToken) {
+  return request('/notes/folders', { method: 'GET', accessToken })
+}
+
+export function createNoteFolder(accessToken, name) {
+  return request('/notes/folders', {
+    method: 'POST',
+    accessToken,
+    body: { name },
+  })
+}
+
+/** Частичное обновление: имя, `archived`, `trashed` — что прислали, то и меняется. */
+export function updateNoteFolder(accessToken, id, changes) {
+  return request(`/notes/folders/${id}`, {
+    method: 'PATCH',
+    accessToken,
+    body: changes,
+  })
+}
+
+/** Убирает строку насовсем. Положить папку *в* корзину — это PATCH выше. */
+export function deleteNoteFolder(accessToken, id) {
+  return request(`/notes/folders/${id}`, { method: 'DELETE', accessToken })
+}
+
 export function listConversations(
   accessToken,
   { query, archived, starred, status, limit, offset } = {},

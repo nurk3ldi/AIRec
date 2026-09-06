@@ -160,6 +160,12 @@ class MessageNotFound(AppError):
     message = "Сообщение не найдено."
 
 
+class NoteFolderNotFound(AppError):
+    status_code = HTTPStatus.NOT_FOUND
+    code = "note_folder_not_found"
+    message = "Папка не найдена."
+
+
 class OutsideWorkingHours(AppError):
     status_code = HTTPStatus.BAD_REQUEST
     code = "outside_working_hours"

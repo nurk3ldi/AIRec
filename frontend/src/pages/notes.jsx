@@ -1,6 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import {
+  createNoteFolder,
+  listNoteFolders,
+  updateNoteFolder,
+} from '../lib/api'
+import { authed } from '../lib/auth'
 import { useT } from '../lib/i18n'
-import { Folder01Icon } from '@hugeicons/core-free-icons'
 import FolderList from '../components/notes/FolderList'
 import styles from '../styles/Notes.module.css'
 
@@ -37,31 +42,57 @@ export default function NotesPage() {
   // Какая папка открыта. Локально и без запоминания между визитами: три
   // состояния, и «все заметки» — то, с чего начинают каждый раз.
   const [folder, setFolder] = useState('all')
-  // Папки, заведённые владельцем. Пока живут только здесь: таблицы под ними
-  // нет — см. `FolderList`.
-  const [custom, setCustom] = useState([])
+  // Папки владельца. `null`, пока не пришёл первый ответ, — это отличает «ещё
+  // спрашиваем» от «спросили, и их нет».
+  const [custom, setCustom] = useState(null)
 
-  const createFolder = () => {
-    const id = `folder-${Date.now()}`
-    setCustom((was) => [
-      ...was,
-      { id, name: `${t('notes.newFolder')} ${was.length + 1}`, icon: Folder01Icon },
-    ])
+  useEffect(() => {
+    let alive = true
+    authed(listNoteFolders)
+      .then((rows) => alive && setCustom(rows))
+      // Проглатываем, как и все чтения на экранах: полоса ошибки над пустым
+      // списком говорит меньше, чем сам пустой список.
+      .catch(() => alive && setCustom([]))
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  /**
+   * Всё, что меняет папки, идёт одним путём: отправить, взять ответ сервера,
+   * заменить строку.
+   *
+   * Ответом, а не тем, что мы послали: `updated_at` и порядок считает сервер, и
+   * состояние, собранное из запроса, разошлось бы с базой на первом же поле,
+   * которое он трогает сам.
+   */
+  const createFolder = async () => {
+    const made = await authed((token) =>
+      createNoteFolder(token, t('notes.newFolder')),
+    )
+    setCustom((was) => [...(was ?? []), made])
     // Заведённая папка сразу открывается: её завели, чтобы в неё что-то
     // положить, а не чтобы посмотреть на строку в списке.
-    setFolder(id)
+    setFolder(made.id)
   }
 
-  const renameFolder = (id, name) =>
-    setCustom((was) => was.map((f) => (f.id === id ? { ...f, name } : f)))
+  const patch = async (id, changes) => {
+    const saved = await authed((token) => updateNoteFolder(token, id, changes))
+    setCustom((was) => (was ?? []).map((f) => (f.id === id ? saved : f)))
+    return saved
+  }
 
-  // В архив и в корзину — пока просто «убрать из списка»: показывать
-  // содержимое этих двух папок ещё нечем, а держать строку на месте после
-  // «удалить» значит соврать о том, что действие произошло.
-  const moveFolder = (id) => {
-    setCustom((was) => was.filter((f) => f.id !== id))
+  const renameFolder = (id, name) => patch(id, { name })
+
+  const moveFolder = async (id, to) => {
+    await patch(id, to === 'archive' ? { archived: true } : { trashed: true })
+    // Открытой остаётся папка, которую видно: убранная со списка уже не она.
     setFolder((open) => (open === id ? 'all' : open))
   }
+
+  // На полосе — только те, что лежат на месте. Архив и корзина показывают свои
+  // собственные содержимое, когда им будет что показывать.
+  const shelf = (custom ?? []).filter((f) => !f.archived && !f.trashed)
 
   return (
     <div
@@ -71,7 +102,7 @@ export default function NotesPage() {
       <FolderList
         value={folder}
         onChange={setFolder}
-        custom={custom}
+        custom={shelf}
         onCreate={createFolder}
         onRename={renameFolder}
         onMove={moveFolder}
