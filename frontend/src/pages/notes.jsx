@@ -8,6 +8,7 @@ import { authed } from '../lib/auth'
 import { useT } from '../lib/i18n'
 import FolderList from '../components/notes/FolderList'
 import NoteList from '../components/notes/NoteList'
+import NoteView from '../components/notes/NoteView'
 import styles from '../styles/Notes.module.css'
 
 /**
@@ -113,7 +114,7 @@ export default function NotesPage() {
       <NoteList className="hidden w-[25%] shrink-0 sm:flex" />
 
       {/* Сама заметка — оставшиеся 55%, и она же единственная на телефоне. */}
-      <div className="min-w-0 flex-1" />
+      <NoteView className="min-w-0 flex-1" />
     </div>
   )
 }

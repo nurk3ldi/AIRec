@@ -24,6 +24,7 @@ export default {
   'notes.searchClear': 'Clear',
   'notes.empty': 'No notes',
   'notes.nothingFound': 'Nothing found',
+  'notes.newNote': 'New note',
   'notes.all': 'All notes',
   'notes.archive': 'Archive',
   'notes.trash': 'Trash',

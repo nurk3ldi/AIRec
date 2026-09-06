@@ -30,6 +30,7 @@ export default {
   'notes.searchClear': 'Очистить',
   'notes.empty': 'Нет заметок',
   'notes.nothingFound': 'Ничего не найдено',
+  'notes.newNote': 'Новая заметка',
   'notes.all': 'Все заметки',
   'notes.archive': 'Архив',
   'notes.trash': 'Корзина',

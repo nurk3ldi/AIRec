@@ -24,6 +24,7 @@ export default {
   'notes.searchClear': 'Тазалау',
   'notes.empty': 'Жазба жоқ',
   'notes.nothingFound': 'Ештеңе табылмады',
+  'notes.newNote': 'Жаңа жазба',
   'notes.all': 'Барлық жазбалар',
   'notes.archive': 'Архив',
   'notes.trash': 'Себет',
