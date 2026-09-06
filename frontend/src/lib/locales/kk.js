@@ -15,6 +15,7 @@ export default {
   'home.assistant.waiting': 'Клиенттің жауабын күтуде',
   'home.assistant.human': 'Жауапты сіз бересіз',
   'home.assistant.more': 'Тағы {count} — қасында',
+  'nav.notes': 'Жазбалар',
   'nav.assistant': 'Ассистент',
   'nav.profile': 'Профиль',
   'nav.notifications': 'Хабарламалар',

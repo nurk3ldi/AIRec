@@ -18,6 +18,7 @@ const PAGE_TITLE_KEYS = {
   '/inbox': 'nav.inbox',
   '/appointments': 'nav.appointments',
   '/assistant': 'nav.assistant',
+  '/notes': 'nav.notes',
   '/profile': 'nav.profile',
   '/notifications': 'nav.notifications',
 }

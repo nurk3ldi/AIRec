@@ -2,6 +2,7 @@ import {
   Home01Icon,
   Chat01Icon,
   NoteIcon,
+  Task02Icon,
   AiScanIcon,
 } from '@hugeicons/core-free-icons'
 
@@ -26,5 +27,6 @@ export const NAVIGATION = [
   { labelKey: 'nav.appointments', href: '/appointments', icon: NoteIcon },
   { labelKey: 'nav.inbox', href: '/inbox', icon: Chat01Icon },
   { labelKey: 'nav.assistant', href: '/assistant', icon: AiScanIcon },
+  { labelKey: 'nav.notes', href: '/notes', icon: Task02Icon },
 ]
 

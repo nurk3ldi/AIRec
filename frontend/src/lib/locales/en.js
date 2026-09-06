@@ -15,6 +15,7 @@ export default {
   'home.assistant.waiting': 'Waiting on the client',
   'home.assistant.human': 'You are replying',
   'home.assistant.more': '{count} more, beside this',
+  'nav.notes': 'Notes',
   'nav.assistant': 'Assistant',
   'nav.profile': 'Profile',
   'nav.notifications': 'Notifications',

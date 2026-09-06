@@ -12,6 +12,7 @@ import InboxPage from './pages/inbox'
 import LandingPage from './pages/index'
 import LoginPage from './pages/login'
 import NotFoundPage from './pages/404'
+import NotesPage from './pages/notes'
 import NotificationsPage from './pages/notifications'
 import ProfilePage from './pages/profile'
 import ResetPasswordPage from './pages/reset-password'
@@ -70,6 +71,7 @@ export default function App() {
             but a real route all the same, because the phone's bottom bar
             points at it and a back gesture has to have somewhere to go. */}
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/notes" element={<NotesPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         {/* Like `/notifications`, reachable only from the header — the rail and
             the bottom bar both stop at the four screens in `NAVIGATION`. */}
