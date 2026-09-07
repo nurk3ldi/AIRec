@@ -5,6 +5,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import whatsapp
@@ -352,10 +353,46 @@ class ConversationService:
         this is reached; asking for a `User` here would mean a webhook had to
         invent one.
 
+        **The dedupe below is read-then-write, so it loses a race — and this is
+        the one caller where losing it matters.** Meta redelivers on any doubt,
+        and it does not wait for the first attempt to finish: two copies of one
+        message can be in flight together, both find nothing, and both insert.
+        The second then hits `uq_messages_conversation_id_external_id`, which
+        without this would surface as a 500 — and a 500 is exactly what makes
+        Meta redeliver again, so the thing meant to make a retry harmless would
+        instead be what kept it retrying, indefinitely. The same race opens a
+        conversation twice on a client's very first message, against
+        `uq_conversations_business_id_channel_external_id`.
+
+        **The answer is to roll back and read again, once.** By then the row the
+        other request committed is visible, so the second pass takes the branch
+        it should have taken: it finds the conversation instead of creating one,
+        and returns the duplicate message instead of appending it. The rollback
+        is what makes that safe rather than merely lucky — it discards this
+        attempt's unread increment too, so a redelivery cannot count twice.
+
+        A second failure is not a race and is left to raise: two rounds of this
+        means something is genuinely wrong, and swallowing it would turn a
+        broken constraint into silently dropped messages.
+
         **A closed thread reopens.** Somebody writing again is the definition
         of not being finished, and leaving it closed would file the message
         where nobody looks.
         """
+        try:
+            return await self._ingest_once(business_id, data)
+        except IntegrityError:
+            logger.info(
+                "Concurrent delivery for message %s — re-reading and retrying.",
+                data.message_external_id,
+            )
+            await self._session.rollback()
+            return await self._ingest_once(business_id, data)
+
+    async def _ingest_once(
+        self, business_id: uuid.UUID, data: IngestMessageRequest
+    ) -> tuple[Conversation, Message]:
+        """One attempt at the above. Never called anywhere else."""
         conversation = await self._conversations.get_by_external(
             business_id,
             data.channel.value,

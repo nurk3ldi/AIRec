@@ -790,6 +790,23 @@ stored one" and refuses only a *first* connection with none
 (`WhatsAppTokenRequired`) — otherwise correcting a display name would silently
 unplug the channel.
 
+**The inbound dedupe loses a race, and `ingest_for_business` retries once.**
+Meta redelivers on any doubt and does not wait for the first attempt to finish,
+so two copies of one message can be in flight together: both pass the
+read-then-write `get_by_external` check, and the second insert hits
+`uq_messages_conversation_id_external_id`. Unhandled that is a 500 — and a 500
+is exactly what makes Meta redeliver again, so the index meant to make a retry
+harmless would instead be what kept it retrying forever. The same race opens a
+thread twice on a client's first message, against
+`uq_conversations_business_id_channel_external_id`. The fix is to catch
+`IntegrityError`, **roll back**, and run `_ingest_once` a second time: the other
+request's row is visible by then, so the second pass finds the conversation
+instead of creating one and returns the duplicate instead of appending it. The
+rollback is the load-bearing half — it discards this attempt's `unread_count`
+increment too, so a redelivery cannot count twice. A second failure is left to
+raise; two rounds of this is not a race, and swallowing it would turn a broken
+constraint into silently dropped messages.
+
 **A reply is written down first and sent afterwards.**
 `ConversationService._deliver` runs *after* the row is committed, so the
 transaction is closed before a ten-second HTTP call rather than held open across
