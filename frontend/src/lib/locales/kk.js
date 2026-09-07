@@ -174,7 +174,6 @@ export default {
 
   'inbox.title': 'Чаттар',
   'inbox.tasks': 'Менің тапсырмаларым',
-  'inbox.activity': 'Соңғы әрекеттер',
   'whatsapp.title': 'WhatsApp',
   'whatsapp.hint':
     'Клиенттер жазатын нөмір. Meta for Developers панелінен «Phone number ID» мен қатынау токенін көшіріңіз.',

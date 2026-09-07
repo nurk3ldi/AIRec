@@ -2,7 +2,6 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Chat01Icon,
   CheckmarkCircle02Icon,
-  Clock01Icon,
   MoreHorizontalIcon,
 } from '@hugeicons/core-free-icons'
 import { BOOKING_COLORS } from '../lib/appointments'
@@ -55,7 +54,14 @@ export default function InboxPage() {
       className={`${styles.page} flex h-[calc(100vh-118px-env(safe-area-inset-bottom))] items-stretch overflow-hidden sm:h-[calc(100vh-68px)]`}
       aria-label={t('nav.inbox')}
     >
-      <div className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
+      {/* **Доли, а не проценты.** `flex-[70]` и `flex-[30]` делят то, что
+          осталось, поэтому 70/30 держится при любом зазоре и любой рамке, а
+          `w-[70%]` и `w-[30%]` вместе с ними дали бы больше ста и уронили бы
+          вторую колонку под первую. Тот же приём, что на главной.
+
+          `min-w-0`: элемент flex не сжимается меньше своего содержимого без
+          него, и первая же длинная строка внутри сломала бы пропорцию. */}
+      <div className="min-w-0 flex-[70] overflow-y-auto p-4 sm:p-6">
         <div className="flex items-center gap-2">
           <HugeiconsIcon
             icon={Chat01Icon}
@@ -72,20 +78,19 @@ export default function InboxPage() {
           </h1>
         </div>
 
-        {/* Три в ряд — но вдвое уже, чем треть ряда, поэтому ряд не доходит до
-            правого края, и карточки просто стоят слева.
+        {/* Четыре в ряд, на всю ширину колонки.
 
-            Доля, а не `flex-1`: он растянул бы их обратно на всю ширину.
-            Делитель шесть — та же треть, взятая пополам; высота идёт за
-            шириной через `viewBox`, так что вдвое меньше выходит и по
-            вертикали. */}
+            Доля, а не `flex-1`: тот растянул бы карточки по остатку, и ряд из
+            трёх выглядел бы иначе, чем ряд из четырёх. Из ста процентов
+            вычитаются три зазора между четырьмя карточками; высота идёт за
+            шириной через `viewBox`. */}
         <div className="mt-4 flex gap-4 sm:mt-6 sm:gap-6">
           {DEMO_FOLDERS.map((row, index) => (
             <Folder
               key={row.id}
               row={row}
               color={BOOKING_COLORS[index % BOOKING_COLORS.length]}
-              className="w-[calc((100%-2rem)/6)] sm:w-[calc((100%-3rem)/6)]"
+              className="w-[calc((100%-3rem)/4)] sm:w-[calc((100%-4.5rem)/4)]"
             />
           ))}
         </div>
@@ -101,9 +106,8 @@ export default function InboxPage() {
           Хайрлайна между колонками нет — в образце его тоже нет: карточки
           отделяет от фона собственная заливка, а линия рядом с ней была бы
           вторым краем у фигуры, у которой край уже есть. */}
-      <aside className="hidden w-[calc(320px+2rem)] shrink-0 flex-col gap-4 p-4 lg:flex">
+      <aside className="hidden min-w-0 flex-[30] flex-col p-4 lg:flex">
         <Panel icon={CheckmarkCircle02Icon} title={t('inbox.tasks')} />
-        <Panel icon={Clock01Icon} title={t('inbox.activity')} />
       </aside>
     </div>
   )
