@@ -12,7 +12,7 @@ import {
 } from '@hugeicons/core-free-icons'
 import MonthCalendar from '../components/appointments/MonthCalendar'
 import { PANEL_MOTION } from '../components/appointments/panel'
-import { StepButton } from '../components/appointments/Timetable'
+import { StepButton, ToolbarPill } from '../components/appointments/Timetable'
 import { shiftDate } from '../lib/dates'
 import { listConversations } from '../lib/api'
 import { authed } from '../lib/auth'
@@ -225,7 +225,7 @@ function Section({ icon, title, actions, className = '', children }) {
 }
 
 /**
- * Листалка дня: шаг назад, шаг вперёд и выбор по календарю.
+ * Листалка дня: шаг назад, шаг вперёд, «Сегодня» и выбор по календарю.
  *
  * **Ничего из этого не написано здесь заново.** Кнопки — тот же `StepButton`,
  * что и в тулбаре «Записей», шаг считает `shiftDate` из `lib/dates`, а месяц
@@ -235,6 +235,10 @@ function Section({ icon, title, actions, className = '', children }) {
  * **Стрелки и календарь двигают одно состояние.** Пролистать три дня и выбрать
  * четвёртый в календаре — это одно и то же действие, сделанное двумя способами;
  *два отдельных значения разошлись бы на первом же переключении.
+ *
+ * **«Сегодня» — это возврат одним нажатием.** Стрелки хороши на шаг-другой, а
+ * вернуться с четвёртого дня ими — четыре нажатия; тот же довод, по которому
+ * эта кнопка появилась в тулбаре «Записей», и та же кнопка.
  *
  * Выбор дня закрывает поповер: календарь открывали ради одного нажатия, и
  * оставлять его открытым после — заставлять закрывать вручную то, что уже
@@ -256,6 +260,10 @@ function DayPicker({ value, onChange }) {
         icon={ArrowRight01Icon}
         onClick={() => onChange(shiftDate(value, 'day', 1))}
       />
+
+      <ToolbarPill onClick={() => onChange(new Date())}>
+        {t('appointments.today')}
+      </ToolbarPill>
 
       <Popover.Root open={open} onOpenChange={setOpen}>
         {/* `asChild`: `StepButton` — обычная кнопка, и Radix навешивает на неё

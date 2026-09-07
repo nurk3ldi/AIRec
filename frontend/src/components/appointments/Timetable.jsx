@@ -536,17 +536,15 @@ export default function Timetable({
               It wears the same `surface-chip` fill as «+ Добавить» beside it:
               both are actions the toolbar offers, and two filled shapes in one
               row that are filled differently read as two kinds of thing. */}
-          <button
-            type="button"
+          <ToolbarPill
             onClick={() => {
               setDirection(0)
               setEntrance(null)
               onSelect?.(new Date())
             }}
-            className="h-8 shrink-0 rounded-full bg-surface-chip px-4 text-[14px] font-medium text-ink outline-none transition-[opacity,scale] hover:opacity-85 focus-visible:opacity-85 active:scale-[0.97]"
           >
             {t('appointments.today')}
-          </button>
+          </ToolbarPill>
 
           {/* **32px, matching the filled pill beside it rather than the box
               around it.** The track next door is 36px, but 2px of it is gutter
@@ -1479,6 +1477,33 @@ function ClosedSpan({ range, label, rowHeight }) {
 
 /** One of the two step arrows, the same object the calendar's month arrows are
  *  so the two toolbars read as one family. */
+/**
+ * Заполненная пилюля тулбара — «Сегодня» и всё, что встанет рядом.
+ *
+ * **Экспортируется вместе со `StepButton`**, потому что этой парой листает день
+ * и правая часть заголовка «Чаты сегодня». Одинаково они должны выглядеть не
+ * потому, что так задумано, а потому, что это буквально один компонент: две
+ * копии этой строки классов совпадают ровно до первой правки одной из них.
+ *
+ * Высота 32, а не 36 у кружков рядом: круг и пилюля не сравниваются глазом так,
+ * как сравниваются две пилюли, — а вот с соседней заполненной формой в том же
+ * ряду сравниваются, и там ровно 32.
+ *
+ * `surface-chip`, а не акцент: на тёмной теме акцент — чистый белый, и сплошная
+ * белая пилюля в чёрном тулбаре читалась бы предупреждением, а не приглашением.
+ */
+export function ToolbarPill({ onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="h-8 shrink-0 rounded-full bg-surface-chip px-4 text-[14px] font-medium text-ink outline-none transition-[opacity,scale] hover:opacity-85 focus-visible:opacity-85 active:scale-[0.97]"
+    >
+      {children}
+    </button>
+  )
+}
+
 /**
  * Круглая кнопка-шаг. **Экспортируется**, потому что читателей стало двое:
  * тем же шагом день листает правая часть заголовка «Чаты сегодня». Копия этих
