@@ -183,7 +183,6 @@ export default {
   // ── WhatsApp ──────────────────────────────────────────────────────────────
   'inbox.today': 'Чаты сегодня',
   'inbox.all': 'Все чаты',
-  'inbox.tasks': 'Мои задачи',
   'whatsapp.title': 'WhatsApp',
   'whatsapp.hint':
     'Номер, на который пишут клиенты. Скопируйте «Phone number ID» и токен доступа из панели Meta for Developers.',

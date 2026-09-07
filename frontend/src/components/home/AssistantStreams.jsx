@@ -30,7 +30,6 @@ import { useSkeleton } from '../../lib/skeleton'
  */
 export default function AssistantStreams({ chats, live, className = '' }) {
   const t = useT()
-  const bars = useSkeleton(chats === null)
 
   return (
     <section
@@ -43,6 +42,31 @@ export default function AssistantStreams({ chats, live, className = '' }) {
         )}
       </h2>
 
+      <StreamList chats={chats} live={live} />
+    </section>
+  )
+}
+
+/**
+ * Сам список потоков, без карточки и заголовка вокруг него.
+ *
+ * **Вынесен, потому что читателей стало двое.** Тот же список показывает
+ * правая панель «Чатов», и там он живёт в другой оболочке: заголовок у неё
+ * снаружи карточки и на две ступени крупнее, чтобы совпасть с секциями слева.
+ * Общей может быть только середина — две копии этой разметки совпадали бы ровно
+ * до первой правки одной из них.
+ *
+ * **`bleed` — не украшение, а привязка к отступу карточки.** Разделители между
+ * строками должны доходить до её краёв, а строки — оставаться внутри отступа;
+ * это и делает пара «отрицательный внешний, равный ему внутренний». Значение
+ * зависит от `p-*` оболочки, поэтому его задаёт вызывающий, а не список.
+ */
+export function StreamList({ chats, live, bleed = '-mx-6 px-6' }) {
+  const t = useT()
+  const bars = useSkeleton(chats === null)
+
+  return (
+    <>
       {chats === null ? (
         <SkeletonRegion
           label={t('home.streams.title')}
@@ -66,13 +90,15 @@ export default function AssistantStreams({ chats, live, className = '' }) {
         // `min-h-0` рядом с `flex-1` — то, что позволяет списку прокручиваться
         // внутри карточки, а не растить её: элемент flex не сжимается меньше
         // своего содержимого без него.
-        <ul className="-mx-6 mt-2 min-h-0 flex-1 divide-y divide-line overflow-y-auto px-6">
+        <ul
+          className={`mt-2 min-h-0 flex-1 divide-y divide-line overflow-y-auto ${bleed}`}
+        >
           {live.map((chat) => (
             <Row key={chat.id} chat={chat} />
           ))}
         </ul>
       )}
-    </section>
+    </>
   )
 }
 

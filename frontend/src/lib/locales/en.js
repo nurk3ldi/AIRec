@@ -173,7 +173,6 @@ export default {
 
   'inbox.today': 'Chats today',
   'inbox.all': 'All chats',
-  'inbox.tasks': 'My tasks',
   'whatsapp.title': 'WhatsApp',
   'whatsapp.hint':
     'The number clients write to. Copy the phone number ID and access token from your Meta for Developers dashboard.',

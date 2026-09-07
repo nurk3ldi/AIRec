@@ -1,10 +1,15 @@
 import { HugeiconsIcon } from '@hugeicons/react'
+import { useEffect, useState } from 'react'
 import {
+  AiScanIcon,
   Chat01Icon,
-  CheckmarkCircle02Icon,
   Clock01Icon,
   MoreHorizontalIcon,
 } from '@hugeicons/core-free-icons'
+import { listConversations } from '../lib/api'
+import { authed } from '../lib/auth'
+import { liveChats } from '../lib/conversations'
+import { StreamList } from '../components/home/AssistantStreams'
 import { BOOKING_COLORS } from '../lib/appointments'
 import { getLocale, useT } from '../lib/i18n'
 import styles from '../styles/Inbox.module.css'
@@ -40,8 +45,42 @@ import styles from '../styles/Inbox.module.css'
  * **Маршрут остаётся зарегистрированным**, и в навигации остаётся «Диалоги»:
  * пустая страница — честный ответ, 404 — нет.
  */
+/**
+ * Как часто перечитывать разговоры.
+ *
+ * То же число, что на главной, и по той же причине: пуша нет — ни SSE, ни
+ * вебсокета в этом проекте, — поэтому «прямо сейчас» на экране держится опросом.
+ * Пятнадцать секунд — это то, при чём строка «2 мин» не успевает соврать.
+ */
+const POLL_MS = 15000
+
 export default function InboxPage() {
   const t = useT()
+  // `null` — ещё не читали; пустой массив — прочитали, и разговоров нет. Это
+  // разные вещи: первое рисует скелет, второе — честный пустой ответ.
+  const [chats, setChats] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+
+    const read = () => {
+      authed((token) => listConversations(token, { archived: false }))
+        .then((rows) => alive && setChats(rows))
+        // Проглатываем, как и все чтения на экранах: полоса ошибки над пустой
+        // карточкой говорит меньше, чем сама пустая карточка, и починка в обоих
+        // случаях одна — посмотреть ещё раз.
+        .catch(() => alive && setChats([]))
+    }
+
+    read()
+    const timer = setInterval(read, POLL_MS)
+    return () => {
+      alive = false
+      clearInterval(timer)
+    }
+  }, [])
+
+  const live = liveChats(chats)
 
   return (
     /* **Высота определённая, а не минимальная.** Правая панель обязана быть
@@ -107,7 +146,13 @@ export default function InboxPage() {
           отделяет от фона собственная заливка, а линия рядом с ней была бы
           вторым краем у фигуры, у которой край уже есть. */}
       <aside className="hidden min-w-0 flex-[30] flex-col p-4 lg:flex">
-        <Panel icon={CheckmarkCircle02Icon} title={t('inbox.tasks')} />
+        {/* Что ассистент делает прямо сейчас: с кем говорит, в каком состоянии
+            ветка, что сказано последним и как давно. Иконка — та же, что у
+            «Ассистента» в навигации: пункт меню и то, чем он занят, должны
+            говорить одно и то же одним знаком. */}
+        <Panel icon={AiScanIcon} title={t('home.streams.title')} count={live.length}>
+          <StreamList chats={chats} live={live} bleed="-mx-5 px-5" />
+        </Panel>
       </aside>
     </div>
   )
@@ -124,7 +169,7 @@ export default function InboxPage() {
  * то, что под ним лежит, а подпись к предмету стоит рядом с предметом, а не на
  * нём.
  */
-function SectionHeading({ icon, title }) {
+function SectionHeading({ icon, title, count }) {
   return (
     <div className="flex shrink-0 items-center gap-2 px-1 pb-3">
       <HugeiconsIcon
@@ -137,6 +182,12 @@ function SectionHeading({ icon, title }) {
       />
       <h2 className="min-w-0 truncate font-display text-[24px] leading-tight font-bold tracking-[-0.02em] text-ink">
         {title}
+        {/* Число рядом с названием, а не подписью под ним: это про то же самое
+            и читается той же строкой. Ноль не показывается — «Потоки · 0»
+            сообщает ровно то же, что пустая карточка под заголовком. */}
+        {count > 0 && (
+          <span className="font-normal text-muted"> · {count}</span>
+        )}
       </h2>
     </div>
   )
@@ -192,13 +243,15 @@ function FolderRow({ rows }) {
  * Внутри пусто: содержимое появится, когда будет решено, что эта секция
  * показывает.
  */
-function Panel({ icon, title }) {
+function Panel({ icon, title, count, children }) {
   return (
     <section className="flex min-h-0 flex-1 flex-col">
-      <SectionHeading icon={icon} title={title} />
+      <SectionHeading icon={icon} title={title} count={count} />
       {/* Без рамки: `surface-raised` — заливка, которая сама отделяет блок от
           фона в обеих темах. */}
-      <div className="min-h-0 flex-1 rounded-2xl bg-surface-raised" />
+      <div className="flex min-h-0 flex-1 flex-col rounded-2xl bg-surface-raised p-5">
+        {children}
+      </div>
     </section>
   )
 }
