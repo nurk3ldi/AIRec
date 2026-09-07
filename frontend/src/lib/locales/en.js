@@ -183,25 +183,6 @@ export default {
   'whatsapp.disconnectSure': 'Disconnect for sure?',
   'whatsapp.failed': 'Could not save. Try again.',
 
-  'inbox.empty': 'Nobody has written yet',
-  'inbox.emptyHint':
-    'Conversations appear here as soon as a client writes on WhatsApp.',
-  'inbox.notConnected': 'WhatsApp is not connected',
-  'inbox.notConnectedHint':
-    'Connect a number on the Assistant page — without it no client message reaches this screen.',
-  'inbox.connect': 'Connect WhatsApp',
-  'inbox.reply': 'Write a message…',
-  'inbox.send': 'Send',
-  'inbox.sending': 'Sending…',
-  'inbox.assistantOn': 'The assistant is answering',
-  'inbox.assistantOff': "You're answering",
-  'inbox.resume': 'Hand back to the assistant',
-  'inbox.pause': 'Answer myself',
-  'inbox.noMessages': 'Nothing said here yet',
-  'inbox.failed': 'Not sent',
-  'inbox.back': 'Back to the list',
-  'inbox.author.assistant': 'Assistant',
-  'inbox.author.owner': 'You',
 
   'login.aria': 'Log-in page',
   'login.title': 'Log in to AIRec',
