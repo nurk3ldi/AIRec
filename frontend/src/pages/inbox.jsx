@@ -13,8 +13,8 @@ import {
 import MonthCalendar from '../components/appointments/MonthCalendar'
 import { PANEL_MOTION } from '../components/appointments/panel'
 import { StepButton, ToolbarPill } from '../components/appointments/Timetable'
-import { shiftDate } from '../lib/dates'
-import { listConversations } from '../lib/api'
+import { dayKey, shiftDate } from '../lib/dates'
+import { listAppointments, listConversations } from '../lib/api'
 import { authed } from '../lib/auth'
 import { liveChats } from '../lib/conversations'
 import { StreamList } from '../components/home/AssistantStreams'
@@ -92,6 +92,28 @@ export default function InboxPage() {
   // Какой день показывает верхняя секция. Стрелки и календарь двигают одно и
   // то же состояние — два контрола, один ответ на вопрос «какой день».
   const [day, setDay] = useState(() => new Date())
+  // Записи выбранного дня. `null` — ещё не читали, пустой массив — прочитали, и
+  // на этот день ничего нет.
+  const [bookings, setBookings] = useState(null)
+
+  /**
+   * Перечитывается при каждой смене дня — этим стрелки, «Сегодня» и календарь и
+   * работают: они меняют `day`, а не список, и список приходит следом.
+   *
+   * `from` и `to` — один и тот же день: эндпоинт берёт промежуток *локальных*
+   * дней, и промежуток из одного дня — это ровно то, что показывает секция.
+   */
+  useEffect(() => {
+    let alive = true
+    const key = dayKey(day)
+    setBookings(null)
+    authed((token) => listAppointments(token, { from: key, to: key }))
+      .then((rows) => alive && setBookings(rows))
+      .catch(() => alive && setBookings([]))
+    return () => {
+      alive = false
+    }
+  }, [day])
 
   return (
     /* **Высота определённая, а не минимальная.** Правая панель обязана быть
@@ -127,7 +149,15 @@ export default function InboxPage() {
           title={t('inbox.today')}
           actions={<DayPicker value={day} onChange={setDay} />}
         >
-          <FolderRow rows={DEMO_FOLDERS.slice(0, 4)} />
+          {/* Настоящие записи выбранного дня. Пока их читают — ничего не
+              рисуем: скелет из четырёх папок на экране, где список меняется от
+              каждого нажатия стрелки, мигал бы чаще, чем успевал что-то
+              сообщить. */}
+          {bookings === null ? null : bookings.length === 0 ? (
+            <p className="py-6 text-[13px] text-muted">{t('inbox.dayEmpty')}</p>
+          ) : (
+            <FolderRow rows={bookings.map(toFolder)} />
+          )}
         </Section>
 
         {/* 32px между секциями — ступень шкалы, а не подобранное число: 24
@@ -344,6 +374,21 @@ function Panel({ icon, title, count, children }) {
     </section>
   )
 }
+
+/**
+ * Запись — в то, что рисует карточка.
+ *
+ * Отдельной функцией, а не полями прямо в разметке: сверху секция кормится
+ * настоящими записями, снизу пока демо-блоком, и обе должны получать одну и ту
+ * же форму — иначе карточка начнёт зависеть от того, откуда её позвали.
+ */
+const toFolder = (row) => ({
+  id: row.id,
+  name: row.client_name,
+  phone: row.client_phone,
+  service: row.service_name,
+  at: row.starts_at,
+})
 
 /* --------------------------------------------------------------------------
  * ВРЕМЕННО — УДАЛИТЬ ВМЕСТЕ С ЭТИМ БЛОКОМ.

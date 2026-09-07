@@ -172,6 +172,7 @@ export default {
   'form.saving': 'Сақталуда…',
   'form.close': 'Жабу',
 
+  'inbox.dayEmpty': 'Бұл күнге жазба жоқ',
   'inbox.pickDay': 'Күн таңдау',
   'inbox.today': 'Бүгінгі чаттар',
   'inbox.all': 'Барлық чаттар',

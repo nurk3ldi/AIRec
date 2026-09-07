@@ -171,6 +171,7 @@ export default {
   'form.saving': 'Saving…',
   'form.close': 'Close',
 
+  'inbox.dayEmpty': 'Nothing booked for this day',
   'inbox.pickDay': 'Pick a day',
   'inbox.today': 'Chats today',
   'inbox.all': 'All chats',
