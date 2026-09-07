@@ -119,6 +119,39 @@ instead. Emails are still Russian only; see `app/core/i18n.py`.
 | `PATCH` | `/appointments/{id}` | Edit, reschedule, swap the service, or change status |
 | `DELETE` | `/appointments/{id}` | Delete the row for good (204). **Cancelling is a status** — `PATCH {"status": "cancelled"}` |
 
+### Conversations
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/conversations?status=&query=&archived=&starred=&assistant=&awaiting=&active=` | The inbox, newest first. `query` matches the client's name, their number (punctuation ignored) and the text of any message |
+| `GET` | `/conversations/unread-count` | How many **threads** hold something unread |
+| `POST` | `/conversations` | Open a thread from this side (201) |
+| `POST` | `/conversations/ingest` | A client wrote, said with the owner's token. The real channel uses the webhook below |
+| `GET` | `/conversations/{id}` | One thread, with its messages |
+| `PATCH` | `/conversations/{id}` | Rename, close, archive, star, pin, or switch the assistant back on |
+| `DELETE` | `/conversations/{id}` | Delete the thread and everything in it (204). **Archiving is a PATCH** |
+| `POST` | `/conversations/{id}/read` | Clear the unread count |
+| `GET` | `/conversations/{id}/messages?limit=&before=` | The transcript, oldest first; `before` pages into the past |
+| `POST` | `/conversations/{id}/messages` | Reply — recorded, then sent over WhatsApp (201). An owner's message switches the assistant off for that thread |
+| `DELETE` | `/conversations/{id}/messages/{id}` | Remove our copy (204). It does not unsend anything |
+
+### WhatsApp
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/business/whatsapp` | The connected number, or `null`. Never the access token |
+| `PUT` | `/business/whatsapp` | Connect a number, move to another, or rotate an expired token |
+| `DELETE` | `/business/whatsapp` | Disconnect (204). The conversations stay |
+| `GET` | `/webhooks/whatsapp` | Meta's one-time subscription handshake. **Unauthenticated** |
+| `POST` | `/webhooks/whatsapp` | Inbound messages and delivery receipts. **Unauthenticated** — an HMAC over the raw body stands in for a session |
+
+**Pointing Meta at a dev machine.** Run `ngrok http 8000`, set the webhook URL
+in the Meta dashboard to `https://<id>.ngrok-free.app/api/v1/webhooks/whatsapp`
+with the same verify token as `WHATSAPP_VERIFY_TOKEN`, subscribe to the
+`messages` field, and paste the number's `phone_number_id` and access token into
+the app. Without `WHATSAPP_APP_SECRET` set the webhook refuses everything, which
+is what the log line says when nothing arrives.
+
 Uploaded images are served as static files from `/media/avatars/<name>.png` and
 `/media/logos/<name>.png`.
 

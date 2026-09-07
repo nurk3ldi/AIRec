@@ -124,6 +124,30 @@ class Settings(BaseSettings):
     image_max_bytes: int = 5 * 1024 * 1024
     image_size_px: int = 512
 
+    # --- WhatsApp Cloud API ---
+    # **App-wide, not per business.** One Meta app fronts every account: the
+    # app secret signs every webhook it sends us and the verify token answers
+    # the one-time subscription handshake, so both belong to the deployment
+    # rather than to a salon. What *is* per business — the phone number id and
+    # its access token — lives in `whatsapp_accounts`, because a credential has
+    # its own lifecycle and has no business sitting in the row `GET /business`
+    # returns.
+    #
+    # Unset in local dev, and that is a working state: with no app secret the
+    # webhook refuses every delivery, which is the correct answer for a machine
+    # Meta cannot reach anyway.
+    whatsapp_app_secret: SecretStr | None = None
+    whatsapp_verify_token: SecretStr | None = None
+    # Pinned rather than "latest": Meta breaks fields between versions and a
+    # graph URL that drifts under the app is a payload that changes shape
+    # without anybody deploying.
+    whatsapp_api_version: str = "v21.0"
+    whatsapp_api_base: str = "https://graph.facebook.com"
+    # A send is a request a person is waiting on with a reply box open. Short,
+    # so a provider having a bad minute reads as "не отправлено" rather than as
+    # a frozen panel.
+    whatsapp_timeout_seconds: float = 10.0
+
     # --- SMTP (optional) ---
     # Left unset in local dev on purpose: with no host configured, reset codes
     # are logged to the console instead of emailed — see app/core/email.py.

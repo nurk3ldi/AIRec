@@ -180,6 +180,40 @@ export default {
   'form.saving': 'Сохраняем…',
   'form.close': 'Закрыть',
 
+  // ── WhatsApp ──────────────────────────────────────────────────────────────
+  'whatsapp.title': 'WhatsApp',
+  'whatsapp.hint':
+    'Номер, на который пишут клиенты. Скопируйте «Phone number ID» и токен доступа из панели Meta for Developers.',
+  'whatsapp.phoneNumberId': 'Phone number ID',
+  'whatsapp.token': 'Токен доступа',
+  'whatsapp.tokenKeep': 'Новый токен — оставьте пустым, чтобы не менять',
+  'whatsapp.displayNumber': 'Номер для отображения',
+  'whatsapp.connect': 'Подключить',
+  'whatsapp.disconnect': 'Отключить',
+  'whatsapp.disconnectSure': 'Точно отключить?',
+  'whatsapp.failed': 'Не удалось сохранить. Попробуйте ещё раз.',
+
+  // ── Inbox ─────────────────────────────────────────────────────────────────
+  'inbox.empty': 'Пока никто не написал',
+  'inbox.emptyHint':
+    'Здесь появятся разговоры с клиентами, как только они напишут в WhatsApp.',
+  'inbox.notConnected': 'WhatsApp не подключён',
+  'inbox.notConnectedHint':
+    'Подключите номер на странице «Ассистент» — без него сообщения клиентов сюда не дойдут.',
+  'inbox.connect': 'Подключить WhatsApp',
+  'inbox.reply': 'Написать сообщение…',
+  'inbox.send': 'Отправить',
+  'inbox.sending': 'Отправляем…',
+  'inbox.assistantOn': 'Ассистент отвечает',
+  'inbox.assistantOff': 'Отвечаете вы',
+  'inbox.resume': 'Вернуть ассистента',
+  'inbox.pause': 'Ответить самому',
+  'inbox.noMessages': 'В этой ветке пока пусто',
+  'inbox.failed': 'Не отправлено',
+  'inbox.back': 'К списку',
+  'inbox.author.assistant': 'Ассистент',
+  'inbox.author.owner': 'Вы',
+
   // ── Login ─────────────────────────────────────────────────────────────────
   'login.aria': 'Страница входа',
   'login.title': 'Вход в AIRec',

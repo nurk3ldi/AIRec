@@ -34,13 +34,34 @@ import { getLocale } from '../../lib/i18n'
  * разговор за месяцы порождает несколько записей (клиент записывается снова в
  * той же ветке), а запись приходит самое большее из одного разговора.
  */
-export default function ChatCard({ chat, className = '' }) {
+export default function ChatCard({ chat, onOpen, active, className = '' }) {
   return (
     // Без рамки: `surface-raised` — белый на светлой теме и на ступень выше
     // чёрного на тёмной, то есть заливка, которая сама отделяет блок от фона.
     // Рамка поверх неё — обводка вокруг фигуры, у которой край уже есть.
+    //
+    // **Карточка открывается, а не оборачивается в кнопку.** `<button>` внутри
+    // себя не допускает абзацев, а здесь их три, — поэтому роль и клавиатура
+    // навешиваются на саму `article`. Нажатие подтверждается на самом касании
+    // (`active:scale`), а не по отпусканию: на телефоне `hover:` мёртв, и без
+    // этого касание не отвечает ничем.
     <article
-      className={`flex aspect-square min-w-0 flex-col rounded-2xl bg-surface-raised p-5 ${className}`}
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (!onOpen) return
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onOpen()
+        }
+      }}
+      role={onOpen ? 'button' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      aria-current={active ? 'true' : undefined}
+      className={`flex aspect-square min-w-0 flex-col rounded-2xl bg-surface-raised p-5 outline-none ${
+        onOpen
+          ? 'cursor-pointer transition-[box-shadow,scale] duration-150 ease-out focus-visible:shadow-[0_0_0_2px_var(--color-ink)] active:scale-[0.98]'
+          : ''
+      } ${active ? 'shadow-[0_0_0_2px_var(--color-ink)]' : ''} ${className}`}
     >
       {/* Верхняя строка: кто это — слева, действия над карточкой — справа.
 

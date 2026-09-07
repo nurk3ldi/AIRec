@@ -26,6 +26,11 @@ class MessagePublic(BaseModel):
     author: str
     body: str
     external_id: str | None = None
+    # How far one of *ours* got, and null for anything the client sent — see
+    # `MessageStatus`. `error` is filled only when it is `failed`, and carries a
+    # sentence rather than a code because it is drawn under the bubble.
+    status: str | None = None
+    error: str | None = None
     sent_at: datetime
     created_at: datetime
 

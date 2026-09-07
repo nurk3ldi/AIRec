@@ -24,12 +24,14 @@ from app.repositories.password_reset import PasswordResetRepository
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.repositories.service import ServiceRepository, WorkingHoursRepository
 from app.repositories.user import UserRepository
+from app.repositories.whatsapp import WhatsAppAccountRepository
 from app.services.appointment import AppointmentService
 from app.services.auth import AuthService, ClientInfo
 from app.services.business import BusinessService
 from app.services.conversation import ConversationService
 from app.services.note import NoteService
 from app.services.note_folder import NoteFolderService
+from app.services.whatsapp import WhatsAppService
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 
@@ -114,12 +116,29 @@ def get_conversation_service(session: SessionDep) -> ConversationService:
         businesses=get_business_service(session),
         conversations=ConversationRepository(session),
         messages=MessageRepository(session),
+        # Replying means sending, and sending needs the number and the token —
+        # see `ConversationService._deliver`.
+        accounts=WhatsAppAccountRepository(session),
     )
 
 
 ConversationServiceDep = Annotated[
     ConversationService, Depends(get_conversation_service)
 ]
+
+
+def get_whatsapp_service(session: SessionDep) -> WhatsAppService:
+    return WhatsAppService(
+        session=session,
+        businesses=get_business_service(session),
+        accounts=WhatsAppAccountRepository(session),
+        # The channel owns no conversation rules; it hands what arrives to the
+        # service that does.
+        conversations=get_conversation_service(session),
+    )
+
+
+WhatsAppServiceDep = Annotated[WhatsAppService, Depends(get_whatsapp_service)]
 
 
 def get_token_claims(credentials: CredentialsDep) -> AccessTokenClaims:

@@ -525,9 +525,11 @@ export function listMessages(accessToken, id, { limit, before } = {}) {
 }
 
 /**
- * Records something we are saying. **It does not send it** — there is no
- * outbound channel yet, so this writes to the transcript and nothing leaves the
- * building. The screen has to say so.
+ * Says something in a thread. **Written down first, then sent** — so what comes
+ * back is the message either way, carrying `status` and, when WhatsApp refused
+ * it, an `error` in words. A refusal is not an exception here: the owner typed
+ * those words and a panel that dropped them would lose the message as well as
+ * the send.
  *
  * The author defaults to the owner on the server, and an owner's message
  * switches the assistant off for that thread. That is the rule the whole inbox
@@ -539,4 +541,51 @@ export function createMessage(accessToken, id, body) {
     body: { body },
     accessToken,
   })
+}
+
+/**
+ * The WhatsApp number this business answers on, or `null`.
+ *
+ * **`null` is not an error.** Every account starts with nothing connected, and
+ * a screen that treated the ordinary case as a failure would open on one.
+ */
+export function getWhatsApp(accessToken) {
+  return request('/business/whatsapp', { method: 'GET', accessToken })
+}
+
+/**
+ * Connect a number, point at a different one, or paste a fresh token.
+ *
+ * A `PUT` because a business has exactly one connection and this sets it — all
+ * three of those are the same act with the same body, and a `POST` that
+ * sometimes created and sometimes edited would be the same thing under a verb
+ * that promised otherwise.
+ *
+ * `phoneNumberId` is **not** the phone number: Meta assigns the number an id
+ * and names that id in every webhook, so it is what everything routes by.
+ */
+export function connectWhatsApp(
+  accessToken,
+  // `token` and not `accessToken` for the WhatsApp one: the session's token is
+  // already the first argument, and two names one letter apart in one signature
+  // is the pair that gets swapped.
+  { phoneNumberId, token, wabaId, displayPhoneNumber },
+) {
+  return request('/business/whatsapp', {
+    method: 'PUT',
+    body: {
+      phone_number_id: phoneNumberId,
+      // `null` means "keep the stored one"; the API refuses it only when
+      // there is nothing stored to keep.
+      access_token: token || null,
+      waba_id: wabaId || null,
+      display_phone_number: displayPhoneNumber || null,
+    },
+    accessToken,
+  })
+}
+
+/** Forget the number and its token. **The conversations stay.** */
+export function disconnectWhatsApp(accessToken) {
+  return request('/business/whatsapp', { method: 'DELETE', accessToken })
 }

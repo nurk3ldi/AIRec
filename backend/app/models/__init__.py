@@ -16,13 +16,14 @@ from app.models.conversation import (
     ConversationStatus,
 )
 from app.models.email_change_code import EmailChangeCode
-from app.models.message import Message, MessageAuthor
+from app.models.message import Message, MessageAuthor, MessageStatus
 from app.models.note import Note
 from app.models.note_folder import NoteFolder
 from app.models.password_reset_code import PasswordResetCode
 from app.models.refresh_token import RefreshToken
 from app.models.service import Service
 from app.models.user import User
+from app.models.whatsapp_account import WhatsAppAccount
 from app.models.working_hours import WorkingHours
 
 __all__ = [
@@ -36,11 +37,13 @@ __all__ = [
     "EmailChangeCode",
     "Message",
     "MessageAuthor",
+    "MessageStatus",
     "Note",
     "NoteFolder",
     "PasswordResetCode",
     "RefreshToken",
     "Service",
     "User",
+    "WhatsAppAccount",
     "WorkingHours",
 ]

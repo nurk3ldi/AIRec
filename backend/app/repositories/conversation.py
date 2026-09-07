@@ -223,6 +223,27 @@ class MessageRepository:
         )
         return await self._session.scalar(stmt)
 
+    async def get_sent_by_external(
+        self, business_id: uuid.UUID, external_id: str
+    ) -> Message | None:
+        """One of *ours*, found by the id WhatsApp gave it.
+
+        Delivery receipts name a `wamid` and nothing else — no thread, no
+        number — so this is the one message lookup that cannot start from a
+        conversation. It is still scoped by business, through a join rather
+        than through the caller: a receipt for a message belonging to another
+        account must find nothing, not update a stranger's row.
+        """
+        stmt = (
+            select(Message)
+            .join(Conversation, Conversation.id == Message.conversation_id)
+            .where(
+                Conversation.business_id == business_id,
+                Message.external_id == external_id,
+            )
+        )
+        return await self._session.scalar(stmt)
+
     def add(self, message: Message) -> None:
         self._session.add(message)
 

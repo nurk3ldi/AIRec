@@ -172,6 +172,38 @@ export default {
   'form.saving': 'Сақталуда…',
   'form.close': 'Жабу',
 
+  'whatsapp.title': 'WhatsApp',
+  'whatsapp.hint':
+    'Клиенттер жазатын нөмір. Meta for Developers панелінен «Phone number ID» мен қатынау токенін көшіріңіз.',
+  'whatsapp.phoneNumberId': 'Phone number ID',
+  'whatsapp.token': 'Қатынау токені',
+  'whatsapp.tokenKeep': 'Жаңа токен — өзгертпесеңіз бос қалдырыңыз',
+  'whatsapp.displayNumber': 'Көрсетілетін нөмір',
+  'whatsapp.connect': 'Қосу',
+  'whatsapp.disconnect': 'Ажырату',
+  'whatsapp.disconnectSure': 'Шынымен ажыратасыз ба?',
+  'whatsapp.failed': 'Сақталмады. Қайталап көріңіз.',
+
+  'inbox.empty': 'Әзірге ешкім жазбаған',
+  'inbox.emptyHint':
+    'Клиенттер WhatsApp-қа жазған бойда әңгімелер осында пайда болады.',
+  'inbox.notConnected': 'WhatsApp қосылмаған',
+  'inbox.notConnectedHint':
+    'Нөмірді «Ассистент» бетінде қосыңыз — онсыз клиенттердің хабарлары мұнда жетпейді.',
+  'inbox.connect': 'WhatsApp қосу',
+  'inbox.reply': 'Хабар жазу…',
+  'inbox.send': 'Жіберу',
+  'inbox.sending': 'Жіберілуде…',
+  'inbox.assistantOn': 'Ассистент жауап береді',
+  'inbox.assistantOff': 'Өзіңіз жауап бересіз',
+  'inbox.resume': 'Ассистентті қайтару',
+  'inbox.pause': 'Өзім жауап беремін',
+  'inbox.noMessages': 'Бұл тармақта әзірге бос',
+  'inbox.failed': 'Жіберілмеді',
+  'inbox.back': 'Тізімге',
+  'inbox.author.assistant': 'Ассистент',
+  'inbox.author.owner': 'Сіз',
+
   'login.aria': 'Кіру беті',
   'login.title': 'AIRec-ке кіру',
   'login.identifier': 'Email немесе логин',

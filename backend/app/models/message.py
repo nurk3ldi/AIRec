@@ -46,6 +46,44 @@ class MessageAuthor(StrEnum):
 OUTBOUND_AUTHORS = (MessageAuthor.ASSISTANT, MessageAuthor.OWNER)
 
 
+class MessageStatus(StrEnum):
+    """How far one of *our* messages has got.
+
+    Four of these are WhatsApp's own words back to us, and `PENDING` is the one
+    we say ourselves: the row exists and the provider has not accepted it yet.
+    It is a real state rather than a placeholder, because writing the message
+    down happens before sending it and a send can fail — a message the owner
+    typed and WhatsApp refused is a fact worth keeping on screen, not a row to
+    delete.
+
+    **Inbound messages have no status at all** (the column is NULL for them).
+    Delivery is a claim about something we sent; a message that arrived has
+    arrived, and inventing a `received` value would put a word in the column
+    that nothing ever reads.
+    """
+
+    PENDING = "pending"
+    SENT = "sent"
+    DELIVERED = "delivered"
+    READ = "read"
+    FAILED = "failed"
+
+
+# **Delivery receipts do not arrive in order.** A `read` can land before the
+# `delivered` for the same message, and applying them as they come would walk a
+# message backwards on screen. Rank says which of two states is further along,
+# so an older one is simply dropped; `FAILED` is deliberately the highest,
+# since a failure reported after a `sent` is the provider correcting itself and
+# is the answer that matters.
+STATUS_RANK = {
+    MessageStatus.PENDING: 0,
+    MessageStatus.SENT: 1,
+    MessageStatus.DELIVERED: 2,
+    MessageStatus.READ: 3,
+    MessageStatus.FAILED: 4,
+}
+
+
 class Message(Base):
     """One message in a thread.
 
@@ -58,6 +96,11 @@ class Message(Base):
     __tablename__ = "messages"
     __table_args__ = (
         CheckConstraint("author in ('client', 'assistant', 'owner')", name="author"),
+        CheckConstraint(
+            "status is null or status in "
+            "('pending', 'sent', 'delivered', 'read', 'failed')",
+            name="status",
+        ),
         # The provider's own id, which is what makes a redelivered webhook
         # harmless: the same message arriving twice hits this and is dropped
         # rather than appended. Scoped by conversation because those ids are
@@ -85,6 +128,15 @@ class Message(Base):
     # column that refused it would lose the message rather than the argument.
     body: Mapped[str] = mapped_column(Text, nullable=False)
     external_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+    # How far this one got, and NULL for anything the client sent — see
+    # `MessageStatus`. Updated by delivery receipts, which arrive out of order,
+    # so `STATUS_RANK` and not a bare assignment is what applies them.
+    status: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    # Why it failed, in words the owner can act on. Meta answers with a numeric
+    # code and a sentence; the sentence is what goes here, because "вне
+    # 24-часового окна" tells somebody what to do and `131047` does not.
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # When it was actually sent, which is the provider's word and not ours — a
     # webhook arriving late must not reorder a thread. `created_at` is when this

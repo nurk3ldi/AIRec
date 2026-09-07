@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 AIRec is an AI-receptionist product, split into two independent apps with no root `package.json` — always run commands from inside `frontend/` or `backend/`:
 
 - `frontend/` — React + Vite + Tailwind SPA (**no Next.js**; migrated 2026-08-18). **The auth flow, the profile overlay and `/appointments` have UI.** The landing page and the remaining dashboard screens — `/`, `/dashboard`, `/inbox`, `/assistant` — are deliberately empty page grounds while they are redesigned; `/notifications` has a real empty state. The backend behind them — the business profile and the conversations — is finished and untouched by that.
-- `backend/` — FastAPI service. Authentication and account profile, the business profile (services, working hours, logo) and bookings (`/appointments` CRUD, `/appointments/slots`, archive) are implemented and verified end-to-end against PostgreSQL 18. Not built: schedule overrides, a clients table, WhatsApp/assistant integration, and any test suite.
+- `backend/` — FastAPI service. Authentication and account profile, the business profile (services, working hours, logo) and bookings (`/appointments` CRUD, `/appointments/slots`, archive) are implemented and verified end-to-end against PostgreSQL 18. **WhatsApp is wired end-to-end** — a signed webhook, inbound messages, real outbound sending and delivery receipts. Not built: schedule overrides, a clients table, the assistant actually composing a reply, and any test suite.
 
 **Auth is wired end-to-end**, including refresh rotation. `login.jsx` and `signup.jsx` call `backend/`'s `/api/v1/auth/*` through `frontend/src/lib/api.js`; tokens land in `localStorage` or `sessionStorage` via `frontend/src/lib/auth.js`, depending on «Запомнить меня». `DashboardLayout` calls `useRequireAuth()`, which calls `verifySession()` — a real server round trip: `GET /auth/me` with the stored access token, and on any failure (expired, invalid, backend momentarily unreachable) a fallback `POST /auth/refresh` with the stored refresh token before giving up. Only if both fail does it clear tokens and redirect to `/login`; it renders nothing while that check is in flight, so protected content never flashes on screen. `login.jsx`/`signup.jsx` run the same `verifySession()` via `useRedirectIfAuthed()` to bounce a visitor with a live session straight to `/dashboard`. `components/ProfileMenu.jsx` holds the only sign-out control, which calls `/auth/logout` best-effort then clears local tokens regardless.
 
@@ -72,7 +72,25 @@ Every Next.js primitive has one replacement, and mixing them back in is the thin
 
 - `/` — public landing page (`pages/index.jsx`). **On a phone it is a splash and on a desktop it is still empty**, and that asymmetry is deliberate rather than unfinished: below `sm` it shows the wordmark, one line of what AIRec is, «Открыть AIRec» and a «Войти или зарегистрироваться» pair, centred in the viewport; above `sm` the desktop landing is being designed separately and the phone screen is not a draft of it. The old hero (heading, paragraph, «Начать» / «Подробнее») was removed on 2026-08-19 and is in git history.
 - `/dashboard` — «Главная»: empty. An analytics screen built to `design/main_page.png` — week bar chart, a 2×2 of metrics, a funnel, a category donut and a bookings table, all on invented figures since there are no aggregate endpoints — was put here and taken out again on 2026-08-21; it is in git history, charts and all (hand-written SVG, no library). Not `/` — that's the landing page.
-- `/inbox` — «Диалоги»: empty. This is where the assistant's WhatsApp conversations will go; there is no channel and no message table behind it yet.
+- `/inbox` — «Диалоги»: **built, on real data, as of 2026-09-07.** It stood empty until then for one reason — there were no inbound messages, because there was no webhook. Now there is; see **The WhatsApp channel** below.
+
+  **The list and the open thread sit side by side; the thread is not a modal.** An inbox is a list and the thing the list is about, which is the shape `/appointments` already uses and the shape every messenger uses — and it costs none of a dialog's machinery: no scrim, no focus trap, no second animation scheme. Below `sm` there is no room for two columns, so opening a thread swaps the grid out (`hidden sm:block`) and `Thread`'s back button is what returns.
+
+  **The page carries a definite height**, the same way `/appointments` does and for the same reason: the transcript has to scroll inside itself, and a `min-height` leaves the flex container an *indefinite* cross size, so `flex-1` inside it inherits nothing and the column grows by its content instead of fitting the viewport. The numbers are the module's — 68px header, 50px bottom bar, the home indicator under it — written as a real height.
+
+  **The grid is `ChatCard`s, one per conversation.** That component predates the channel and did not change beyond learning to open: it is `role="button"` with an Enter/Space handler rather than wrapped in a `<button>`, because a button may not contain the three paragraphs it draws. Its booking block still has no data behind it — there is no `appointments.conversation_id` — so it does not render, which is what it already did with a conversation that had not led anywhere.
+
+  **`Thread` fetches its own transcript.** The list endpoint carries a one-line preview and nothing else, deliberately, so opening a thread is a second request. A reply is appended from the POST's own answer rather than re-fetched, because that answer *is* the row — carrying `status` and, when WhatsApp refused it, the reason.
+
+  **A refusal is not an error path.** `POST /conversations/{id}/messages` writes the message down and then sends it, so a message WhatsApp would not take comes back saved and marked `failed` with a sentence under the bubble. The owner typed those words; a panel that turned the refusal into a toast would lose the message as well as the send. The sentence is `--now` orange rather than red — nothing is broken and nothing was lost.
+
+  **Delivery is the three ticks**, WhatsApp's own vocabulary, and only `read` takes a colour: the other two are facts about our end of the wire where read is the one that says something about the person on the other end. `pending` draws nothing — a fourth glyph nobody has learned, for a state that lasts one request.
+
+  **The assistant switch is labelled with what is true, not with what it does** — «Ассистент отвечает» / «Отвечаете вы» — and pressing it hands the thread over. That is how the rule reads from the owner's side: whoever steps in takes it. Off is `--now`, the colour this product already spends on "happening at this moment".
+
+  **The empty state says one of two things and they are different.** «Никто не написал» is an ordinary quiet day on a connected number; «WhatsApp не подключён» is unfinished setup, where nothing will ever arrive — so that one carries a link to `/assistant`, since a dead end is not a message.
+
+  Which thread is open survives leaving the screen (`useRemembered('inbox.open')`), holding the **id** rather than the row: the row goes stale, the id does not. Two earlier versions of this screen are in git history (`2702991`, `88385af`); this one inherited nothing from either but the card.
 - `/appointments` — «Записи»: **built, and this is the third attempt.** Two earlier designs were each taken down whole rather than edited, so this one inherited nothing from either — v1 (a 24-hour time grid) is in commit `1e0c045`, v2 (a full-width month calendar) was archived under `src/archive/` and that folder has since been deleted; both are in git history.
 
   **The page is a flex row on the page element itself**, which is load-bearing: `items-stretch` measures against a *definite* height, and that is the only way the right-hand panel is genuinely full height. Wrapped in a plain div it would be as tall as its contents.
@@ -231,7 +249,7 @@ Every Next.js primitive has one replacement, and mixing them back in is the thin
 - `/reset-password` — the six-digit code screen. Reads `?email=` with `useSearchParams` and returns `<Navigate to="/forgot-password" replace/>` when it is missing. The code itself is entered via `components/OtpInput.jsx` — six boxes with auto-advance, backspace-to-previous-box, and paste-fill, shared with the profile's email-change step. A wrong code clears the boxes and shows a red message; "Resend code" re-calls `/auth/forgot-password` with a 30s client-side cooldown. On success it redirects to `/login?reset=success`.
 
 ### API client (`src/lib/`)
-- `lib/api.js` — the only place that calls the backend. One `request()` helper does the `fetch`, resolves the API base (see `.env.local` above), and throws `ApiError` (`.code`, `.message`, `.fields`, `.status`) on any non-2xx or network failure, parsed straight from the backend's `{error: {...}}` envelope. Add new endpoints as small named exports here (`register`, `login`, `refresh`, `logout`, `me`, `checkUsernameAvailability`, `forgotPassword`, `resetPassword`, `updateProfile`, `requestEmailChange`, `confirmEmailChange`, `cancelEmailChange`, `getPendingEmailChange`, `requestPasswordChange`, `confirmPasswordChange`, `listSessions`, `revokeSession`, `revokeOtherSessions`, `deleteAccount`, `restoreAccount`, `getBusiness`, `updateBusiness`, `uploadBusinessLogo`, `deleteBusinessLogo`, `getServices`, `saveServices`, `getWorkingHours`, `saveWorkingHours`, `listAppointments`, `getSlots`, `createAppointment`, `updateAppointment`, `deleteAppointment`, `uploadAvatar`, `deleteAvatar`) rather than calling `fetch` from a page. **Every request carries a 10s `AbortSignal.timeout`.** Without one, a host that is reachable but has nothing listening on the port — a phone pointed at a laptop whose backend is bound to localhost — leaves `fetch` unresolved until the OS TCP timeout, a minute or more, during which the form shows «Входим…» and nothing else. A timeout turns that into a `timeout` `ApiError` the user can read. Three details worth knowing: `request()` takes `formData` instead of `body` for uploads and deliberately omits `Content-Type` in that case — the browser must set its own multipart boundary. And `mediaUrl()` exists because uploaded files are served from the backend *root* (`/media/...`), not under the `/api/v1` prefix that `VITE_API_URL` points at, so `user.avatar_url` has to be resolved through it before use in an `<img src>`.
+- `lib/api.js` — the only place that calls the backend. One `request()` helper does the `fetch`, resolves the API base (see `.env.local` above), and throws `ApiError` (`.code`, `.message`, `.fields`, `.status`) on any non-2xx or network failure, parsed straight from the backend's `{error: {...}}` envelope. Add new endpoints as small named exports here (`register`, `login`, `refresh`, `logout`, `me`, `checkUsernameAvailability`, `forgotPassword`, `resetPassword`, `updateProfile`, `requestEmailChange`, `confirmEmailChange`, `cancelEmailChange`, `getPendingEmailChange`, `requestPasswordChange`, `confirmPasswordChange`, `listSessions`, `revokeSession`, `revokeOtherSessions`, `deleteAccount`, `restoreAccount`, `getBusiness`, `updateBusiness`, `uploadBusinessLogo`, `deleteBusinessLogo`, `getServices`, `saveServices`, `getWorkingHours`, `saveWorkingHours`, `listAppointments`, `getSlots`, `createAppointment`, `updateAppointment`, `deleteAppointment`, `listConversations`, `getConversation`, `updateConversation`, `markConversationRead`, `deleteConversation`, `listMessages`, `createMessage`, `getWhatsApp`, `connectWhatsApp`, `disconnectWhatsApp`, `uploadAvatar`, `deleteAvatar`) rather than calling `fetch` from a page. **Every request carries a 10s `AbortSignal.timeout`.** Without one, a host that is reachable but has nothing listening on the port — a phone pointed at a laptop whose backend is bound to localhost — leaves `fetch` unresolved until the OS TCP timeout, a minute or more, during which the form shows «Входим…» and nothing else. A timeout turns that into a `timeout` `ApiError` the user can read. Three details worth knowing: `request()` takes `formData` instead of `body` for uploads and deliberately omits `Content-Type` in that case — the browser must set its own multipart boundary. And `mediaUrl()` exists because uploaded files are served from the backend *root* (`/media/...`), not under the `/api/v1` prefix that `VITE_API_URL` points at, so `user.avatar_url` has to be resolved through it before use in an `<img src>`.
 - **`lib/viewState.js` is what a screen remembers when you leave it.** Every route change unmounts its page — `PageTransition` swaps the outlet — so state is rebuilt each time a screen is opened, which is right for a form and wrong for a view: a click on «Диалоги» and back put `/appointments` on today, in the week view, grid lowered, any open day closed, however carefully all four had just been set. `useRemembered(key, initial)` is a `useState` that survives that, backed by a **module-level `Map`, not `sessionStorage`** — this is view state rather than a preference, so it is worth keeping across a click on the navigation and worth losing on a reload, and a `Map` stores a `Date` or a `Set` as itself where storage would need a serialiser for each. Keys are `screen.thing`, like the translation keys and for the same reason. `/appointments` remembers the day, the view, the status filter, whether the grid is raised and whether the phone has a day open; **the search deliberately is not** — a search is something you were doing rather than somewhere you were. `clearTokens` calls `forgetView()`, which is the one place every end of a session passes through: without it the next person to sign in on a shared machine opens somebody else's Thursday.
 - **`authed(call)` in `lib/auth.js` is how every data request is made.** The access token lives fifteen minutes and nothing was renewing it: `verifySession()` runs when the dashboard shell mounts and on every route change, which covers arriving at a page and covers nothing after that — leave a screen open through lunch and the next request comes back «Access token is invalid or expired.» with a live session sitting in storage behind it. `authed` runs the call, and on the *one* error that means "this token specifically" (`not_authenticated`) renews and tries again.
 
@@ -724,7 +742,94 @@ Where a booking sits is re-checked only when it has been *chosen* again (create,
 
 Search (`?query=`) covers the client's name, their number ignoring punctuation — the calendar's rule — **and the text of any message in the thread**, which the calendar has no equivalent of: half of what you remember about a conversation is a word from inside it, and a client may never have given a name at all.
 
-**Still missing:** the WhatsApp webhook and its signature check, any outbound transport, delivery receipts, media messages, and a way to push a new message to an open page (there is no SSE or WebSocket anywhere in this project).
+**Still missing:** media messages arrive as a placeholder rather than a file, there are no message templates (so nothing can be said first after 24 hours), the assistant does not actually compose anything, and there is no way to push a new message to an open page — no SSE and no WebSocket anywhere in this project, so the inbox learns about a reply only when it re-reads.
+
+### The WhatsApp channel
+
+`app/core/whatsapp.py` speaks the protocol and knows nothing about our tables;
+`app/services/whatsapp.py` joins the two. That seam is what makes a second
+channel a second file rather than a rewrite — and it is why **`WhatsAppService`
+owns no conversation rules at all**: opening a thread, dropping a redelivery,
+bumping the unread count and reopening a closed one belong to
+`ConversationService.ingest_for_business`, which the channel calls.
+
+**`ingest` split in two.** The owner-authenticated `ingest(user, …)` is now a
+wrapper that resolves the business and hands off to
+`ingest_for_business(business_id, …)`. A delivery from Meta carries a
+`phone_number_id` and no bearer token, so a webhook could not use the first;
+asking it for a `User` would mean inventing one.
+
+**The signature is over the raw bytes.** `signature_ok` takes what
+`await request.body()` returned, before anything parses it — re-serialising the
+JSON changes whitespace and key order and the HMAC is over what was sent. It is
+compared with `hmac.compare_digest`, and **an unset `WHATSAPP_APP_SECRET`
+refuses every delivery** rather than waving them through: that is right for a
+dev machine Meta cannot reach, and it is the only safe default for a deployment
+where somebody forgot the variable.
+
+**The webhook answers 200 to anything that is genuinely Meta's.** Meta
+redelivers whatever it did not get a 200 for, with widening backoff, and
+disables a webhook that keeps failing — so a bad signature is the only thing
+that may refuse. `parse()` therefore **never raises**: account alerts, template
+approvals and phone-quality updates arrive on the same subscription as messages,
+and anything unrecognised is skipped while the delivery is still acknowledged.
+The `GET` on the same path is Meta's one-time subscription handshake and has to
+answer the bare challenge in plain text, which is why that route sets its own
+response class.
+
+**Credentials live in `whatsapp_accounts`, not on `businesses`.** The row holds
+an access token — a password to somebody's WhatsApp — and a business row is what
+`GET /business` returns on every page load; keeping them apart means no field
+added there later can leak it. `phone_number_id` carries the unique index
+because that, and never the phone number, is what a delivery names itself by;
+`WhatsAppAccountRepository.get_by_phone_number_id` is **the one unscoped lookup
+in this project**, and it is safe precisely because the id arrived inside a body
+whose signature was already checked. The token is **write-only**: no schema
+returns it, so `PUT /business/whatsapp` treats an omitted one as "keep the
+stored one" and refuses only a *first* connection with none
+(`WhatsAppTokenRequired`) — otherwise correcting a display name would silently
+unplug the channel.
+
+**A reply is written down first and sent afterwards.**
+`ConversationService._deliver` runs *after* the row is committed, so the
+transaction is closed before a ten-second HTTP call rather than held open across
+it, and **nothing in it raises**: every way a send can fail is a state the
+message carries. Not connected is one of those states rather than a special
+case. Turning a refusal into a 4xx would leave the panel with an error toast and
+no bubble, which is the opposite of what a messenger does.
+
+**`messages.status` is NULL for anything the client sent.** Delivery is a claim
+about something *we* sent; a message that arrived has arrived, and a `received`
+value would be a word nothing reads. **Receipts arrive out of order** — a `read`
+can land before the `delivered` for the same message — so `STATUS_RANK` decides
+which of two states is further along and an older one is dropped. `failed`
+outranks everything, because a failure reported after a `sent` is the provider
+correcting itself. `apply_receipt` is silent about a `wamid` it has no row for:
+that is routine, not an error.
+
+**`messages.error` holds a sentence, not a code.** `_ERROR_MESSAGES` in
+`core/whatsapp.py` words the refusals worth wording — 131047 above all, the
+24-hour window, which is the one that will actually happen — and everything
+else falls through to Meta's own message, which is English but specific.
+`NOT_CONNECTED` lives beside them for the same reason: every string that can end
+up in that column is one family and the thread draws them all the same way.
+
+**Media is a placeholder plus its caption** (`[фото] вот такую стрижку`).
+Downloading the file needs a second call, somewhere to put it and a way to serve
+it, none of which exist; a client who sends a photo and then "вот так" has said
+two things, and dropping the first leaves the second answering nothing. A button
+or list reply is recorded as the text the client *chose*, which is what they
+meant to send.
+
+**Pointing Meta at a dev machine:** `ngrok http 8000`, set the callback to
+`https://<id>.ngrok-free.app/api/v1/webhooks/whatsapp` with the same verify
+token as `WHATSAPP_VERIFY_TOKEN`, subscribe to the `messages` field, and paste
+the number's `phone_number_id` and access token into the **«WhatsApp» card on
+`/assistant`**. That card is on that screen and not in «Настройки» because a
+number belongs to the salon rather than to whoever is signed in. It asks for two
+ids rather than offering a Meta login button: Embedded Signup needs a reviewed
+app, the Facebook JS SDK on the page and a server token exchange, and the card is
+where that button goes the day it exists.
 
 ### Messages the API returns
 **Russian is the source language and it lives in the code**, exactly as on the frontend. An `AppError` carries its Russian `message`, a `field_validator` raises Russian prose, and both read where they are written. `app/core/i18n.py` holds `kk` and `en` **keyed by the Russian string** — Russian is deliberately absent, because it is what a missed lookup returns, and listing it would be the same text in two places free to disagree.

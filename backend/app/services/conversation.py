@@ -1,17 +1,21 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import whatsapp
 from app.core.config import settings
 from app.core.errors import ConversationNotFound, MessageNotFound
+from app.core.whatsapp import DeliveryReceipt, WhatsAppSendError
 from app.models.conversation import Conversation, ConversationStatus
-from app.models.message import Message, MessageAuthor
+from app.models.message import STATUS_RANK, Message, MessageAuthor, MessageStatus
 from app.models.user import User
 from app.repositories.conversation import ConversationRepository, MessageRepository
+from app.repositories.whatsapp import WhatsAppAccountRepository
 from app.schemas.conversation import (
     PREVIEW_LENGTH,
     CreateConversationRequest,
@@ -20,6 +24,8 @@ from app.schemas.conversation import (
     UpdateConversationRequest,
 )
 from app.services.business import BusinessService
+
+logger = logging.getLogger(__name__)
 
 
 class ConversationService:
@@ -36,11 +42,13 @@ class ConversationService:
         businesses: BusinessService,
         conversations: ConversationRepository,
         messages: MessageRepository,
+        accounts: WhatsAppAccountRepository,
     ) -> None:
         self._session = session
         self._businesses = businesses
         self._conversations = conversations
         self._messages = messages
+        self._accounts = accounts
 
     # --- reading ---------------------------------------------------------
 
@@ -211,6 +219,13 @@ class ConversationService:
 
         The assistant's own messages do not touch it, obviously: if answering
         switched it off, it could answer exactly once.
+
+        **It is written down first and sent afterwards**, and the order is the
+        point: a message WhatsApp refuses is still something the owner typed,
+        and a panel that dropped it would lose the words as well as the send.
+        What comes back is the row either way, carrying `status` and — when it
+        did not go — a `error` saying why, which is what the thread shows under
+        the bubble.
         """
         conversation = await self.get(user, conversation_id)
         message = Message(
@@ -218,6 +233,9 @@ class ConversationService:
             author=data.author.value,
             body=data.body,
             sent_at=data.sent_at or datetime.now(UTC),
+            # Ours, so it has a delivery state; the client's messages keep NULL
+            # — see `MessageStatus`.
+            status=MessageStatus.PENDING,
         )
         self._messages.add(message)
 
@@ -230,7 +248,52 @@ class ConversationService:
         _remember_last(conversation, message)
         await self._session.commit()
         await self._session.refresh(message)
+
+        await self._deliver(conversation, message)
         return message
+
+    async def _deliver(self, conversation: Conversation, message: Message) -> None:
+        """Hand the message to WhatsApp and record what happened.
+
+        Runs **after** the row is committed, so the transaction is closed
+        before a ten-second HTTP call rather than held open across it. Nothing
+        here raises: every way this can fail is a state the message carries, and
+        turning a refusal into a 4xx would leave the panel with an error toast
+        and no bubble — the opposite of what a messenger does.
+
+        Not connected is one of those states rather than a special case. The
+        owner still gets their words in the thread and a line saying they did
+        not leave, which is the same shape as "WhatsApp said no".
+        """
+        account = await self._accounts.get_for_business(conversation.business_id)
+        if account is None:
+            message.status = MessageStatus.FAILED
+            message.error = whatsapp.NOT_CONNECTED
+            await self._session.commit()
+            return
+
+        try:
+            sent_id = await whatsapp.send_text(
+                phone_number_id=account.phone_number_id,
+                access_token=account.access_token,
+                # The channel's own id for the client, which is their number
+                # without a `+`. A thread the owner opened by hand has none
+                # yet, so the typed number is reduced to digits — the shape
+                # WhatsApp wants — until the first reply teaches us the real one.
+                to=conversation.external_id or _digits(conversation.client_phone),
+                body=message.body,
+            )
+        except WhatsAppSendError as exc:
+            message.status = MessageStatus.FAILED
+            message.error = exc.reason
+        else:
+            message.status = MessageStatus.SENT
+            message.error = None
+            if sent_id:
+                # From here on the delivery receipts have something to find.
+                message.external_id = sent_id
+
+        await self._session.commit()
 
     async def delete_message(
         self, user: User, conversation_id: uuid.UUID, message_id: uuid.UUID
@@ -263,20 +326,38 @@ class ConversationService:
     async def ingest(
         self, user: User, data: IngestMessageRequest
     ) -> tuple[Conversation, Message]:
+        """A client wrote, said by somebody holding this account's token.
+
+        The owner-authenticated way in, which is what the panel and any manual
+        test use. The real channel arrives with a signature and no session, so
+        it goes through `ingest_for_business` below — this is a wrapper that
+        does nothing but resolve the business, and the rules live under it
+        exactly once.
+        """
+        business = await self._businesses.get_or_create(user)
+        return await self.ingest_for_business(business.id, data)
+
+    async def ingest_for_business(
+        self, business_id: uuid.UUID, data: IngestMessageRequest
+    ) -> tuple[Conversation, Message]:
         """A client wrote. The one entrance for anything inbound.
 
         It finds the thread or opens one, drops a redelivery on the floor, and
         bumps the unread count — the three things every channel adapter would
-        otherwise each have to remember. A webhook route is a thin wrapper over
-        this and nothing more.
+        otherwise each have to remember.
+
+        **It takes a business id rather than a user**, and that is what lets a
+        webhook use it. A delivery from Meta carries a `phone_number_id` and no
+        bearer token, so the business is resolved from the signed body before
+        this is reached; asking for a `User` here would mean a webhook had to
+        invent one.
 
         **A closed thread reopens.** Somebody writing again is the definition
         of not being finished, and leaving it closed would file the message
         where nobody looks.
         """
-        business = await self._businesses.get_or_create(user)
         conversation = await self._conversations.get_by_external(
-            business.id,
+            business_id,
             data.channel.value,
             data.external_id,
             data.client_phone,
@@ -284,7 +365,7 @@ class ConversationService:
 
         if conversation is None:
             conversation = Conversation(
-                business_id=business.id,
+                business_id=business_id,
                 channel=data.channel.value,
                 external_id=data.external_id,
                 client_phone=data.client_phone,
@@ -329,6 +410,53 @@ class ConversationService:
         await self._session.refresh(message)
         await self._session.refresh(conversation)
         return conversation, message
+
+    async def apply_receipt(
+        self, business_id: uuid.UUID, receipt: DeliveryReceipt
+    ) -> None:
+        """WhatsApp reporting how far one of ours got.
+
+        Silent about everything it cannot act on. A receipt for a message we
+        have no row for is the ordinary case, not an error — a `wamid` we never
+        stored, or one from before this account was connected — and a webhook
+        that raised on it would be redelivered forever.
+
+        **Receipts arrive out of order**, so a state further along is never
+        overwritten by one behind it; `STATUS_RANK` is what decides which is
+        which, and `failed` outranks everything because a failure reported
+        after a `sent` is the provider correcting itself.
+        """
+        try:
+            status = MessageStatus(receipt.status)
+        except ValueError:
+            # `deleted`, and whatever Meta adds next. Nothing to record.
+            return
+
+        message = await self._messages.get_sent_by_external(
+            business_id, receipt.message_id
+        )
+        if message is None:
+            return
+
+        # `MessageStatus` is a `StrEnum`, so the stored string is its own key
+        # here; -1 is "nothing recorded yet", which every real state beats.
+        current = STATUS_RANK.get(message.status, -1) if message.status else -1
+        if STATUS_RANK[status] <= current:
+            return
+
+        message.status = status
+        message.error = receipt.error if status is MessageStatus.FAILED else None
+        await self._session.commit()
+
+
+def _digits(value: str) -> str:
+    """A number in the shape WhatsApp wants: international, no `+`, no spaces.
+
+    Only ever a fallback. The channel's own `wa_id` is already exactly this and
+    is what a thread uses once the client has written; this is for the one case
+    where the owner opened the thread first and typed the number themselves.
+    """
+    return "".join(character for character in value if character.isdigit())
 
 
 def _remember_last(conversation: Conversation, message: Message | None) -> None:

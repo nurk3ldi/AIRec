@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getBusiness, getServices, getWorkingHours } from '../lib/api'
+import { getBusiness, getServices, getWhatsApp, getWorkingHours } from '../lib/api'
 import { authed } from '../lib/auth'
 import { useT } from '../lib/i18n'
 import BusinessCard from '../components/assistant/BusinessCard'
@@ -8,6 +8,7 @@ import SettingsCard from '../components/assistant/SettingsCard'
 import CardSkeleton from '../components/CardSkeleton'
 import { useSkeleton } from '../lib/skeleton'
 import HoursCard from '../components/assistant/HoursCard'
+import WhatsAppCard from '../components/assistant/WhatsAppCard'
 import styles from '../styles/Assistant.module.css'
 
 /**
@@ -51,6 +52,11 @@ export default function AssistantPage() {
   const [business, setBusiness] = useState(null)
   const [services, setServices] = useState(null)
   const [week, setWeek] = useState(null)
+  // **`undefined` is loading and `null` is "nothing connected".** Every other
+  // row here can use `null` for both because an empty list and no list look the
+  // same on screen; this one cannot, since "no number" is a real answer with a
+  // card of its own to draw.
+  const [channel, setChannel] = useState(undefined)
   // Bumped after a save. A counter rather than a boolean: two saves in a row
   // have to be two reloads, and `true → true` is no change at all.
   const [reload, setReload] = useState(0)
@@ -65,6 +71,7 @@ export default function AssistantPage() {
   const barsBusiness = useSkeleton(business === null)
   const barsServices = useSkeleton(services === null)
   const barsWeek = useSkeleton(week === null)
+  const barsChannel = useSkeleton(channel === undefined)
 
   useEffect(() => {
     let alive = true
@@ -79,6 +86,11 @@ export default function AssistantPage() {
     authed(getWorkingHours)
       .then((rows) => alive && setWeek(rows))
       .catch(() => {})
+    authed(getWhatsApp)
+      .then((row) => alive && setChannel(row))
+      // Swallowed like the rest: the card then draws the not-connected state,
+      // which is what an account that has never connected one looks like too.
+      .catch(() => alive && setChannel(null))
     return () => {
       alive = false
     }
@@ -183,6 +195,25 @@ export default function AssistantPage() {
             business={business}
             onSaved={() => setReload((n) => n + 1)}
             className={`w-full sm:min-w-[320px] sm:flex-1 ${FULL}`}
+          />
+        )}
+
+        {/* **The channel, last.** It is set up once and then never touched,
+            where everything above it is edited as the business changes — so it
+            sits after the things that are actually maintained rather than
+            competing with them for the top of the page. */}
+        {channel === undefined ? (
+          <CardSkeleton
+            rows={2}
+            visible={barsChannel}
+            label={t('whatsapp.title')}
+            className={`w-full sm:max-w-[350px] ${FULL}`}
+          />
+        ) : (
+          <WhatsAppCard
+            account={channel}
+            onSaved={() => setReload((n) => n + 1)}
+            className={`w-full sm:max-w-[350px] ${FULL}`}
           />
         )}
       </div>

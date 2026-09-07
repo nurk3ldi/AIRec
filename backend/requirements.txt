@@ -16,3 +16,8 @@ Pillow==12.3.0
 # and every slot calculation would raise ZoneInfoNotFoundError. Required, not
 # optional: booking is done entirely in the business's own zone.
 tzdata==2026.3
+# The WhatsApp Cloud API is HTTP and nothing in the stdlib speaks it without
+# blocking the event loop — `urllib` in an `async def` is the same mistake
+# hashing a password inline would be. Pinned, and used only by
+# `app/core/whatsapp.py`.
+httpx==0.28.1

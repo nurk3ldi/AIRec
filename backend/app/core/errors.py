@@ -210,3 +210,35 @@ class EmailNotRegistered(AppError):
     # reveals whether an email is registered, trading that enumeration risk for
     # a clearer "that email isn't in our system" message on the frontend.
     message = "Этот email не зарегистрирован."
+
+
+class WhatsAppNotConnected(AppError):
+    status_code = HTTPStatus.NOT_FOUND
+    code = "whatsapp_not_connected"
+    message = "Номер WhatsApp не подключён."
+
+
+class WhatsAppNumberTaken(AppError):
+    """This phone number id already answers for somebody else.
+
+    A conflict rather than a silent takeover: two businesses sharing one number
+    would route one of their clients into the other's inbox, and the unique
+    index says so before that can happen.
+    """
+
+    status_code = HTTPStatus.CONFLICT
+    code = "whatsapp_number_taken"
+    message = "Этот номер WhatsApp уже подключён к другому аккаунту."
+
+
+class WhatsAppTokenRequired(AppError):
+    """Connecting a number for the first time, with no token to connect with.
+
+    Its own answer rather than a required field, because the field genuinely is
+    optional half the time: a reconnection leaves it empty to keep the stored
+    token. Only a *first* connection has nothing to fall back on.
+    """
+
+    status_code = HTTPStatus.BAD_REQUEST
+    code = "whatsapp_token_required"
+    message = "Укажите токен доступа WhatsApp."

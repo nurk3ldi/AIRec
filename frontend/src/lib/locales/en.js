@@ -171,6 +171,38 @@ export default {
   'form.saving': 'Saving…',
   'form.close': 'Close',
 
+  'whatsapp.title': 'WhatsApp',
+  'whatsapp.hint':
+    'The number clients write to. Copy the phone number ID and access token from your Meta for Developers dashboard.',
+  'whatsapp.phoneNumberId': 'Phone number ID',
+  'whatsapp.token': 'Access token',
+  'whatsapp.tokenKeep': 'New token — leave empty to keep the current one',
+  'whatsapp.displayNumber': 'Number to show',
+  'whatsapp.connect': 'Connect',
+  'whatsapp.disconnect': 'Disconnect',
+  'whatsapp.disconnectSure': 'Disconnect for sure?',
+  'whatsapp.failed': 'Could not save. Try again.',
+
+  'inbox.empty': 'Nobody has written yet',
+  'inbox.emptyHint':
+    'Conversations appear here as soon as a client writes on WhatsApp.',
+  'inbox.notConnected': 'WhatsApp is not connected',
+  'inbox.notConnectedHint':
+    'Connect a number on the Assistant page — without it no client message reaches this screen.',
+  'inbox.connect': 'Connect WhatsApp',
+  'inbox.reply': 'Write a message…',
+  'inbox.send': 'Send',
+  'inbox.sending': 'Sending…',
+  'inbox.assistantOn': 'The assistant is answering',
+  'inbox.assistantOff': "You're answering",
+  'inbox.resume': 'Hand back to the assistant',
+  'inbox.pause': 'Answer myself',
+  'inbox.noMessages': 'Nothing said here yet',
+  'inbox.failed': 'Not sent',
+  'inbox.back': 'Back to the list',
+  'inbox.author.assistant': 'Assistant',
+  'inbox.author.owner': 'You',
+
   'login.aria': 'Log-in page',
   'login.title': 'Log in to AIRec',
   'login.identifier': 'Email or username',
