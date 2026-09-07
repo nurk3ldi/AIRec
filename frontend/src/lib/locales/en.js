@@ -171,7 +171,8 @@ export default {
   'form.saving': 'Saving…',
   'form.close': 'Close',
 
-  'inbox.title': 'Chats',
+  'inbox.today': 'Chats today',
+  'inbox.all': 'All chats',
   'inbox.tasks': 'My tasks',
   'whatsapp.title': 'WhatsApp',
   'whatsapp.hint':

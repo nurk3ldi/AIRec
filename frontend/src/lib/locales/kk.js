@@ -172,7 +172,8 @@ export default {
   'form.saving': 'Сақталуда…',
   'form.close': 'Жабу',
 
-  'inbox.title': 'Чаттар',
+  'inbox.today': 'Бүгінгі чаттар',
+  'inbox.all': 'Барлық чаттар',
   'inbox.tasks': 'Менің тапсырмаларым',
   'whatsapp.title': 'WhatsApp',
   'whatsapp.hint':

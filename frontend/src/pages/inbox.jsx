@@ -2,6 +2,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Chat01Icon,
   CheckmarkCircle02Icon,
+  Clock01Icon,
   MoreHorizontalIcon,
 } from '@hugeicons/core-free-icons'
 import { BOOKING_COLORS } from '../lib/appointments'
@@ -62,38 +63,29 @@ export default function InboxPage() {
           `min-w-0`: элемент flex не сжимается меньше своего содержимого без
           него, и первая же длинная строка внутри сломала бы пропорцию. */}
       <div className="min-w-0 flex-[70] overflow-y-auto p-4 sm:p-6">
-        <div className="flex items-center gap-2">
-          <HugeiconsIcon
-            icon={Chat01Icon}
-            size={22}
-            strokeWidth={1.9}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="shrink-0 text-ink"
-          />
-          {/* Отрицательный трекинг: крупный текст читается разреженным, если
-              его не поджать. */}
-          <h1 className="font-display text-[24px] leading-tight font-bold tracking-[-0.02em] text-ink">
-            {t('inbox.title')}
-          </h1>
-        </div>
+        {/* Две секции, не одна: «сегодня» — это то, чем занят день, а «все» —
+            вся история. Один заголовок над общей сеткой заставил бы читать
+            восемь карточек, чтобы понять, где кончается одно и начинается
+            другое.
 
-        {/* Четыре в ряд, на всю ширину колонки.
+            Собственного заголовка у страницы нет: на десктопе её называет
+            шапка, а на телефоне — нижняя панель, и третий раз то же слово было
+            бы тем самым повтором в двух соседних кеглях, который тут запрещён
+            по имени. */}
+        <Section icon={Clock01Icon} title={t('inbox.today')}>
+          <FolderRow rows={DEMO_FOLDERS.slice(0, 4)} />
+        </Section>
 
-            Доля, а не `flex-1`: тот растянул бы карточки по остатку, и ряд из
-            трёх выглядел бы иначе, чем ряд из четырёх. Из ста процентов
-            вычитаются три зазора между четырьмя карточками; высота идёт за
-            шириной через `viewBox`. */}
-        <div className="mt-4 flex gap-4 sm:mt-6 sm:gap-6">
-          {DEMO_FOLDERS.map((row, index) => (
-            <Folder
-              key={row.id}
-              row={row}
-              color={BOOKING_COLORS[index % BOOKING_COLORS.length]}
-              className="w-[calc((100%-3rem)/4)] sm:w-[calc((100%-4.5rem)/4)]"
-            />
-          ))}
-        </div>
+        {/* 32px между секциями — ступень шкалы, а не подобранное число: 24
+            внутри секции отделяет заголовок от карточек, и такой же зазор
+            между секциями стёр бы границу между ними. */}
+        <Section
+          icon={Chat01Icon}
+          title={t('inbox.all')}
+          className="mt-6 sm:mt-8"
+        >
+          <FolderRow rows={DEMO_FOLDERS.slice(4)} />
+        </Section>
       </div>
 
       {/* **Правая панель — во всю высоту, и появляется только начиная с `lg`.**
@@ -114,42 +106,81 @@ export default function InboxPage() {
 }
 
 /**
- * Заголовок с иконкой и карточка под ним, во всю оставшуюся высоту.
+ * Заголовок секции: иконка и название.
  *
- * **Заголовок вне карточки, а не первой строкой внутри.** Он называет то, что
- * в карточке лежит, — а подпись к предмету стоит рядом с предметом, а не на
- * нём. Так же устроен и образец, и по той же причине две таких секции читаются
- * как две, а не как один длинный блок с разделителями.
+ * **Один компонент на обе колонки.** Слева их два, справа один, и они обязаны
+ * выглядеть одинаково — это заголовки одного уровня, каждый называет свой блок.
+ * Две копии одной разметки совпадают ровно до первой правки одной из них.
  *
- * **`flex-1 min-h-0` на обеих.** Первое делит высоту поровну, второе — то, без
- * чего деление не работает: элемент flex не сжимается меньше своего
- * содержимого, пока ему это не разрешат, и карточка вместо своей доли заняла
- * бы столько, сколько в ней окажется.
+ * Заголовок стоит **вне** карточек, а не первой строкой внутри: он называет
+ * то, что под ним лежит, а подпись к предмету стоит рядом с предметом, а не на
+ * нём.
+ */
+function SectionHeading({ icon, title }) {
+  return (
+    <div className="flex shrink-0 items-center gap-2 px-1 pb-3">
+      <HugeiconsIcon
+        icon={icon}
+        size={22}
+        strokeWidth={1.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="shrink-0 text-ink"
+      />
+      <h2 className="min-w-0 truncate font-display text-[24px] leading-tight font-bold tracking-[-0.02em] text-ink">
+        {title}
+      </h2>
+    </div>
+  )
+}
+
+/** Заголовок и то, что под ним. Высоту занимает по содержимому. */
+function Section({ icon, title, className = '', children }) {
+  return (
+    <section className={className}>
+      <SectionHeading icon={icon} title={title} />
+      {children}
+    </section>
+  )
+}
+
+/**
+ * Ряд папок.
  *
- * Внутри пусто: содержимое появится, когда будет решено, что эти две секции
- * показывают.
+ * Четыре в ряд, дальше перенос на следующую строку. Доля, а не `flex-1`: тот
+ * растянул бы карточки по остатку, и неполный последний ряд выглядел бы иначе,
+ * чем полный. Из ста процентов вычитаются три зазора между четырьмя
+ * карточками; высота идёт за шириной через `viewBox`.
+ */
+function FolderRow({ rows }) {
+  return (
+    <div className="flex flex-wrap content-start gap-4 sm:gap-6">
+      {rows.map((row, index) => (
+        <Folder
+          key={row.id}
+          row={row}
+          color={BOOKING_COLORS[index % BOOKING_COLORS.length]}
+          className="w-[calc((100%-3rem)/4)] sm:w-[calc((100%-4.5rem)/4)]"
+        />
+      ))}
+    </div>
+  )
+}
+
+/**
+ * Заголовок и карточка под ним, во всю оставшуюся высоту.
+ *
+ * **`flex-1 min-h-0` на секции и на карточке.** Первое отдаёт ей высоту
+ * колонки, второе — то, без чего это не работает: элемент flex не сжимается
+ * меньше своего содержимого, пока ему не разрешат.
+ *
+ * Внутри пусто: содержимое появится, когда будет решено, что эта секция
+ * показывает.
  */
 function Panel({ icon, title }) {
   return (
     <section className="flex min-h-0 flex-1 flex-col">
-      {/* Тот же размер, вес и цвет, что у «Чатов» слева: это два заголовка
-          одного уровня — каждый называет свою колонку, — а разный кегль сказал
-          бы, что одна колонка главнее другой. Одна ступень шкалы для обоих;
-          правило «не ставить рядом соседние ступени» это не нарушает, оно про
-          соседние, а не про одинаковые. */}
-      <div className="flex shrink-0 items-center gap-2 px-1 pb-3">
-        <HugeiconsIcon
-          icon={icon}
-          size={22}
-          strokeWidth={1.9}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="shrink-0 text-ink"
-        />
-        <h2 className="min-w-0 truncate font-display text-[24px] leading-tight font-bold tracking-[-0.02em] text-ink">
-          {title}
-        </h2>
-      </div>
+      <SectionHeading icon={icon} title={title} />
       {/* Без рамки: `surface-raised` — заливка, которая сама отделяет блок от
           фона в обеих темах. */}
       <div className="min-h-0 flex-1 rounded-2xl bg-surface-raised" />
@@ -193,6 +224,34 @@ const DEMO_FOLDERS = [
     phone: '+7 708 441 76 15',
     service: 'Бояу',
     at: '2026-09-12T09:45:00',
+  },
+  {
+    id: 'demo-5',
+    name: 'Мадина Қайрат',
+    phone: '+7 702 318 55 71',
+    service: 'Педикюр',
+    at: '2026-09-13T12:00:00',
+  },
+  {
+    id: 'demo-6',
+    name: 'Ерлан Тоқтар',
+    phone: '+7 771 604 29 38',
+    service: 'Шаш алу',
+    at: '2026-09-13T16:30:00',
+  },
+  {
+    id: 'demo-7',
+    name: 'Гүлнұр Асқар',
+    phone: '+7 700 852 47 63',
+    service: 'Кератин',
+    at: '2026-09-14T10:15:00',
+  },
+  {
+    id: 'demo-8',
+    name: 'Сая Бекзат',
+    phone: '+7 775 236 90 14',
+    service: 'Маникюр',
+    at: '2026-09-14T14:45:00',
   },
 ]
 /* ------------------------------------------------------------ конец блока */
