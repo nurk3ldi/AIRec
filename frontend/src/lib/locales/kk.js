@@ -173,6 +173,8 @@ export default {
   'form.close': 'Жабу',
 
   'inbox.title': 'Чаттар',
+  'inbox.tasks': 'Менің тапсырмаларым',
+  'inbox.activity': 'Соңғы әрекеттер',
   'whatsapp.title': 'WhatsApp',
   'whatsapp.hint':
     'Клиенттер жазатын нөмір. Meta for Developers панелінен «Phone number ID» мен қатынау токенін көшіріңіз.',

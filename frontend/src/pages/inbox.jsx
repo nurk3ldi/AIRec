@@ -1,5 +1,10 @@
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Chat01Icon, MoreHorizontalIcon } from '@hugeicons/core-free-icons'
+import {
+  Chat01Icon,
+  CheckmarkCircle02Icon,
+  Clock01Icon,
+  MoreHorizontalIcon,
+} from '@hugeicons/core-free-icons'
 import { BOOKING_COLORS } from '../lib/appointments'
 import { getLocale, useT } from '../lib/i18n'
 import styles from '../styles/Inbox.module.css'
@@ -39,8 +44,18 @@ export default function InboxPage() {
   const t = useT()
 
   return (
-    <div className={styles.page} aria-label={t('nav.inbox')}>
-      <div className="p-4 sm:p-6">
+    /* **Высота определённая, а не минимальная.** Правая панель обязана быть
+       100% высоты, а `items-stretch` меряет от *определённого* размера:
+       контейнер с `height: auto` поперечника не имеет, сколько бы `min-height`
+       его снизу ни подпирал, и `flex-1` внутри такой панели ничего не
+       наследует. Числа — те же, что в модуле (68px шапки, 50px нижней панели и
+       индикатор дома под ней), но записаны настоящей высотой. Тот же приём, что
+       на `/appointments`, и там же объяснён подробно. */
+    <div
+      className={`${styles.page} flex h-[calc(100vh-118px-env(safe-area-inset-bottom))] items-stretch overflow-hidden sm:h-[calc(100vh-68px)]`}
+      aria-label={t('nav.inbox')}
+    >
+      <div className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="flex items-center gap-2">
           <HugeiconsIcon
             icon={Chat01Icon}
@@ -75,7 +90,61 @@ export default function InboxPage() {
           ))}
         </div>
       </div>
+
+      {/* **Правая панель — во всю высоту, и появляется только начиная с `lg`.**
+          Ниже неё панель шириной в треть экрана отбирает у ряда папок больше,
+          чем сама даёт: на 1024px слева остаётся ещё около семисот пикселей, а
+          на 768px — уже меньше половины. Скрыта классом, а не размонтирована
+          через `useMediaQuery`: здесь ничего не тикает и нечего терять при
+          пересборке, значит и повода звать хук нет.
+
+          Хайрлайна между колонками нет — в образце его тоже нет: карточки
+          отделяет от фона собственная заливка, а линия рядом с ней была бы
+          вторым краем у фигуры, у которой край уже есть. */}
+      <aside className="hidden w-[calc(320px+2rem)] shrink-0 flex-col gap-4 p-4 lg:flex">
+        <Panel icon={CheckmarkCircle02Icon} title={t('inbox.tasks')} />
+        <Panel icon={Clock01Icon} title={t('inbox.activity')} />
+      </aside>
     </div>
+  )
+}
+
+/**
+ * Заголовок с иконкой и карточка под ним, во всю оставшуюся высоту.
+ *
+ * **Заголовок вне карточки, а не первой строкой внутри.** Он называет то, что
+ * в карточке лежит, — а подпись к предмету стоит рядом с предметом, а не на
+ * нём. Так же устроен и образец, и по той же причине две таких секции читаются
+ * как две, а не как один длинный блок с разделителями.
+ *
+ * **`flex-1 min-h-0` на обеих.** Первое делит высоту поровну, второе — то, без
+ * чего деление не работает: элемент flex не сжимается меньше своего
+ * содержимого, пока ему это не разрешат, и карточка вместо своей доли заняла
+ * бы столько, сколько в ней окажется.
+ *
+ * Внутри пусто: содержимое появится, когда будет решено, что эти две секции
+ * показывают.
+ */
+function Panel({ icon, title }) {
+  return (
+    <section className="flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0 items-center gap-2 px-1 pb-3">
+        <HugeiconsIcon
+          icon={icon}
+          size={18}
+          strokeWidth={1.9}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="shrink-0 text-muted"
+        />
+        <h2 className="min-w-0 truncate font-display text-[15px] font-semibold text-ink">
+          {title}
+        </h2>
+      </div>
+      {/* Без рамки: `surface-raised` — заливка, которая сама отделяет блок от
+          фона в обеих темах. */}
+      <div className="min-h-0 flex-1 rounded-2xl bg-surface-raised" />
+    </section>
   )
 }
 

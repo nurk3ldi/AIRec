@@ -182,6 +182,8 @@ export default {
 
   // ── WhatsApp ──────────────────────────────────────────────────────────────
   'inbox.title': 'Чаты',
+  'inbox.tasks': 'Мои задачи',
+  'inbox.activity': 'Последние действия',
   'whatsapp.title': 'WhatsApp',
   'whatsapp.hint':
     'Номер, на который пишут клиенты. Скопируйте «Phone number ID» и токен доступа из панели Meta for Developers.',
