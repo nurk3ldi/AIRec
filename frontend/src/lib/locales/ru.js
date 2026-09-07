@@ -181,6 +181,7 @@ export default {
   'form.close': 'Закрыть',
 
   // ── WhatsApp ──────────────────────────────────────────────────────────────
+  'inbox.pickDay': 'Выбрать день',
   'inbox.today': 'Чаты сегодня',
   'inbox.all': 'Все чаты',
   'whatsapp.title': 'WhatsApp',

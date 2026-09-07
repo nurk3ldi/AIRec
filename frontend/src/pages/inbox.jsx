@@ -1,11 +1,19 @@
 import { HugeiconsIcon } from '@hugeicons/react'
 import { useEffect, useState } from 'react'
+import * as Popover from '@radix-ui/react-popover'
 import {
   AiScanIcon,
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  Calendar03Icon,
   Chat01Icon,
   Clock01Icon,
   MoreHorizontalIcon,
 } from '@hugeicons/core-free-icons'
+import MonthCalendar from '../components/appointments/MonthCalendar'
+import { PANEL_MOTION } from '../components/appointments/panel'
+import { StepButton } from '../components/appointments/Timetable'
+import { shiftDate } from '../lib/dates'
 import { listConversations } from '../lib/api'
 import { authed } from '../lib/auth'
 import { liveChats } from '../lib/conversations'
@@ -81,6 +89,9 @@ export default function InboxPage() {
   }, [])
 
   const live = liveChats(chats)
+  // Какой день показывает верхняя секция. Стрелки и календарь двигают одно и
+  // то же состояние — два контрола, один ответ на вопрос «какой день».
+  const [day, setDay] = useState(() => new Date())
 
   return (
     /* **Высота определённая, а не минимальная.** Правая панель обязана быть
@@ -111,7 +122,11 @@ export default function InboxPage() {
             шапка, а на телефоне — нижняя панель, и третий раз то же слово было
             бы тем самым повтором в двух соседних кеглях, который тут запрещён
             по имени. */}
-        <Section icon={Clock01Icon} title={t('inbox.today')}>
+        <Section
+          icon={Clock01Icon}
+          title={t('inbox.today')}
+          actions={<DayPicker value={day} onChange={setDay} />}
+        >
           <FolderRow rows={DEMO_FOLDERS.slice(0, 4)} />
         </Section>
 
@@ -169,7 +184,7 @@ export default function InboxPage() {
  * то, что под ним лежит, а подпись к предмету стоит рядом с предметом, а не на
  * нём.
  */
-function SectionHeading({ icon, title, count }) {
+function SectionHeading({ icon, title, count, actions }) {
   return (
     <div className="flex shrink-0 items-center gap-2 px-1 pb-3">
       <HugeiconsIcon
@@ -189,17 +204,83 @@ function SectionHeading({ icon, title, count }) {
           <span className="font-normal text-muted"> · {count}</span>
         )}
       </h2>
+      {/* Управление секцией — у правого края той же строки, что и её название:
+          заголовок говорит, что показано, а то, что справа, решает, что
+          показать. `ml-auto` вместо `justify-between` на строке — с одним
+          дочерним элементом `justify-between` вырождается в `flex-start`, и
+          без заголовка кнопки уехали бы влево. */}
+      {actions ? <div className="ml-auto shrink-0">{actions}</div> : null}
     </div>
   )
 }
 
 /** Заголовок и то, что под ним. Высоту занимает по содержимому. */
-function Section({ icon, title, className = '', children }) {
+function Section({ icon, title, actions, className = '', children }) {
   return (
     <section className={className}>
-      <SectionHeading icon={icon} title={title} />
+      <SectionHeading icon={icon} title={title} actions={actions} />
       {children}
     </section>
+  )
+}
+
+/**
+ * Листалка дня: шаг назад, шаг вперёд и выбор по календарю.
+ *
+ * **Ничего из этого не написано здесь заново.** Кнопки — тот же `StepButton`,
+ * что и в тулбаре «Записей», шаг считает `shiftDate` из `lib/dates`, а месяц
+ * рисует `MonthCalendar`. Вопрос «на сколько сдвигает одна стрелка» должен
+ * иметь один ответ на весь продукт, а не по ответу на экран.
+ *
+ * **Стрелки и календарь двигают одно состояние.** Пролистать три дня и выбрать
+ * четвёртый в календаре — это одно и то же действие, сделанное двумя способами;
+ *два отдельных значения разошлись бы на первом же переключении.
+ *
+ * Выбор дня закрывает поповер: календарь открывали ради одного нажатия, и
+ * оставлять его открытым после — заставлять закрывать вручную то, что уже
+ * сделало свою работу.
+ */
+function DayPicker({ value, onChange }) {
+  const t = useT()
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="flex items-center gap-2">
+      <StepButton
+        label={t('appointments.prev')}
+        icon={ArrowLeft01Icon}
+        onClick={() => onChange(shiftDate(value, 'day', -1))}
+      />
+      <StepButton
+        label={t('appointments.next')}
+        icon={ArrowRight01Icon}
+        onClick={() => onChange(shiftDate(value, 'day', 1))}
+      />
+
+      <Popover.Root open={open} onOpenChange={setOpen}>
+        {/* `asChild`: `StepButton` — обычная кнопка, и Radix навешивает на неё
+            свои обработчики и ref вместо того, чтобы оборачивать её ещё одной. */}
+        <Popover.Trigger asChild>
+          <StepButton label={t('inbox.pickDay')} icon={Calendar03Icon} />
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content
+            align="end"
+            sideOffset={6}
+            collisionPadding={12}
+            className={`z-[70] w-[300px] rounded-xl border border-line bg-surface p-3 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] ${PANEL_MOTION}`}
+          >
+            <MonthCalendar
+              value={value}
+              onChange={(picked) => {
+                onChange(picked)
+                setOpen(false)
+              }}
+            />
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+    </div>
   )
 }
 

@@ -1479,7 +1479,13 @@ function ClosedSpan({ range, label, rowHeight }) {
 
 /** One of the two step arrows, the same object the calendar's month arrows are
  *  so the two toolbars read as one family. */
-function StepButton({ label, icon, onClick }) {
+/**
+ * Круглая кнопка-шаг. **Экспортируется**, потому что читателей стало двое:
+ * тем же шагом день листает правая часть заголовка «Чаты сегодня». Копия этих
+ * пятнадцати строк совпадала бы с оригиналом ровно до первой правки одной из
+ * них.
+ */
+export function StepButton({ label, icon, onClick }) {
   return (
     <button
       type="button"
