@@ -181,6 +181,7 @@ export default {
   'form.close': 'Закрыть',
 
   // ── WhatsApp ──────────────────────────────────────────────────────────────
+  'inbox.title': 'Чаты',
   'whatsapp.title': 'WhatsApp',
   'whatsapp.hint':
     'Номер, на который пишут клиенты. Скопируйте «Phone number ID» и токен доступа из панели Meta for Developers.',

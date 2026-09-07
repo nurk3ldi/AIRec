@@ -1,3 +1,5 @@
+import { HugeiconsIcon } from '@hugeicons/react'
+import { Chat01Icon } from '@hugeicons/core-free-icons'
 import { useT } from '../lib/i18n'
 import styles from '../styles/Inbox.module.css'
 
@@ -35,5 +37,31 @@ import styles from '../styles/Inbox.module.css'
 export default function InboxPage() {
   const t = useT()
 
-  return <div className={styles.page} aria-label={t('nav.inbox')} />
+  return (
+    <div className={styles.page} aria-label={t('nav.inbox')}>
+      {/* Заголовок экрана, в левом верхнем углу содержимого — не в шапке.
+          Иконка та же, что у «Диалогов» в навигации (`Chat01Icon`): пункт меню
+          и экран, на который он ведёт, должны говорить одно и то же одним и тем
+          же знаком.
+
+          Отступы — те же `p-4 / sm:p-6`, что у остальных экранов, поэтому
+          заголовок встанет ровно над первым рядом карточек, когда они
+          появятся. */}
+      <div className="flex items-center gap-2 p-4 sm:p-6">
+        <HugeiconsIcon
+          icon={Chat01Icon}
+          size={26}
+          strokeWidth={1.9}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="shrink-0 text-ink"
+        />
+        {/* Отрицательный трекинг: крупный текст читается разреженным, если его
+            не поджать. */}
+        <h1 className="font-display text-[28px] leading-tight font-bold tracking-[-0.02em] text-ink">
+          {t('inbox.title')}
+        </h1>
+      </div>
+    </div>
+  )
 }

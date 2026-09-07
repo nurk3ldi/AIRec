@@ -171,6 +171,7 @@ export default {
   'form.saving': 'Saving…',
   'form.close': 'Close',
 
+  'inbox.title': 'Chats',
   'whatsapp.title': 'WhatsApp',
   'whatsapp.hint':
     'The number clients write to. Copy the phone number ID and access token from your Meta for Developers dashboard.',

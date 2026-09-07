@@ -172,6 +172,7 @@ export default {
   'form.saving': 'Сақталуда…',
   'form.close': 'Жабу',
 
+  'inbox.title': 'Чаттар',
   'whatsapp.title': 'WhatsApp',
   'whatsapp.hint':
     'Клиенттер жазатын нөмір. Meta for Developers панелінен «Phone number ID» мен қатынау токенін көшіріңіз.',
