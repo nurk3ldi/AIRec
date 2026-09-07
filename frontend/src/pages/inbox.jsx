@@ -65,7 +65,7 @@ export default function InboxPage() {
         <div className="flex items-center gap-2">
           <HugeiconsIcon
             icon={Chat01Icon}
-            size={26}
+            size={22}
             strokeWidth={1.9}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -73,7 +73,7 @@ export default function InboxPage() {
           />
           {/* Отрицательный трекинг: крупный текст читается разреженным, если
               его не поджать. */}
-          <h1 className="font-display text-[28px] leading-tight font-bold tracking-[-0.02em] text-ink">
+          <h1 className="font-display text-[24px] leading-tight font-bold tracking-[-0.02em] text-ink">
             {t('inbox.title')}
           </h1>
         </div>
@@ -132,16 +132,21 @@ export default function InboxPage() {
 function Panel({ icon, title }) {
   return (
     <section className="flex min-h-0 flex-1 flex-col">
+      {/* Тот же размер, вес и цвет, что у «Чатов» слева: это два заголовка
+          одного уровня — каждый называет свою колонку, — а разный кегль сказал
+          бы, что одна колонка главнее другой. Одна ступень шкалы для обоих;
+          правило «не ставить рядом соседние ступени» это не нарушает, оно про
+          соседние, а не про одинаковые. */}
       <div className="flex shrink-0 items-center gap-2 px-1 pb-3">
         <HugeiconsIcon
           icon={icon}
-          size={18}
+          size={22}
           strokeWidth={1.9}
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="shrink-0 text-muted"
+          className="shrink-0 text-ink"
         />
-        <h2 className="min-w-0 truncate font-display text-[15px] font-semibold text-ink">
+        <h2 className="min-w-0 truncate font-display text-[24px] leading-tight font-bold tracking-[-0.02em] text-ink">
           {title}
         </h2>
       </div>
