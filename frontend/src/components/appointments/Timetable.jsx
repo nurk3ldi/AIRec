@@ -1492,11 +1492,14 @@ function ClosedSpan({ range, label, rowHeight }) {
  * `surface-chip`, а не акцент: на тёмной теме акцент — чистый белый, и сплошная
  * белая пилюля в чёрном тулбаре читалась бы предупреждением, а не приглашением.
  */
-export function ToolbarPill({ onClick, children }) {
+export function ToolbarPill({ children, ...props }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      // Спред по той же причине, что и у `StepButton`: пилюля тоже однажды
+      // окажется триггером поповера, а компонент, теряющий пропы, откроет
+      // ровно ничего.
+      {...props}
       className="h-8 shrink-0 rounded-full bg-surface-chip px-4 text-[14px] font-medium text-ink outline-none transition-[opacity,scale] hover:opacity-85 focus-visible:opacity-85 active:scale-[0.97]"
     >
       {children}
@@ -1510,11 +1513,16 @@ export function ToolbarPill({ onClick, children }) {
  * пятнадцати строк совпадала бы с оригиналом ровно до первой правки одной из
  * них.
  */
-export function StepButton({ label, icon, onClick }) {
+export function StepButton({ label, icon, ...props }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      // **Всё остальное — на кнопку, и `onClick` в том числе.** Radix отдаёт
+      // триггеру через `asChild` свои обработчики, ref и `aria-expanded`;
+      // компонент, который принимает три пропа и молча теряет остальные,
+      // выглядит кнопкой и не открывает ничего. React 19 передаёт ref обычным
+      // пропом, поэтому `forwardRef` здесь не нужен — нужен только спред.
+      {...props}
       aria-label={label}
       className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/12 text-ink outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/20 focus-visible:bg-ink/20 active:scale-[0.95]"
     >
