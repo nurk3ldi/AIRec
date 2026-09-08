@@ -147,8 +147,8 @@ const CARD_WIDTH = {
  * The now-line has **its own colour**, `--now`, and not `danger`. Red is what
  * every calendar reaches for, but in this app red means something — a cancelled
  * booking, a failed save — and a permanent red rule across the busiest surface
- * in the product would spend that meaning on a clock. Orange is close enough to
- * carry the same urgency and is already a hue the project owns.
+ * in the product would spend that meaning on a clock. See `globals.css` for
+ * what `--now` is and why it is one value in both themes.
  */
 export default function Timetable({
   selected,
@@ -698,7 +698,7 @@ export default function Timetable({
                 // only reads as grey on one of them.
                 //
                 // **Today is `--now`, the colour this product already uses for
-                // "the present moment"** — the same orange as the line that
+                // "the present moment"** — the same colour as the line that
                 // crosses the grid, so the column and the line say the same
                 // thing in the same voice. Not a new hue, and not `danger`: red
                 // means a cancelled booking here, and it would say so about
@@ -942,7 +942,7 @@ export default function Timetable({
             >
               {/* The time in the gutter, centred in it exactly as the hours
                   above and below are, so the column reads as one list with one
-                  of its entries lit. Orange text rather than a filled chip: a
+                  of its entries lit. Coloured text rather than a filled chip: a
                   chip is a block among lines and pulls harder than a clock
                   should. */}
               <span className="absolute top-0 left-0 w-14 -translate-y-1/2 text-center text-[13px] font-semibold text-now">

@@ -275,7 +275,7 @@ export default function AppointmentsPage() {
       // **no header on this route** — only the 50px bottom bar and the home
       // indicator under it come off. Above `sm` the header is back and it is
       // the usual 68.
-      className={`${styles.page} now-white relative flex h-[calc(100vh-50px-env(safe-area-inset-bottom))] flex-col items-stretch overflow-hidden sm:h-[calc(100vh-68px)] xl:flex-row`}
+      className={`${styles.page} relative flex h-[calc(100vh-50px-env(safe-area-inset-bottom))] flex-col items-stretch overflow-hidden sm:h-[calc(100vh-68px)] xl:flex-row`}
       aria-label={t('nav.appointments')}
     >
       {/* A column, so the timetable can take everything the cards above it do

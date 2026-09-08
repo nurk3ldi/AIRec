@@ -6,10 +6,6 @@
      header is back, the bar is gone, and the usual 68px is all that goes. */
   min-height: calc(100vh - 50px - env(safe-area-inset-bottom));
   background: var(--ground);
-  /* Белое «сейчас» на этом экране задаёт класс `.now-white` из `globals.css`
-     — он же висит на «Диалогах», и там же объяснено, почему `--now-ink`
-     ходит с ним в паре. Здесь его нет намеренно: две копии одних и тех же
-     двух строк расходятся на первой правке. */
 }
 
 @media (min-width: 640px) {

@@ -70,7 +70,7 @@ export default function DateField({ value, onChange, label }) {
         >
           <MonthCalendar
             // `null` while nothing is chosen, deliberately: `MonthCalendar`
-            // marks the selection with a filled orange cell, so handing it
+            // marks the selection with a filled `--now` cell, so handing it
             // today would show a value the form does not have. It opens on the
             // current month from that same null, which is where a month has to
             // open when there is nothing else to go on.

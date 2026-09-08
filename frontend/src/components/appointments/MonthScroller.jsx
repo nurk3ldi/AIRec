@@ -261,7 +261,7 @@ export default function MonthScroller({
                         already saying which day is chosen and which is today,
                         and the button's 48px leaves exactly the room for a mark
                         below it — so unlike the desktop calendar's, this one
-                        never lands on the orange and needs no second colour. */}
+                        never lands on the `--now` fill and needs no second colour. */}
                     {marked?.has(dayKey(day)) && (
                       <span
                         aria-hidden="true"

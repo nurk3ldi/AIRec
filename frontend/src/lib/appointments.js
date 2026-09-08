@@ -126,7 +126,7 @@ export const statusLabel = (status) =>
  *
  * None of the three is a new hue. `completed` is `ok`, the green this project
  * already means "done" with; `no_show` is `danger`, the red it already means
- * "this went wrong" with; `confirmed` is `--now`, the orange that already means
+ * "this went wrong" with; `confirmed` is `--now`, the colour that already means
  * "the present moment" here.
  *
  * It lives beside `statusLabel` rather than in a component because two screens

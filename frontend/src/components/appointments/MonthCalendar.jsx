@@ -223,7 +223,7 @@ export default function MonthCalendar({
                   // `aria-current` is what tells a screen reader which cell is
                   // today; the tint alone says it only to someone who can see it.
                   aria-current={isToday ? 'date' : undefined}
-                  // **Today is a grey chip, the day in play is the orange fill.**
+                  // **Today is a grey chip, the day in play is the `--now` fill.**
                   // The grey is `surface-chip`, the token the toolbar's chosen
                   // segment and the add button already wear — the app's own way of
                   // saying "this one is marked", so today is marked in the same
@@ -237,7 +237,7 @@ export default function MonthCalendar({
                   // on. The number goes semibold with it, which is what carries the
                   // mark for anyone who cannot separate two greys.
                   //
-                  // On the common day, when today *is* the selection, the orange
+                  // On the common day, when today *is* the selection, the `--now`
                   // fill wins and nothing is lost: you are looking straight at it.
                   //
                   // 36px tall and `rounded-[10px]`: the header's icon links and
@@ -246,22 +246,21 @@ export default function MonthCalendar({
                   // the display face is what the timetable sets its own dates in —
                   // the same data, so the same step.
                   //
-                  // **The selected day is `--now`, the orange this product already
-                  // owns**, not the reference's blue and not `accent`. The blue was
-                  // copied from the drawing and was the one thing in it that this
-                  // project has no place for — there is no brand hue here, so a
-                  // blue would have been a sixth colour invented for one pill.
+                  // **The selected day is `--now`**, not the reference's blue and
+                  // not `accent`. The blue was copied from the drawing and was the
+                  // one thing in it that this project has no place for — there is
+                  // no brand hue here, so a blue would have been a sixth colour
+                  // invented for one pill.
                   //
-                  // The orange is already the answer to "which day is in play": it
-                  // is the now-line across the grid and the tint on today's column.
+                  // `--now` is already the answer to "which day is in play": it is
+                  // the now-line across the grid and the tint on today's column.
                   // A calendar whose selection wears the same colour is the same
                   // sentence in the same voice, and on the common day — today, the
                   // day you are looking at — all three agree instead of arguing.
                   //
-                  // `text-now-ink`, not `text-surface`: this fill is a real colour
-                  // in both themes, so the text on it does not flip with them —
-                  // it only follows `--now` itself, on the rare page that
-                  // overrides both together.
+                  // `text-now-ink`, not `text-surface`: the fill is one fixed value
+                  // in both themes, so what sits on it must not flip with them
+                  // either. The pair is defined together in `globals.css`.
                   className={`relative grid h-11 place-items-center rounded-[10px] font-display text-[13px] font-semibold sm:h-9 outline-none transition-[color,background-color,border-color,scale] active:scale-[0.97] ${
                     isSelected
                       ? 'text-now-ink'
@@ -272,7 +271,7 @@ export default function MonthCalendar({
                           : 'text-ink hover:bg-ink/6'
                   } focus-visible:bg-ink/10`}
                 >
-                  {/* **The orange travels; it is not repainted.** A shared
+                  {/* **The fill travels; it is not repainted.** A shared
                     `layoutId` is what lets Motion recognise the fill in the cell
                     you left and the one you picked as the *same* object, so it
                     moves between them — the trick the sidebar's active marker
@@ -307,7 +306,7 @@ export default function MonthCalendar({
 
                       White on the chosen day, muted everywhere else — unlike
                       the phone's strip, this one sits *inside* the cell and so
-                      lands on the orange fill when the day is selected. */}
+                      lands on the `--now` fill when the day is selected. */}
                   {marked?.has(dayKey(day)) && (
                     <span
                       aria-hidden="true"

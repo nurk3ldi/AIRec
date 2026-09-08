@@ -2,11 +2,9 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { useEffect, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import {
-  AiScanIcon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
   Calendar03Icon,
-  Clock01Icon,
   MoreHorizontalIcon,
 } from '@hugeicons/core-free-icons'
 import MonthCalendar from '../components/appointments/MonthCalendar'
@@ -123,7 +121,7 @@ export default function InboxPage() {
        индикатор дома под ней), но записаны настоящей высотой. Тот же приём, что
        на `/appointments`, и там же объяснён подробно. */
     <div
-      className={`${styles.page} now-white flex h-[calc(100vh-118px-env(safe-area-inset-bottom))] items-stretch overflow-hidden sm:h-[calc(100vh-68px)]`}
+      className={`${styles.page} flex h-[calc(100vh-118px-env(safe-area-inset-bottom))] items-stretch overflow-hidden sm:h-[calc(100vh-68px)]`}
       aria-label={t('nav.inbox')}
     >
       {/* **Доли, а не проценты.** `flex-[65]` и `flex-[35]` делят то, что
@@ -146,7 +144,6 @@ export default function InboxPage() {
             бы тем самым повтором в двух соседних кеглях, который тут запрещён
             по имени. */}
         <Section
-          icon={Clock01Icon}
           title={t('inbox.today')}
           actions={<DayPicker value={day} onChange={setDay} />}
         >
@@ -179,10 +176,8 @@ export default function InboxPage() {
           вторым краем у фигуры, у которой край уже есть. */}
       <aside className="hidden min-w-0 flex-[35] flex-col p-4 lg:flex lg:pl-3">
         {/* Что ассистент делает прямо сейчас: с кем говорит, в каком состоянии
-            ветка, что сказано последним и как давно. Иконка — та же, что у
-            «Ассистента» в навигации: пункт меню и то, чем он занят, должны
-            говорить одно и то же одним знаком. */}
-        <Panel icon={AiScanIcon} title={t('home.streams.title')} count={live.length}>
+            ветка, что сказано последним и как давно. */}
+        <Panel title={t('home.streams.title')} count={live.length}>
           <StreamList chats={chats} live={live} bleed="-mx-5 px-5" />
         </Panel>
       </aside>
@@ -191,27 +186,23 @@ export default function InboxPage() {
 }
 
 /**
- * Заголовок секции: иконка и название.
+ * Заголовок секции: название и то, чем секцию листают.
  *
- * **Один компонент на обе колонки.** Слева их два, справа один, и они обязаны
+ * **Один компонент на обе колонки.** Слева один, справа один, и они обязаны
  * выглядеть одинаково — это заголовки одного уровня, каждый называет свой блок.
  * Две копии одной разметки совпадают ровно до первой правки одной из них.
+ *
+ * **Иконки перед названием больше нет.** Двум заголовкам на экране она ничего
+ * не добавляла: слово уже названо словом, а знак рядом с ним — это второй
+ * способ сказать то же самое, и на 24px он спорил с ним по весу.
  *
  * Заголовок стоит **вне** карточек, а не первой строкой внутри: он называет
  * то, что под ним лежит, а подпись к предмету стоит рядом с предметом, а не на
  * нём.
  */
-function SectionHeading({ icon, title, count, actions }) {
+function SectionHeading({ title, count, actions }) {
   return (
     <div className="flex shrink-0 items-center gap-2 px-1 pb-3">
-      <HugeiconsIcon
-        icon={icon}
-        size={22}
-        strokeWidth={1.9}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="shrink-0 text-ink"
-      />
       <h2 className="min-w-0 truncate font-display text-[24px] leading-tight font-bold tracking-[-0.02em] text-ink">
         {title}
         {/* Число рядом с названием, а не подписью под ним: это про то же самое
@@ -232,10 +223,10 @@ function SectionHeading({ icon, title, count, actions }) {
 }
 
 /** Заголовок и то, что под ним. Высоту занимает по содержимому. */
-function Section({ icon, title, actions, className = '', children }) {
+function Section({ title, actions, className = '', children }) {
   return (
     <section className={className}>
-      <SectionHeading icon={icon} title={title} actions={actions} />
+      <SectionHeading title={title} actions={actions} />
       {children}
     </section>
   )
@@ -289,15 +280,11 @@ function DayPicker({ value, onChange }) {
           <StepButton label={t('inbox.pickDay')} icon={Calendar03Icon} />
         </Popover.Trigger>
         <Popover.Portal>
-          {/* `now-white` здесь отдельно, а не только на странице: поповер
-              уходит порталом в `body`, то есть за пределы страницы, и
-              унаследовать с неё переменную уже не может — без этого класса
-              выбранный день остался бы оранжевым. */}
           <Popover.Content
             align="end"
             sideOffset={6}
             collisionPadding={12}
-            className={`now-white z-[70] w-[300px] rounded-xl border border-line bg-surface p-3 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] ${PANEL_MOTION}`}
+            className={`z-[70] w-[300px] rounded-xl border border-line bg-surface p-3 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] ${PANEL_MOTION}`}
           >
             <MonthCalendar
               value={value}
@@ -351,10 +338,10 @@ function FolderRow({ rows }) {
  * Внутри пусто: содержимое появится, когда будет решено, что эта секция
  * показывает.
  */
-function Panel({ icon, title, count, children }) {
+function Panel({ title, count, children }) {
   return (
     <section className="flex min-h-0 flex-1 flex-col">
-      <SectionHeading icon={icon} title={title} count={count} />
+      <SectionHeading title={title} count={count} />
       {/* Без рамки: `surface-raised` — заливка, которая сама отделяет блок от
           фона в обеих темах. */}
       <div className="flex min-h-0 flex-1 flex-col rounded-2xl bg-surface-raised p-5">

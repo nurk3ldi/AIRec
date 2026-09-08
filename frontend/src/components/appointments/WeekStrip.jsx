@@ -185,7 +185,7 @@ function Cell({ item, day, now, outside, onDayChange, marked }) {
           every cell's date on one line across the row.
 
           Grey in every state, including on the selected day: it sits outside
-          the orange circle, on the page's own ground, so it needs no second
+          the `--now` circle, on the page's own ground, so it needs no second
           colour to stay legible. */}
       <span
         aria-hidden="true"

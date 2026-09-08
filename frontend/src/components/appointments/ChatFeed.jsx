@@ -41,7 +41,7 @@ import { useT } from '../../lib/i18n'
  * The same rule the grid's `STATUS_TONE` follows and for the same reason: the
  * colour is the signal, so it is spent on the two states that need looking at
  * and withheld from the one that does not. `waiting` is `--now` — somebody is
- * on the other end *at this moment*, which is what that orange means everywhere
+ * on the other end *at this moment*, which is what `--now` means everywhere
  * else in this product. `new` is `ok`: it arrived, nothing is wrong, and it is
  * not yet late. A chat already answered is muted, because it is the ordinary
  * case and a feed where every row is coloured is a feed that points nowhere.

@@ -223,7 +223,7 @@ function SearchRow({ block, services, week, timeZone, onSaved }) {
 
         <span className="mt-1 flex items-baseline justify-between gap-2 text-[12px]">
           {/* The status keeps the colour it has on the grid — `statusTone` is
-              the one map both read, so a booking cannot be orange in one place
+              the one map both read, so a booking cannot be one colour in one place
               and grey in the other. */}
           <span
             className={`flex min-w-0 items-center gap-1.5 font-medium ${statusTone(block.status)}`}
