@@ -465,7 +465,7 @@ export default function MobileDay({
                   not flip with them. */}
               {isToday && (
                 <span
-                  className="absolute right-1 z-10 -translate-y-1/2 rounded-full bg-now px-1.5 py-0.5 font-display text-[11px] leading-none font-semibold text-white tabular-nums"
+                  className="absolute right-1 z-10 -translate-y-1/2 rounded-full bg-now px-1.5 py-0.5 font-display text-[11px] leading-none font-semibold text-now-ink tabular-nums"
                   style={{ top: ((nowMinutes - WINDOW_FROM) / 60) * HOUR_HEIGHT }}
                 >
                   {fromMinutes(nowMinutes)}

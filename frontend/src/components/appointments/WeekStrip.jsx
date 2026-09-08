@@ -162,7 +162,7 @@ function Cell({ item, day, now, outside, onDayChange, marked }) {
       <span
         className={`grid h-9 w-9 place-items-center rounded-full font-display text-[17px] transition-colors ${
           selected
-            ? 'bg-now font-semibold text-white'
+            ? 'bg-now font-semibold text-now-ink'
             : today
               ? 'bg-surface-chip font-semibold text-ink'
               : outside

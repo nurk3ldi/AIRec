@@ -64,6 +64,11 @@
   --color-danger: var(--danger);
   --color-ok: var(--ok);
   --color-now: var(--now);
+  /* What sits *on top of* a solid `--now` fill (a selected day, a pill) —
+     white by default, since `--now` is orange everywhere except a page that
+     overrides it. A page that turns `--now` white (see `Appointments.module.css`)
+     overrides this alongside it, or its own fill would swallow its own text. */
+  --color-now-ink: var(--now-ink);
   --color-hatch: var(--hatch);
 
   /* **`sans` and `display` are the same face now.** Both names stay because
@@ -161,6 +166,7 @@
      One value for both themes: it carries enough contrast on white and on
      black, and "now" is not a role that flips. */
   --now: #ea6a1e;
+  --now-ink: #ffffff;
 
   color-scheme: light;
   font-family: 'Onest Variable', Onest, sans-serif;

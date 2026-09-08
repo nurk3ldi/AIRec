@@ -258,11 +258,13 @@ export default function MonthCalendar({
                   // sentence in the same voice, and on the common day — today, the
                   // day you are looking at — all three agree instead of arguing.
                   //
-                  // `text-white`, not `text-surface`: this fill is a real colour in
-                  // both themes, so the text on it does not flip with them.
+                  // `text-now-ink`, not `text-surface`: this fill is a real colour
+                  // in both themes, so the text on it does not flip with them —
+                  // it only follows `--now` itself, on the rare page that
+                  // overrides both together.
                   className={`relative grid h-11 place-items-center rounded-[10px] font-display text-[13px] font-semibold sm:h-9 outline-none transition-[color,background-color,border-color,scale] active:scale-[0.97] ${
                     isSelected
-                      ? 'text-white'
+                      ? 'text-now-ink'
                       : isToday
                         ? 'bg-surface-chip font-semibold text-ink'
                         : dim
@@ -310,7 +312,7 @@ export default function MonthCalendar({
                     <span
                       aria-hidden="true"
                       className={`absolute bottom-[3px] left-1/2 z-10 h-1 w-1 -translate-x-1/2 rounded-full ${
-                        isSelected ? 'bg-white' : 'bg-muted'
+                        isSelected ? 'bg-now-ink' : 'bg-muted'
                       }`}
                     />
                   )}

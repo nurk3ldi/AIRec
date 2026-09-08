@@ -247,7 +247,7 @@ export default function MonthScroller({
                     <span
                       className={`grid h-9 w-9 place-items-center rounded-full font-display text-[17px] transition-colors ${
                         isSelected
-                          ? 'bg-now font-semibold text-white'
+                          ? 'bg-now font-semibold text-now-ink'
                           : isToday
                             ? 'bg-surface-chip font-semibold text-ink'
                             : weekend
