@@ -6,18 +6,10 @@
      header is back, the bar is gone, and the usual 68px is all that goes. */
   min-height: calc(100vh - 50px - env(safe-area-inset-bottom));
   background: var(--ground);
-  /* Page-scoped override: every consumer of `--color-now` (the now-line, the
-     selected day, status dots, the countdown pill) reads it through
-     `var(--now)`, so redefining it here turns them white on this page only —
-     the token elsewhere (dashboard, inbox) stays orange. */
-  --now: #ffffff;
-  /* Paired with it, and for the same reason `--now` is one flat value rather
-     than a token that flips with the theme: `var(--ink)` would have been
-     wrong here specifically *because* it flips — in dark mode `--ink` is
-     white, which is the one colour that vanishes on the white fill above.
-     `#171215` is a fixed dark ink, so it reads on the white fill in both
-     themes exactly as the fill itself does. */
-  --now-ink: #171215;
+  /* Белое «сейчас» на этом экране задаёт класс `.now-white` из `globals.css`
+     — он же висит на «Диалогах», и там же объяснено, почему `--now-ink`
+     ходит с ним в паре. Здесь его нет намеренно: две копии одних и тех же
+     двух строк расходятся на первой правке. */
 }
 
 @media (min-width: 640px) {

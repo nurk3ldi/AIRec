@@ -123,7 +123,7 @@ export default function InboxPage() {
        индикатор дома под ней), но записаны настоящей высотой. Тот же приём, что
        на `/appointments`, и там же объяснён подробно. */
     <div
-      className={`${styles.page} flex h-[calc(100vh-118px-env(safe-area-inset-bottom))] items-stretch overflow-hidden sm:h-[calc(100vh-68px)]`}
+      className={`${styles.page} now-white flex h-[calc(100vh-118px-env(safe-area-inset-bottom))] items-stretch overflow-hidden sm:h-[calc(100vh-68px)]`}
       aria-label={t('nav.inbox')}
     >
       {/* **Доли, а не проценты.** `flex-[65]` и `flex-[35]` делят то, что
@@ -289,11 +289,15 @@ function DayPicker({ value, onChange }) {
           <StepButton label={t('inbox.pickDay')} icon={Calendar03Icon} />
         </Popover.Trigger>
         <Popover.Portal>
+          {/* `now-white` здесь отдельно, а не только на странице: поповер
+              уходит порталом в `body`, то есть за пределы страницы, и
+              унаследовать с неё переменную уже не может — без этого класса
+              выбранный день остался бы оранжевым. */}
           <Popover.Content
             align="end"
             sideOffset={6}
             collisionPadding={12}
-            className={`z-[70] w-[300px] rounded-xl border border-line bg-surface p-3 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] ${PANEL_MOTION}`}
+            className={`now-white z-[70] w-[300px] rounded-xl border border-line bg-surface p-3 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] ${PANEL_MOTION}`}
           >
             <MonthCalendar
               value={value}
