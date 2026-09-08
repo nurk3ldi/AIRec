@@ -710,9 +710,19 @@ export default function Timetable({
                 // a solid colour and still tracks both themes. The top rule is
                 // an inset shadow, which costs no layout: a real border would
                 // make this one cell 2px taller than its neighbours.
+                //
+                // **`var(--now)`, not `var(--color-now)`.** The two look
+                // interchangeable and are not: `--color-now: var(--now)` is
+                // computed once, at `:root`, and *that resolved value* is what
+                // inherits down — a descendant that overrides `--now` (a page
+                // scoping its own colour, say) never sees it reflected through
+                // `--color-now`, only through `--now` directly. Every named
+                // utility (`bg-now`, `text-now`) already compiles straight to
+                // `var(--now)` for this reason; a hand-written arbitrary value
+                // has to spell that out itself.
                 className={`sticky top-0 z-20 flex items-baseline gap-1.5 border-b border-l border-line px-3 py-2 ${
                   isToday
-                    ? 'bg-[color-mix(in_oklab,var(--color-now)_12%,var(--color-surface-raised))] shadow-[inset_0_2px_0_var(--color-now)]'
+                    ? 'bg-[color-mix(in_oklab,var(--now)_12%,var(--color-surface-raised))] shadow-[inset_0_2px_0_var(--now)]'
                     : 'bg-[color-mix(in_oklab,var(--color-ink)_7%,var(--color-surface-raised))]'
                 }`}
               >
