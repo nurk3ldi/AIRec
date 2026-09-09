@@ -176,7 +176,7 @@ export default {
   'inbox.pickDay': 'Күн таңдау',
   'inbox.today': 'Бүгінгі чаттар',
   'inbox.all': 'Барлық чаттар',
-  'inbox.allEmpty': 'Әзірге әңгіме жоқ',
+  'inbox.allEmpty': 'Әзірге ештеңе жоқ',
   'whatsapp.title': 'WhatsApp',
   'whatsapp.hint':
     'Клиенттер жазатын нөмір. Meta for Developers панелінен «Phone number ID» мен қатынау токенін көшіріңіз.',

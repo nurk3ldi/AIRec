@@ -175,7 +175,7 @@ export default {
   'inbox.pickDay': 'Pick a day',
   'inbox.today': 'Chats today',
   'inbox.all': 'All chats',
-  'inbox.allEmpty': 'No conversations yet',
+  'inbox.allEmpty': 'Nothing here yet',
   'whatsapp.title': 'WhatsApp',
   'whatsapp.hint':
     'The number clients write to. Copy the phone number ID and access token from your Meta for Developers dashboard.',

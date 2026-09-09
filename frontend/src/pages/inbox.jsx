@@ -13,7 +13,7 @@ import { StepButton, ToolbarPill } from '../components/appointments/Timetable'
 import { dayKey, shiftDate } from '../lib/dates'
 import { getBusiness, listAppointments, listConversations } from '../lib/api'
 import { authed } from '../lib/auth'
-import { liveChats, needsHuman } from '../lib/conversations'
+import { liveChats } from '../lib/conversations'
 import { StreamList } from '../components/home/AssistantStreams'
 import { BOOKING_COLORS, toBlock } from '../lib/appointments'
 import { getLocale, useT } from '../lib/i18n'
@@ -136,6 +136,31 @@ export default function InboxPage() {
     }
   }, [day])
 
+  /**
+   * Всё, что в таблице внизу.
+   *
+   * **Без `from` и `to` — намеренно**, а не по забывчивости: эндпоинт в этом
+   * случае отдаёт свой промежуток по умолчанию, сегодня и тридцать дней вперёд,
+   * и это ровно то окно, из которого работают. Выдумывать своё значило бы
+   * завести на клиенте второй ответ на вопрос, у которого ответ уже есть на
+   * сервере; а «вся история» — это отдельный режим (`?query=` без дат), и он
+   * про поиск конкретного человека, а не про список, который читают сверху.
+   *
+   * Читается один раз: в отличие от верхней секции, окно не зависит от
+   * выбранного дня, и стрелки над папками эту таблицу не двигают.
+   */
+  const [all, setAll] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    authed((token) => listAppointments(token))
+      .then((rows) => alive && setAll(rows))
+      .catch(() => alive && setAll([]))
+    return () => {
+      alive = false
+    }
+  }, [])
+
   return (
     /* **Высота определённая, а не минимальная.** Правая панель обязана быть
        100% высоты, а `items-stretch` меряет от *определённого* размера:
@@ -198,7 +223,17 @@ export default function InboxPage() {
             такое читают сверху вниз одной колонкой, а не разглядывают сеткой.
             Восемь папок ещё сетка, восемьдесят — уже стена. */}
         <Section title={t('inbox.all')} className="mt-6 sm:mt-8">
-          <ChatList chats={chats} />
+          {/* Демо-строки — только пока настоящих нет, как и у папок выше, и
+              удаляются тем же движением. */}
+          <BookingTable
+            rows={
+              all === null
+                ? null
+                : (all.length === 0 ? DEMO_ALL_ROWS : all).map((row) =>
+                    toBlock(row, timeZone),
+                  )
+            }
+          />
         </Section>
       </div>
 
@@ -339,128 +374,125 @@ function DayPicker({ value, onChange }) {
 }
 
 /**
- * Все разговоры — списком, разделённым волосяной линией.
+ * Всё остальное — таблицей: одна запись в одну строку.
  *
- * **Линия, а не карточки и не воздух.** Строки здесь однородны: каждая — один
- * разговор, и ни одна не важнее соседней. Карточка сказала бы, что это
- * отдельный предмет, которым занимаются по одному; расстояние вместо линии на
- * длинном списке рассыпает его на несвязанные куски. Линия делает ровно то, что
- * нужно: говорит, где кончается одна строка и начинается следующая, и молчит обо
- * всём остальном.
+ * **Таблица, а не список из двух строк.** У списка каждая запись читается
+ * сверху вниз, и, чтобы сравнить две, глаз каждый раз ищет, где в них лежит
+ * одно и то же. Здесь всё уже разложено по столбцам, и столбец сам себе
+ * указатель: телефоны под телефонами, часы под часами. Ради этого таблица и
+ * существует — не ради рамки.
  *
- * `divide-y` вместо `border-b` на каждой строке: у последней снизу линии быть не
- * должно — она отделяла бы список от пустоты под ним.
+ * **Рамки как раз и нет.** Ни внешней, ни между столбцами, ни через строку —
+ * только волосяная линия между соседними записями, и та несёт всю работу:
+ * говорит, где кончается одна и начинается следующая. Вертикальные линии
+ * разгородили бы то, что и так стоит в столбцах, а зебра покрасила бы половину
+ * строк без всякого повода. Это правило дома, не вкус: см. «Tables carry no
+ * frame» в `CLAUDE.md`.
  *
- * **Порядок — свежие сверху**, и он задан здесь, а не приходит с сервера:
- * `GET /conversations` отдаёт свой, и полагаться на него значит зависеть от
- * решения, которое принято не на этом экране. Ветка без единого сообщения
- * встаёт в конец — сортировать её не по чему.
+ * **`table-fixed` и проценты — обязательны вместе.** Без первого браузер меряет
+ * столбцы по самому длинному значению, и «Кератин» против «Наращивание ресниц»
+ * двигали бы всю сетку от строки к строке; без вторых нечего мерить. Оба нужны
+ * ещё и затем, чтобы `truncate` вообще работал: обрезать можно только то, у
+ * чего есть ширина.
  *
- * Три состояния и три разных ответа: ещё не читали — ничего (скелет строк,
- * которые меняются раз в пятнадцать секунд, мигал бы чаще, чем сообщал);
- * прочитали и пусто — честная строка; иначе список.
+ * **Порядок — ближайшее сверху.** Список читают, чтобы узнать, что будет
+ * дальше, и первым должно стоять то, что раньше наступит.
+ *
+ * Три состояния: не читали — ничего; прочитали и пусто — честная строка; иначе
+ * таблица.
  */
-function ChatList({ chats }) {
+function BookingTable({ rows }) {
   const t = useT()
-  if (chats === null) return null
+  if (rows === null) return null
 
-  if (chats.length === 0) {
+  if (rows.length === 0) {
     return <p className="py-6 text-[13px] text-muted">{t('inbox.allEmpty')}</p>
   }
 
-  const rows = [...chats].sort(
-    (a, b) =>
-      new Date(b.last_message_at ?? 0) - new Date(a.last_message_at ?? 0),
+  const sorted = [...rows].sort(
+    (a, b) => new Date(a.startsAt) - new Date(b.startsAt),
   )
 
   return (
-    <ul className="divide-y divide-line">
-      {rows.map((chat) => (
-        <ChatRow key={chat.id} chat={chat} />
-      ))}
-    </ul>
+    // Прокручивается вбок, а не ломается: на узком окне пять столбцов ужимать
+    // дальше некуда, и честнее увезти их за край, чем показать пять обрубков.
+    <div className="-mx-1 overflow-x-auto px-1">
+      <table className="w-full min-w-[560px] table-fixed border-collapse text-left">
+        {/* 11px, прописные, разрядка — тот же шаг, которым в этом проекте
+            набраны все заголовки столбцов. Заголовок не строка данных, и
+            линия под ним — та же, что между записями: он такой же сосед. */}
+        <thead>
+          <tr className="border-b border-line text-[11px] tracking-wide text-muted uppercase">
+            <Th className="w-[24%]">{t('appointments.clientName')}</Th>
+            <Th className="w-[20%]">{t('appointments.clientPhone')}</Th>
+            <Th className="w-[16%]">{t('appointments.date')}</Th>
+            <Th className="w-[16%]">{t('appointments.time')}</Th>
+            <Th className="w-[24%]">{t('appointments.service')}</Th>
+          </tr>
+        </thead>
+
+        <tbody className="divide-y divide-line">
+          {sorted.map((row) => (
+            <tr key={row.id} className="text-[14px] text-ink">
+              {/* Имя — единственная полужирная ячейка: строку ищут по человеку,
+                  а не по услуге или часу. */}
+              <Td className="font-medium">{row.client}</Td>
+              {/* `tabular-nums` на номере, дате и часах: цифры одной ширины,
+                  иначе столбец из десяти строк выглядит рваным. */}
+              <Td className="tabular-nums">{row.phone}</Td>
+              <Td className="tabular-nums">{dayLabel(row.startsAt)}</Td>
+              <Td className="tabular-nums">{row.range}</Td>
+              <Td>{row.service}</Td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 
 /**
- * Одна строка списка: с кем говорят, что сказано последним и когда.
+ * Ячейки таблицы.
  *
- * Анатомия — та же, что у строки «Потоков»: точка состояния, имя, время справа,
- * реплика под ними. Это сознательно, а не по случайности — один и тот же
- * разговор на двух экранах должен читаться одинаково, иначе их приходится
- * узнавать заново.
+ * Отдельными компонентами ради одного: отступы и `truncate` заданы в одном
+ * месте. Пять столбцов — это пять шансов разойтись на пиксель, и они разойдутся
+ * при первой же правке одного из них.
  *
- * **Точка горит только там, где нужен человек** (`needsHuman` — ассистент в
- * ветке выключен). Красить каждую строку значит не сказать ничего: цвет здесь —
- * это «сюда посмотри», а посмотреть нужно не на все восемьдесят.
- *
- * Имя может отсутствовать — клиент не обязан представляться, — и тогда его
- * место занимает номер, по которому он и пришёл.
+ * `py-3` — та же вертикальная плотность, что у строк списка рядом; `pr-4` на
+ * всех, кроме последнего, разводит столбцы воздухом вместо линейки.
  */
-function ChatRow({ chat }) {
-  const t = useT()
-  const hot = needsHuman(chat)
-
+function Th({ className = '', children }) {
   return (
-    <li className="flex items-start gap-3 py-3.5">
-      {/* Приподнята на пиксель-другой: точка выравнивается по строке с именем,
-          а не по верхнему краю блока из двух строк. */}
-      <span
-        aria-hidden="true"
-        className={`mt-[7px] h-2 w-2 shrink-0 rounded-full ${
-          hot ? 'bg-now' : 'bg-muted/40'
-        }`}
-      />
+    <th
+      scope="col"
+      className={`truncate py-2 pr-4 font-medium last:pr-0 ${className}`}
+    >
+      {children}
+    </th>
+  )
+}
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-3">
-          <p className="min-w-0 flex-1 truncate text-[15px] font-medium text-ink">
-            {chat.client_name || chat.client_phone}
-          </p>
-          {/* `tabular-nums` — цифры одной ширины: без них правый столбец
-              времени в длинном списке выглядит рваным. */}
-          <p className="shrink-0 text-[13px] text-muted tabular-nums">
-            {chatMoment(chat.last_message_at)}
-          </p>
-        </div>
-
-        {chat.last_message_preview && (
-          <p className="mt-0.5 truncate text-[13px] text-muted">
-            {/* Кто сказал последнюю реплику — половина её смысла: «записал вас
-                на четверг» от ассистента и от клиента значат разное. */}
-            {chat.last_message_author === 'client' ? '' : t('home.streams.said')}
-            {chat.last_message_preview}
-          </p>
-        )}
-      </div>
-    </li>
+function Td({ className = '', children }) {
+  return (
+    <td className={`truncate py-3 pr-4 last:pr-0 ${className}`}>{children}</td>
   )
 }
 
 /**
- * Когда это было, в одну короткую строку.
+ * Дата записи — коротко.
  *
- * **Сегодняшнее — часами, всё остальное — датой.** «14:30» о позавчерашнем
- * разговоре врёт, а «9 сент.» о сегодняшнем не отвечает на вопрос, ради
- * которого в этот столбец смотрят. Минуты («12 мин»), как в «Потоках», здесь не
- * годятся: та карточка показывает только идущее прямо сейчас, а этот список —
- * всю историю, и «4320 мин» не читается ни как время, ни как дата.
+ * Год добавляется только когда он не этот: в таблице за одну осень десять
+ * одинаковых «2026» — шум, а запись из другого года без года — ошибка.
  *
- * Год добавляется только когда он не этот: в списке за одну осень четыре
- * одинаковых «2026» — это шум, а разговор из прошлого года без года — ошибка.
+ * Через `getLocale`, а не через жёсткое `ru-RU`: названия месяцев — часть
+ * перевода, а не украшение поверх него.
  */
-function chatMoment(iso) {
-  if (!iso) return ''
+function dayLabel(iso) {
   const at = new Date(iso)
   if (Number.isNaN(at.getTime())) return ''
 
-  const locale = getLocale()
   const now = new Date()
-  if (at.toDateString() === now.toDateString()) {
-    return at.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
-  }
-
-  return at.toLocaleDateString(locale, {
+  return at.toLocaleDateString(getLocale(), {
     day: 'numeric',
     month: 'short',
     ...(at.getFullYear() === now.getFullYear() ? {} : { year: 'numeric' }),
@@ -565,6 +597,43 @@ const DEMO_TODAY_ROWS = [
     service_name: 'Кератин',
     starts_at: '2026-09-09T18:15:00',
     ends_at: null,
+  },
+]
+
+/*
+ * То же самое для таблицы внизу — и дни здесь нарочно разные.
+ *
+ * Столбец «Дата» в таблице из трёх сегодняшних записей выглядел бы одинаковым
+ * сверху донизу, то есть не показал бы себя вовсе; а он там как раз затем,
+ * что окно у таблицы шире одного дня.
+ *
+ * Длинное название услуги — тоже намеренно: `truncate` в столбце на 24% надо
+ * увидеть на строке, которая в него не влезает, а не поверить, что он есть.
+ */
+const DEMO_ALL_ROWS = [
+  {
+    id: 'demo-all-1',
+    client_name: 'Данагүл Ермек',
+    client_phone: '+7 708 441 76 15',
+    service_name: 'Бояу',
+    starts_at: '2026-09-11T09:45:00',
+    ends_at: '2026-09-11T11:00:00',
+  },
+  {
+    id: 'demo-all-2',
+    client_name: 'Мадина Қайрат',
+    client_phone: '+7 702 318 55 71',
+    service_name: 'Наращивание ресниц',
+    starts_at: '2026-09-14T12:00:00',
+    ends_at: '2026-09-14T13:30:00',
+  },
+  {
+    id: 'demo-all-3',
+    client_name: 'Сая Бекзат',
+    client_phone: '+7 775 236 90 14',
+    service_name: 'Маникюр',
+    starts_at: '2026-09-18T16:00:00',
+    ends_at: '2026-09-18T17:00:00',
   },
 ]
 /* ------------------------------------------------------------ конец блока */
