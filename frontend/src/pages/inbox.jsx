@@ -13,10 +13,10 @@ import { StepButton, ToolbarPill } from '../components/appointments/Timetable'
 import { dayKey, shiftDate } from '../lib/dates'
 import { getBusiness, listAppointments, listConversations } from '../lib/api'
 import { authed } from '../lib/auth'
-import { liveChats } from '../lib/conversations'
+import { liveChats, needsHuman } from '../lib/conversations'
 import { StreamList } from '../components/home/AssistantStreams'
 import { BOOKING_COLORS, toBlock } from '../lib/appointments'
-import { useT } from '../lib/i18n'
+import { getLocale, useT } from '../lib/i18n'
 import styles from '../styles/Inbox.module.css'
 
 /**
@@ -186,6 +186,20 @@ export default function InboxPage() {
             <FolderRow rows={bookings.map((row) => toBlock(row, timeZone))} />
           )}
         </Section>
+
+        {/* 32px между секциями — ступень шкалы, а не подобранное число: 24
+            внутри секции отделяет заголовок от содержимого, и такой же зазор
+            между секциями стёр бы границу между ними.
+
+            **Список, а не второй ряд папок, и это разница по смыслу.** Папка
+            наверху — про один день: их немного, у каждой свой час, и они стоят
+            рядом, потому что их сравнивают между собой. Здесь же вся история
+            разговоров, она растёт без предела, и сравнивать в ней нечего —
+            такое читают сверху вниз одной колонкой, а не разглядывают сеткой.
+            Восемь папок ещё сетка, восемьдесят — уже стена. */}
+        <Section title={t('inbox.all')} className="mt-6 sm:mt-8">
+          <ChatList chats={chats} />
+        </Section>
       </div>
 
       {/* **Правая панель — во всю высоту, и появляется только начиная с `lg`.**
@@ -322,6 +336,135 @@ function DayPicker({ value, onChange }) {
       </Popover.Root>
     </div>
   )
+}
+
+/**
+ * Все разговоры — списком, разделённым волосяной линией.
+ *
+ * **Линия, а не карточки и не воздух.** Строки здесь однородны: каждая — один
+ * разговор, и ни одна не важнее соседней. Карточка сказала бы, что это
+ * отдельный предмет, которым занимаются по одному; расстояние вместо линии на
+ * длинном списке рассыпает его на несвязанные куски. Линия делает ровно то, что
+ * нужно: говорит, где кончается одна строка и начинается следующая, и молчит обо
+ * всём остальном.
+ *
+ * `divide-y` вместо `border-b` на каждой строке: у последней снизу линии быть не
+ * должно — она отделяла бы список от пустоты под ним.
+ *
+ * **Порядок — свежие сверху**, и он задан здесь, а не приходит с сервера:
+ * `GET /conversations` отдаёт свой, и полагаться на него значит зависеть от
+ * решения, которое принято не на этом экране. Ветка без единого сообщения
+ * встаёт в конец — сортировать её не по чему.
+ *
+ * Три состояния и три разных ответа: ещё не читали — ничего (скелет строк,
+ * которые меняются раз в пятнадцать секунд, мигал бы чаще, чем сообщал);
+ * прочитали и пусто — честная строка; иначе список.
+ */
+function ChatList({ chats }) {
+  const t = useT()
+  if (chats === null) return null
+
+  if (chats.length === 0) {
+    return <p className="py-6 text-[13px] text-muted">{t('inbox.allEmpty')}</p>
+  }
+
+  const rows = [...chats].sort(
+    (a, b) =>
+      new Date(b.last_message_at ?? 0) - new Date(a.last_message_at ?? 0),
+  )
+
+  return (
+    <ul className="divide-y divide-line">
+      {rows.map((chat) => (
+        <ChatRow key={chat.id} chat={chat} />
+      ))}
+    </ul>
+  )
+}
+
+/**
+ * Одна строка списка: с кем говорят, что сказано последним и когда.
+ *
+ * Анатомия — та же, что у строки «Потоков»: точка состояния, имя, время справа,
+ * реплика под ними. Это сознательно, а не по случайности — один и тот же
+ * разговор на двух экранах должен читаться одинаково, иначе их приходится
+ * узнавать заново.
+ *
+ * **Точка горит только там, где нужен человек** (`needsHuman` — ассистент в
+ * ветке выключен). Красить каждую строку значит не сказать ничего: цвет здесь —
+ * это «сюда посмотри», а посмотреть нужно не на все восемьдесят.
+ *
+ * Имя может отсутствовать — клиент не обязан представляться, — и тогда его
+ * место занимает номер, по которому он и пришёл.
+ */
+function ChatRow({ chat }) {
+  const t = useT()
+  const hot = needsHuman(chat)
+
+  return (
+    <li className="flex items-start gap-3 py-3.5">
+      {/* Приподнята на пиксель-другой: точка выравнивается по строке с именем,
+          а не по верхнему краю блока из двух строк. */}
+      <span
+        aria-hidden="true"
+        className={`mt-[7px] h-2 w-2 shrink-0 rounded-full ${
+          hot ? 'bg-now' : 'bg-muted/40'
+        }`}
+      />
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-3">
+          <p className="min-w-0 flex-1 truncate text-[15px] font-medium text-ink">
+            {chat.client_name || chat.client_phone}
+          </p>
+          {/* `tabular-nums` — цифры одной ширины: без них правый столбец
+              времени в длинном списке выглядит рваным. */}
+          <p className="shrink-0 text-[13px] text-muted tabular-nums">
+            {chatMoment(chat.last_message_at)}
+          </p>
+        </div>
+
+        {chat.last_message_preview && (
+          <p className="mt-0.5 truncate text-[13px] text-muted">
+            {/* Кто сказал последнюю реплику — половина её смысла: «записал вас
+                на четверг» от ассистента и от клиента значат разное. */}
+            {chat.last_message_author === 'client' ? '' : t('home.streams.said')}
+            {chat.last_message_preview}
+          </p>
+        )}
+      </div>
+    </li>
+  )
+}
+
+/**
+ * Когда это было, в одну короткую строку.
+ *
+ * **Сегодняшнее — часами, всё остальное — датой.** «14:30» о позавчерашнем
+ * разговоре врёт, а «9 сент.» о сегодняшнем не отвечает на вопрос, ради
+ * которого в этот столбец смотрят. Минуты («12 мин»), как в «Потоках», здесь не
+ * годятся: та карточка показывает только идущее прямо сейчас, а этот список —
+ * всю историю, и «4320 мин» не читается ни как время, ни как дата.
+ *
+ * Год добавляется только когда он не этот: в списке за одну осень четыре
+ * одинаковых «2026» — это шум, а разговор из прошлого года без года — ошибка.
+ */
+function chatMoment(iso) {
+  if (!iso) return ''
+  const at = new Date(iso)
+  if (Number.isNaN(at.getTime())) return ''
+
+  const locale = getLocale()
+  const now = new Date()
+  if (at.toDateString() === now.toDateString()) {
+    return at.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+  }
+
+  return at.toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'short',
+    ...(at.getFullYear() === now.getFullYear() ? {} : { year: 'numeric' }),
+  })
 }
 
 /**
