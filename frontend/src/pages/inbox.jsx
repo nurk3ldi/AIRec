@@ -11,12 +11,12 @@ import MonthCalendar from '../components/appointments/MonthCalendar'
 import { PANEL_MOTION } from '../components/appointments/panel'
 import { StepButton, ToolbarPill } from '../components/appointments/Timetable'
 import { dayKey, shiftDate } from '../lib/dates'
-import { listAppointments, listConversations } from '../lib/api'
+import { getBusiness, listAppointments, listConversations } from '../lib/api'
 import { authed } from '../lib/auth'
 import { liveChats } from '../lib/conversations'
 import { StreamList } from '../components/home/AssistantStreams'
-import { BOOKING_COLORS } from '../lib/appointments'
-import { getLocale, useT } from '../lib/i18n'
+import { BOOKING_COLORS, toBlock } from '../lib/appointments'
+import { useT } from '../lib/i18n'
 import styles from '../styles/Inbox.module.css'
 
 /**
@@ -94,6 +94,30 @@ export default function InboxPage() {
   const [bookings, setBookings] = useState(null)
 
   /**
+   * Зона, в которой у бизнеса идут часы, — не браузерная.
+   *
+   * `toBlock` разбирает время именно в ней, и без неё владелец, открывший панель
+   * из другой страны, увидел бы промежутки сдвинутыми. `undefined` до ответа
+   * `GET /business` означает браузерную зону: для всех, кто внутри страны, это
+   * тот же ответ, а остальным он поправится кадром позже.
+   *
+   * Ошибку глотаем, как и остальные чтения экрана: зона — настройка, а не
+   * содержимое, и полоса ошибки над списком записей сказала бы меньше, чем сам
+   * список.
+   */
+  const [timeZone, setTimeZone] = useState(undefined)
+
+  useEffect(() => {
+    let alive = true
+    authed(getBusiness)
+      .then((row) => alive && setTimeZone(row.timezone))
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  /**
    * Перечитывается при каждой смене дня — этим стрелки, «Сегодня» и календарь и
    * работают: они меняют `day`, а не список, и список приходит следом.
    *
@@ -157,9 +181,9 @@ export default function InboxPage() {
               её форма. Та же временная метка, что была у прежнего блока —
               удалить вместе с ним, как только форма устоится. */}
           {bookings === null ? null : bookings.length === 0 ? (
-            <FolderRow rows={DEMO_TODAY_FOLDERS} />
+            <FolderRow rows={DEMO_TODAY_ROWS.map((row) => toBlock(row, timeZone))} />
           ) : (
-            <FolderRow rows={bookings.map(toFolder)} />
+            <FolderRow rows={bookings.map((row) => toBlock(row, timeZone))} />
           )}
         </Section>
       </div>
@@ -354,46 +378,50 @@ function Panel({ title, count, children }) {
 /**
  * Запись — в то, что рисует карточка.
  *
- * Отдельной функцией, а не полями прямо в разметке: карточке всё равно, что
- * именно её позвало, лишь бы форма была той же.
+ * **Своей функции у этого экрана больше нет — он зовёт `toBlock`.** Карточке
+ * нужен промежуток целиком, а собрать его из двух `clock()` значило бы завести
+ * второй ответ на вопрос, у которого ответ уже есть: `toBlock` строит `range`,
+ * и он же знает, что у записи без конца это «15:00 –», а не «15:00 – 15:00».
+ * Та же строка, что рисует сетка «Записей», — значит, два экрана не могут
+ * разойтись в том, сколько длится одна и та же запись.
  */
-const toFolder = (row) => ({
-  id: row.id,
-  name: row.client_name,
-  phone: row.client_phone,
-  service: row.service_name,
-  at: row.starts_at,
-})
 
 /* --------------------------------------------------------------------------
  * ВРЕМЕННО — УДАЛИТЬ ВМЕСТЕ С ЭТИМ БЛОКОМ.
  *
  * Три строки, чтобы было на чём смотреть форму карточки, пока на сегодня нет
  * ни одной настоящей записи — тот же приём, что и у снятого блока «Все чаты».
- * Даты не «сегодня» в буквальном смысле: `Folder` их и не проверяет, ей важна
- * только форма строки.
+ *
+ * Форма — сырая, как у API, а не как у карточки: строки проходят через тот же
+ * `toBlock`, что и настоящие, иначе демо показывало бы то, чего продакшен не
+ * умеет. Третья — намеренно без `ends_at`: запись без конца это разрешённый
+ * случай, и «15:00 –» на карточке лучше увидеть здесь, чем в первый раз на
+ * чужом экране.
  * ----------------------------------------------------------------------- */
-const DEMO_TODAY_FOLDERS = [
+const DEMO_TODAY_ROWS = [
   {
     id: 'demo-today-1',
-    name: 'Айгерим Сапарова',
-    phone: '+7 701 555 33 22',
-    service: 'Шаш алу',
-    at: '2026-09-08T15:00:00',
+    client_name: 'Айгерим Сапарова',
+    client_phone: '+7 701 555 33 22',
+    service_name: 'Шаш алу',
+    starts_at: '2026-09-09T15:00:00',
+    ends_at: '2026-09-09T16:00:00',
   },
   {
     id: 'demo-today-2',
-    name: 'Ерлан Тоқтар',
-    phone: '+7 771 604 29 38',
-    service: 'Сақал қию',
-    at: '2026-09-08T16:30:00',
+    client_name: 'Ерлан Тоқтар',
+    client_phone: '+7 771 604 29 38',
+    service_name: 'Сақал қию',
+    starts_at: '2026-09-09T16:30:00',
+    ends_at: '2026-09-09T17:15:00',
   },
   {
     id: 'demo-today-3',
-    name: 'Гүлнұр Асқар',
-    phone: '+7 700 852 47 63',
-    service: 'Кератин',
-    at: '2026-09-08T18:15:00',
+    client_name: 'Гүлнұр Асқар',
+    client_phone: '+7 700 852 47 63',
+    service_name: 'Кератин',
+    starts_at: '2026-09-09T18:15:00',
+    ends_at: null,
   },
 ]
 /* ------------------------------------------------------------ конец блока */
@@ -496,13 +524,7 @@ const FOLDER_PATH = [
  * заведён: `surface` на тёмной теме — тот же чёрный, что и фон, и папка без
  * рамки была бы ничем.
  */
-/** Часы и минуты в языке интерфейса. */
-const clock = (date) =>
-  date.toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' })
-
 function Folder({ row, color, className = '' }) {
-  const at = new Date(row.at)
-
   return (
     <article
       className={`relative ${className}`}
@@ -534,7 +556,7 @@ function Folder({ row, color, className = '' }) {
             style={{ backgroundColor: color }}
           />
           <p className="min-w-0 font-display text-[15px] leading-snug font-semibold text-ink">
-            {row.name}
+            {row.client}
           </p>
         </div>
 
@@ -556,45 +578,35 @@ function Folder({ row, color, className = '' }) {
           {row.phone}
         </p>
 
-        {/* **Только начало.** Промежуток целиком пробовали — «15:00 – 16:00»
-            в карточке шириной в четверть колонки набирается почти во всю
-            строку и перестаёт читаться числом, превращаясь в ещё одну строку
-            текста. Начало отвечает на вопрос, ради которого сюда смотрят;
-            когда освободится кресло — вопрос расписания, а не этой карточки.
+        {/* **Промежуток целиком, а не одно начало.** Начало отвечало только на
+            «во сколько», и следом всё равно вставал второй вопрос — «до
+            скольки»; на него до сих пор отвечала дата, то есть строка, которую
+            в секции «сегодня» и так знают наперёд. Дата ушла, промежуток занял
+            её место в смысле, а не в разметке: время остаётся самой крупной
+            строкой карточки, потому что за этим на неё и смотрят.
 
-            `my-auto` вместо `mt-auto`: пустота делится поровну сверху и снизу,
-            и время встаёт в середине свободного места, а не прижимается к дате
-            под ним.
+            **`range` из `lib/appointments.js`, а не собственный формат.** Та же
+            строка, что рисует сетка «Записей», — и главное, тот же ответ на
+            запись без конца: у неё остаётся «15:00 –», где отсутствие второго
+            числа и есть факт, а не недосмотр. Своя склейка двух `clock()` эту
+            разницу потеряла бы.
+
+            `my-auto`: пустота делится поровну сверху и снизу, и время встаёт в
+            середине свободного места, а не прижимается к строке под ним.
 
             `tabular-nums` — цифры одной ширины: без них «11:30» и «14:45»
-            занимают разную длину, и в ряду из четырёх карточек столбец времени
-            выглядит неровным. */}
-        <div className="my-auto flex min-w-0 items-baseline gap-2">
-          <p className="shrink-0 font-display text-[24px] leading-none font-semibold tracking-[-0.02em] text-ink tabular-nums">
-            {clock(at)}
-          </p>
-          {/* Услуга рядом со временем, а не своей строкой наверху. «Когда» и
-              «за чем» — одна мысль, и вместе они читаются одной строкой, а
-              порознь услуга занимала место в верхнем блоке и оставляла
-              середину карточки пустой ни за чем.
+            занимают разную длину, и в ряду столбец времени выглядит неровным. */}
+        <p className="my-auto min-w-0 truncate font-display text-[24px] leading-none font-semibold tracking-[-0.02em] text-ink tabular-nums">
+          {row.range}
+        </p>
 
-              `shrink-0` у времени и `truncate` у услуги: сокращаться должна
-              она — часы либо видны целиком, либо не значат ничего, а название
-              услуги узнаётся и по началу. */}
-          <p className="min-w-0 truncate text-[13px] text-ink">{row.service}</p>
-        </div>
-
-        {/* Дату к низу прижимает уже `my-auto` на времени выше — своего
-            автоотступа ей не нужно, второй в той же колонке просто поделил бы
-            остаток ещё раз. */}
+        {/* Услуга там, где стояла дата. Наверх, к имени, она не идёт: имя — это
+            «кто», услуга — «за чем», и на разных строках они читаются как два
+            факта, а не как одна подпись. Прижимать её нечем — это уже делает
+            `my-auto` на времени выше, и второй автоотступ в той же колонке
+            просто поделил бы остаток ещё раз. */}
         <div className="flex items-end justify-between gap-2">
-          <p className="min-w-0 truncate text-[13px] text-ink">
-            {at.toLocaleDateString(getLocale(), {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            })}
-          </p>
+          <p className="min-w-0 truncate text-[13px] text-ink">{row.service}</p>
           {/* Три точки, а не сетка из девяти: девять означают «все приложения»,
               а не «действия над этим». Пока ничего не открывает. */}
           <HugeiconsIcon
