@@ -561,8 +561,18 @@ function SearchTool({ query, onQuery }) {
           layout
           transition={travel}
           aria-hidden="true"
-          className={`pointer-events-none absolute z-10 grid place-items-center text-muted ${
-            open ? 'left-3' : 'left-[10px]'
+          // **Закрытым — `ink`, открытым — `muted`, потому что это два разных
+          // предмета.** В кружке значок и есть содержимое кнопки, и он обязан
+          // весить столько же, сколько глиф фильтра рядом: два соседних круга с
+          // разной яркостью читаются как включённый и выключенный, хотя оба
+          // просто ждут нажатия. В поле он перестаёт быть кнопкой и становится
+          // подсказкой рядом с плейсхолдером — там `muted` его и держит, как во
+          // всех полях приложения.
+          //
+          // `ink`, а не литеральный белый: на тёмной теме это и есть белый, а на
+          // светлой — почти чёрный, то есть значок остаётся видимым в обеих.
+          className={`pointer-events-none absolute z-10 grid place-items-center transition-colors duration-150 ${
+            open ? 'left-3 text-muted' : 'left-[10px] text-ink'
           }`}
         >
           <HugeiconsIcon
