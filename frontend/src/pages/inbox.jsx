@@ -738,7 +738,14 @@ function FilterMenu({ filter, onFilter }) {
               onFilter(draft)
               setOpen(false)
             }}
-            className="mt-4 h-9 w-full rounded-md bg-accent text-[14px] font-medium text-surface outline-none transition-[opacity,scale] hover:opacity-90 focus-visible:opacity-90 active:scale-[0.99]"
+            // **`h-10`, как у полей над ней, а не `h-9`.** Высоту в этом меню
+            // задаёт `CONTROL` из `controls.js`, и она равна сорока: и
+            // `DateField`, и `TimeField` дописывают к нему свой `h-9`, но две
+            // утилиты одного свойства разрешаются порядком в собранной таблице
+            // стилей, а там `.h-10` стоит после `.h-9` и выигрывает. Кнопка
+            // единственная здесь без `FIELD`, поэтому её сорок надо назвать
+            // вслух — иначе она одна на четыре пикселя ниже всего столбца.
+            className="mt-4 h-10 w-full rounded-md bg-accent text-[14px] font-medium text-surface outline-none transition-[opacity,scale] hover:opacity-90 focus-visible:opacity-90 active:scale-[0.99]"
           >
             {t('inbox.filterApply')}
           </button>
