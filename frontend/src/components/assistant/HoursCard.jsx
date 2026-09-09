@@ -10,6 +10,7 @@ import { haptic } from '../../lib/haptics'
 import { useT } from '../../lib/i18n'
 import TimeField from '../appointments/TimeField'
 import Reveal from '../Reveal'
+import { CARD_EDGE } from '../card'
 
 /**
  * The working week — the hours the assistant may offer, and the ones it may
@@ -185,7 +186,7 @@ export default function HoursCard({ week, onSaved }) {
       // rather than somewhere short of them. A `min-height` on the column is
       // enough for that: the main axis resolves against it, so there is real
       // leftover to grow into.
-      className="flex min-h-[240px] flex-1 flex-col rounded-2xl bg-surface-raised p-4"
+      className={`flex min-h-[240px] flex-1 flex-col ${CARD_EDGE} p-4`}
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="min-w-0 truncate font-display text-[15px] font-semibold text-ink">

@@ -91,7 +91,7 @@ Every Next.js primitive has one replacement, and mixing them back in is the thin
 
   **The three cards are the three questions asked with a client on the phone**, in the order they come up, each its own component under `components/appointments/`:
 
-  **All three, and the skeleton that stands in for them, wear one class string — `CARD` in `components/card.js`.** It is `rounded-2xl border border-line bg-surface-raised p-4 overflow-hidden`: the fill separates the card from a light page, and the hairline gives it the edge that fill cannot on a black one, where `#171717` against `#000000` is a difference you have to look for. The border was added on 2026-09-09, drawn from Vercel's own cards — which is where this project's `--line` (`#454545`, their `--ds-gray-500`) came from in the first place. Four copies of that string existed before it moved here, and the skeleton drifting from the card by a pixel is a layout jump at the moment the data lands.
+  **All three, and the skeleton that stands in for them, wear one class string — `CARD` in `components/card.js`.** Four copies of it existed before it moved there, and the skeleton drifting from the card by a pixel is a layout jump at the moment the data lands. See **Cards carry a hairline** under the palette for the edge itself, which every card in the product now shares.
 
   - `NowCard` — who is in the chair. A countdown to the end of the booking (ticking every second, because a timer that jumps sixty at a time is a clock that has stopped), the client, the service and the span. Parallel bookings are **paged with `‹ n/m ›`**, not stacked: a business with `capacity` above one has two chairs, and two cards' worth of detail does not fit in one card.
   - `UpNextCard` — who is next. Today's not-yet-started bookings, each its own small card, sorted with `byStart` (a *total* order — two bookings can begin in the same minute, and without the id tiebreak they swap places on every render). Today only: a queue is a thing you are standing in, and Thursday is the calendar's business. The list scrolls inside the card; the row of three has one height.
@@ -351,10 +351,16 @@ Use the tokens (`bg-surface`, `text-ink`, `border-line`, `text-muted`, `bg-accen
 
 | Token | Light | Dark | What it is for |
 | --- | --- | --- | --- |
-| `surface-raised` | `#ffffff` | `#171717` | the ground of a card — the three cards on `/appointments`, which pair it with a `border-line` hairline (see `components/card.js`) |
+| `surface-raised` | `#ffffff` | `#171717` | the ground of a card lying *on the page* — always paired with a hairline, see below |
 | `surface-chip` | `#ffffff` | `#2a2a2a` | the thing that is *chosen* — a segment, the add button, today in the calendar |
 | `surface-card` | `#ffffff` | `#1c1c1c` | a card drawn *on* something rather than on the page — a booking on the timetable's grid |
 | `hatch` | `ink / 11%` | `white / 20%` | the stripe over a closed hour on the timetable |
+
+**Cards carry a hairline, and `components/card.js` is where that is written.** `CARD_EDGE` is `rounded-2xl border border-line bg-surface-raised`; `CARD` adds the `/appointments` trio's own `overflow-hidden p-4`. The edge is separate from the padding because the padding is not shared — the assistant's cards and the three over the timetable sit on `p-4`, the inbox panel on `p-5`, the dashboard's on `p-6` — and baking one of those in would have sent half the screens back to their own copy of the string.
+
+Added on 2026-09-09, and it went on **every card in the product at once**: `/appointments`' three, `CardSkeleton` standing in for them, the five on `/assistant`, both on `/dashboard`, the inbox's «Потоки» panel, and the inbox's folder shapes — those last through `stroke` + `vectorEffect="non-scaling-stroke"`, since an SVG path has no `border` and a stroke measured in `viewBox` units would come out two-thirds of a pixel. The colour is drawn from Vercel's own cards, which is also where this project's `--line` came from (`#454545`, their `--ds-gray-500`).
+
+**What deliberately has no edge is anything wearing `surface-card`** — a booking on the grid, a row in a list, a search result. Those are drawn *on* something that already has lines or edges of its own, and a second frame there is a frame around a frame.
 
 `surface-chip` cannot be an ink alpha for the reason worth remembering: the chosen pill has to be **lighter than its track**, and lighter means *less* ink on the light side and *more* on the dark. Opposite directions from the same value; two literals is what that costs.
 

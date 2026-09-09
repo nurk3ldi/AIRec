@@ -11,6 +11,7 @@ import { authed } from '../../lib/auth'
 import { haptic } from '../../lib/haptics'
 import { useT } from '../../lib/i18n'
 import Reveal from '../Reveal'
+import { CARD_EDGE } from '../card'
 
 /**
  * The price list — what the assistant can offer, how long each takes and what
@@ -276,7 +277,7 @@ export default function ServicesCard({ services, onSaved }) {
       // as two boxes of visibly different size stacked on each other. A shared
       // minimum settles that without freezing either: «Услуги» still grows past
       // it when its list is unfolded, which is the whole point of the fold.
-      className="flex min-h-[240px] flex-col rounded-2xl bg-surface-raised p-4"
+      className={`flex min-h-[240px] flex-col ${CARD_EDGE} p-4`}
     >
       <div className="flex shrink-0 items-center justify-between gap-3">
         <h2 className="min-w-0 truncate font-display text-[15px] font-semibold text-ink">

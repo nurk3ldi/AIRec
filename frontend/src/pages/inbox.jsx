@@ -24,6 +24,7 @@ import { StreamList } from '../components/home/AssistantStreams'
 import { BOOKING_COLORS, toBlock } from '../lib/appointments'
 import { getLocale, useT } from '../lib/i18n'
 import styles from '../styles/Inbox.module.css'
+import { CARD_EDGE } from '../components/card'
 
 /**
  * Диалоги — пусто, экран собирается заново.
@@ -1012,7 +1013,7 @@ function Panel({ title, count, children }) {
       <SectionHeading title={title} count={count} />
       {/* Без рамки: `surface-raised` — заливка, которая сама отделяет блок от
           фона в обеих темах. */}
-      <div className="flex min-h-0 flex-1 flex-col rounded-2xl bg-surface-raised p-5">
+      <div className={`flex min-h-0 flex-1 flex-col ${CARD_EDGE} p-5`}>
         {children}
       </div>
     </section>
@@ -1220,8 +1221,27 @@ function Folder({ row, color, className = '' }) {
       >
         {/* Через атрибут, а не классом: `fill-*` Tailwind соберёт только для
             зарегистрированного цвета, а обращение к переменной надёжнее прямо
-            здесь — и видно, какой именно токен рисует фигуру. */}
-        <path d={FOLDER_PATH} fill="var(--color-surface-raised)" />
+            здесь — и видно, какой именно токен рисует фигуру.
+
+            **Тот же край, что у остальных карточек, только обводкой.** Папка —
+            карточка на странице, и оставить её единственной без края значило бы
+            завести исключение из правила ради того, что оно нарисовано другим
+            способом. `CARD_EDGE` тут не подходит: у SVG нет `border`, край
+            задаётся `stroke` по самому контуру.
+
+            **`vectorEffect="non-scaling-stroke"` — не мелочь.** Толщина обводки
+            считается в единицах `viewBox` (400 в ширину), а карточка на экране
+            около 270px, так что единица превратилась бы в две трети пикселя, и
+            линия вышла бы бледнее хайрлайна у соседей. С этим атрибутом
+            толщина берётся в пикселях экрана, и край получается ровно такой же,
+            как у карточек с `border`. */}
+        <path
+          d={FOLDER_PATH}
+          fill="var(--color-surface-raised)"
+          stroke="var(--color-line)"
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+        />
       </svg>
 
       <div

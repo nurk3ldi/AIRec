@@ -2,6 +2,7 @@ import { useT } from '../../lib/i18n'
 import { chatState, minutesSince, needsHuman } from '../../lib/conversations'
 import Skeleton, { SkeletonRegion } from '../Skeleton'
 import { useSkeleton } from '../../lib/skeleton'
+import { CARD_EDGE } from '../card'
 
 /**
  * Все разговоры, которые ассистент ведёт прямо сейчас — по строке на каждый.
@@ -33,7 +34,7 @@ export default function AssistantStreams({ chats, live, className = '' }) {
 
   return (
     <section
-      className={`flex flex-col rounded-2xl bg-surface-raised p-6 ${className}`}
+      className={`flex flex-col ${CARD_EDGE} p-6 ${className}`}
     >
       <h2 className="shrink-0 font-display text-[15px] font-semibold text-ink">
         {t('home.streams.title')}

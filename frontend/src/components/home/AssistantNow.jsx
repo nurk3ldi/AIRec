@@ -2,6 +2,7 @@ import { useT } from '../../lib/i18n'
 import { chatState } from '../../lib/conversations'
 import Skeleton, { SkeletonRegion } from '../Skeleton'
 import { useSkeleton } from '../../lib/skeleton'
+import { CARD_EDGE } from '../card'
 
 /**
  * Что ассистент делает прямо сейчас.
@@ -34,7 +35,7 @@ export default function AssistantNow({ chats, live, className = '' }) {
 
   return (
     <section
-      className={`relative flex flex-col rounded-2xl bg-surface-raised p-6 ${className}`}
+      className={`relative flex flex-col ${CARD_EDGE} p-6 ${className}`}
     >
       {/* **Огонёк в противоположном от знака углу.** Он говорит одно: сейчас
           что-то идёт. В строке состояния ему не место — появляясь и исчезая, он

@@ -6,6 +6,7 @@ import { haptic } from '../../lib/haptics'
 import { useT } from '../../lib/i18n'
 import { Chips, Field } from './fields'
 import Reveal from '../Reveal'
+import { CARD_EDGE } from '../card'
 
 /**
  * How the assistant behaves — as opposed to what it knows.
@@ -107,7 +108,7 @@ export default function SettingsCard({ business, onSaved, className = '' }) {
         event.preventDefault()
         done()
       }}
-      className={`flex flex-col rounded-2xl bg-surface-raised p-4 ${className}`}
+      className={`flex flex-col ${CARD_EDGE} p-4 ${className}`}
     >
       <div className="flex shrink-0 items-center justify-between gap-3">
         <h2 className="min-w-0 truncate font-display text-[15px] font-semibold text-ink">

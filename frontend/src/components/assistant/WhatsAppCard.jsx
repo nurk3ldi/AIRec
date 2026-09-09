@@ -7,6 +7,7 @@ import { haptic } from '../../lib/haptics'
 import { useT } from '../../lib/i18n'
 import { Field } from './fields'
 import Reveal from '../Reveal'
+import { CARD_EDGE } from '../card'
 
 /**
  * The number the assistant answers on.
@@ -119,7 +120,7 @@ export default function WhatsAppCard({ account, onSaved, className = '' }) {
   return (
     <form
       onSubmit={save}
-      className={`flex flex-col rounded-2xl bg-surface-raised p-4 ${className}`}
+      className={`flex flex-col ${CARD_EDGE} p-4 ${className}`}
     >
       <div className="flex shrink-0 items-center justify-between gap-3">
         <h2 className="min-w-0 truncate font-display text-[15px] font-semibold text-ink">
