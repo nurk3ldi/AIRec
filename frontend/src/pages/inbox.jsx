@@ -216,6 +216,7 @@ export default function InboxPage() {
             по имени. */}
         <Section
           title={t('inbox.today')}
+          aside={<ShowAllButton />}
           actions={<DayPicker value={day} onChange={setDay} />}
         >
           {/* Настоящие записи выбранного дня. Пока их читают — ничего не
@@ -310,7 +311,7 @@ export default function InboxPage() {
  * то, что под ним лежит, а подпись к предмету стоит рядом с предметом, а не на
  * нём.
  */
-function SectionHeading({ title, count, actions }) {
+function SectionHeading({ title, count, aside, actions }) {
   return (
     <div className="flex shrink-0 items-center gap-2 px-1 pb-3">
       <h2 className="min-w-0 truncate font-display text-[24px] leading-tight font-bold tracking-[-0.02em] text-ink">
@@ -322,23 +323,60 @@ function SectionHeading({ title, count, actions }) {
           <span className="font-normal text-muted"> · {count}</span>
         )}
       </h2>
-      {/* Управление секцией — у правого края той же строки, что и её название:
-          заголовок говорит, что показано, а то, что справа, решает, что
-          показать. `ml-auto` вместо `justify-between` на строке — с одним
-          дочерним элементом `justify-between` вырождается в `flex-start`, и
-          без заголовка кнопки уехали бы влево. */}
+
+      {/* **`aside` стоит у названия, `actions` — у правого края, и это разные
+          роли.** Слева от пустоты то, что меняет *что показано*: «Все» — другой
+          взгляд на тот же день. Справа то, что решает, *какой день* показан.
+          Ровно то же разделение, что в тулбаре «Записей»: заголовок и фильтр
+          едут вместе, а стрелки и переключатель вида — у другого края. */}
+      {aside ? <div className="shrink-0">{aside}</div> : null}
+
+      {/* `ml-auto` вместо `justify-between` на строке — с одним дочерним
+          элементом `justify-between` вырождается в `flex-start`, и без
+          заголовка кнопки уехали бы влево. */}
       {actions ? <div className="ml-auto shrink-0">{actions}</div> : null}
     </div>
   )
 }
 
 /** Заголовок и то, что под ним. Высоту занимает по содержимому. */
-function Section({ title, actions, className = '', children }) {
+function Section({ title, aside, actions, className = '', children }) {
   return (
     <section className={className}>
-      <SectionHeading title={title} actions={actions} />
+      <SectionHeading title={title} aside={aside} actions={actions} />
       {children}
     </section>
+  )
+}
+
+/**
+ * «Все» — тот же день, но целиком.
+ *
+ * **Только слово, без стрелки.** У `ChatFeed` на «Записях» такая же надпись
+ * носит шеврон, и там он на месте: это ссылка, уводящая на другой экран.
+ * Здесь уходить некуда — секция раскроется на месте, — а шеврон обещал бы
+ * переход, которого не будет.
+ *
+ * 13px и `muted` — та же ступень, что у «Все» в `ChatFeed`: рядом с заголовком
+ * на 24px это подпись, а не второй заголовок. `py-1 -my-1` растит цель до
+ * приемлемой, не меняя высоту строки.
+ *
+ * **Пока не нажимается, и это временно.** Показывать все сегодняшние диалоги
+ * нечем: секция кормится записями (`GET /appointments`), а диалоги — это
+ * `conversations`, и связи между ними в базе нет. Кнопка стоит здесь, потому
+ * что место в раскладке решено; обработчик придёт вместе с ответом на вопрос,
+ * что именно она разворачивает.
+ */
+function ShowAllButton() {
+  const t = useT()
+
+  return (
+    <button
+      type="button"
+      className="-my-1 rounded-lg py-1 text-[13px] text-muted outline-none transition-colors hover:text-ink focus-visible:text-ink"
+    >
+      {t('chat.all')}
+    </button>
   )
 }
 
