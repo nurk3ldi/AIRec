@@ -1,5 +1,6 @@
 import { HugeiconsIcon } from '@hugeicons/react'
 import { useEffect, useState } from 'react'
+import { domMax, LazyMotion, m, useReducedMotion } from 'motion/react'
 import * as Popover from '@radix-ui/react-popover'
 import {
   ArrowLeft01Icon,
@@ -13,7 +14,6 @@ import {
 import MonthCalendar from '../components/appointments/MonthCalendar'
 import DateField from '../components/appointments/DateField'
 import TimeField from '../components/appointments/TimeField'
-import { FIELD } from '../components/controls'
 import { PANEL_MOTION } from '../components/appointments/panel'
 import { StepButton, ToolbarPill } from '../components/appointments/Timetable'
 import { dayKey, shiftDate } from '../lib/dates'
@@ -488,8 +488,25 @@ function TableTools({ query, onQuery, filter, onFilter }) {
  *
  * **Закрывается по Escape и по уходу фокуса, но только пустым.** Поле с текстом
  * — это состояние таблицы под ним, а не открытый ящик: свернуть его значило бы
- * спрятать причину, по которой строк осталось три. Крестик закрывает всегда и
- * заодно чистит — это единственный способ отменить поиск целиком.
+ * спрятать причину, по которой строк осталось три. Крестик — он появляется,
+ * только когда есть что стирать, — закрывает всегда и заодно чистит.
+ *
+ * **Значок не исчезает и не подменяется: кружок раздаётся в поле, а он остаётся
+ * у левого края.** Подменить одно другим значило бы, что на месте кнопки просто
+ * оказалось что-то ещё; когда та же фигура растёт, а знак стоит на месте, видно,
+ * что это по-прежнему поиск, только теперь в него можно писать. Двигать при
+ * этом почти нечего: в кружке значок стоит по центру, то есть в 10px от левого
+ * края, а в поле — в 12px, и `layout` проезжает эти два пикселя, чтобы они не
+ * скакнули.
+ *
+ * **Фон и рамка — два слоя, которые перекрёстно гаснут**, а не один
+ * перекрашиваемый. Смена класса вместо этого дала бы мгновенный скачок цвета
+ * посреди плавного роста; две накрытые друг другом заливки меняются только
+ * прозрачностью, что и разрешено правилами движения этого проекта.
+ *
+ * Форма поля — та же, что у поиска в шапке: 240px, `rounded-xl`, `bg-surface` и
+ * трёхступенчатое кольцо. Два поиска в одном продукте обязаны быть одним
+ * предметом, и плейсхолдер у них поэтому тоже общий.
  *
  * `text-[16px]` до `sm` — правило дома против зума iOS на фокусе; выше 14, как
  * у всех полей.
@@ -497,42 +514,110 @@ function TableTools({ query, onQuery, filter, onFilter }) {
 function SearchTool({ query, onQuery }) {
   const t = useT()
   const [open, setOpen] = useState(false)
+  const reduce = useReducedMotion()
 
   const close = () => {
     setOpen(false)
     onQuery('')
   }
 
-  if (!open) {
-    return (
-      <StepButton
-        label={t('inbox.search')}
-        icon={Search01Icon}
-        active={Boolean(query)}
-        onClick={() => setOpen(true)}
-      />
-    )
-  }
+  // Один и тот же переезд для формы и для значка: они едут вместе или не едут
+  // вовсе.
+  const travel = reduce
+    ? { duration: 0 }
+    : { duration: 0.22, ease: [0.16, 1, 0.3, 1] }
 
   return (
-    <div className="flex items-center gap-1">
-      <input
-        autoFocus
-        type="search"
-        value={query}
-        onChange={(event) => onQuery(event.target.value)}
-        onKeyDown={(event) => event.key === 'Escape' && close()}
-        onBlur={() => !query && setOpen(false)}
-        placeholder={t('inbox.searchHint')}
-        aria-label={t('inbox.search')}
-        className={`${FIELD} h-9 w-[200px] text-[16px] sm:text-[14px]`}
-      />
-      <StepButton
-        label={t('appointments.close')}
-        icon={Cancel01Icon}
-        onClick={close}
-      />
-    </div>
+    // `domMax`, а не `domAnimation`: проекция раскладки — единственная функция,
+    // которой в меньшем наборе нет, а именно она и растит кружок в поле. Лишнего
+    // веса это не стоит — календарь на этой же странице уже её тянет.
+    <LazyMotion features={domMax}>
+      <m.div
+        layout
+        transition={travel}
+        className={`relative flex h-9 shrink-0 items-center ${
+          open ? 'w-[240px]' : 'w-9'
+        }`}
+      >
+        {/* Слой «кнопка» и слой «поле». Оба всегда в разметке и оба absolute,
+            поэтому ширину задаёт родитель, а не они, — и переключение между
+            ними стоит ровно одну прозрачность. */}
+        <m.span
+          aria-hidden="true"
+          animate={{ opacity: open ? 0 : 1 }}
+          transition={travel}
+          className="absolute inset-0 rounded-full bg-ink/12"
+        />
+        <m.span
+          aria-hidden="true"
+          animate={{ opacity: open ? 1 : 0 }}
+          transition={travel}
+          className="absolute inset-0 rounded-xl bg-surface shadow-[0_0_0_1px_var(--color-field)]"
+        />
+
+        {/* Значок поверх обоих слоёв и с собственным `layout`: те самые два
+            пикселя от центра кружка до левого края поля. */}
+        <m.span
+          layout
+          transition={travel}
+          aria-hidden="true"
+          className={`pointer-events-none absolute z-10 grid place-items-center text-muted ${
+            open ? 'left-3' : 'left-[10px]'
+          }`}
+        >
+          <HugeiconsIcon
+            icon={Search01Icon}
+            size={16}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+          />
+        </m.span>
+
+        {open ? (
+          <>
+            <input
+              autoFocus
+              type="search"
+              value={query}
+              onChange={(event) => onQuery(event.target.value)}
+              onKeyDown={(event) => event.key === 'Escape' && close()}
+              onBlur={() => !query && setOpen(false)}
+              placeholder={t('header.search')}
+              aria-label={t('inbox.search')}
+              // Прозрачный: заливку и кольцо рисует слой под ним, иначе их было
+              // бы два. `pl-9` — место под значок, `pr-9` — под крестик.
+              className="relative z-10 h-full w-full appearance-none rounded-xl bg-transparent pr-9 pl-9 text-[16px] text-ink outline-none placeholder:text-muted sm:text-[14px] [&::-webkit-search-cancel-button]:appearance-none"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={close}
+                aria-label={t('appointments.close')}
+                className="absolute right-2 z-10 grid h-6 w-6 place-items-center rounded-full text-muted outline-none transition-[color,background-color] hover:bg-ink/8 hover:text-ink focus-visible:bg-ink/8 focus-visible:text-ink"
+              >
+                <HugeiconsIcon
+                  icon={Cancel01Icon}
+                  size={14}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.2}
+                />
+              </button>
+            )}
+          </>
+        ) : (
+          // Кнопка занимает весь кружок, а не сидит в нём: нажимают по фигуре
+          // целиком, а не по значку внутри неё.
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label={t('inbox.search')}
+            className="absolute inset-0 z-10 rounded-full outline-none transition-[background-color,scale] hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.95]"
+          />
+        )}
+      </m.div>
+    </LazyMotion>
   )
 }
 

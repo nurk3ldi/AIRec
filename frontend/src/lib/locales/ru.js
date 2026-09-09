@@ -187,7 +187,6 @@ export default {
   'inbox.all': 'Все чаты',
   'inbox.allEmpty': 'Пока ничего нет',
   'inbox.search': 'Поиск',
-  'inbox.searchHint': 'Имя, телефон или услуга',
   'inbox.filter': 'Фильтр',
   'inbox.filterReset': 'Сбросить',
   'inbox.from': 'От',

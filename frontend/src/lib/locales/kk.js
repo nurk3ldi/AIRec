@@ -178,7 +178,6 @@ export default {
   'inbox.all': 'Барлық чаттар',
   'inbox.allEmpty': 'Әзірге ештеңе жоқ',
   'inbox.search': 'Іздеу',
-  'inbox.searchHint': 'Аты, телефоны немесе қызметі',
   'inbox.filter': 'Сүзгі',
   'inbox.filterReset': 'Тазарту',
   'inbox.from': 'Бастап',

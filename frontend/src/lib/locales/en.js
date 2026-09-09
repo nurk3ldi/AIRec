@@ -177,7 +177,6 @@ export default {
   'inbox.all': 'All chats',
   'inbox.allEmpty': 'Nothing here yet',
   'inbox.search': 'Search',
-  'inbox.searchHint': 'Name, phone or service',
   'inbox.filter': 'Filter',
   'inbox.filterReset': 'Reset',
   'inbox.from': 'From',
