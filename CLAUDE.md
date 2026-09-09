@@ -355,12 +355,14 @@ Use the tokens (`bg-surface`, `text-ink`, `border-line`, `text-muted`, `bg-accen
 
 | Token | Light | Dark | What it is for |
 | --- | --- | --- | --- |
-| `surface-raised` | `#ffffff` | `#171717` | the ground of a card lying *on the page* — always paired with a hairline, see below |
+| `surface-raised` | `#ffffff` | `#0a0a0a` | the ground of a card lying *on the page* — always paired with a hairline, see below |
 | `surface-chip` | `#ffffff` | `#2a2a2a` | the thing that is *chosen* — a segment, the add button, today in the calendar |
 | `surface-card` | `#ffffff` | `#1c1c1c` | a card drawn *on* something rather than on the page — a booking on the timetable's grid |
 | `hatch` | `ink / 11%` | `white / 20%` | the stripe over a closed hour on the timetable |
 
 **Cards carry a hairline, and `components/card.js` is where that is written.** `CARD_EDGE` is `rounded-2xl border border-line bg-surface-raised`; `CARD` adds the `/appointments` trio's own `overflow-hidden p-4`. The edge is separate from the padding because the padding is not shared — the assistant's cards and the three over the timetable sit on `p-4`, the inbox panel on `p-5`, the dashboard's on `p-6` — and baking one of those in would have sent half the screens back to their own copy of the string.
+
+**And the fill came down with it.** `surface-raised` dark went `#171717` → `#0a0a0a` on the same day: the higher value existed only because the fill was the sole thing separating a card from a black page, and once every card had an edge, a page of grey boxes was what it produced. Vercel again — a card there is a line around a piece of the page, not a block laid on it. `surface-card` and `surface-chip` did not move: they read against the grid and against a track, not against this ground.
 
 Added on 2026-09-09, and it went on **every card in the product at once**: `/appointments`' three, `CardSkeleton` standing in for them, the five on `/assistant`, both on `/dashboard`, the inbox's «Потоки» panel, and the inbox's folder shapes — those last through `stroke` + `vectorEffect="non-scaling-stroke"`, since an SVG path has no `border` and a stroke measured in `viewBox` units would come out two-thirds of a pixel. The colour is drawn from Vercel's own cards, which is also where this project's `--line` came from (`#454545`, their `--ds-gray-500`).
 

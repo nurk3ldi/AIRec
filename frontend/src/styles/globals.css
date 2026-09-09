@@ -218,22 +218,25 @@
      hairline, not its fill. */
   --ground: #000000;
   --surface: #000000;
-  /* **The ladder off pure black, and it is spaced by what is visible, not by
-     what is tidy.** These were #0e0e0e / #1c1c1c / #2a2a2a — even steps of 14,
-     which reads well in a table of hex values and fails on a screen: the first
-     step is the one that has to separate a card from a pure-black page, and 14
-     out of 255 is a number you can measure and cannot see. Cards on
-     `/dashboard` and `/assistant` sank into the ground.
+  /* **`raised` is nearly the ground again, and that is the hairline's doing.**
+     It went #0e0e0e → #171717 back when cards had no edge: the fill was the
+     only thing separating a card from a pure-black page, 14 out of 255 was a
+     number you could measure and not see, and cards on `/dashboard` and
+     `/assistant` sank into it. Since 2026-09-09 every card carries
+     `border border-line` (see `components/card.js`), the край is drawn rather
+     than implied, and the fill is free to stop shouting.
 
-     iOS is the reference for the first step: black to `systemGray6` (#1c1c1e)
-     is 28, twice what this had. So `raised` moves to 23 — enough to read as a
-     block on every panel this ships on, still short of the point where the
-     unbroken-black look of the dark theme turns into a page of grey boxes.
+     So it drops to 10 — Vercel's own card ground, which is the reference this
+     was taken from, and the point of the look: on the dark theme a card is a
+     line around a piece of the page, not a grey box laid on top of it. Raising
+     the fill instead gives a page of boxes, which is what #171717 had started
+     to look like once all of them had borders too.
 
-     The two above it move with it, or the gain is spent immediately: `card`
-     drawn *on* something has to clear `raised`, and `chip` — the chosen thing —
-     has to clear both. Steps of 23 / 14 / 14. */
-  --surface-raised: #171717;
+     **`card` and `chip` stay where they are**, and the widening gap is right:
+     `card` is a booking drawn *on* the timetable's grid and `chip` is the thing
+     you chose — both have to read against their own ground, which is not this
+     one. */
+  --surface-raised: #0a0a0a;
   --surface-card: #252525;
   --surface-chip: #333333;
   --hatch: rgb(255 255 255 / 0.2);
