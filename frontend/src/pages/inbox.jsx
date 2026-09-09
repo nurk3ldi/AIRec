@@ -1259,7 +1259,11 @@ function Folder({ row, color, className = '' }) {
           {/* 17, а не 15: карточка стала шире (три в ряд вместо четырёх), и на
               этой ширине имя на 15 читалось мельче, чем весит — это первое, что
               на карточке ищут. Шаг тот же, что у подзаголовков на телефоне. */}
-          <p className="min-w-0 font-display text-[17px] leading-snug font-semibold text-ink">
+          {/* `font-medium`, а не `semibold`: имя остаётся самой заметной
+              строкой карточки за счёт кегля, а не за счёт веса — двух ступеней
+              размера над телефоном для этого достаточно, и лишний вес только
+              утяжелял блок из четырёх строк. */}
+          <p className="min-w-0 font-display text-[17px] leading-snug font-medium text-ink">
             {row.client}
           </p>
         </div>
@@ -1306,7 +1310,11 @@ function Folder({ row, color, className = '' }) {
 
             `tabular-nums` — цифры одной ширины: без них «11:30» и «14:45»
             занимают разную длину, и в ряду столбец времени выглядит неровным. */}
-        <p className="my-auto min-w-0 truncate font-display text-[24px] leading-none font-semibold tracking-[-0.02em] text-ink tabular-nums">
+        {/* **Крупному кеглю вес не нужен.** На 24px `semibold` читался как
+            жирный заголовок, хотя это просто число: чем больше размер, тем
+            меньше веса требуется, чтобы строка держала внимание. `font-medium`
+            оставляет её самой громкой на карточке и снимает тяжесть. */}
+        <p className="my-auto min-w-0 truncate font-display text-[24px] leading-none font-medium tracking-[-0.02em] text-ink tabular-nums">
           {row.range}
         </p>
 
