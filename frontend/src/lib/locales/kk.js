@@ -177,6 +177,12 @@ export default {
   'inbox.today': 'Бүгінгі чаттар',
   'inbox.all': 'Барлық чаттар',
   'inbox.allEmpty': 'Әзірге ештеңе жоқ',
+  'inbox.search': 'Іздеу',
+  'inbox.searchHint': 'Аты, телефоны немесе қызметі',
+  'inbox.filter': 'Сүзгі',
+  'inbox.filterReset': 'Тазарту',
+  'inbox.from': 'Бастап',
+  'inbox.to': 'Дейін',
   'whatsapp.title': 'WhatsApp',
   'whatsapp.hint':
     'Клиенттер жазатын нөмір. Meta for Developers панелінен «Phone number ID» мен қатынау токенін көшіріңіз.',

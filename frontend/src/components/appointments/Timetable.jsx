@@ -1523,7 +1523,7 @@ export function ToolbarPill({ children, ...props }) {
  * пятнадцати строк совпадала бы с оригиналом ровно до первой правки одной из
  * них.
  */
-export function StepButton({ label, icon, ...props }) {
+export function StepButton({ label, icon, active = false, ...props }) {
   return (
     <button
       type="button"
@@ -1534,7 +1534,19 @@ export function StepButton({ label, icon, ...props }) {
       // пропом, поэтому `forwardRef` здесь не нужен — нужен только спред.
       {...props}
       aria-label={label}
-      className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/12 text-ink outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/20 focus-visible:bg-ink/20 active:scale-[0.95]"
+      // **`active` — состояние кнопки, а не класс снаружи.** Заливку можно было
+      // бы отдать вызывающему через `className`, но две утилиты одного свойства
+      // разрешаются порядком в собранной таблице стилей, а не порядком в
+      // строке, — то есть работали бы через раз. Тернар внутри решает это
+      // однозначно и заодно держит оба состояния рядом.
+      //
+      // `surface-chip` — тот же токен, которым в этом проекте помечено
+      // *выбранное*: сегмент в переключателе, сегодняшний день в календаре.
+      // Включённый фильтр — ровно такой случай, и важно, чтобы он читался с
+      // закрытым меню: иначе строки пропали, а почему — не сказано.
+      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-ink outline-none transition-[color,background-color,border-color,scale] focus-visible:bg-ink/20 active:scale-[0.95] ${
+        active ? 'bg-surface-chip' : 'bg-ink/12 hover:bg-ink/20'
+      }`}
     >
       <HugeiconsIcon
         icon={icon}

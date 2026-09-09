@@ -5,9 +5,15 @@ import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
   Calendar03Icon,
+  Cancel01Icon,
+  FilterHorizontalIcon,
   MoreHorizontalIcon,
+  Search01Icon,
 } from '@hugeicons/core-free-icons'
 import MonthCalendar from '../components/appointments/MonthCalendar'
+import DateField from '../components/appointments/DateField'
+import TimeField from '../components/appointments/TimeField'
+import { FIELD } from '../components/controls'
 import { PANEL_MOTION } from '../components/appointments/panel'
 import { StepButton, ToolbarPill } from '../components/appointments/Timetable'
 import { dayKey, shiftDate } from '../lib/dates'
@@ -161,6 +167,21 @@ export default function InboxPage() {
     }
   }, [])
 
+  /**
+   * Чем сужена таблица: строка поиска и промежутки в фильтре.
+   *
+   * **Живёт здесь, а не внутри таблицы**, потому что читателей двое и они по
+   * разные стороны: заголовок секции держит контролы, тело — строки. Общий
+   * родитель — единственное место, где оба видят одно значение.
+   *
+   * **Сужается на клиенте, а не запросом.** Строки уже в памяти, и уход на
+   * сервер за тем, что и так лежит перед глазами, превратил бы набор символа в
+   * загрузку страницы. Тот же довод, по которому фильтр статусов на «Записях»
+   * не ходит в сеть, хотя эндпоинт это умеет.
+   */
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState(EMPTY_FILTER)
+
   return (
     /* **Высота определённая, а не минимальная.** Правая панель обязана быть
        100% высоты, а `items-stretch` меряет от *определённого* размера:
@@ -222,17 +243,32 @@ export default function InboxPage() {
             разговоров, она растёт без предела, и сравнивать в ней нечего —
             такое читают сверху вниз одной колонкой, а не разглядывают сеткой.
             Восемь папок ещё сетка, восемьдесят — уже стена. */}
-        <Section title={t('inbox.all')} className="mt-6 sm:mt-8">
+        <Section
+          title={t('inbox.all')}
+          className="mt-6 sm:mt-8"
+          actions={
+            <TableTools
+              query={query}
+              onQuery={setQuery}
+              filter={filter}
+              onFilter={setFilter}
+            />
+          }
+        >
           {/* Демо-строки — только пока настоящих нет, как и у папок выше, и
-              удаляются тем же движением. */}
+              удаляются тем же движением.
+
+              Сужение — здесь, а не внутри таблицы: та рисует то, что ей дали, и
+              не должна знать, почему строк стало меньше. */}
           <BookingTable
             rows={
               all === null
                 ? null
-                : (all.length === 0 ? DEMO_ALL_ROWS : all).map((row) =>
-                    toBlock(row, timeZone),
-                  )
+                : (all.length === 0 ? DEMO_ALL_ROWS : all)
+                    .map((row) => toBlock(row, timeZone))
+                    .filter((row) => matches(row, query, filter))
             }
+            narrowed={Boolean(query.trim()) || isFiltered(filter)}
           />
         </Section>
       </div>
@@ -373,6 +409,232 @@ function DayPicker({ value, onChange }) {
   )
 }
 
+/* --- поиск и фильтр над таблицей ------------------------------------- */
+
+/** Пустые промежутки. Один объект на четыре поля: они всегда сбрасываются вместе. */
+const EMPTY_FILTER = { dateFrom: '', dateTo: '', timeFrom: '', timeTo: '' }
+
+/** Задан ли хоть один из промежутков — этим фильтр и «включён». */
+const isFiltered = (filter) => Object.values(filter).some(Boolean)
+
+/** Только цифры: так «+7 701 555 33 22» и «77015553322» — один и тот же номер. */
+const digits = (value) => value.replace(/\D/g, '')
+
+/**
+ * Проходит ли запись через поиск и оба промежутка.
+ *
+ * **Сравнения — строковые, и это не экономия, а следствие форматов.** День
+ * лежит как `YYYY-MM-DD`, час — как `HH:MM`; обе записи сортируются как
+ * читаются, поэтому `>=` и `<=` над ними значат ровно то же, что над датами, и
+ * не требуют ни разбора, ни зоны. Ради этого форматы такие и выбраны.
+ *
+ * **Пустая половина промежутка — это «без границы», а не «ничего не подходит».**
+ * «С 10:00» без верхней границы — обычный вопрос, и заставлять заполнять обе
+ * клетки значило бы отвечать на него отказом.
+ *
+ * **Час сравнивается по началу записи.** Запись 09:45–11:00 попадает в фильтр
+ * «с 09:00 до 10:00»: спрашивают «что начинается в эти часы», а не «что целиком
+ * в них укладывается» — второе выбросило бы длинную запись из окна, которое она
+ * занимает.
+ *
+ * Поиск идёт по имени, номеру и услуге — по всем трём столбцам, которые видно.
+ * Номер сравнивается без знаков препинания, как и на «Записях»: «701 555» и
+ * «+7 701 555 33 22» — один человек.
+ */
+function matches(row, query, filter) {
+  const { dateFrom, dateTo, timeFrom, timeTo } = filter
+
+  if (dateFrom && row.day < dateFrom) return false
+  if (dateTo && row.day > dateTo) return false
+  if (timeFrom && row.from < timeFrom) return false
+  if (timeTo && row.from > timeTo) return false
+
+  const text = query.trim().toLowerCase()
+  if (!text) return true
+
+  const asDigits = digits(text)
+  return (
+    (row.client ?? '').toLowerCase().includes(text) ||
+    (row.service ?? '').toLowerCase().includes(text) ||
+    (asDigits.length > 0 && digits(row.phone ?? '').includes(asDigits))
+  )
+}
+
+/**
+ * Две кнопки у правого края заголовка: поиск и фильтр.
+ *
+ * Обе — тот же круг 36px, что листает день над папками: на одном экране два
+ * ряда контролов, и они обязаны быть одной породы.
+ */
+function TableTools({ query, onQuery, filter, onFilter }) {
+  return (
+    <div className="flex items-center gap-2">
+      <SearchTool query={query} onQuery={onQuery} />
+      <FilterMenu filter={filter} onFilter={onFilter} />
+    </div>
+  )
+}
+
+/**
+ * Поиск: сначала только значок, по нажатию — поле.
+ *
+ * **Поле не висит открытым.** В заголовке оно стояло бы пустым большую часть
+ * времени и отбирало бы ширину у названия секции ради вопроса, который задают
+ * редко. Значок занимает 36px и говорит ровно столько, сколько нужно.
+ *
+ * **Открылось — сразу под курсором.** `autoFocus` здесь не украшение: нажать
+ * значок, а потом ещё раз щёлкнуть по появившемуся полю — это два действия там,
+ * где человек просил одно.
+ *
+ * **Закрывается по Escape и по уходу фокуса, но только пустым.** Поле с текстом
+ * — это состояние таблицы под ним, а не открытый ящик: свернуть его значило бы
+ * спрятать причину, по которой строк осталось три. Крестик закрывает всегда и
+ * заодно чистит — это единственный способ отменить поиск целиком.
+ *
+ * `text-[16px]` до `sm` — правило дома против зума iOS на фокусе; выше 14, как
+ * у всех полей.
+ */
+function SearchTool({ query, onQuery }) {
+  const t = useT()
+  const [open, setOpen] = useState(false)
+
+  const close = () => {
+    setOpen(false)
+    onQuery('')
+  }
+
+  if (!open) {
+    return (
+      <StepButton
+        label={t('inbox.search')}
+        icon={Search01Icon}
+        active={Boolean(query)}
+        onClick={() => setOpen(true)}
+      />
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <input
+        autoFocus
+        type="search"
+        value={query}
+        onChange={(event) => onQuery(event.target.value)}
+        onKeyDown={(event) => event.key === 'Escape' && close()}
+        onBlur={() => !query && setOpen(false)}
+        placeholder={t('inbox.searchHint')}
+        aria-label={t('inbox.search')}
+        className={`${FIELD} h-9 w-[200px] text-[16px] sm:text-[14px]`}
+      />
+      <StepButton
+        label={t('appointments.close')}
+        icon={Cancel01Icon}
+        onClick={close}
+      />
+    </div>
+  )
+}
+
+/**
+ * Фильтр: меню от кнопки, два промежутка внутри.
+ *
+ * **Поповер, а не модалка.** Он про таблицу, которая под ним, и её видно, пока
+ * его настраивают; затемнить страницу здесь значило бы забрать ровно то, ради
+ * чего фильтр и открыли.
+ *
+ * Даты — тем же `DateField`, часы — тем же `TimeField`, что и в панели записи.
+ * Второй календарь и второй разбор «1430» разошлись бы с первыми на первой же
+ * правке, а вопрос «какой день» и «который час» на всём продукте один.
+ *
+ * `PANEL_MOTION` — общая для всего проекта манера появления панелей: меню
+ * вырастает из кнопки, которая его открыла.
+ *
+ * «Сбросить» показывается только когда есть что сбрасывать: кнопка, которая
+ * ничего не делает, — это кнопка, о которую спотыкаются.
+ */
+function FilterMenu({ filter, onFilter }) {
+  const t = useT()
+  const set = (key) => (value) => onFilter({ ...filter, [key]: value })
+
+  return (
+    <Popover.Root>
+      <Popover.Trigger asChild>
+        <StepButton
+          label={t('inbox.filter')}
+          icon={FilterHorizontalIcon}
+          active={isFiltered(filter)}
+        />
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          align="end"
+          sideOffset={6}
+          collisionPadding={12}
+          className={`z-[70] w-[300px] rounded-xl border border-line bg-surface p-4 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] ${PANEL_MOTION}`}
+        >
+          <FilterGroup title={t('appointments.date')}>
+            <DateField
+              value={filter.dateFrom}
+              onChange={set('dateFrom')}
+              label={t('inbox.from')}
+            />
+            <DateField
+              value={filter.dateTo}
+              onChange={set('dateTo')}
+              label={t('inbox.to')}
+            />
+          </FilterGroup>
+
+          {/* 16px между группами против 8px внутри: одна ступень разницы — это
+              и есть граница между «датой» и «временем». */}
+          <FilterGroup title={t('appointments.time')} className="mt-4">
+            {/* Два поля в строку: промежуток — одна мысль, и ни один его конец
+                не главнее другого. */}
+            <div className="flex items-center gap-2">
+              <TimeField
+                value={filter.timeFrom}
+                onChange={set('timeFrom')}
+                label={t('inbox.from')}
+                compact
+              />
+              <span className="shrink-0 text-[13px] text-muted">—</span>
+              <TimeField
+                value={filter.timeTo}
+                onChange={set('timeTo')}
+                label={t('inbox.to')}
+                compact
+              />
+            </div>
+          </FilterGroup>
+
+          {isFiltered(filter) && (
+            <button
+              type="button"
+              onClick={() => onFilter(EMPTY_FILTER)}
+              className="mt-4 text-[13px] text-muted underline-offset-2 outline-none hover:text-ink hover:underline focus-visible:text-ink focus-visible:underline"
+            >
+              {t('inbox.filterReset')}
+            </button>
+          )}
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  )
+}
+
+/** Заголовок группы и поля под ним. 11px прописными — тот же шаг, что у шапки таблицы. */
+function FilterGroup({ title, className = '', children }) {
+  return (
+    <div className={className}>
+      <p className="pb-2 text-[11px] tracking-wide text-muted uppercase">
+        {title}
+      </p>
+      <div className="flex flex-col gap-2">{children}</div>
+    </div>
+  )
+}
+
 /**
  * Всё остальное — таблицей: одна запись в одну строку.
  *
@@ -400,13 +662,23 @@ function DayPicker({ value, onChange }) {
  *
  * Три состояния: не читали — ничего; прочитали и пусто — честная строка; иначе
  * таблица.
+ *
+ * **Пусто и пусто — разные пустоты, отсюда `narrowed`.** «Пока ничего нет»
+ * говорит о деле: записей не существует. Но та же строка под включённым
+ * фильтром соврала бы — записи есть, их просто отсекли, — и человек пошёл бы
+ * искать пропажу вместо того, чтобы снять фильтр. Поэтому суженная таблица
+ * отвечает «Ничего не найдено»: это про запрос, а не про мир.
  */
-function BookingTable({ rows }) {
+function BookingTable({ rows, narrowed = false }) {
   const t = useT()
   if (rows === null) return null
 
   if (rows.length === 0) {
-    return <p className="py-6 text-[13px] text-muted">{t('inbox.allEmpty')}</p>
+    return (
+      <p className="py-6 text-[13px] text-muted">
+        {t(narrowed ? 'appointments.searchEmpty' : 'inbox.allEmpty')}
+      </p>
+    )
   }
 
   const sorted = [...rows].sort(

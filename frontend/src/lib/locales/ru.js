@@ -186,6 +186,12 @@ export default {
   'inbox.today': 'Чаты сегодня',
   'inbox.all': 'Все чаты',
   'inbox.allEmpty': 'Пока ничего нет',
+  'inbox.search': 'Поиск',
+  'inbox.searchHint': 'Имя, телефон или услуга',
+  'inbox.filter': 'Фильтр',
+  'inbox.filterReset': 'Сбросить',
+  'inbox.from': 'От',
+  'inbox.to': 'До',
   'whatsapp.title': 'WhatsApp',
   'whatsapp.hint':
     'Номер, на который пишут клиенты. Скопируйте «Phone number ID» и токен доступа из панели Meta for Developers.',

@@ -176,6 +176,12 @@ export default {
   'inbox.today': 'Chats today',
   'inbox.all': 'All chats',
   'inbox.allEmpty': 'Nothing here yet',
+  'inbox.search': 'Search',
+  'inbox.searchHint': 'Name, phone or service',
+  'inbox.filter': 'Filter',
+  'inbox.filterReset': 'Reset',
+  'inbox.from': 'From',
+  'inbox.to': 'To',
   'whatsapp.title': 'WhatsApp',
   'whatsapp.hint':
     'The number clients write to. Copy the phone number ID and access token from your Meta for Developers dashboard.',
