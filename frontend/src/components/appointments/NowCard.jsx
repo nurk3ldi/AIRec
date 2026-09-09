@@ -3,6 +3,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons'
 import { dayOf, minutesOf } from '../../lib/appointments'
 import { useT } from '../../lib/i18n'
+import { CARD } from '../card'
 
 /**
  * What is happening right now.
@@ -48,11 +49,10 @@ export default function NowCard({ bookings, timeZone }) {
   const current = running[at]
 
   return (
-    // `surface-raised` and no border, matching the two cards beside it exactly:
-    // three cards in a row that do not share a fill are three cards that look
-    // like a mistake, and this one is not more important than its neighbours —
-    // it is only the one that has arrived first.
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl bg-surface-raised p-4">
+    // Крой — общий `CARD`, ровно тот же, что у двух соседей и у скелета: три
+    // карточки в ряд, не совпадающие фоном или краем, читаются как ошибка, а эта
+    // не важнее остальных — она лишь та, что наступила первой.
+    <section className={`flex h-full min-h-0 flex-col ${CARD}`}>
       <header className="flex shrink-0 items-center justify-between gap-2">
         <p className="text-[12px] font-medium tracking-wide text-muted uppercase">
           {t('appointments.now')}

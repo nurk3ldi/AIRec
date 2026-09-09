@@ -1,4 +1,5 @@
 import Skeleton, { SkeletonRegion } from './Skeleton'
+import { CARD } from './card'
 
 /**
  * A card before the row behind it has arrived.
@@ -36,7 +37,7 @@ export default function CardSkeleton({
     // the whole thing would leave a hole in the layout for as long as the delay
     // lasts, which is the flicker this exists to avoid.
     <div
-      className={`flex flex-col rounded-2xl bg-surface-raised p-4 ${className}`}
+      className={`flex flex-col ${CARD} ${className}`}
     >
       <SkeletonRegion
         label={label}

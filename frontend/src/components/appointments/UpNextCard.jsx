@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, m, useReducedMotion } from 'motion/react'
 import { byStart, dayOf, minutesOf } from '../../lib/appointments'
 import { useT } from '../../lib/i18n'
+import { CARD } from '../card'
 
 /**
  * What is coming, in order.
@@ -50,7 +51,7 @@ export default function UpNextCard({ bookings, timeZone }) {
     .sort(byStart)
 
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl bg-surface-raised p-4">
+    <section className={`flex h-full min-h-0 flex-col ${CARD}`}>
       <header className="flex shrink-0 items-baseline justify-between gap-2">
         <p className="text-[12px] font-medium tracking-wide text-muted uppercase">
           {t('appointments.upNext')}

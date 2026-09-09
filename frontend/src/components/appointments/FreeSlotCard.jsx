@@ -7,6 +7,7 @@ import {
 } from '../../lib/appointments'
 import { freeWindows, isDayOff } from '../../lib/schedule'
 import { useT } from '../../lib/i18n'
+import { CARD } from '../card'
 
 /** Anything shorter than a quarter hour is a gap, not a window: nothing this
  *  business sells fits in it — `SLOT_MINUTES` is the floor on the server. */
@@ -56,7 +57,7 @@ export default function FreeSlotCard({ bookings, week, timeZone }) {
   )
 
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl bg-surface-raised p-4">
+    <section className={`flex h-full min-h-0 flex-col ${CARD}`}>
       <p className="shrink-0 text-[12px] font-medium tracking-wide text-muted uppercase">
         {t('appointments.freeSlot')}
       </p>

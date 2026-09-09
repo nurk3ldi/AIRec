@@ -91,6 +91,8 @@ Every Next.js primitive has one replacement, and mixing them back in is the thin
 
   **The three cards are the three questions asked with a client on the phone**, in the order they come up, each its own component under `components/appointments/`:
 
+  **All three, and the skeleton that stands in for them, wear one class string — `CARD` in `components/card.js`.** It is `rounded-2xl border border-line bg-surface-raised p-4 overflow-hidden`: the fill separates the card from a light page, and the hairline gives it the edge that fill cannot on a black one, where `#171717` against `#000000` is a difference you have to look for. The border was added on 2026-09-09, drawn from Vercel's own cards — which is where this project's `--line` (`#454545`, their `--ds-gray-500`) came from in the first place. Four copies of that string existed before it moved here, and the skeleton drifting from the card by a pixel is a layout jump at the moment the data lands.
+
   - `NowCard` — who is in the chair. A countdown to the end of the booking (ticking every second, because a timer that jumps sixty at a time is a clock that has stopped), the client, the service and the span. Parallel bookings are **paged with `‹ n/m ›`**, not stacked: a business with `capacity` above one has two chairs, and two cards' worth of detail does not fit in one card.
   - `UpNextCard` — who is next. Today's not-yet-started bookings, each its own small card, sorted with `byStart` (a *total* order — two bookings can begin in the same minute, and without the id tiebreak they swap places on every render). Today only: a queue is a thing you are standing in, and Thursday is the calendar's business. The list scrolls inside the card; the row of three has one height.
   - `FreeSlotCard` — when somebody could be fitted in. The next window of at least 15 minutes, its length, and how long until it starts. A **tool, not a statistic**: the question is asked out loud, and answering it from the grid means reading a column while somebody waits.
@@ -349,7 +351,7 @@ Use the tokens (`bg-surface`, `text-ink`, `border-line`, `text-muted`, `bg-accen
 
 | Token | Light | Dark | What it is for |
 | --- | --- | --- | --- |
-| `surface-raised` | `#ffffff` | `#0e0e0e` | a card that carries no edge — the three cards on `/appointments` |
+| `surface-raised` | `#ffffff` | `#171717` | the ground of a card — the three cards on `/appointments`, which pair it with a `border-line` hairline (see `components/card.js`) |
 | `surface-chip` | `#ffffff` | `#2a2a2a` | the thing that is *chosen* — a segment, the add button, today in the calendar |
 | `surface-card` | `#ffffff` | `#1c1c1c` | a card drawn *on* something rather than on the page — a booking on the timetable's grid |
 | `hatch` | `ink / 11%` | `white / 20%` | the stripe over a closed hour on the timetable |
