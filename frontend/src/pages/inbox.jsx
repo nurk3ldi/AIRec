@@ -645,15 +645,36 @@ function SearchTool({ query, onQuery }) {
  * `PANEL_MOTION` — общая для всего проекта манера появления панелей: меню
  * вырастает из кнопки, которая его открыла.
  *
- * «Сбросить» показывается только когда есть что сбрасывать: кнопка, которая
- * ничего не делает, — это кнопка, о которую спотыкаются.
+ * **Меню правит черновик, а таблицу меняет «Применить».** Пока кнопки не было,
+ * фильтр применялся на каждое касание поля — и это правильно, когда фильтр
+ * один; здесь же промежуток набирают из четырёх клеток, и таблица дёргалась бы
+ * на каждой полузаполненной паре: выставил «с 10:00», не успел «до 18:00» — а
+ * строк уже нет. Черновик копится, применяется целиком и закрывает меню, потому
+ * что нажали именно затем, чтобы посмотреть результат.
+ *
+ * Черновик пересевается из применённого при каждом открытии: меню обязано
+ * показывать то, что сейчас действует, а не то, что в нём набрали и бросили.
+ *
+ * **«Сбросить» действует сразу и не ждёт «Применить».** Сброс — это не
+ * очередная правка промежутка, а отмена всего, и заставлять подтверждать отмену
+ * значит просить два нажатия там, где смысл один. Показывается он, только когда
+ * есть что сбрасывать: кнопка, которая ничего не делает, — это кнопка, о
+ * которую спотыкаются.
  */
 function FilterMenu({ filter, onFilter }) {
   const t = useT()
-  const set = (key) => (value) => onFilter({ ...filter, [key]: value })
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState(filter)
+  const set = (key) => (value) => setDraft({ ...draft, [key]: value })
+
+  const show = (next) => {
+    // Открываясь — показать действующее; закрываясь — забыть недонабранное.
+    if (next) setDraft(filter)
+    setOpen(next)
+  }
 
   return (
-    <Popover.Root>
+    <Popover.Root open={open} onOpenChange={show}>
       <Popover.Trigger asChild>
         <StepButton
           label={t('inbox.filter')}
@@ -670,12 +691,12 @@ function FilterMenu({ filter, onFilter }) {
         >
           <FilterGroup title={t('appointments.date')}>
             <DateField
-              value={filter.dateFrom}
+              value={draft.dateFrom}
               onChange={set('dateFrom')}
               label={t('inbox.from')}
             />
             <DateField
-              value={filter.dateTo}
+              value={draft.dateTo}
               onChange={set('dateTo')}
               label={t('inbox.to')}
             />
@@ -684,30 +705,52 @@ function FilterMenu({ filter, onFilter }) {
           {/* 16px между группами против 8px внутри: одна ступень разницы — это
               и есть граница между «датой» и «временем». */}
           <FilterGroup title={t('appointments.time')} className="mt-4">
-            {/* Два поля в строку: промежуток — одна мысль, и ни один его конец
-                не главнее другого. */}
+            {/* **Без `compact`.** Тот вариант — фиксированные 76px для карточки
+                расписания, где четыре таких поля делят узкую колонку; здесь их
+                два на всю ширину меню, и жаться им не от чего. Обычный
+                `TimeField` — это `flex-1`, поэтому пара разъезжается до правого
+                края и встаёт ровно под датами над ней: две строки полей, один
+                край. */}
             <div className="flex items-center gap-2">
               <TimeField
-                value={filter.timeFrom}
+                value={draft.timeFrom}
                 onChange={set('timeFrom')}
                 label={t('inbox.from')}
-                compact
               />
               <span className="shrink-0 text-[13px] text-muted">—</span>
               <TimeField
-                value={filter.timeTo}
+                value={draft.timeTo}
                 onChange={set('timeTo')}
                 label={t('inbox.to')}
-                compact
               />
             </div>
           </FilterGroup>
 
+          {/* **`bg-accent` и `text-surface`, а не белый с чёрным литералами.**
+              На тёмной теме акцент и есть белый — то, что просили, — а на
+              светлой он чёрный, и текст на нём обязан перевернуться вместе с
+              ним. Литеральная пара сделала бы кнопку нечитаемой ровно в одной
+              из двух тем. Это же правило записано в `CLAUDE.md`: на сплошном
+              акценте — `text-surface`, никогда не `text-white`. */}
+          <button
+            type="button"
+            onClick={() => {
+              onFilter(draft)
+              setOpen(false)
+            }}
+            className="mt-4 h-9 w-full rounded-md bg-accent text-[14px] font-medium text-surface outline-none transition-[opacity,scale] hover:opacity-90 focus-visible:opacity-90 active:scale-[0.99]"
+          >
+            {t('inbox.filterApply')}
+          </button>
+
           {isFiltered(filter) && (
             <button
               type="button"
-              onClick={() => onFilter(EMPTY_FILTER)}
-              className="mt-4 text-[13px] text-muted underline-offset-2 outline-none hover:text-ink hover:underline focus-visible:text-ink focus-visible:underline"
+              onClick={() => {
+                setDraft(EMPTY_FILTER)
+                onFilter(EMPTY_FILTER)
+              }}
+              className="mt-3 w-full text-[13px] text-muted underline-offset-2 outline-none hover:text-ink hover:underline focus-visible:text-ink focus-visible:underline"
             >
               {t('inbox.filterReset')}
             </button>

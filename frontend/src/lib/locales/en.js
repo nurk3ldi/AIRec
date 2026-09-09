@@ -179,6 +179,7 @@ export default {
   'inbox.search': 'Search',
   'inbox.filter': 'Filter',
   'inbox.filterReset': 'Reset',
+  'inbox.filterApply': 'Apply',
   'inbox.from': 'From',
   'inbox.to': 'To',
   'whatsapp.title': 'WhatsApp',

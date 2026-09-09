@@ -180,6 +180,7 @@ export default {
   'inbox.search': 'Іздеу',
   'inbox.filter': 'Сүзгі',
   'inbox.filterReset': 'Тазарту',
+  'inbox.filterApply': 'Қолдану',
   'inbox.from': 'Бастап',
   'inbox.to': 'Дейін',
   'whatsapp.title': 'WhatsApp',

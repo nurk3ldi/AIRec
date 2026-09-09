@@ -189,6 +189,7 @@ export default {
   'inbox.search': 'Поиск',
   'inbox.filter': 'Фильтр',
   'inbox.filterReset': 'Сбросить',
+  'inbox.filterApply': 'Применить',
   'inbox.from': 'От',
   'inbox.to': 'До',
   'whatsapp.title': 'WhatsApp',
