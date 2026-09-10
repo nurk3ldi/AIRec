@@ -58,7 +58,10 @@ export default function FreeSlotCard({ bookings, week, timeZone }) {
 
   return (
     <section className={`flex h-full min-h-0 flex-col ${CARD}`}>
-      <p className="shrink-0 text-[12px] font-medium tracking-wide text-muted uppercase">
+      {/* The 28px heading row its two neighbours carry, so all three
+          labels sit on one line — this one never grows a pager, and that is
+          exactly why it has to be told the height. */}
+      <p className="flex h-7 shrink-0 items-center text-[12px] font-medium tracking-wide text-muted uppercase">
         {t('appointments.freeSlot')}
       </p>
 

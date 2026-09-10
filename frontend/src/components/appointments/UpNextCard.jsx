@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, m, useReducedMotion } from 'motion/react'
-import { byStart, dayOf, minutesOf } from '../../lib/appointments'
+import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons'
+import {
+  byStart,
+  dayOf,
+  formatDuration,
+  minutesOf,
+} from '../../lib/appointments'
 import { useT } from '../../lib/i18n'
 import { CARD } from '../card'
+import Step from './Step'
 
 /**
  * What is coming, in order.
@@ -20,14 +27,20 @@ import { CARD } from '../card'
  * Cancelled bookings are dropped — nobody is waiting for one. A `no_show` that
  * has not started yet is still expected, so it stays until its time passes.
  *
- * The list scrolls inside the card rather than stretching it: the row of three
- * across the top of the page has one height, and a busy afternoon must not be
- * what decides it.
+ * **One at a time, paged with the arrows** — the shape `NowCard` beside it
+ * already uses, and for a reason that turned out to be the same one. A scrolling
+ * list of rows fitted a busy afternoon into a fixed card, but it answered "what
+ * is left today" where the question asked at the counter is "who is next": the
+ * name that matters was one of four at the same size, and the card's own height
+ * decided how many of the others were visible. The next booking now gets the
+ * whole card and reads at a glance; the ones behind it are a press away, and the
+ * count says how many there are so none of them is a surprise.
  */
 export default function UpNextCard({ bookings, timeZone }) {
   const t = useT()
   const now = useMinute()
   const reduce = useReducedMotion()
+  const [index, setIndex] = useState(0)
 
   const today = dayOf(now.toISOString(), timeZone)
   const minute = minutesOf(now.toISOString(), timeZone)
@@ -45,109 +58,112 @@ export default function UpNextCard({ bookings, timeZone }) {
     // render. It breaks the tie on the id, so parallel bookings keep the same
     // two positions in the queue for as long as they are both in it.
     //
-    // They are not merged into one entry: each is somebody arriving, each gets
-    // a card, and they sit one under the other both showing the same time —
-    // which is what "two at half past" looks like written down.
+    // They are not merged into one entry: each is somebody arriving, so two at
+    // half past are two pages of this card showing the same span — which is
+    // what «2 в 15:30» looks like when it is read one name at a time.
     .sort(byStart)
+
+  // **Clamped on read, not corrected in an effect.** The queue shortens by
+  // itself — a booking's start slips into the past and it leaves — so an index
+  // pointing past the end of it is an ordinary state rather than a bug, and an
+  // effect that fixed it would render the empty card once on the way. The same
+  // answer `NowCard` gives to the same problem.
+  const at = Math.min(index, Math.max(queue.length - 1, 0))
+  const next = queue[at]
 
   return (
     <section className={`flex h-full min-h-0 flex-col ${CARD}`}>
-      <header className="flex shrink-0 items-baseline justify-between gap-2">
+      {/* **28px tall whether or not it holds arrows.** The three cards
+          across the top of the page carry their labels on one line, and a
+          card that grew a pager would otherwise push its own down by
+          thirteen pixels — three headings at two heights read as a row that
+          failed to line up rather than as one card having more to offer. */}
+      <header className="flex h-7 shrink-0 items-center justify-between gap-2">
         <p className="text-[12px] font-medium tracking-wide text-muted uppercase">
           {t('appointments.upNext')}
         </p>
-        {queue.length > 0 && (
-          <span className="font-display text-[12px] font-medium text-muted tabular-nums">
-            {queue.length}
-          </span>
+
+        {/* The count travels with the arrows rather than standing alone: two
+            buttons with nothing between them say you may move, not that there
+            is somewhere to move to. One booking needs neither. */}
+        {queue.length > 1 && (
+          <div className="flex shrink-0 items-center gap-1">
+            <Step
+              icon={ArrowLeft01Icon}
+              label={t('appointments.prev')}
+              onClick={() =>
+                setIndex((was) => (was - 1 + queue.length) % queue.length)
+              }
+            />
+            <span className="font-display text-[12px] font-medium text-muted tabular-nums">
+              {at + 1}/{queue.length}
+            </span>
+            <Step
+              icon={ArrowRight01Icon}
+              label={t('appointments.next')}
+              onClick={() => setIndex((was) => (was + 1) % queue.length)}
+            />
+          </div>
         )}
       </header>
 
-      {queue.length === 0 ? (
+      {!next ? (
         <p className="m-auto text-center text-[13px] text-muted">
           {t('appointments.upNextEmpty')}
         </p>
       ) : (
-        // **Rows under one rule, not a card each.** They were filled blocks
-        // with a radius, which is the shape this project gives an *object* —
-        // and inside a card that is a card on a card, three of them stacked
-        // where every one is the same kind of thing. A queue is one list, and a
-        // hairline is what says so: it separates without drawing a box, and the
-        // names then read as a column the eye runs down rather than as three
-        // things to look at in turn.
+        // **Keyed on the booking, so paging is a change and not a redraw.** The
+        // arrows swap one person for another in the same four lines, and
+        // without the fade the card would simply be holding different words the
+        // next frame — the one thing motion is for here is saying that what is
+        // on screen was replaced. It is also what plays when a booking's start
+        // slips into the past and the queue moves on by itself, which is the
+        // one change on this page that happens *to* you.
         //
-        // The rows lose their own horizontal padding with the fill, so they
-        // start where «ДАЛЬШЕ» starts and the rules run the full width of the
-        // card's inside. The list scrolls; the card does not grow.
-        <div className="mt-1 flex min-h-0 flex-1 flex-col divide-y divide-line overflow-y-auto">
-          {/* **Leaving is what this animates, and it is the only reason to.**
-              A booking's start slips into the past and it drops out of the
-              queue on its own, with nobody touching anything — the one change
-              on this page that happens *to* you rather than because of you. A
-              row that vanished between glances would be a row you wondered
-              about; one that fades has visibly gone.
+        // Opacity alone, no layout animation: that needs `domMax`, and this app
+        // deliberately loads the smaller `domAnimation` everywhere but the
+        // sidebar's marker.
+        <AnimatePresence mode="wait" initial={false}>
+          <m.div
+            key={next.id}
+            initial={reduce ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reduce ? 0 : 0.16, ease: 'easeOut' }}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            {/* The same three sizes the card beside it uses, in the same
+                places: who, then what for, then the number at the foot. Three
+                cards in a row that each set their own type scale are three
+                cards that look like three products. */}
+            <p className="mt-3 truncate text-[17px] leading-tight font-semibold text-ink">
+              {next.client}
+            </p>
+            <p className="mt-0.5 truncate text-[13px] leading-tight text-ink">
+              {next.service}
+            </p>
 
-              Opacity alone, no layout animation: that needs `domMax`, and this
-              app deliberately loads the smaller `domAnimation` everywhere but
-              the sidebar's marker. The rows below close the gap at once, which
-              after a fade reads as the queue settling rather than as a jump. */}
-          <AnimatePresence initial={false}>
-            {queue.map((booking, index) => (
-              <m.div
-                key={booking.id}
-                initial={reduce ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: reduce ? 0 : 0.16, ease: 'easeOut' }}
-                className="flex shrink-0 items-start gap-3 py-2.5"
-              >
-                <div className="min-w-0 flex-1">
-                  {/* The first is the one about to happen, so it is the one that
-                    reads at full strength; the rest are context. That is the
-                    whole hierarchy here — no colour, no badge, just weight. */}
-                  <p
-                    className={`truncate text-[14px] leading-tight ${
-                      index === 0
-                        ? 'font-semibold text-ink'
-                        : 'font-medium text-ink'
-                    }`}
-                  >
-                    {booking.client}
-                  </p>
-                  <p className="mt-0.5 truncate text-[12px] leading-tight text-muted">
-                    {booking.service}
-                  </p>
-                </div>
-
-                {/* **Both ends, stacked**, the start over the end — the same
-                  column the agenda on the phone runs down, and for the same
-                  reason: when somebody arrives is the question, and how long
-                  the chair is theirs is the next one asked out loud. The end is
-                  muted and sits under it rather than beside it, so the start is
-                  still the number the eye lands on, with a short rule between
-                  them holding the two together as one span.
-
-                  A booking with no end shows none. There is nothing to write
-                  there, and a dash would be a slot for an answer nobody gave. */}
-                <span className="flex shrink-0 flex-col items-center gap-1">
-                  <span className="font-display text-[13px] leading-tight font-semibold text-ink tabular-nums">
-                    {booking.from}
-                  </span>
-                  {/* The rule is what makes the two one span rather than two
-                      facts that happen to be stacked — the same mark, at the
-                      same size, that the phone's agenda puts between its own
-                      pair. It runs even with no end under it: the span still
-                      started, and the empty place below says what is missing
-                      more plainly than a dash would. */}
-                  <span aria-hidden="true" className="h-3 w-px bg-line-strong" />
-                  <span className="font-display text-[12px] leading-tight text-muted tabular-nums">
-                    {booking.to}
-                  </span>
-                </span>
-              </m.div>
-            ))}
-          </AnimatePresence>
-        </div>
+            {/* **The span, whole, and it is the loudest thing on the card** —
+                the question this answers is when to expect somebody, and both
+                ends of it are what is said out loud ("Азамат в три, до
+                полчетвёртого"). 24 rather than the countdown's 32 next door:
+                one thing on a screen is at 32, and the booking that is already
+                happening is the one with a claim on it. With no end `range` is
+                already «15:00 –», which says the rest. */}
+            <p className="mt-auto pt-3 font-display text-[24px] leading-none font-bold tracking-[-0.02em] text-ink tabular-nums">
+              {next.range}
+            </p>
+            {/* How long until it starts, on the clock the card already ticks
+                on. It is the half of "who is next" that a time of day does not
+                answer on its own — twenty minutes and two hours read the same
+                until they are subtracted. */}
+            <p className="mt-1.5 text-[13px] font-medium text-ink">
+              {t('appointments.startsIn', {
+                time: formatDuration(next.start - minute),
+              })}
+            </p>
+          </m.div>
+        </AnimatePresence>
       )}
     </section>
   )

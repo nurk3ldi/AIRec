@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons'
 import { dayOf, minutesOf } from '../../lib/appointments'
 import { useT } from '../../lib/i18n'
 import { CARD } from '../card'
+import Step from './Step'
 
 /**
  * What is happening right now.
@@ -53,7 +53,12 @@ export default function NowCard({ bookings, timeZone }) {
     // карточки в ряд, не совпадающие фоном или краем, читаются как ошибка, а эта
     // не важнее остальных — она лишь та, что наступила первой.
     <section className={`flex h-full min-h-0 flex-col ${CARD}`}>
-      <header className="flex shrink-0 items-center justify-between gap-2">
+      {/* **28px tall whether or not it holds arrows.** The three cards
+          across the top of the page carry their labels on one line, and a
+          card that grew a pager would otherwise push its own down by
+          thirteen pixels — three headings at two heights read as a row that
+          failed to line up rather than as one card having more to offer. */}
+      <header className="flex h-7 shrink-0 items-center justify-between gap-2">
         <p className="text-[12px] font-medium tracking-wide text-muted uppercase">
           {t('appointments.now')}
         </p>
@@ -157,25 +162,6 @@ function countdown(minutesLeft, now) {
     : `${pad(mins)}:${pad(secs)}`
 }
 
-/** One of the two arrows, at the size every small control on this page is. */
-function Step({ icon, label, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted outline-none transition-[color,background-color,border-color,scale] hover:bg-ink/6 hover:text-ink focus-visible:bg-ink/6 focus-visible:text-ink active:scale-[0.95]"
-    >
-      <HugeiconsIcon
-        icon={icon}
-        size={15}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2.2}
-      />
-    </button>
-  )
-}
 
 /**
  * A clock that ticks every second.
