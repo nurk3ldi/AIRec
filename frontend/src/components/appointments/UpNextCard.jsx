@@ -132,13 +132,32 @@ export default function UpNextCard({ bookings, timeZone }) {
             transition={{ duration: reduce ? 0 : 0.16, ease: 'easeOut' }}
             className="flex min-h-0 flex-1 flex-col"
           >
-            {/* The same three sizes the card beside it uses, in the same
-                places: who, then what for, then the number at the foot. Three
-                cards in a row that each set their own type scale are three
-                cards that look like three products. */}
-            <p className="mt-3 truncate text-[17px] leading-tight font-semibold text-ink">
-              {next.client}
-            </p>
+            {/* **Who, and when they are due, on one line.** The wait belongs
+                beside the name rather than under the span: it is a fact about
+                the person — how long before this one walks in — where the span
+                below is a fact about the day. Held to the right edge, which is
+                also where the pager above it sits, so the card has one column
+                of small type down its right side instead of a number floating
+                mid-block.
+
+                `items-baseline`, not `items-center`: 17px and 13px centred
+                against each other sit on two different lines and read as a
+                misalignment; on a shared baseline they read as one row. */}
+            <div className="mt-3 flex items-baseline justify-between gap-3">
+              <p className="min-w-0 truncate text-[17px] leading-tight font-semibold text-ink">
+                {next.client}
+              </p>
+              {/* On the clock the card already ticks on. It is the half of "who
+                  is next" that a time of day does not answer on its own —
+                  twenty minutes and two hours read the same until they are
+                  subtracted. */}
+              <span className="shrink-0 text-[13px] leading-tight font-medium text-ink">
+                {t('appointments.startsIn', {
+                  time: formatDuration(next.start - minute),
+                })}
+              </span>
+            </div>
+
             {/* **The number sits under the name, because it belongs to the
                 name.** This is the one card on the page about somebody who has
                 not arrived yet, which is exactly when they get rung — "он
@@ -160,35 +179,33 @@ export default function UpNextCard({ bookings, timeZone }) {
               </a>
             )}
 
-            {/* **The span, whole, and it is the loudest thing on the card** —
-                the question this answers is when to expect somebody, and both
-                ends of it are what is said out loud ("Азамат в три, до
+            {/* **The bottom line of the card, and it is held to the bottom
+                edge** — `mt-auto` gives it whatever height is left over, so the
+                span sits on the card's own floor however much is written above
+                it. The three cards in this row are one height and each fills it
+                differently; a number that floated wherever the text above it
+                ended would be the one thing in the row that moved.
+
+                **The span, whole, is the loudest thing here** — the question
+                this card answers is when to expect somebody, and both ends of
+                it are what gets said out loud ("Азамат в три, до
                 полчетвёртого"). 24 rather than the countdown's 32 next door:
                 one thing on a screen is at 32, and the booking that is already
                 happening is the one with a claim on it. With no end `range` is
-                already «15:00 –», which says the rest. */}
-            <p className="mt-auto pt-3 font-display text-[24px] leading-none font-bold tracking-[-0.02em] text-ink tabular-nums">
-              {next.range}
-            </p>
-            {/* How long until it starts, on the clock the card already ticks
-                on. It is the half of "who is next" that a time of day does not
-                answer on its own — twenty minutes and two hours read the same
-                until they are subtracted. */}
-            <div className="mt-1.5 flex items-center justify-between gap-3 text-[13px] font-medium text-ink">
-              <span>
-                {t('appointments.startsIn', {
-                  time: formatDuration(next.start - minute),
-                })}
-              </span>
+                already «15:00 –», which says the rest.
 
-              {/* **What they are coming for, at the foot and at full
-                  strength.** It sat under the name and moved down when the
-                  number took that place — the two are not interchangeable
-                  there: the number identifies the person above it, where the
-                  service is a fact about the span beside it. Ink rather than
-                  muted, because on this card it is one of the two things
-                  actually being said. */}
-              <span className="min-w-0 truncate text-right">{next.service}</span>
+                **What they are coming for shares the line**, at full strength
+                rather than muted: on this card it is one of the two things
+                actually being said, and against the span it is the shorter
+                half — 24 next to 13 reads as a hierarchy, which is what the
+                type scale asks for. */}
+            <div className="mt-auto flex items-baseline justify-between gap-3 pt-3">
+              <p className="shrink-0 font-display text-[24px] leading-none font-bold tracking-[-0.02em] text-ink tabular-nums">
+                {next.range}
+              </p>
+              <p className="min-w-0 truncate text-right text-[13px] font-medium text-ink">
+                {next.service}
+              </p>
             </div>
           </m.div>
         </AnimatePresence>
