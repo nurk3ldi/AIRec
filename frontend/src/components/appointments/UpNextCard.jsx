@@ -119,11 +119,30 @@ export default function UpNextCard({ bookings, timeZone }) {
                   </p>
                 </div>
 
-                {/* The start alone, not the span: the question this list answers
-                  is when to expect somebody, and the end of a booking that has
-                  not begun is a number nobody needs yet. */}
-                <span className="shrink-0 font-display text-[13px] font-semibold text-ink tabular-nums">
-                  {booking.from}
+                {/* **Both ends, stacked**, the start over the end — the same
+                  column the agenda on the phone runs down, and for the same
+                  reason: when somebody arrives is the question, and how long
+                  the chair is theirs is the next one asked out loud. The end is
+                  muted and sits under it rather than beside it, so the start is
+                  still the number the eye lands on, with a short rule between
+                  them holding the two together as one span.
+
+                  A booking with no end shows none. There is nothing to write
+                  there, and a dash would be a slot for an answer nobody gave. */}
+                <span className="flex shrink-0 flex-col items-center gap-1">
+                  <span className="font-display text-[13px] leading-tight font-semibold text-ink tabular-nums">
+                    {booking.from}
+                  </span>
+                  {/* The rule is what makes the two one span rather than two
+                      facts that happen to be stacked — the same mark, at the
+                      same size, that the phone's agenda puts between its own
+                      pair. It runs even with no end under it: the span still
+                      started, and the empty place below says what is missing
+                      more plainly than a dash would. */}
+                  <span aria-hidden="true" className="h-3 w-px bg-line-strong" />
+                  <span className="font-display text-[12px] leading-tight text-muted tabular-nums">
+                    {booking.to}
+                  </span>
                 </span>
               </m.div>
             ))}
