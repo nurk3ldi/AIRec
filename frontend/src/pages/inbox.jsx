@@ -21,7 +21,7 @@ import { getBusiness, listAppointments, listConversations } from '../lib/api'
 import { authed } from '../lib/auth'
 import { liveChats } from '../lib/conversations'
 import { StreamList } from '../components/StreamList'
-import { BOOKING_COLORS, toBlock } from '../lib/appointments'
+import { dayColors, tintOf, toBlock } from '../lib/appointments'
 import { getLocale, useT } from '../lib/i18n'
 import styles from '../styles/Inbox.module.css'
 import { CARD, CARD_EDGE } from '../components/card'
@@ -1028,13 +1028,20 @@ function dayLabel(iso) {
  * `align-items: stretch`, который у flex стоит по умолчанию.
  */
 function DayCardRow({ rows }) {
+  // **Цвет решается для дня целиком, а не для карточки.** Выбранный владельцем
+  // берётся как есть, включая повтор; тому, у кого своего нет, цвет выдаётся —
+  // и вот эти не должны совпадать между собой, иначе метка перестаёт различать.
+  // Правила целиком — в `dayColors`; здесь только один вызов на ряд, а не
+  // восемь вычислений внутри карточек.
+  const painted = dayColors(rows)
+
   return (
     <div className="flex flex-wrap content-start gap-4 sm:gap-6">
-      {rows.map((row, index) => (
+      {rows.map((row) => (
         <DayCard
           key={row.id}
           row={row}
-          color={BOOKING_COLORS[index % BOOKING_COLORS.length]}
+          color={tintOf(painted.get(row.id))}
           className="w-[calc((100%-2rem)/3)] sm:w-[calc((100%-3rem)/3)]"
         />
       ))}

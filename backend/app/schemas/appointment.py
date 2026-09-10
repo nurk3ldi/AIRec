@@ -66,8 +66,24 @@ MAX_DURATION_MINUTES = 24 * 60
 # string would let a client write anything into a column the calendar renders,
 # and storing a hex would freeze one theme's answer into every row. A name is
 # checked here and resolved to a colour where it is drawn.
+# Eight, not the six this held until 2026-09-10, and the two extra are what
+# make the set usable *automatically*: a booking with no colour of its own is
+# handed one by its position in the day, so the number of names is the number
+# of bookings a day can hold before two of them look alike. Six ran out on an
+# ordinary afternoon. The names changed with the count — `blue`/`teal` became
+# `indigo`/`cyan` alongside `fuchsia` and `gold` — and nothing was stored under
+# the old ones, which was checked before they went.
 BOOKING_COLORS = frozenset(
-    {"orange", "green", "blue", "violet", "rose", "teal"}
+    {
+        "indigo",
+        "violet",
+        "fuchsia",
+        "rose",
+        "orange",
+        "gold",
+        "green",
+        "cyan",
+    }
 )
 
 

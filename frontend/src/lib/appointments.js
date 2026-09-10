@@ -142,118 +142,109 @@ const STATUS_TONE = {
 export const statusTone = (status) => STATUS_TONE[stateOf(status)] ?? 'text-muted'
 
 /**
- * The marks a booking may carry, as name -> hue — **switched off in the UI, and
- * imported by nothing.**
+ * The marks a booking may carry, as name -> hue.
  *
- * The picker was taken out of the booking panel and the grid draws every card
- * in the plain `surface-card` grey; the status is said in the colour of one
- * word instead, which is `STATUS_TONE` in `Timetable`. Nothing under it was
- * undone: the column is still there, the values already written are still on
- * their rows, and the server still refuses a name outside this set. Putting the
- * picker back is the `PanelSelect` block noted in `BookingPopover`, plus a
- * `color-mix` of the tint into the card fill in `BookingBlock`.
- *
- * **The names are the API's** — the server keeps the same closed set and
- * refuses anything outside it — and the hues are this app's answer to them, so
- * the palette can be retuned without touching a single stored row. It has been
- * retuned twice now, and not one row changed either time.
- *
- * **These six are constructed, not picked**, from a reference the owner gave
- * as the look wanted for a booking's background: `#ffd60a`, `#f8f9fa`,
- * `#495057`, `#d00000` — cool neutrals carrying two flat, near-gamut-edge
- * accents. What transfers from it is that character rather than those four
- * literals: two of the four are the neutrals a card and its ink already are,
- * and the closed set of names this app may store holds no yellow and no red.
- *
- * So: every one is OKLCH `L 0.74` at 97% of the chroma its own hue can reach in
- * sRGB — the reference's punch, which is what `#ffd60a` and `#d00000` both are
- * — on hues 20 / 75 / 150 / 198 / 258 / 308. The two warm ones are placed
- * against the reference: `rose` at 20° reaches for `#d00000` (29°) as far as
- * the word rose allows, and `orange` at 75° for `#ffd60a` (95°) as far as the
- * word orange does.
- *
- * **One lightness for all six is the part that is not negotiable.** The
- * hand-picked Tailwind 500s before this ran `L 0.61` (blue, violet) to `L 0.72`
- * (green), which is a visible step: the set read as six colours from six places
- * rather than as one palette, and the darker two looked heavier for no reason a
- * reader could name. Because these mix into the card at matching strength, ink
- * contrast on a marked booking now varies by half a point instead of by three —
- * 13.4–14.2 on the light theme, 8.1–8.7 on the dark.
- *
- * Chroma is *not* equalised, and cannot be: sRGB simply holds less cyan than it
- * does magenta at this lightness, so teal tops out around `C 0.12` where green
- * reaches `0.20`. Flattening everything to teal's ceiling would have paid for
- * an equality nobody can see with a palette nobody can.
- *
- * They are never painted at full strength either — every one is mixed into the
- * card's own fill at `BOOKING_TINT_MIX`, which is what keeps a marked booking a
- * *tinted card* rather than a coloured block. A week of saturated rectangles is
- * a week that looks like something is happening, which is the reason automatic
- * per-booking colour was taken out in the first place. What came back is a mark
- * the owner chooses, on the few bookings worth marking.
+ * **It is a dot, never the fill of a card.** An automatic hue per booking stood
+ * on the grid once and came off: a week of coloured blocks is a week that looks
+ * like something is happening, and every line on a tinted card has to be
+ * re-checked against a new ground. What came back on 2026-09-10 is the same
+ * idea reduced to the smallest thing that can carry it — six pixels beside the
+ * client's name on the day's cards in «Диалоги», where telling one card from
+ * the next at a glance is the whole job. The grid is unchanged and still says
+ * the status in the colour of one word (`STATUS_TONE` in `Timetable`).
  */
 export const BOOKING_TINTS = {
-  rose: '#fc7f82',
-  orange: '#e19b18',
-  green: '#1bcc62',
-  teal: '#1cc2c6',
-  blue: '#76acfc',
-  violet: '#c98afd',
+  indigo: '#3248F2',
+  violet: '#7C3AED',
+  fuchsia: '#C026D3',
+  rose: '#E11D63',
+  orange: '#EA6A1E',
+  gold: '#C99A00',
+  green: '#2FA36B',
+  cyan: '#0E96C7',
 }
 
 /**
- * How much of the hue reaches the card, as a percentage.
+ * How much of the hue reaches a card it is used to *tint*, as a percentage.
  *
- * **One number, used by the grid and by the picker**, so the swatch in the list
- * and the card it produces cannot disagree — they were two literals in two
- * files, which is exactly the pair that drifts.
- *
- * 38, up from 16 and then 20. The low numbers made a *wash*: recognisable if
- * you knew which colour you had picked and barely a colour if you did not,
- * which is the opposite of what a mark is for. This is high enough to name at a
- * glance and still low enough that the card reads as tinted rather than
- * painted — ink stays legible on all six in both themes, which is the ceiling
- * that actually decides this.
+ * **One number, so a swatch and the card it produces cannot disagree** — it was
+ * two literals in two files, which is exactly the pair that drifts. Nothing
+ * tints a card today: the mark is a dot, and a dot is painted at full strength
+ * because six pixels of a washed colour is a grey dot. Kept for the day a
+ * surface wants the same colour without becoming a coloured block.
  */
 export const BOOKING_TINT_MIX = 38
 
 /**
- * A colour per booking of a day, handed out by position — **imported by
- * nothing.**
+ * The palette, in the order it is handed out.
  *
- * It was the first answer to telling one booking from another at a glance, and
- * it lost to a plainer argument: a week of coloured blocks is a week that looks
- * like something is happening, and nothing on that screen needed a colour to
- * mean anything. `BOOKING_TINTS` above is what replaced it — the same idea,
- * except the owner decides which few bookings are worth marking.
+ * **Names, not hexes, because a name is what the row stores.** The server keeps
+ * the same closed set and refuses anything outside it; what each name *looks*
+ * like is this file's answer, which is the only way the palette can be retuned
+ * without an `UPDATE` over every booking ever written, and the only way a mark
+ * could ever differ between the light theme and the dark one. It has been
+ * retuned twice and not one stored row changed either time.
  *
- * Kept for the day something does need a colour of its own. Eight is enough
- * that a day repeats only past eight bookings, and few enough that they stay
- * tellable apart. `#DC2626` and `#16A34A` are deliberately absent: they mean
- * "error" and "up" elsewhere in this app, and a booking that happened to be
- * sixth would look like a warning.
+ * **Eight, because eight is how many bookings a day can hold before two of them
+ * look alike.** The six constructed at one OKLCH lightness that stood here
+ * before were built to be *mixed into a card* at `BOOKING_TINT_MIX`, where
+ * matching lightness is what keeps ink legible on all of them; as dots they
+ * read as six pastels. These are the saturated set the owner asked for, which
+ * is right for a mark six pixels across — the whole of its job is to be told
+ * apart at a glance.
+ *
+ * `#DC2626` and `#16A34A` are deliberately absent: they mean "error" and "up"
+ * elsewhere in this app, and a booking that happened to be sixth would look
+ * like a warning.
  */
-export const BOOKING_COLORS = [
-  '#3248F2', // indigo — the brand accent
-  '#7C3AED', // violet
-  '#C026D3', // fuchsia
-  '#E11D63', // rose
-  '#EA6A1E', // orange
-  '#C99A00', // gold
-  '#2FA36B', // green
-  '#0E96C7', // cyan
-]
+export const BOOKING_COLORS = Object.keys(BOOKING_TINTS)
 
 /**
- * The colour of the `index`-th booking of a day.
+ * What a colour name is drawn in — and grey for anything unknown.
  *
- * By position within the day rather than hashed from the id: a hash collides,
- * and two bookings an hour apart wearing the same colour is exactly what this
- * is meant to prevent. Every view sorts a day the same way — see `byStart` —
- * so the same booking comes out the same colour wherever it is drawn.
+ * A row could hold a name this build has never heard of: the set has been
+ * renamed once, and a client older than the server is the ordinary way that
+ * happens. Falling back to the muted grey draws a booking with no mark rather
+ * than a card with a hole in it.
  */
-export const bookingColor = (index) =>
-  BOOKING_COLORS[index % BOOKING_COLORS.length]
+export const tintOf = (name) => BOOKING_TINTS[name] ?? 'var(--color-muted)'
+
+/**
+ * Which colour every booking of a day wears, as a `Map` of id to name.
+ *
+ * **Two rules, and they answer to different people.** A colour the owner
+ * *chose* is used exactly as chosen — including on five bookings at once, which
+ * is a perfectly good way to say "these five are the same job" and is why
+ * nothing here refuses a repeat. A booking with no colour of its own is handed
+ * one, and those must not collide: the whole point of an automatic mark is that
+ * two cards side by side are told apart without reading them.
+ *
+ * So the automatic ones are handed out from the names *not already spoken for*
+ * by a manual choice on that day, in palette order, and only when those run out
+ * does the walk go round again — the day is bigger than the palette at that
+ * point, and repeating is the honest answer to a set that has genuinely been
+ * exhausted.
+ *
+ * **By position within the day, not hashed from the id.** A hash collides, and
+ * two bookings an hour apart wearing the same colour is exactly what this
+ * exists to prevent. Every view sorts a day the same way — see `byStart` — so
+ * the same booking comes out the same colour wherever it is drawn.
+ */
+export function dayColors(blocks) {
+  const chosen = new Set(
+    (blocks ?? []).map((block) => block.color).filter(Boolean),
+  )
+  const free = BOOKING_COLORS.filter((name) => !chosen.has(name))
+  const pool = free.length > 0 ? free : BOOKING_COLORS
+
+  let next = 0
+  const painted = new Map()
+  for (const block of blocks ?? []) {
+    painted.set(block.id, block.color ?? pool[next++ % pool.length])
+  }
+
+  return painted
+}
 
 /**
  * The order a day is read in, and the order its colours are handed out in.

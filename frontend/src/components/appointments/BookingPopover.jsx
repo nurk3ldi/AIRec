@@ -16,7 +16,9 @@ import {
 import { authed } from '../../lib/auth'
 import { haptic } from '../../lib/haptics'
 import {
+  BOOKING_COLORS,
   BOOKING_STATES,
+  BOOKING_TINTS,
   fromMinutes,
   instantAt,
   parseClock,
@@ -125,6 +127,10 @@ export default function BookingPopover({
   const [clientPhone, setClientPhone] = useState('')
   const [note, setNote] = useState('')
   const [status, setStatus] = useState('confirmed')
+  // `null` is «Автоматически», and it is a value rather than an absence: the
+  // booking is handed a colour by its position in the day, and clearing a mark
+  // means going back to that rather than to no colour at all.
+  const [color, setColor] = useState(null)
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -242,6 +248,13 @@ export default function BookingPopover({
     setClientPhone(booking?.phone ?? '')
     setNote(booking?.note ?? '')
     setStatus(booking ? stateOf(booking.status) : 'confirmed')
+    // A name this build does not know is treated as no mark. The palette was
+    // renamed once, so a row written by an older client is the ordinary way
+    // that happens — and sending it back unchanged would be a 422 on a booking
+    // whose colour nobody touched.
+    setColor(
+      BOOKING_COLORS.includes(booking?.color) ? booking.color : null,
+    )
     setConfirmingDelete(false)
     setError('')
     setFields({})
@@ -302,10 +315,11 @@ export default function BookingPopover({
         ? (parseClock(endsAt) - parseClock(startsAt) + 24 * 60) % (24 * 60)
         : null,
       note: note.trim() || null,
-      // No `color` key at all, which is not the same as sending `null`: the
-      // field is switched off in the panel, and a PATCH that omitted it leaves
-      // whatever is stored alone. Clearing every booking's mark on the next
-      // save is not what "take the picker away for now" asked for.
+      // **Always sent, `null` included**, because `null` is what «Автоматически»
+      // means and a PATCH that omitted the key would leave the old mark on a
+      // booking the owner has just cleared. It is the same distinction
+      // `duration_minutes` draws two lines up.
+      color,
       // Only when editing. A booking being written now has not happened yet, so
       // the four states are not a choice anyone can make about it — its status
       // is whatever the API's default says a new booking is.
@@ -589,15 +603,30 @@ export default function BookingPopover({
               </div>
             </Group>
 
+            {/* **The mark, as swatches rather than a list of colour names.**
+                It is the one field on this panel whose answer *is* its own
+                label — «Фуксия» in a dropdown tells a reader less than the
+                colour does, and a closed set of eight that fits on one line has
+                nothing to gain from a menu. A radio group is what this is, so
+                it says so: arrows move between the swatches and the group
+                carries the field's name.
+
+                **Offered when writing a booking as well as when editing it**,
+                unlike the status below — a mark is something the owner can mean
+                from the start, where none of the four states is anything anyone
+                can say about a booking that has not happened yet.
+
+                Any colour, on any number of bookings: five in one colour is a
+                good way to say "these five are the same job", and nothing here
+                refuses a repeat. What must not collide is what nobody chose —
+                see `dayColors`. */}
+            <ColorRow value={color} onChange={setColor} />
+
             {/* A closed set of answers, so a label and a field of the same
                 build as every other field on the panel — see `PanelSelect`.
-
-                **A colour picker sat here and has been taken out for now.** It
-                offered the six marks in `BOOKING_TINTS`; the column, the stored
-                values and the palette all survive it, and putting it back is
-                this block again beside the one below. Only when editing, this
-                one: a booking being written down has not happened yet, and none
-                of the four states is a thing anyone can say about it. */}
+                Only when editing: a booking being written down has not happened
+                yet, and none of the four states is a thing anyone can say about
+                it. */}
             {editing && (
               <PanelSelect
                 label={t('appointments.status')}
@@ -846,6 +875,86 @@ export default function BookingPopover({
     >
       {body}
     </Sheet>
+  )
+}
+
+/**
+ * The colour a booking is marked with — «Автоматически» and the eight names.
+ *
+ * **The row is the control.** Every other closed set on this panel is a
+ * `PanelSelect`, and this one is not, because a colour needs no word: eight
+ * swatches fit on one line, they say what they are, and choosing takes one
+ * press instead of open-read-press. It was a list of names once, which is
+ * exactly what a dropdown of colours looks like — «Индиго» over «Фиолетовый»,
+ * two words a reader has to convert back into the thing they can already see.
+ *
+ * The first swatch is the way out rather than a ninth colour, so it is drawn as
+ * an outline around nothing: a booking with no mark of its own still gets one,
+ * handed out by position, and «Автоматически» is the honest name for that.
+ *
+ * Each swatch keeps its translated name as a label — a colour is the one value
+ * on this panel invisible to a screen reader, and the eight `color.*` keys
+ * exist for that and for nothing else.
+ */
+function ColorRow({ value, onChange }) {
+  const t = useT()
+
+  return (
+    <div
+      role="radiogroup"
+      aria-label={t('appointments.color')}
+      className="mb-3 flex flex-wrap items-center gap-2"
+    >
+      <Swatch
+        selected={value === null}
+        label={t('appointments.colorAuto')}
+        onClick={() => onChange(null)}
+      />
+      {BOOKING_COLORS.map((name) => (
+        <Swatch
+          key={name}
+          hue={BOOKING_TINTS[name]}
+          selected={value === name}
+          label={t(`color.${name}`)}
+          onClick={() => onChange(name)}
+        />
+      ))}
+    </div>
+  )
+}
+
+/**
+ * One colour to press.
+ *
+ * **The selection is a ring outside the dot, not a tick inside it.** A mark on
+ * top of the colour hides the thing being chosen, and at this size there is no
+ * room for both. The ring is a `box-shadow`, so it sits outside the box model
+ * and the row cannot reflow as the choice moves along it — the same reason
+ * every field on this panel wears its edge as a shadow.
+ *
+ * With no `hue` it is «Автоматически»: a dashed outline and nothing inside, the
+ * way this app already draws a stretch of time that is not a booking.
+ */
+function Swatch({ hue, selected, label, onClick }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className={`grid h-6 w-6 shrink-0 place-items-center rounded-full outline-none transition-[box-shadow,scale] active:scale-[0.9] ${
+        selected
+          ? 'shadow-[0_0_0_2px_var(--color-ink)]'
+          : 'hover:shadow-[0_0_0_2px_var(--color-line-strong)] focus-visible:shadow-[0_0_0_2px_var(--color-line-strong)]'
+      }`}
+    >
+      <span
+        className={`h-4 w-4 rounded-full ${hue ? '' : 'border border-dashed border-line-strong'}`}
+        style={hue ? { backgroundColor: hue } : undefined}
+      />
+    </button>
   )
 }
 
