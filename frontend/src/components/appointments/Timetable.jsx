@@ -10,6 +10,7 @@ import {
 import {
   BOOKING_STATES,
   byStart,
+  cardFill,
   endOf,
   formatPrice,
   fromMinutes,
@@ -1251,11 +1252,12 @@ function BookingBlock({
           cancelled ? 'opacity-45' : ''
         }`}
         style={{
-          // **Every card is the same grey**, whatever its status — see
-          // `statusTone` for where the status is said instead. The owner's own
-          // `color` mark is still stored on the row and still ignored here; the
-          // picker for it is out of the panel for now.
-          backgroundColor: 'var(--color-surface-card)',
+          // **Every card is the same grey, unless the owner marked this one** —
+          // see `statusTone` for where the *status* is said instead, which is a
+          // word and never the fill. A colour picked in the panel tints the
+          // card here; a colour handed out automatically does not reach this
+          // screen at all. `cardFill` holds both halves of that rule.
+          backgroundColor: cardFill(block.color),
           top,
           height,
           // **Fixed lanes in the day view, shares of the column in the week.**

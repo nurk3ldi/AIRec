@@ -4,6 +4,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowLeft01Icon } from '@hugeicons/core-free-icons'
 import {
   byStart,
+  cardFill,
   endOf,
   formatPrice,
   fromMinutes,
@@ -623,7 +624,7 @@ function DayBlock({ block, laneWidth, services, week, timeZone, onSaved }) {
         // one column and no selected-day tint, so it is the page's ground — but
         // it is read through the variable anyway, or the two screens would
         // answer the same question in two different ways.
-        className={`absolute flex flex-col gap-0.5 overflow-hidden rounded-lg bg-surface-card px-2.5 py-1.5 text-left shadow-[0_0_0_3px_var(--column-bg)] outline-none transition-transform duration-150 ease-out active:scale-[0.98] ${
+        className={`absolute flex flex-col gap-0.5 overflow-hidden rounded-lg px-2.5 py-1.5 text-left shadow-[0_0_0_3px_var(--column-bg)] outline-none transition-transform duration-150 ease-out active:scale-[0.98] ${
           block.open
             ? // No end, so no bottom edge — the drawn length is `OPEN_MINUTES`
               // and nobody stated it. See the same mask on the desktop grid.
@@ -631,6 +632,11 @@ function DayBlock({ block, laneWidth, services, week, timeZone, onSaved }) {
             : ''
         } ${cancelled ? 'opacity-45' : ''}`}
         style={{
+          // The mark the owner put on this booking, mixed into the ordinary
+          // card grey — the same `cardFill` the desktop grid uses, so one
+          // booking is one colour on both screens. Unmarked bookings get the
+          // grey, and an automatic colour never reaches a fill.
+          backgroundColor: cardFill(block.color),
           top,
           height,
           // Fixed lanes, not a share of the column — see `VISIBLE_LANES`. A

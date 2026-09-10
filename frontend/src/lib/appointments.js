@@ -165,15 +165,43 @@ export const BOOKING_TINTS = {
 }
 
 /**
- * How much of the hue reaches a card it is used to *tint*, as a percentage.
+ * How much of the chosen hue reaches the card it tints, as a percentage.
  *
  * **One number, so a swatch and the card it produces cannot disagree** — it was
- * two literals in two files, which is exactly the pair that drifts. Nothing
- * tints a card today: the mark is a dot, and a dot is painted at full strength
- * because six pixels of a washed colour is a grey dot. Kept for the day a
- * surface wants the same colour without becoming a coloured block.
+ * two literals in two files, which is exactly the pair that drifts.
+ *
+ * 32, down from 38 when the palette became the saturated set. Both were checked
+ * the same way, by rendering all eight mixed into `surface-card` in both themes
+ * with a card's real lines on top: at 38 the muted second line starts to go on
+ * gold and orange, at 24 the tint is a wash you have to already know about, and
+ * 32 is where a colour is named at a glance while the card still reads as
+ * *tinted* rather than painted. Ink legibility is the ceiling that decides
+ * this, not taste.
  */
-export const BOOKING_TINT_MIX = 38
+export const BOOKING_TINT_MIX = 32
+
+/**
+ * What a booking's card is filled with — its mark mixed into the ordinary card
+ * grey, or that grey alone.
+ *
+ * **Only a colour the owner chose paints a card.** The automatic one is a dot
+ * on a list and stops there: a week of coloured blocks is a week that looks
+ * like something is happening, which is the argument that took per-booking
+ * colour off this grid in the first place, and it applies exactly as much to a
+ * hue nobody asked for. A mark the owner put on three bookings is the opposite
+ * — they are the three worth spotting, and the fill is what makes them
+ * spottable from across a week.
+ *
+ * `color-mix` in oklab, not an alpha: the card sits on a grid that is hatched
+ * under a closed hour, and a translucent fill would let those stripes through.
+ * Mixed against `--color-surface-card`, so the same name comes out a deep tint
+ * on the dark theme and a pastel on the light one without either being written
+ * down twice.
+ */
+export const cardFill = (color) =>
+  BOOKING_TINTS[color]
+    ? `color-mix(in oklab, ${BOOKING_TINTS[color]} ${BOOKING_TINT_MIX}%, var(--color-surface-card))`
+    : 'var(--color-surface-card)'
 
 /**
  * The palette, in the order it is handed out.

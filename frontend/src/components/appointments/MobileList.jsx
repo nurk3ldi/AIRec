@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   byStart,
+  cardFill,
   formatDuration,
   formatPrice,
   fromMinutes,
@@ -262,7 +263,8 @@ function BookingRow({
           // to the standalone `scale` property, which is a different animatable
           // property from `transform` — naming `transform` here would leave the
           // dip with no transition at all and it would simply snap.
-          className={`flex w-full items-start gap-3 rounded-xl bg-surface-card px-3 py-3 text-left outline-none transition-[opacity,scale] duration-[160ms] ease-out hover:opacity-85 focus-visible:opacity-85 active:scale-[0.97] ${
+          style={{ backgroundColor: cardFill(block.color) }}
+          className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left outline-none transition-[opacity,scale] duration-[160ms] ease-out hover:opacity-85 focus-visible:opacity-85 active:scale-[0.97] ${
             block.status === 'cancelled' ? 'opacity-45' : ''
           }`}
         >
