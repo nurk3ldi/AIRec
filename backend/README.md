@@ -144,6 +144,18 @@ instead. Emails are still Russian only; see `app/core/i18n.py`.
 | `DELETE` | `/business/whatsapp` | Disconnect (204). The conversations stay |
 | `GET` | `/webhooks/whatsapp` | Meta's one-time subscription handshake. **Unauthenticated** |
 | `POST` | `/webhooks/whatsapp` | Inbound messages and delivery receipts. **Unauthenticated** — an HMAC over the raw body stands in for a session |
+| `GET` | `/business/telegram` | The connected bot, or `null`. Never the token or the webhook secret |
+| `PUT` | `/business/telegram` | Connect a bot, or move to another. One field: the token from @BotFather |
+| `DELETE` | `/business/telegram` | Disconnect (204). The conversations stay |
+| `POST` | `/webhooks/telegram` | Inbound messages. **Unauthenticated** — the secret Telegram echoes in `X-Telegram-Bot-Api-Secret-Token` both authenticates the update and says whose inbox it is |
+
+**Pointing Telegram at a dev machine.** Run `ngrok http 8000`, put that origin
+in `PUBLIC_BASE_URL`, restart the backend, then paste the bot token into the
+«Telegram» card on `/assistant`. The server calls `setWebhook` itself, so there
+is nothing to configure on Telegram's side. With `PUBLIC_BASE_URL` unset the
+token is still stored and verified — the card then says the webhook is not
+registered rather than showing a channel that receives nothing.
+
 
 **Pointing Meta at a dev machine.** Run `ngrok http 8000`, set the webhook URL
 in the Meta dashboard to `https://<id>.ngrok-free.app/api/v1/webhooks/whatsapp`

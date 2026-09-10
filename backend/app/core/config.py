@@ -148,6 +148,28 @@ class Settings(BaseSettings):
     # a frozen panel.
     whatsapp_timeout_seconds: float = 10.0
 
+    # --- Telegram Bot API ---
+    # **Nothing here is a credential, and that is the difference from WhatsApp
+    # above.** There is no app-wide Telegram identity: a bot *is* the account,
+    # its token lives in `telegram_accounts`, and the secret every update must
+    # carry back is generated per bot and stored beside it. What is left for
+    # the deployment to say is only where Telegram should send updates.
+    #
+    # `public_base_url` is the app's own address as the outside world reaches
+    # it — `https://…ngrok-free.app` in dev, the deployed origin later — with
+    # no trailing path. **Unset is a working state**: connecting still stores
+    # the token and reports that the webhook was not registered, which is
+    # honest on a laptop Telegram cannot reach and leaves the card able to say
+    # so. It is not derived from the request, deliberately: a webhook URL is
+    # registered once and outlives the request that set it, so reading it off
+    # a `Host` header would let a proxy or a stray `curl` decide where a
+    # client's messages go.
+    public_base_url: str | None = None
+    telegram_api_base: str = "https://api.telegram.org"
+    # The same reasoning as the WhatsApp timeout: a send is a request somebody
+    # is waiting on with a reply box open.
+    telegram_timeout_seconds: float = 10.0
+
     # --- SMTP (optional) ---
     # Left unset in local dev on purpose: with no host configured, reset codes
     # are logged to the console instead of emailed — see app/core/email.py.

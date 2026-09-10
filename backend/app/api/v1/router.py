@@ -6,6 +6,7 @@ from app.api.v1 import (
     business,
     conversations,
     notes,
+    telegram,
     whatsapp,
 )
 
@@ -15,4 +16,5 @@ api_router.include_router(business.router)
 api_router.include_router(appointments.router)
 api_router.include_router(conversations.router)
 api_router.include_router(notes.router)
+api_router.include_router(telegram.router)
 api_router.include_router(whatsapp.router)

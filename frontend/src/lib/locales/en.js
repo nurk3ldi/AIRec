@@ -81,6 +81,7 @@ export default {
   'chat.new': 'New',
   'chat.waiting': 'Awaiting reply',
   'chat.answered': 'Answered',
+  'chat.noName': 'No name',
   'appointments.warnDayOff': 'The business is closed that day',
   'appointments.warnBreak': 'That time falls in the break',
   'appointments.warnClosed': 'That time is outside working hours',
@@ -190,6 +191,16 @@ export default {
   'whatsapp.disconnect': 'Disconnect',
   'whatsapp.disconnectSure': 'Disconnect for sure?',
   'whatsapp.failed': 'Could not save. Try again.',
+  'telegram.title': 'Telegram',
+  'telegram.hint':
+    'Create a bot with @BotFather and paste its token. The rest sets itself up.',
+  'telegram.token': 'Bot token',
+  'telegram.connect': 'Connect',
+  'telegram.disconnect': 'Disconnect',
+  'telegram.disconnectSure': 'Disconnect for sure?',
+  'telegram.webhookOff':
+    'The token is saved, but Telegram cannot deliver yet — the server has no public address.',
+  'telegram.failed': 'Could not save. Try again.',
 
 
   'login.aria': 'Log-in page',

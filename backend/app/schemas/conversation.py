@@ -41,7 +41,12 @@ class ConversationPublic(BaseModel):
     id: uuid.UUID
     channel: str
     external_id: str | None = None
-    client_phone: str
+    # **Nullable, and a Telegram thread is why.** There the client is a numeric
+    # id and at best a `@username`; the number is never sent unless they share
+    # their contact card. Anything drawing a thread has to fall back — handle,
+    # then name — rather than assume a number is there.
+    client_phone: str | None = None
+    client_username: str | None = None
     client_name: str | None = None
     status: str
     assistant_enabled: bool
@@ -179,16 +184,24 @@ class CreateMessageRequest(BaseModel):
 class IngestMessageRequest(BaseModel):
     """What the channel hands over when a client writes.
 
-    Separate from `CreateMessageRequest` on purpose. This one carries the
-    client's number, because the thread it belongs to may not exist yet, and
-    the provider's own message id, because a webhook is redelivered on any
+    Separate from `CreateMessageRequest` on purpose. This one carries whatever
+    identifies the client, because the thread it belongs to may not exist yet,
+    and the provider's own message id, because a webhook is redelivered on any
     doubt and the second copy has to be recognised rather than appended. Its
     author is always the client — that is the whole of what "inbound" means.
+
+    **`client_phone` is optional since Telegram.** There the identity is
+    `external_id` — a numeric chat id — and the phone is simply not sent. A
+    channel that has a number still passes one; one that does not passes
+    nothing rather than a placeholder, so nothing downstream has to work out
+    which of those it is looking at.
     """
 
-    client_phone: str = Field(max_length=32)
+    client_phone: str | None = Field(default=None, max_length=32)
     body: str = Field(max_length=MAX_BODY_LENGTH)
     client_name: str | None = Field(default=None, max_length=120)
+    # Without the `@`, which is how Telegram sends it; the UI puts it back.
+    client_username: str | None = Field(default=None, max_length=64)
     channel: ConversationChannel = ConversationChannel.WHATSAPP
     external_id: str | None = Field(default=None, max_length=64)
     message_external_id: str | None = Field(default=None, max_length=64)
@@ -196,8 +209,8 @@ class IngestMessageRequest(BaseModel):
 
     @field_validator("client_phone")
     @classmethod
-    def _validate_phone(cls, value: str) -> str:
-        return _clean_phone(value)
+    def _validate_phone(cls, value: str | None) -> str | None:
+        return _clean_phone(value) if value else None
 
     @field_validator("body")
     @classmethod

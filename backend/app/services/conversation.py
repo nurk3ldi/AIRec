@@ -8,14 +8,20 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core import whatsapp
+from app.core import telegram, whatsapp
 from app.core.config import settings
 from app.core.errors import ConversationNotFound, MessageNotFound
+from app.core.telegram import TelegramSendError
 from app.core.whatsapp import DeliveryReceipt, WhatsAppSendError
-from app.models.conversation import Conversation, ConversationStatus
+from app.models.conversation import (
+    Conversation,
+    ConversationChannel,
+    ConversationStatus,
+)
 from app.models.message import STATUS_RANK, Message, MessageAuthor, MessageStatus
 from app.models.user import User
 from app.repositories.conversation import ConversationRepository, MessageRepository
+from app.repositories.telegram import TelegramAccountRepository
 from app.repositories.whatsapp import WhatsAppAccountRepository
 from app.schemas.conversation import (
     PREVIEW_LENGTH,
@@ -44,12 +50,16 @@ class ConversationService:
         conversations: ConversationRepository,
         messages: MessageRepository,
         accounts: WhatsAppAccountRepository,
+        telegram_accounts: TelegramAccountRepository,
     ) -> None:
         self._session = session
         self._businesses = businesses
         self._conversations = conversations
         self._messages = messages
+        # Both channels' credentials, because replying means sending and which
+        # one to send over is a fact about the thread — see `_deliver`.
         self._accounts = accounts
+        self._telegram = telegram_accounts
 
     # --- reading ---------------------------------------------------------
 
@@ -254,7 +264,7 @@ class ConversationService:
         return message
 
     async def _deliver(self, conversation: Conversation, message: Message) -> None:
-        """Hand the message to WhatsApp and record what happened.
+        """Hand the message to its channel and record what happened.
 
         Runs **after** the row is committed, so the transaction is closed
         before a ten-second HTTP call rather than held open across it. Nothing
@@ -264,8 +274,22 @@ class ConversationService:
 
         Not connected is one of those states rather than a special case. The
         owner still gets their words in the thread and a line saying they did
-        not leave, which is the same shape as "WhatsApp said no".
+        not leave, which is the same shape as "the channel said no".
+
+        **Which channel is read off the thread, not off the business.** A
+        business may have both connected, and a reply belongs to the
+        conversation it is in — answering a Telegram client over WhatsApp
+        because that is what the salon also has would send it to a number that
+        may not even be theirs.
         """
+        if conversation.channel == ConversationChannel.TELEGRAM:
+            await self._deliver_telegram(conversation, message)
+        else:
+            await self._deliver_whatsapp(conversation, message)
+
+    async def _deliver_whatsapp(
+        self, conversation: Conversation, message: Message
+    ) -> None:
         account = await self._accounts.get_for_business(conversation.business_id)
         if account is None:
             message.status = MessageStatus.FAILED
@@ -281,7 +305,7 @@ class ConversationService:
                 # without a `+`. A thread the owner opened by hand has none
                 # yet, so the typed number is reduced to digits — the shape
                 # WhatsApp wants — until the first reply teaches us the real one.
-                to=conversation.external_id or _digits(conversation.client_phone),
+                to=conversation.external_id or _digits(conversation.client_phone or ""),
                 body=message.body,
             )
         except WhatsAppSendError as exc:
@@ -292,6 +316,46 @@ class ConversationService:
             message.error = None
             if sent_id:
                 # From here on the delivery receipts have something to find.
+                message.external_id = sent_id
+
+        await self._session.commit()
+
+    async def _deliver_telegram(
+        self, conversation: Conversation, message: Message
+    ) -> None:
+        """The same shape, and two differences worth naming.
+
+        **There is no fallback address.** WhatsApp can reduce a typed number to
+        the digits it wants, because a number is an address there. A bot can
+        only write into a chat that already exists, and `external_id` *is* that
+        chat — a thread without one has never been written to us from, so there
+        is nowhere to send.
+
+        **`sent` is as far as a Telegram message ever gets.** The API says
+        whether it accepted the send and nothing after: no delivered, no read.
+        `apply_receipt` has no Telegram counterpart, and inventing one would be
+        the app claiming to know something about somebody else's phone.
+        """
+        account = await self._telegram.get_for_business(conversation.business_id)
+        if account is None or not conversation.external_id:
+            message.status = MessageStatus.FAILED
+            message.error = telegram.NOT_CONNECTED
+            await self._session.commit()
+            return
+
+        try:
+            sent_id = await telegram.send_text(
+                token=account.bot_token,
+                chat_id=conversation.external_id,
+                body=message.body,
+            )
+        except TelegramSendError as exc:
+            message.status = MessageStatus.FAILED
+            message.error = exc.reason
+        else:
+            message.status = MessageStatus.SENT
+            message.error = None
+            if sent_id:
                 message.external_id = sent_id
 
         await self._session.commit()
@@ -406,6 +470,7 @@ class ConversationService:
                 channel=data.channel.value,
                 external_id=data.external_id,
                 client_phone=data.client_phone,
+                client_username=data.client_username,
                 client_name=data.client_name,
                 status=ConversationStatus.NEW,
             )
@@ -421,6 +486,16 @@ class ConversationService:
             # corrected it.
             if data.client_name and not conversation.client_name:
                 conversation.client_name = data.client_name
+            # **The handle is overwritten, unlike the name.** Nobody edits it
+            # here — it is the channel's own value — and a client who renames
+            # themselves on Telegram has changed it, so the newest one is the
+            # true one. A number learned late is filled in the same way,
+            # because a Telegram client only ever has one by choosing to share
+            # their contact card.
+            if data.client_username:
+                conversation.client_username = data.client_username
+            if data.client_phone and not conversation.client_phone:
+                conversation.client_phone = data.client_phone
 
         if data.message_external_id:
             duplicate = await self._messages.get_by_external(

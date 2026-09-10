@@ -87,6 +87,7 @@ export default {
   'chat.new': 'Новый',
   'chat.waiting': 'Ждёт ответа',
   'chat.answered': 'Отвечен',
+  'chat.noName': 'Без имени',
   'appointments.warnDayOff': 'В этот день бизнес не работает',
   'appointments.warnBreak': 'Это время попадает на перерыв',
   'appointments.warnClosed': 'Это время вне рабочих часов',
@@ -200,6 +201,16 @@ export default {
   'whatsapp.disconnect': 'Отключить',
   'whatsapp.disconnectSure': 'Точно отключить?',
   'whatsapp.failed': 'Не удалось сохранить. Попробуйте ещё раз.',
+  'telegram.title': 'Telegram',
+  'telegram.hint':
+    'Создайте бота в @BotFather и вставьте его токен. Остальное настроится само.',
+  'telegram.token': 'Токен бота',
+  'telegram.connect': 'Подключить',
+  'telegram.disconnect': 'Отключить',
+  'telegram.disconnectSure': 'Точно отключить?',
+  'telegram.webhookOff':
+    'Токен сохранён, но Telegram пока не может доставлять сообщения — у сервера нет публичного адреса.',
+  'telegram.failed': 'Не удалось сохранить. Попробуйте ещё раз.',
 
   // ── Inbox ─────────────────────────────────────────────────────────────────
 

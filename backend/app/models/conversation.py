@@ -29,13 +29,16 @@ if TYPE_CHECKING:
 class ConversationChannel(StrEnum):
     """Where the conversation is happening.
 
-    One value today and a column anyway: the assistant will not stay on
-    WhatsApp forever, and a channel added later must not be a migration that
-    rewrites every row's identity. `external_id` means nothing without it — the
-    same phone number is a different thread on a different channel.
+    The column was here while there was one value, precisely so that the second
+    one would not be a migration rewriting every row's identity — and on
+    2026-09-10 it earned that: `TELEGRAM` was added and nothing about an
+    existing thread changed. `external_id` means nothing without this — the
+    same person is a different thread on a different channel, and the two
+    channels do not even identify them by the same thing.
     """
 
     WHATSAPP = "whatsapp"
+    TELEGRAM = "telegram"
 
 
 class ConversationStatus(StrEnum):
@@ -81,7 +84,7 @@ class Conversation(Base):
         # `ck_conversations_<name>`, and spelling the prefix here applies it
         # twice.
         CheckConstraint("status in ('new', 'open', 'closed')", name="status"),
-        CheckConstraint("channel in ('whatsapp')", name="channel"),
+        CheckConstraint("channel in ('whatsapp', 'telegram')", name="channel"),
         CheckConstraint("unread_count >= 0", name="unread"),
         # One thread per client per channel. The provider's own id is what
         # identifies it — the phone number can be edited by the owner, the
@@ -114,14 +117,28 @@ class Conversation(Base):
         default=ConversationChannel.WHATSAPP,
         server_default=ConversationChannel.WHATSAPP,
     )
-    # The provider's thread id — a `wa_id` on WhatsApp. Nullable because a
-    # conversation can also be opened from this side before the channel has
-    # ever seen it, and it is filled in when the first real message lands.
+    # The provider's thread id — a `wa_id` on WhatsApp, a numeric `chat.id` on
+    # Telegram. Nullable because a conversation can also be opened from this
+    # side before the channel has ever seen it, and it is filled in when the
+    # first real message lands.
     external_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
-    # The number is the identity on this channel; the name is whatever the
-    # owner has managed to learn, which for a stranger is nothing at all.
-    client_phone: Mapped[str] = mapped_column(String(32), nullable=False)
+    # **Nullable since 2026-09-10, and that is Telegram's doing.** On WhatsApp
+    # the number *is* the identity and always arrives. A Telegram bot is given
+    # a numeric id and, if the client has one, a `@username`; the phone is
+    # never sent unless the client deliberately shares their contact card. The
+    # options were to invent a value or to admit there is none, and this
+    # project takes the second everywhere else it comes up — a booking with no
+    # end keeps `ends_at` NULL rather than guessing one.
+    #
+    # What that costs is that nothing may assume a number any more:
+    # `_matches_client` skips the phone test when the column is NULL, and the
+    # UI falls back to the handle and then to the name.
+    client_phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # «@aigerim» — Telegram's own handle, and the only readable identity most
+    # clients there have. Stored without the `@`, which is how Telegram sends
+    # it; the UI puts it back.
+    client_username: Mapped[str | None] = mapped_column(String(64), nullable=True)
     client_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
     status: Mapped[str] = mapped_column(

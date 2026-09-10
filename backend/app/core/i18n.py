@@ -118,6 +118,16 @@ MESSAGES: dict[str, dict[str, str]] = {
         "Название папки не может быть пустым.": "Қалта атауы бос болмауы керек.",
         "Номер WhatsApp не подключён.": "WhatsApp нөмірі қосылмаған.",
         "Укажите токен доступа WhatsApp.": "WhatsApp қатынау токенін көрсетіңіз.",
+        "Telegram-бот не подключён.": "Telegram-бот қосылмаған.",
+        "Этот бот уже подключён к другому аккаунту.": (
+            "Бұл бот басқа аккаунтқа қосылған."
+        ),
+        "Telegram не принял этот токен. Проверьте его в @BotFather.": (
+            "Telegram бұл токенді қабылдамады. Оны @BotFather-де тексеріңіз."
+        ),
+        "Похоже, это не токен бота. Скопируйте его из @BotFather.": (
+            "Бұл бот токеніне ұқсамайды. Оны @BotFather-ден көшіріңіз."
+        ),
         "Этот номер WhatsApp уже подключён к другому аккаунту.": (
             "Бұл WhatsApp нөмірі басқа аккаунтқа қосылған."
         ),
@@ -251,6 +261,16 @@ MESSAGES: dict[str, dict[str, str]] = {
         "Название папки не может быть пустым.": "A folder needs a name.",
         "Номер WhatsApp не подключён.": "No WhatsApp number is connected.",
         "Укажите токен доступа WhatsApp.": "A WhatsApp access token is required.",
+        "Telegram-бот не подключён.": "No Telegram bot is connected.",
+        "Этот бот уже подключён к другому аккаунту.": (
+            "That bot is already connected to another account."
+        ),
+        "Telegram не принял этот токен. Проверьте его в @BotFather.": (
+            "Telegram would not accept that token. Check it in @BotFather."
+        ),
+        "Похоже, это не токен бота. Скопируйте его из @BotFather.": (
+            "That does not look like a bot token. Copy it from @BotFather."
+        ),
         "Этот номер WhatsApp уже подключён к другому аккаунту.": (
             "That WhatsApp number is already connected to another account."
         ),

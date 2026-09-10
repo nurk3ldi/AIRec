@@ -22,6 +22,7 @@ from app.models.note_folder import NoteFolder
 from app.models.password_reset_code import PasswordResetCode
 from app.models.refresh_token import RefreshToken
 from app.models.service import Service
+from app.models.telegram_account import TelegramAccount
 from app.models.user import User
 from app.models.whatsapp_account import WhatsAppAccount
 from app.models.working_hours import WorkingHours
@@ -43,6 +44,7 @@ __all__ = [
     "PasswordResetCode",
     "RefreshToken",
     "Service",
+    "TelegramAccount",
     "User",
     "WhatsAppAccount",
     "WorkingHours",

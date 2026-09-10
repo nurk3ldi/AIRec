@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react'
-import { getBusiness, getServices, getWhatsApp, getWorkingHours } from '../lib/api'
+import {
+  getBusiness,
+  getServices,
+  getTelegram,
+  getWhatsApp,
+  getWorkingHours,
+} from '../lib/api'
 import { authed } from '../lib/auth'
 import { useT } from '../lib/i18n'
 import BusinessCard from '../components/assistant/BusinessCard'
@@ -8,6 +14,7 @@ import SettingsCard from '../components/assistant/SettingsCard'
 import CardSkeleton from '../components/CardSkeleton'
 import { useSkeleton } from '../lib/skeleton'
 import HoursCard from '../components/assistant/HoursCard'
+import TelegramCard from '../components/assistant/TelegramCard'
 import WhatsAppCard from '../components/assistant/WhatsAppCard'
 import styles from '../styles/Assistant.module.css'
 
@@ -57,6 +64,8 @@ export default function AssistantPage() {
   // same on screen; this one cannot, since "no number" is a real answer with a
   // card of its own to draw.
   const [channel, setChannel] = useState(undefined)
+  // The same three states, for the channel that came second and is now first.
+  const [telegram, setTelegram] = useState(undefined)
   // Bumped after a save. A counter rather than a boolean: two saves in a row
   // have to be two reloads, and `true → true` is no change at all.
   const [reload, setReload] = useState(0)
@@ -72,6 +81,7 @@ export default function AssistantPage() {
   const barsServices = useSkeleton(services === null)
   const barsWeek = useSkeleton(week === null)
   const barsChannel = useSkeleton(channel === undefined)
+  const barsTelegram = useSkeleton(telegram === undefined)
 
   useEffect(() => {
     let alive = true
@@ -86,6 +96,9 @@ export default function AssistantPage() {
     authed(getWorkingHours)
       .then((rows) => alive && setWeek(rows))
       .catch(() => {})
+    authed(getTelegram)
+      .then((row) => alive && setTelegram(row))
+      .catch(() => alive && setTelegram(null))
     authed(getWhatsApp)
       .then((row) => alive && setChannel(row))
       // Swallowed like the rest: the card then draws the not-connected state,
@@ -198,10 +211,31 @@ export default function AssistantPage() {
           />
         )}
 
-        {/* **The channel, last.** It is set up once and then never touched,
-            where everything above it is edited as the business changes — so it
-            sits after the things that are actually maintained rather than
-            competing with them for the top of the page. */}
+        {/* **The channels, last.** They are set up once and then never touched,
+            where everything above is edited as the business changes — so they
+            sit after the things that are actually maintained rather than
+            competing with them for the top of the page.
+
+            **Telegram first of the two**, and that is the plan rather than the
+            alphabet: it is the channel this product now leads with, and a bot
+            takes one paste where a number takes four ids and a callback URL
+            typed into somebody else's dashboard. WhatsApp stays because it is
+            built and works — see «The WhatsApp channel» in `CLAUDE.md`. */}
+        {telegram === undefined ? (
+          <CardSkeleton
+            rows={2}
+            visible={barsTelegram}
+            label={t('telegram.title')}
+            className={`w-full sm:max-w-[350px] ${FULL}`}
+          />
+        ) : (
+          <TelegramCard
+            account={telegram}
+            onSaved={() => setReload((n) => n + 1)}
+            className={`w-full sm:max-w-[350px] ${FULL}`}
+          />
+        )}
+
         {channel === undefined ? (
           <CardSkeleton
             rows={2}

@@ -589,3 +589,37 @@ export function connectWhatsApp(
 export function disconnectWhatsApp(accessToken) {
   return request('/business/whatsapp', { method: 'DELETE', accessToken })
 }
+
+/**
+ * The Telegram bot this business answers through, or `null`.
+ *
+ * `null` is not an error, for the same reason it is not one above.
+ */
+export function getTelegram(accessToken) {
+  return request('/business/telegram', { method: 'GET', accessToken })
+}
+
+/**
+ * Connect a bot, or move to a different one. **One field, and that is the point.**
+ *
+ * WhatsApp needs four ids pasted out of Meta's dashboard and a callback URL
+ * typed back into it. A bot token already contains the bot's id, `getMe`
+ * supplies the username, and the server registers the webhook itself — so
+ * everything else is something it can find out.
+ *
+ * Unlike `connectWhatsApp`, the token is **required**: @BotFather hands the
+ * whole credential back whenever it is asked, so an empty field has no "keep
+ * the stored one" to mean.
+ */
+export function connectTelegram(accessToken, { token }) {
+  return request('/business/telegram', {
+    method: 'PUT',
+    body: { bot_token: token },
+    accessToken,
+  })
+}
+
+/** Forget the bot and its token. **The conversations stay.** */
+export function disconnectTelegram(accessToken) {
+  return request('/business/telegram', { method: 'DELETE', accessToken })
+}

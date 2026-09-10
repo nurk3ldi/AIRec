@@ -84,8 +84,17 @@ function Row({ chat }) {
 
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-3">
+          {/* **Три ступени, а не две, и третью добавил Telegram.** На WhatsApp
+              номер есть всегда, поэтому «имя, иначе номер» покрывало всё. У
+              клиента в Telegram номера может не быть вовсе — там опознаётся
+              `@username`, и он встаёт между ними. Если нет и его, строка была
+              бы пустой, а пустая строка в списке читается как сломанный экран:
+              последнее слово — честное «без имени». */}
           <p className="min-w-0 flex-1 truncate text-[15px] font-medium text-ink">
-            {chat.client_name || chat.client_phone}
+            {chat.client_name ||
+              (chat.client_username ? `@${chat.client_username}` : null) ||
+              chat.client_phone ||
+              t('chat.noName')}
           </p>
           <p
             className={`shrink-0 text-[13px] ${hot ? 'text-now' : 'text-muted'}`}

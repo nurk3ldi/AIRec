@@ -242,3 +242,34 @@ class WhatsAppTokenRequired(AppError):
     status_code = HTTPStatus.BAD_REQUEST
     code = "whatsapp_token_required"
     message = "Укажите токен доступа WhatsApp."
+
+
+class TelegramNotConnected(AppError):
+    status_code = HTTPStatus.NOT_FOUND
+    code = "telegram_not_connected"
+    message = "Telegram-бот не подключён."
+
+
+class TelegramBotTaken(AppError):
+    """This bot already answers for somebody else.
+
+    The same conflict `WhatsAppNumberTaken` names, and it matters more here:
+    a bot has exactly one webhook, so a second business connecting it would
+    silently take the first one's messages away rather than merely share them.
+    """
+
+    status_code = HTTPStatus.CONFLICT
+    code = "telegram_bot_taken"
+    message = "Этот бот уже подключён к другому аккаунту."
+
+
+class TelegramTokenInvalid(AppError):
+    """Telegram would not tell us who this token belongs to.
+
+    Checked while connecting rather than on the first reply: a mistyped token
+    is something the owner can fix while they are still looking at the field.
+    """
+
+    status_code = HTTPStatus.BAD_REQUEST
+    code = "telegram_token_invalid"
+    message = "Telegram не принял этот токен. Проверьте его в @BotFather."

@@ -45,7 +45,7 @@ class ConversationRepository:
         business_id: uuid.UUID,
         channel: str,
         external_id: str | None,
-        client_phone: str,
+        client_phone: str | None,
     ) -> Conversation | None:
         """The thread an inbound message belongs to.
 
@@ -57,6 +57,13 @@ class ConversationRepository:
         primary rule — a client who changes their WhatsApp keeps the number and
         gets a new thread — but as a fallback it is what stops the owner's own
         conversation being duplicated the first time the client replies.
+
+        **On a channel with no numbers the fallback is skipped entirely**, and
+        that is right rather than a gap: it exists for threads opened from this
+        side, and a Telegram thread cannot be — a bot has no way to write to
+        somebody who has not pressed Start. So there is never a numberless
+        thread waiting to be matched, and `NULL = NULL` would not have found
+        one anyway.
         """
         base = select(Conversation).where(
             Conversation.business_id == business_id,
@@ -68,6 +75,9 @@ class ConversationRepository:
             )
             if found is not None:
                 return found
+
+        if not client_phone:
+            return None
 
         return await self._session.scalar(
             base.where(
@@ -278,6 +288,10 @@ def _matches(query: str) -> ColumnElement[bool]:
     text = f"%{query.strip().lower()}%"
     conditions = [
         func.lower(Conversation.client_name).like(text),
+        # The handle is the only readable identity most Telegram clients have,
+        # so it searches like a name. Stored without the `@`; a query typed
+        # with one is trimmed by the caller's `strip("@")` below.
+        func.lower(Conversation.client_username).like(text.lstrip("@")),
         exists().where(
             Message.conversation_id == Conversation.id,
             func.lower(Message.body).like(text),
@@ -286,6 +300,9 @@ def _matches(query: str) -> ColumnElement[bool]:
 
     digits = "".join(character for character in query if character.isdigit())
     if digits:
+        # `regexp_replace` of NULL is NULL and `NULL LIKE …` is not TRUE, so a
+        # thread with no number simply does not match — which is the wanted
+        # answer and needs no branch of its own.
         bare_phone = func.regexp_replace(Conversation.client_phone, r"\D", "", "g")
         conditions.append(bare_phone.like(f"%{digits}%"))
 

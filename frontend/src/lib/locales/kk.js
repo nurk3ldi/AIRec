@@ -82,6 +82,7 @@ export default {
   'chat.new': 'Жаңа',
   'chat.waiting': 'Жауап күтуде',
   'chat.answered': 'Жауап берілді',
+  'chat.noName': 'Атсыз',
   'appointments.warnDayOff': 'Бұл күні бизнес жұмыс істемейді',
   'appointments.warnBreak': 'Бұл уақыт үзіліске тұспа-тұс келеді',
   'appointments.warnClosed': 'Бұл уақыт жұмыс сағаттарынан тыс',
@@ -191,6 +192,16 @@ export default {
   'whatsapp.disconnect': 'Ажырату',
   'whatsapp.disconnectSure': 'Шынымен ажыратасыз ба?',
   'whatsapp.failed': 'Сақталмады. Қайталап көріңіз.',
+  'telegram.title': 'Telegram',
+  'telegram.hint':
+    '@BotFather-де бот жасап, оның токенін қойыңыз. Қалғаны өзі бапталады.',
+  'telegram.token': 'Бот токені',
+  'telegram.connect': 'Қосу',
+  'telegram.disconnect': 'Ажырату',
+  'telegram.disconnectSure': 'Шынымен ажыратасыз ба?',
+  'telegram.webhookOff':
+    'Токен сақталды, бірақ Telegram әзірге хабарлама жеткізе алмайды — серверде публик мекенжай жоқ.',
+  'telegram.failed': 'Сақталмады. Қайталап көріңіз.',
 
 
   'login.aria': 'Кіру беті',

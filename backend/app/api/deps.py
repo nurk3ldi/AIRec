@@ -23,6 +23,7 @@ from app.repositories.note_folder import NoteFolderRepository
 from app.repositories.password_reset import PasswordResetRepository
 from app.repositories.refresh_token import RefreshTokenRepository
 from app.repositories.service import ServiceRepository, WorkingHoursRepository
+from app.repositories.telegram import TelegramAccountRepository
 from app.repositories.user import UserRepository
 from app.repositories.whatsapp import WhatsAppAccountRepository
 from app.services.appointment import AppointmentService
@@ -31,6 +32,7 @@ from app.services.business import BusinessService
 from app.services.conversation import ConversationService
 from app.services.note import NoteService
 from app.services.note_folder import NoteFolderService
+from app.services.telegram import TelegramService
 from app.services.whatsapp import WhatsAppService
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
@@ -116,9 +118,11 @@ def get_conversation_service(session: SessionDep) -> ConversationService:
         businesses=get_business_service(session),
         conversations=ConversationRepository(session),
         messages=MessageRepository(session),
-        # Replying means sending, and sending needs the number and the token —
-        # see `ConversationService._deliver`.
+        # Replying means sending, and which channel to send over is a fact
+        # about the thread — so both credentials are here. See
+        # `ConversationService._deliver`.
         accounts=WhatsAppAccountRepository(session),
+        telegram_accounts=TelegramAccountRepository(session),
     )
 
 
@@ -139,6 +143,20 @@ def get_whatsapp_service(session: SessionDep) -> WhatsAppService:
 
 
 WhatsAppServiceDep = Annotated[WhatsAppService, Depends(get_whatsapp_service)]
+
+
+def get_telegram_service(session: SessionDep) -> TelegramService:
+    return TelegramService(
+        session=session,
+        businesses=get_business_service(session),
+        accounts=TelegramAccountRepository(session),
+        # The channel owns no conversation rules; it hands what arrives to
+        # the service that does.
+        conversations=get_conversation_service(session),
+    )
+
+
+TelegramServiceDep = Annotated[TelegramService, Depends(get_telegram_service)]
 
 
 def get_token_claims(credentials: CredentialsDep) -> AccessTokenClaims:
