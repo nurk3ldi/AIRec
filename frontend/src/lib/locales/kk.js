@@ -4,7 +4,7 @@ export default {
   'nav.inbox': 'Диалогтар',
   'nav.appointments': 'Жазбалар',
   'home.streams.title': 'Ағындар',
-  'home.streams.empty': 'Ассистент қазір ешкіммен сөйлеспей тұр. Дәл осы минутта жүріп жатқан сөйлесулер осында шығады.',
+  'home.streams.empty': 'Белсенді сөйлесу жоқ',
   'home.streams.now': 'қазір',
   'home.streams.minutes': '{count} мин',
   'home.streams.said': 'Ассистент: ',

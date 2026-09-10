@@ -4,7 +4,7 @@ export default {
   'nav.inbox': 'Chats',
   'nav.appointments': 'Bookings',
   'home.streams.title': 'Streams',
-  'home.streams.empty': 'The assistant is not talking to anyone right now. Conversations it is holding this minute will appear here.',
+  'home.streams.empty': 'No active conversations',
   'home.streams.now': 'now',
   'home.streams.minutes': '{count} min',
   'home.streams.said': 'Assistant: ',

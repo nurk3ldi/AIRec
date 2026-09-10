@@ -10,7 +10,7 @@ export default {
   'nav.inbox': 'Диалоги',
   'nav.appointments': 'Записи',
   'home.streams.title': 'Потоки',
-  'home.streams.empty': 'Ассистент сейчас ни с кем не говорит. Здесь появятся разговоры, которые он ведёт прямо в эту минуту.',
+  'home.streams.empty': 'Активных разговоров нет',
   'home.streams.now': 'сейчас',
   'home.streams.minutes': '{count} мин',
   'home.streams.said': 'Ассистент: ',
