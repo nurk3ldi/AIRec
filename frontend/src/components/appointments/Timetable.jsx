@@ -332,14 +332,19 @@ export default function Timetable({
    * the pointer was. It is a starting value in a field the owner can retype —
    * the panel does not hold bookings to the grid, see the `SLOT_MINUTES` note.
    */
-  const minuteAt = (event, rowStart) => {
+  const openSlot = (event, day, rowStart) => {
     const box = event.currentTarget.getBoundingClientRect()
     const into = ((event.clientY - box.top) / box.height) * ROW_MINUTES
-    return rowStart + Math.floor(into / SLOT_MINUTES) * SLOT_MINUTES
-  }
-
-  const openSlot = (day, minute) => {
-    setSlot({ key: dayKey(day), minutes: minute })
+    setSlot({
+      key: dayKey(day),
+      minutes: rowStart + Math.floor(into / SLOT_MINUTES) * SLOT_MINUTES,
+      // **Where across the column the press landed**, measured against the
+      // column rather than the row — the anchor below is drawn in the column,
+      // and the row is only as wide as it because they share an edge today.
+      // The panel hangs off this point, so it opens beside the spot that was
+      // pressed the way a booking's own panel opens beside its card.
+      x: event.clientX - event.currentTarget.parentElement.getBoundingClientRect().left,
+    })
     setAdding(true)
     // The panel writes for the day it was opened on, so the page follows it
     // there — the grid reloads the week around `selected`, and a booking
@@ -913,9 +918,7 @@ export default function Timetable({
                   <div
                     key={minute}
                     style={{ height: rowSpan }}
-                    onDoubleClick={(event) =>
-                      openSlot(day, minuteAt(event, minute))
-                    }
+                    onDoubleClick={(event) => openSlot(event, day, minute)}
                   />
                 ))}
 
@@ -1005,9 +1008,14 @@ export default function Timetable({
 
                 {/* **The panel for a slot started on this column.** One is
                     mounted at a time — `slot.key` names a single day — and it
-                    hangs off a box drawn at the hour that was pressed, so it
-                    arrives beside the spot rather than beside the toolbar.
-                    Empty and untouchable: it is an address, not a control. */}
+                    hangs off **the point that was pressed**: `x` across, the
+                    quarter hour down. It was the column's full width for a
+                    while, which put the anchor's left edge at the column's own
+                    and so opened the panel a whole day away from the pointer —
+                    and on the left-hand columns Radix then had nowhere to put
+                    it and flipped it across the screen. A point has no such
+                    edge to be wrong about. Empty and untouchable: it is an
+                    address, not a control. */}
                 {slot?.key === dayKey(day) && (
                   <BookingPopover
                     asAnchor
@@ -1022,8 +1030,9 @@ export default function Timetable({
                   >
                     <span
                       aria-hidden="true"
-                      className="pointer-events-none absolute inset-x-0"
+                      className="pointer-events-none absolute w-0"
                       style={{
+                        left: slot.x,
                         top: ((slot.minutes - WINDOW_FROM) / 60) * rowHeight,
                         height: (SLOT_MINUTES / 60) * rowHeight,
                       }}
