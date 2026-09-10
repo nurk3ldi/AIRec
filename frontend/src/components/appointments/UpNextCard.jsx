@@ -139,9 +139,26 @@ export default function UpNextCard({ bookings, timeZone }) {
             <p className="mt-3 truncate text-[17px] leading-tight font-semibold text-ink">
               {next.client}
             </p>
-            <p className="mt-0.5 truncate text-[13px] leading-tight text-ink">
-              {next.service}
-            </p>
+            {/* **The number sits under the name, because it belongs to the
+                name.** This is the one card on the page about somebody who has
+                not arrived yet, which is exactly when they get rung — "он
+                опаздывает" is answered by a call, and the alternative was
+                opening the booking to read six digits. A `tel:` link for the
+                same reason `BookingDetail` makes one: on a phone it dials, and
+                on a laptop it is still the only value here worth acting on
+                rather than only reading.
+
+                Nothing is drawn when there is no number — a client who never
+                gave one is the ordinary case, and a dash would be a place where
+                an answer is missing rather than never asked for. */}
+            {next.phone && (
+              <a
+                href={`tel:${next.phone}`}
+                className="mt-0.5 block truncate font-display text-[13px] leading-tight text-ink tabular-nums underline decoration-line underline-offset-4 outline-none transition-colors hover:decoration-current focus-visible:decoration-current"
+              >
+                {next.phone}
+              </a>
+            )}
 
             {/* **The span, whole, and it is the loudest thing on the card** —
                 the question this answers is when to expect somebody, and both
@@ -164,26 +181,14 @@ export default function UpNextCard({ bookings, timeZone }) {
                 })}
               </span>
 
-              {/* **The number, where the card had room for it.** This is the
-                  one card on the page about somebody who has not arrived yet,
-                  which is exactly when they get rung — "он опаздывает" is
-                  answered by a call, and the alternative was opening the
-                  booking to read six digits. A `tel:` link for the same reason
-                  `BookingDetail` makes one: on a phone it dials, and on a
-                  laptop it is still the only value here worth acting on rather
-                  than only reading.
-
-                  Nothing is drawn when there is no number — a client who never
-                  gave one is the ordinary case, and a dash would be a place
-                  where an answer is missing rather than never asked for. */}
-              {next.phone && (
-                <a
-                  href={`tel:${next.phone}`}
-                  className="shrink-0 font-display tabular-nums text-muted underline decoration-line underline-offset-4 outline-none transition-colors hover:text-ink focus-visible:text-ink"
-                >
-                  {next.phone}
-                </a>
-              )}
+              {/* **What they are coming for, at the foot and at full
+                  strength.** It sat under the name and moved down when the
+                  number took that place — the two are not interchangeable
+                  there: the number identifies the person above it, where the
+                  service is a fact about the span beside it. Ink rather than
+                  muted, because on this card it is one of the two things
+                  actually being said. */}
+              <span className="min-w-0 truncate text-right">{next.service}</span>
             </div>
           </m.div>
         </AnimatePresence>
