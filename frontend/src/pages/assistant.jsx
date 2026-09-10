@@ -3,7 +3,6 @@ import {
   getBusiness,
   getServices,
   getTelegram,
-  getWhatsApp,
   getWorkingHours,
 } from '../lib/api'
 import { authed } from '../lib/auth'
@@ -14,8 +13,6 @@ import SettingsCard from '../components/assistant/SettingsCard'
 import CardSkeleton from '../components/CardSkeleton'
 import { useSkeleton } from '../lib/skeleton'
 import HoursCard from '../components/assistant/HoursCard'
-import TelegramCard from '../components/assistant/TelegramCard'
-import WhatsAppCard from '../components/assistant/WhatsAppCard'
 import styles from '../styles/Assistant.module.css'
 
 /**
@@ -60,11 +57,10 @@ export default function AssistantPage() {
   const [services, setServices] = useState(null)
   const [week, setWeek] = useState(null)
   // **`undefined` is loading and `null` is "nothing connected".** Every other
-  // row here can use `null` for both because an empty list and no list look the
-  // same on screen; this one cannot, since "no number" is a real answer with a
-  // card of its own to draw.
-  const [channel, setChannel] = useState(undefined)
-  // The same three states, for the channel that came second and is now first.
+  // row here can use `null` for both, because an empty list and no list look
+  // the same on screen; this one cannot, since "no bot" is a real answer with
+  // its own thing to draw. It is handed to `SettingsCard`, which holds the
+  // channel as a section — see the note where it is rendered.
   const [telegram, setTelegram] = useState(undefined)
   // Bumped after a save. A counter rather than a boolean: two saves in a row
   // have to be two reloads, and `true → true` is no change at all.
@@ -80,8 +76,6 @@ export default function AssistantPage() {
   const barsBusiness = useSkeleton(business === null)
   const barsServices = useSkeleton(services === null)
   const barsWeek = useSkeleton(week === null)
-  const barsChannel = useSkeleton(channel === undefined)
-  const barsTelegram = useSkeleton(telegram === undefined)
 
   useEffect(() => {
     let alive = true
@@ -99,11 +93,6 @@ export default function AssistantPage() {
     authed(getTelegram)
       .then((row) => alive && setTelegram(row))
       .catch(() => alive && setTelegram(null))
-    authed(getWhatsApp)
-      .then((row) => alive && setChannel(row))
-      // Swallowed like the rest: the card then draws the not-connected state,
-      // which is what an account that has never connected one looks like too.
-      .catch(() => alive && setChannel(null))
     return () => {
       alive = false
     }
@@ -204,50 +193,16 @@ export default function AssistantPage() {
             className={`w-full sm:min-w-[320px] sm:flex-1 ${FULL}`}
           />
         ) : (
+          // **The channel goes in here, not beside it.** It had a card of its
+          // own until 2026-09-10, which put «which bot answers» on the same
+          // level as the price list and the working week. It is not on that
+          // level — it is a setting *of the assistant* — so it is a section of
+          // this card now, under a hairline.
           <SettingsCard
             business={business}
+            telegram={telegram}
             onSaved={() => setReload((n) => n + 1)}
             className={`w-full sm:min-w-[320px] sm:flex-1 ${FULL}`}
-          />
-        )}
-
-        {/* **The channels, last.** They are set up once and then never touched,
-            where everything above is edited as the business changes — so they
-            sit after the things that are actually maintained rather than
-            competing with them for the top of the page.
-
-            **Telegram first of the two**, and that is the plan rather than the
-            alphabet: it is the channel this product now leads with, and a bot
-            takes one paste where a number takes four ids and a callback URL
-            typed into somebody else's dashboard. WhatsApp stays because it is
-            built and works — see «The WhatsApp channel» in `CLAUDE.md`. */}
-        {telegram === undefined ? (
-          <CardSkeleton
-            rows={2}
-            visible={barsTelegram}
-            label={t('telegram.title')}
-            className={`w-full sm:max-w-[350px] ${FULL}`}
-          />
-        ) : (
-          <TelegramCard
-            account={telegram}
-            onSaved={() => setReload((n) => n + 1)}
-            className={`w-full sm:max-w-[350px] ${FULL}`}
-          />
-        )}
-
-        {channel === undefined ? (
-          <CardSkeleton
-            rows={2}
-            visible={barsChannel}
-            label={t('whatsapp.title')}
-            className={`w-full sm:max-w-[350px] ${FULL}`}
-          />
-        ) : (
-          <WhatsAppCard
-            account={channel}
-            onSaved={() => setReload((n) => n + 1)}
-            className={`w-full sm:max-w-[350px] ${FULL}`}
           />
         )}
       </div>

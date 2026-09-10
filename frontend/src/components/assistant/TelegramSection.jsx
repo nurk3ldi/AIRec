@@ -10,36 +10,45 @@ import { haptic } from '../../lib/haptics'
 import { useT } from '../../lib/i18n'
 import { Field } from './fields'
 import Reveal from '../Reveal'
-import { CARD_EDGE } from '../card'
 
 /**
- * The bot the assistant answers through.
+ * The bot the assistant answers through — a **section of «Настройки ассистента»**,
+ * not a card of its own.
  *
- * **On this screen and not in «Настройки»**, for the reason `WhatsAppCard`
- * gives: a bot belongs to the salon rather than to whoever is signed in, and
- * everything else the assistant needs to know is already on this page.
+ * It was its own card beside the others until 2026-09-10, which put the
+ * channel on the same level as the price list and the working week. It is not
+ * on that level: which bot carries the assistant's words is a setting *of the
+ * assistant*, and it now lives in the card that holds the rest of them, under
+ * a hairline. That is this project's own rule — «prefer a divider to a second
+ * card» — and it is why nothing here draws `CARD_EDGE` any more.
  *
- * **One field, where WhatsApp has three, and that is the channel rather than
+ * **It keeps its own `<form>` and its own save**, and that is deliberate rather
+ * than an oversight: the card above saves the business row through `PATCH
+ * /business`, while connecting a bot is `PUT /business/telegram` — a different
+ * call, a different failure, and a different verb on the button. One «Готово»
+ * covering both would be one press that can half-succeed. Two forms side by
+ * side inside one card is also why `SettingsCard`'s outer element is a `div`:
+ * a form inside a form is not valid HTML.
+ *
+ * **One field, where WhatsApp had three, and that is the channel rather than
  * the design.** A bot token already contains the bot's id; `getMe` supplies the
  * username; and the server registers the webhook itself with the token it was
  * just given. There is nothing left for the owner to paste — connecting is
  * @BotFather → copy → paste → Подключить.
  *
- * **The token is write-only here too**, but for a different reason, and the
- * difference shows in the field. The API never sends it back either way; on
- * WhatsApp an empty box therefore means "keep the stored one", because finding
- * that token again is a trip through Meta's dashboard. @BotFather hands a bot
- * token back on request, so there is nothing to preserve and no "keep it"
- * state to explain — reconnecting simply asks for it again.
+ * **The token is write-only, and an empty box means nothing is kept.** The API
+ * never sends it back; @BotFather hands a bot token over again whenever it is
+ * asked, so there is nothing to preserve and no "keep the stored one" state to
+ * explain — reconnecting simply asks for it again.
  *
- * **`webhook_active` is the one thing this card says that WhatsApp's cannot.**
- * A deployment with no public address cannot register a webhook, so the token
- * is stored and nothing arrives — a state that looks identical to "connected"
- * from the outside and is not. The card says so rather than letting the owner
- * wait for messages that were never going to come.
+ * **`webhook_active` is the one thing this says that a WhatsApp card could
+ * not.** A deployment with no public address cannot register a webhook, so the
+ * token is stored and nothing arrives — a state that looks identical to
+ * "connected" from the outside and is not. It says so rather than letting the
+ * owner wait for messages that were never going to come.
  */
 
-export default function TelegramCard({ account, onSaved, className = '' }) {
+export default function TelegramSection({ account, onSaved, className = '' }) {
   const t = useT()
   const [token, setToken] = useState('')
   const [editing, setEditing] = useState(false)
@@ -96,21 +105,22 @@ export default function TelegramCard({ account, onSaved, className = '' }) {
   }
 
   return (
-    <form
-      onSubmit={save}
-      className={`flex flex-col ${CARD_EDGE} p-4 ${className}`}
-    >
+    <form onSubmit={save} className={`flex flex-col ${className}`}>
+      {/* 11px uppercase muted — the group-heading step this project uses inside
+          a card, not the 15px semibold of a card title: the card is already
+          named «Настройки ассистента» above, and a second heading at that
+          weight would read as two cards in one box. */}
       <div className="flex shrink-0 items-center justify-between gap-3">
-        <h2 className="min-w-0 truncate font-display text-[15px] font-semibold text-ink">
+        <p className="min-w-0 truncate text-[11px] tracking-wide text-muted uppercase">
           {t('telegram.title')}
-        </h2>
+        </p>
         <Reveal open={connected && !editing} axis="x">
           <button
             type="button"
             onClick={() => setEditing(true)}
             className="h-10 shrink-0 rounded-full px-2.5 text-[13px] font-medium text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97] sm:h-8"
           >
-            {t('assistant.edit')}
+            {t('telegram.replace')}
           </button>
         </Reveal>
       </div>
@@ -119,7 +129,7 @@ export default function TelegramCard({ account, onSaved, className = '' }) {
           once a bot answers, what the owner comes back to check is that it
           still does. */}
       {connected && !editing ? (
-        <div className="mt-4 flex min-w-0 items-start gap-2">
+        <div className="mt-3 flex min-w-0 items-start gap-2">
           <HugeiconsIcon
             icon={account.webhook_active ? CheckmarkCircle02Icon : Alert02Icon}
             size={18}
@@ -143,7 +153,7 @@ export default function TelegramCard({ account, onSaved, className = '' }) {
           </div>
         </div>
       ) : (
-        <div className="mt-4 flex flex-col gap-3">
+        <div className="mt-3 flex flex-col gap-3">
           {/* Say where the token comes from before asking for it — nobody has
               a bot token to hand, and the answer is three taps in Telegram. */}
           {!connected ? (

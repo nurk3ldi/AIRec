@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 AIRec is an AI-receptionist product, split into two independent apps with no root `package.json` — always run commands from inside `frontend/` or `backend/`:
 
 - `frontend/` — React + Vite + Tailwind SPA (**no Next.js**; migrated 2026-08-18). **The auth flow, the profile overlay, `/appointments`, `/notes`, `/assistant` and `/inbox` have UI.** `/dashboard` is a deliberately empty page ground while it is built again, and the desktop landing page is still empty; `/notifications` has a real empty state and no backend behind it. The backend under all of them — the business profile, the bookings and the conversations — is finished and untouched by any of that.
-- `backend/` — FastAPI service. Authentication and account profile, the business profile (services, working hours, logo) and bookings (`/appointments` CRUD, `/appointments/slots`, archive) are implemented and verified end-to-end against PostgreSQL 18. **Two channels are wired end-to-end**: Telegram (a bot token, a per-bot webhook secret, the webhook registered by the server itself) and WhatsApp (a signed webhook, real outbound sending and delivery receipts). Telegram is the one the product leads with as of 2026-09-10; WhatsApp stays because it is built and works. Not built: schedule overrides, a clients table, the assistant actually composing a reply, and any test suite.
+- `backend/` — FastAPI service. Authentication and account profile, the business profile (services, working hours, logo) and bookings (`/appointments` CRUD, `/appointments/slots`, archive) are implemented and verified end-to-end against PostgreSQL 18. **Two channels are wired end-to-end**: Telegram (a bot token, a per-bot webhook secret, the webhook registered by the server itself) and WhatsApp (a signed webhook, real outbound sending and delivery receipts). **Only Telegram has a UI** — its card was removed from `/assistant` on 2026-09-10 when the plan changed to lead with Telegram; the WhatsApp backend is untouched and comes back to a card later. Not built: schedule overrides, a clients table, the assistant actually composing a reply, and any test suite.
 
 **Auth is wired end-to-end**, including refresh rotation. `login.jsx` and `signup.jsx` call `backend/`'s `/api/v1/auth/*` through `frontend/src/lib/api.js`; tokens land in `localStorage` or `sessionStorage` via `frontend/src/lib/auth.js`, depending on «Запомнить меня». `DashboardLayout` calls `useRequireAuth()`, which calls `verifySession()` — a real server round trip: `GET /auth/me` with the stored access token, and on any failure (expired, invalid, backend momentarily unreachable) a fallback `POST /auth/refresh` with the stored refresh token before giving up. Only if both fail does it clear tokens and redirect to `/login`; it renders nothing while that check is in flight, so protected content never flashes on screen. `login.jsx`/`signup.jsx` run the same `verifySession()` via `useRedirectIfAuthed()` to bounce a visitor with a live session straight to `/dashboard`. `components/ProfileMenu.jsx` holds the only sign-out control, which calls `/auth/logout` best-effort then clears local tokens regardless.
 
@@ -764,11 +764,13 @@ The layering is the one the WhatsApp section describes, and that is the point: `
 
 *There is no 24-hour window.* A bot may write whenever it likes — to somebody who has pressed Start. Before that there is no chat at all, which is a different refusal (`chat not found`) and worded as one in `_ERROR_MESSAGES`. That is also why `_deliver_telegram` has **no fallback address**: WhatsApp can reduce a typed number to digits because a number is an address there, while a bot can only write into a chat that already exists — so `external_id` *is* the address, and a thread without one has nowhere to send.
 
-**Connecting is one paste, and the server does the rest.** `PUT /business/telegram` takes a bot token and nothing else: the token already contains the bot's id, `getMe` supplies the username *and* is the only way to know the token is real (checked before anything is stored, while the owner is still looking at the field), and `setWebhook` is a call we can make ourselves. That removes the whole "type a callback URL into Meta's dashboard" step WhatsApp needs. The token is **required** here, unlike WhatsApp's, because @BotFather hands a bot token back whenever it is asked — so an empty field has no "keep the stored one" to mean.
+**The channel is a section of «Настройки ассистента», not a card of its own** (`components/assistant/TelegramSection.jsx`, rendered by `SettingsCard`). It had a card beside the price list until 2026-09-10, which put "which bot answers" on the same level as the working week; it is not on that level — it is a setting *of the assistant*. Two things follow. `SettingsCard`'s outer element is a **`div`**, because the section keeps its own `<form>` (the card above saves the business row through `PATCH /business`, connecting a bot is `PUT /business/telegram` — one «Готово» covering both is one press that can half-succeed) and a form inside a form is not valid HTML. And its button says **«Заменить»** rather than «Редактировать»: two identically-labelled buttons in one card are two that look like the same action and are not.
+
+**`connect` verifies before it stores.** `PUT /business/telegram` takes a bot token and nothing else: the token already contains the bot's id, `getMe` supplies the username *and* is the only way to know the token is real (checked before anything is stored, while the owner is still looking at the field), and `setWebhook` is a call we can make ourselves. That removes the whole "type a callback URL into Meta's dashboard" step WhatsApp needs. The token is **required** here, unlike WhatsApp's, because @BotFather hands a bot token back whenever it is asked — so an empty field has no "keep the stored one" to mean.
 
 **`PUBLIC_BASE_URL` is what a webhook needs and its absence is an ordinary state.** With it unset, connecting still verifies and stores the token and `webhook_set_at` stays NULL; the card says the channel cannot receive yet rather than showing a connection that quietly receives nothing. Set it (`https://<id>.ngrok-free.app` in dev), save the bot again, and the webhook is registered on that save. It is deliberately **not** derived from the request: a webhook URL outlives the request that set it, so reading it off a `Host` header would let a proxy or a stray `curl` decide where a client's messages go.
 
-**Pointing Telegram at a dev machine:** `ngrok http 8000`, put that origin in `PUBLIC_BASE_URL`, restart the backend, paste the token from @BotFather into the «Telegram» card on `/assistant`, and press Подключить. Nothing has to be configured on Telegram's side.
+**Pointing Telegram at a dev machine:** `ngrok http 8000`, put that origin in `PUBLIC_BASE_URL`, restart the backend, paste the token from @BotFather into the **Telegram section of «Настройки ассистента»** on `/assistant`, and press Подключить. Nothing has to be configured on Telegram's side.
 
 Parsing is deliberately narrow. `parse()` **never raises** — a bot receives edits, channel posts, join requests, poll answers and callback presses on the same subscription, and an update it cannot stop sending is worse than one we ignore — and it returns `None` for everything that is not a private-chat message. Groups are skipped because a thread here is one client. **Edits are skipped rather than applied**: Telegram sends the new text with the *original* `message_id`, so applying it would rewrite a line the owner has already read and answered. Media becomes the same bracketed placeholder plus caption WhatsApp uses. A shared contact becomes the client's number **only when `contact.user_id` is the sender's own id** — a card forwarded into the chat belongs to somebody else and must not become this client's number.
 
@@ -866,15 +868,24 @@ two things, and dropping the first leaves the second answering nothing. A button
 or list reply is recorded as the text the client *chose*, which is what they
 meant to send.
 
-**Pointing Meta at a dev machine:** `ngrok http 8000`, set the callback to
-`https://<id>.ngrok-free.app/api/v1/webhooks/whatsapp` with the same verify
-token as `WHATSAPP_VERIFY_TOKEN`, subscribe to the `messages` field, and paste
-the number's `phone_number_id` and access token into the **«WhatsApp» card on
-`/assistant`**. That card is on that screen and not in «Настройки» because a
-number belongs to the salon rather than to whoever is signed in. It asks for two
-ids rather than offering a Meta login button: Embedded Signup needs a reviewed
-app, the Facebook JS SDK on the page and a server token exchange, and the card is
-where that button goes the day it exists.
+**The channel has no UI as of 2026-09-10.** `WhatsAppCard` was removed from
+`/assistant` whole, along with its ten `whatsapp.*` keys in every locale; it is
+in git history. The plan changed — Telegram is the channel this product leads
+with and WhatsApp comes back after it — and a card for connecting a number
+nobody is being asked to connect is a screen making a promise the roadmap has
+not kept. **Everything under it is untouched and works**: the model, the
+signed webhook, sending, receipts, and `getWhatsApp` / `connectWhatsApp` /
+`disconnectWhatsApp` in `lib/api.js`, which stay for the same reason
+`listConversations` stayed through three empty inboxes — the screen gets
+rewritten, the data layer does not. Putting it back is a card and ten strings.
+
+**Pointing Meta at a dev machine, when there is a UI again:** `ngrok http 8000`,
+set the callback to `https://<id>.ngrok-free.app/api/v1/webhooks/whatsapp` with
+the same verify token as `WHATSAPP_VERIFY_TOKEN`, subscribe to the `messages`
+field, and `PUT /business/whatsapp` with the number's `phone_number_id` and
+access token. It asks for ids rather than offering a Meta login button:
+Embedded Signup needs a reviewed app, the Facebook JS SDK on the page and a
+server token exchange, and that is where the button goes the day it exists.
 
 ### Messages the API returns
 **Russian is the source language and it lives in the code**, exactly as on the frontend. An `AppError` carries its Russian `message`, a `field_validator` raises Russian prose, and both read where they are written. `app/core/i18n.py` holds `kk` and `en` **keyed by the Russian string** — Russian is deliberately absent, because it is what a missed lookup returns, and listing it would be the same text in two places free to disagree.

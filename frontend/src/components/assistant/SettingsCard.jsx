@@ -5,6 +5,7 @@ import { SERVICE_LANGUAGES } from '../../lib/businessOptions'
 import { haptic } from '../../lib/haptics'
 import { useT } from '../../lib/i18n'
 import { Chips, Field } from './fields'
+import TelegramSection from './TelegramSection'
 import Reveal from '../Reveal'
 import { CARD_EDGE } from '../card'
 
@@ -37,7 +38,15 @@ const formOf = (business) => ({
     .filter(Boolean),
 })
 
-export default function SettingsCard({ business, onSaved, className = '' }) {
+export default function SettingsCard({
+  business,
+  // The connected bot, or `null`, or `undefined` while it is still being read.
+  // It arrives here rather than being fetched inside, for the reason every
+  // other card on this page takes its row as a prop: one screen, one read.
+  telegram,
+  onSaved,
+  className = '',
+}) {
   const t = useT()
   const [form, setForm] = useState(() => formOf(business))
   const [saving, setSaving] = useState(false)
@@ -103,13 +112,20 @@ export default function SettingsCard({ business, onSaved, className = '' }) {
   }
 
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault()
-        done()
-      }}
-      className={`flex flex-col ${CARD_EDGE} p-4 ${className}`}
-    >
+    // **A `div`, not a `form`, and the channel below is why.** Connecting a bot
+    // is its own save against its own endpoint, so it keeps its own `<form>` —
+    // and a form inside a form is not valid HTML. The two sit as siblings
+    // inside one card, divided by a hairline: this project's own answer to
+    // grouping, and cheaper than a second card for something that is a setting
+    // of the assistant rather than a subject beside it.
+    <div className={`flex flex-col ${CARD_EDGE} p-4 ${className}`}>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault()
+          done()
+        }}
+        className="flex flex-col"
+      >
       <div className="flex shrink-0 items-center justify-between gap-3">
         <h2 className="min-w-0 truncate font-display text-[15px] font-semibold text-ink">
           {t('assistant.settings')}
@@ -162,7 +178,26 @@ export default function SettingsCard({ business, onSaved, className = '' }) {
           readOnly={!editing}
         />
       </div>
+      </form>
 
-    </form>
+      {/* **The channel, under a line.** Which bot carries the assistant's words
+          is a setting of the assistant, so it belongs in this card rather than
+          in one of its own beside the price list — but it is a different
+          subject from the two fields above, and a line is what says so.
+
+          Nothing is drawn while the row is still being read: a section that
+          appears a moment later moves the card under the cursor, where an empty
+          strip of the card's own ground does not. */}
+      {telegram === undefined ? null : (
+        <>
+          <div className="mt-4 h-px shrink-0 bg-line" />
+          <TelegramSection
+            account={telegram}
+            onSaved={onSaved}
+            className="mt-4"
+          />
+        </>
+      )}
+    </div>
   )
 }
