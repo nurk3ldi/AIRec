@@ -157,11 +157,34 @@ export default function UpNextCard({ bookings, timeZone }) {
                 on. It is the half of "who is next" that a time of day does not
                 answer on its own — twenty minutes and two hours read the same
                 until they are subtracted. */}
-            <p className="mt-1.5 text-[13px] font-medium text-ink">
-              {t('appointments.startsIn', {
-                time: formatDuration(next.start - minute),
-              })}
-            </p>
+            <div className="mt-1.5 flex items-center justify-between gap-3 text-[13px] font-medium text-ink">
+              <span>
+                {t('appointments.startsIn', {
+                  time: formatDuration(next.start - minute),
+                })}
+              </span>
+
+              {/* **The number, where the card had room for it.** This is the
+                  one card on the page about somebody who has not arrived yet,
+                  which is exactly when they get rung — "он опаздывает" is
+                  answered by a call, and the alternative was opening the
+                  booking to read six digits. A `tel:` link for the same reason
+                  `BookingDetail` makes one: on a phone it dials, and on a
+                  laptop it is still the only value here worth acting on rather
+                  than only reading.
+
+                  Nothing is drawn when there is no number — a client who never
+                  gave one is the ordinary case, and a dash would be a place
+                  where an answer is missing rather than never asked for. */}
+              {next.phone && (
+                <a
+                  href={`tel:${next.phone}`}
+                  className="shrink-0 font-display tabular-nums text-muted underline decoration-line underline-offset-4 outline-none transition-colors hover:text-ink focus-visible:text-ink"
+                >
+                  {next.phone}
+                </a>
+              )}
+            </div>
           </m.div>
         </AnimatePresence>
       )}
