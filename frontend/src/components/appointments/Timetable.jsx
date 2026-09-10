@@ -39,6 +39,15 @@ import { useT } from '../../lib/i18n'
 
 const ROW_MINUTES = 90
 /**
+ * The step a double click on empty grid lands on.
+ *
+ * Not a rule about bookings — the owner may write 14:07 and the panel will take
+ * it. It is a rule about *pointing*: a press is a coarse gesture and the minute
+ * under it is noise, where the quarter hour is the unit anybody says out loud.
+ * The same quarter the server generates client-facing slots on.
+ */
+const SLOT_MINUTES = 15
+/**
  * **How much of the day is on screen at once — and the hour's height is derived
  * from it, not the other way round.**
  *
@@ -290,6 +299,53 @@ export default function Timetable({
    * for one frame, guessing narrow blanks every card until the observer lands.
    */
   const [columnWidth, setColumnWidth] = useState(LANE_WIDTH)
+
+  /**
+   * The empty spot on the grid somebody double-clicked, and whether the panel
+   * it opened is still up.
+   *
+   * **Two states rather than one**, and the second is why: closing is Radix
+   * seeing `open` go false, and `PANEL_MOTION`'s exit hangs off the frame that
+   * follows. Unmounting the anchor at the same moment would take the panel with
+   * it and the close would be a blink. `slot` therefore outlives `adding` — the
+   * next double click replaces it, and nothing is looking at it meanwhile,
+   * since the anchor it renders is an empty box with no pointer events.
+   *
+   * `{ key, minutes }`: the day as its own `YYYY-MM-DD` string rather than a
+   * `Date`, because that is what the panel's date field speaks and what the
+   * column is matched against below.
+   */
+  const [slot, setSlot] = useState(null)
+  const [adding, setAdding] = useState(false)
+
+  /**
+   * Which minute of the day a press landed on.
+   *
+   * The rows are what is measured, not the column: a booking card is
+   * absolutely positioned over the column and a row is behind it, so a press
+   * that reaches a row is a press on **empty grid** by construction — no test
+   * against the target, and a card's own double click cannot arrive here.
+   *
+   * Rounded **down** to the quarter hour. A double click points at a band, not
+   * at a minute, and the nearest-quarter answer moves under the pointer at the
+   * halfway line; flooring means the time named is always the one above where
+   * the pointer was. It is a starting value in a field the owner can retype —
+   * the panel does not hold bookings to the grid, see the `SLOT_MINUTES` note.
+   */
+  const minuteAt = (event, rowStart) => {
+    const box = event.currentTarget.getBoundingClientRect()
+    const into = ((event.clientY - box.top) / box.height) * ROW_MINUTES
+    return rowStart + Math.floor(into / SLOT_MINUTES) * SLOT_MINUTES
+  }
+
+  const openSlot = (day, minute) => {
+    setSlot({ key: dayKey(day), minutes: minute })
+    setAdding(true)
+    // The panel writes for the day it was opened on, so the page follows it
+    // there — the grid reloads the week around `selected`, and a booking
+    // written onto Thursday from a screen showing Monday has to land in view.
+    onSelect?.(day)
+  }
 
   /**
    * True while the pull's 300ms height transition is in flight.
@@ -839,7 +895,28 @@ export default function Timetable({
                   // grid, and the cards on it have edges of their own to be read
                   // against. The rows stay — they are what gives the column its
                   // height — they simply draw nothing.
-                  <div key={minute} style={{ height: rowSpan }} />
+                  //
+                  // **They are also where a booking is started.** A double
+                  // click on empty grid opens the panel on that day and hour —
+                  // the same gesture that opens a booking, which is right,
+                  // because a calendar is asked the same question either way:
+                  // what is at this point in the week. The single click stays
+                  // held back for selecting a card, as it always was.
+                  //
+                  // Listening here rather than on the column is what makes
+                  // "empty" true without testing for it: cards are absolutely
+                  // positioned siblings of these rows, so a press that reaches
+                  // a row never touched one. Closed hours are hatched with
+                  // `pointer-events-none` over the top and so are reachable,
+                  // deliberately — somebody was fitted in after closing, and
+                  // the panel warns about the hour rather than refusing it.
+                  <div
+                    key={minute}
+                    style={{ height: rowSpan }}
+                    onDoubleClick={(event) =>
+                      openSlot(day, minuteAt(event, minute))
+                    }
+                  />
                 ))}
 
                 {/* **Lane rules, in the day view only.** With one column and
@@ -925,6 +1002,34 @@ export default function Timetable({
                     />
                   ))}
                 </AnimatePresence>
+
+                {/* **The panel for a slot started on this column.** One is
+                    mounted at a time — `slot.key` names a single day — and it
+                    hangs off a box drawn at the hour that was pressed, so it
+                    arrives beside the spot rather than beside the toolbar.
+                    Empty and untouchable: it is an address, not a control. */}
+                {slot?.key === dayKey(day) && (
+                  <BookingPopover
+                    asAnchor
+                    open={adding}
+                    onOpenChange={setAdding}
+                    preset={{ day: slot.key, from: fromMinutes(slot.minutes) }}
+                    onDayChange={onSelect}
+                    services={services}
+                    week={week}
+                    timeZone={timeZone}
+                    onSaved={onSaved}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-x-0"
+                      style={{
+                        top: ((slot.minutes - WINDOW_FROM) / 60) * rowHeight,
+                        height: (SLOT_MINUTES / 60) * rowHeight,
+                      }}
+                    />
+                  </BookingPopover>
+                )}
               </m.div>
             )
           })}
