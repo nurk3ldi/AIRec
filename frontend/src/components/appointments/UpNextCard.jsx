@@ -68,12 +68,18 @@ export default function UpNextCard({ bookings, timeZone }) {
           {t('appointments.upNextEmpty')}
         </p>
       ) : (
-        // **A card each, not rows under one rule.** A hairline says "these are
-        // parts of one thing", which a schedule is — but a queue is read one
-        // entry at a time, and giving each its own block is what lets the eye
-        // stop on the next name instead of scanning a table. The list scrolls;
-        // the card does not grow.
-        <div className="mt-2 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+        // **Rows under one rule, not a card each.** They were filled blocks
+        // with a radius, which is the shape this project gives an *object* —
+        // and inside a card that is a card on a card, three of them stacked
+        // where every one is the same kind of thing. A queue is one list, and a
+        // hairline is what says so: it separates without drawing a box, and the
+        // names then read as a column the eye runs down rather than as three
+        // things to look at in turn.
+        //
+        // The rows lose their own horizontal padding with the fill, so they
+        // start where «ДАЛЬШЕ» starts and the rules run the full width of the
+        // card's inside. The list scrolls; the card does not grow.
+        <div className="mt-1 flex min-h-0 flex-1 flex-col divide-y divide-line overflow-y-auto">
           {/* **Leaving is what this animates, and it is the only reason to.**
               A booking's start slips into the past and it drops out of the
               queue on its own, with nobody touching anything — the one change
@@ -93,7 +99,7 @@ export default function UpNextCard({ bookings, timeZone }) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: reduce ? 0 : 0.16, ease: 'easeOut' }}
-                className="flex shrink-0 items-start gap-3 rounded-xl bg-ink/[0.06] px-3 py-2.5"
+                className="flex shrink-0 items-start gap-3 py-2.5"
               >
                 <div className="min-w-0 flex-1">
                   {/* The first is the one about to happen, so it is the one that
