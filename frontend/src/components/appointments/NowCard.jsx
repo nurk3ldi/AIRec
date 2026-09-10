@@ -107,7 +107,13 @@ export default function NowCard({ bookings, timeZone }) {
               now,
             )}
           </p>
-          <p className="mt-1.5 flex items-center justify-between gap-2 text-[12px] text-muted">
+          {/* **Ink, not muted, and a step larger.** This line is the label on
+              the number above it and the span it is counted against — grey at
+              12px under a 32px figure read as a caption somebody could skip,
+              and the one thing nobody can skip here is what the countdown is
+              counting to. 13 against 32 is the pairing the type scale wants;
+              12 was one step off the service line above it as well. */}
+          <p className="mt-1.5 flex items-center justify-between gap-2 text-[13px] font-medium text-ink">
             <span>
               {t(
                 current.open
@@ -115,7 +121,7 @@ export default function NowCard({ bookings, timeZone }) {
                   : 'appointments.remaining',
               )}
             </span>
-            <span className="font-display font-medium tabular-nums">
+            <span className="font-display font-semibold tabular-nums">
               {current.range}
             </span>
           </p>
