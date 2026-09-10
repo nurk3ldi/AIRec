@@ -89,18 +89,44 @@ export default function NowCard({ bookings, timeZone }) {
 
       {current ? (
         <div className="flex min-h-0 flex-1 flex-col">
-          <p className="mt-3 truncate text-[17px] leading-tight font-semibold text-ink">
-            {current.client}
-          </p>
-          <p className="mt-0.5 truncate text-[13px] leading-tight text-ink">
-            {current.service}
-          </p>
+          {/* **Who, and the span they hold, on one line.** The span is a fact
+              about this booking rather than about the countdown, so it belongs
+              beside the name instead of under a number it was only ever the
+              scale for — and the card beside it says who is next the same way,
+              which is what makes the two read as one row rather than as two
+              layouts.
+
+              `items-baseline`: 17px and 13px centred against each other sit on
+              two different lines and read as a misalignment. */}
+          <div className="mt-3 flex items-baseline justify-between gap-3">
+            <p className="min-w-0 truncate text-[17px] leading-tight font-semibold text-ink">
+              {current.client}
+            </p>
+            <span className="shrink-0 font-display text-[13px] leading-tight font-semibold text-ink tabular-nums">
+              {current.range}
+            </span>
+          </div>
+
+          {/* **The number, under the name it belongs to.** Somebody is in the
+              chair, and the call this card is opened for is the one that says
+              they are running over or that the next client is at the door. A
+              `tel:` link for the same reason `BookingDetail` makes one: on a
+              phone it dials, and on a laptop it is still the only value here
+              worth acting on rather than only reading. Nothing is drawn where
+              there is no number. */}
+          {current.phone && (
+            <a
+              href={`tel:${current.phone}`}
+              className="mt-0.5 block truncate font-display text-[13px] leading-tight text-ink tabular-nums underline decoration-line underline-offset-4 outline-none transition-colors hover:decoration-current focus-visible:decoration-current"
+            >
+              {current.phone}
+            </a>
+          )}
 
           {/* **The countdown is the largest thing on the card**, because it is
-              the only part that changes while you look at it. The span under it
-              is what the number is counted against — a timer with no end time
-              beside it is a number you have to trust. */}
-          {/* **With no end it counts up instead of down.** There is nothing to
+              the only part that changes while you look at it.
+
+              **With no end it counts up instead of down.** There is nothing to
               count towards, and a dash here would leave the card's largest
               element saying nothing on the one booking that is happening. Time
               since the client sat down is the answer to the same question the
@@ -112,24 +138,29 @@ export default function NowCard({ bookings, timeZone }) {
               now,
             )}
           </p>
-          {/* **Ink, not muted, and a step larger.** This line is the label on
-              the number above it and the span it is counted against — grey at
-              12px under a 32px figure read as a caption somebody could skip,
-              and the one thing nobody can skip here is what the countdown is
-              counting to. 13 against 32 is the pairing the type scale wants;
-              12 was one step off the service line above it as well. */}
-          <p className="mt-1.5 flex items-center justify-between gap-2 text-[13px] font-medium text-ink">
-            <span>
+
+          {/* **What the number is, and what they are here for.** Ink rather
+              than muted on both: a label grey at 12px under a 32px figure read
+              as a caption somebody could skip, and the one thing nobody can
+              skip is what the countdown is counting. 13 against 32 is the
+              pairing the type scale wants.
+
+              The service is at the far end of this line and so at the card's
+              own bottom-right corner — the last thing said about a booking
+              already under way, which is the right weight for it: who is in the
+              chair and how long is left are what this card is opened for. */}
+          <div className="mt-1.5 flex items-baseline justify-between gap-3 text-[13px] font-medium text-ink">
+            <span className="shrink-0">
               {t(
                 current.open
                   ? 'appointments.elapsed'
                   : 'appointments.remaining',
               )}
             </span>
-            <span className="font-display font-semibold tabular-nums">
-              {current.range}
+            <span className="min-w-0 truncate text-right">
+              {current.service}
             </span>
-          </p>
+          </div>
         </div>
       ) : (
         // Centred rather than sitting under the heading: an empty card that
