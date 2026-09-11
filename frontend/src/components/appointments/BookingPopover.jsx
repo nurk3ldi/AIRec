@@ -751,10 +751,20 @@ export default function BookingPopover({
                     {t('appointments.cancel')}
                   </button>
 
+                  {/* **The accent, which on this panel is the one thing that
+                      earns it.** It wore `surface-chip` — a step up from the
+                      panel, the same lift the toolbar's segmented control takes
+                      — and that is right for a *switch*, which says which of
+                      two views is chosen, and wrong here: this is the action
+                      the whole form exists to perform, and the only press on
+                      the panel that changes anything outside it. `text-surface`
+                      and never `text-white`: the accent is white on the dark
+                      theme and black on the light one, so the label has to be
+                      whatever the page is. */}
                   <button
                     type="submit"
                     disabled={saving}
-                    className="h-10 flex-1 rounded-xl bg-surface-chip px-3 text-[14px] font-semibold text-ink outline-none transition-[opacity,scale] hover:opacity-85 focus-visible:opacity-85 disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.97]"
+                    className="h-10 flex-1 rounded-xl bg-accent px-3 text-[14px] font-semibold text-surface outline-none transition-[opacity,scale] hover:opacity-85 focus-visible:opacity-85 disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.97]"
                   >
                     {saving ? t('appointments.saving') : t('appointments.save')}
                   </button>
