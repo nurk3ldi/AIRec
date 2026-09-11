@@ -11,6 +11,7 @@ import {
   BOOKING_STATES,
   byStart,
   cardFill,
+  cardInk,
   endOf,
   formatPrice,
   fromMinutes,
@@ -1253,11 +1254,16 @@ function BookingBlock({
         }`}
         style={{
           // **Every card is the same grey, unless the owner marked this one** —
-          // see `statusTone` for where the *status* is said instead, which is a
-          // word and never the fill. A colour picked in the panel tints the
-          // card here; a colour handed out automatically does not reach this
-          // screen at all. `cardFill` holds both halves of that rule.
+          // a colour picked in the panel is painted here exactly as the swatch
+          // showed it, and a colour handed out automatically never reaches this
+          // screen. `cardFill` holds both halves of that rule.
           backgroundColor: cardFill(block.color),
+          // **What is written on a marked card follows the fill, not the
+          // theme.** `--ink` is white on one side and near-black on the other,
+          // and neither survives all eight colours; the card is the same colour
+          // in both themes, so its text has to be too. `null` on an unmarked
+          // card, where the tokens below are right and nothing is overridden.
+          color: cardInk(block.color),
           top,
           height,
           // **Fixed lanes in the day view, shares of the column in the week.**
@@ -1297,7 +1303,12 @@ function BookingBlock({
           // never heard of should look like.
           <p
             className={`flex items-center gap-1.5 truncate text-[12px] leading-none font-medium ${
-              statusTone(block.status)
+              // **A marked card gives up the status colour.** Green for "done"
+              // on a fuchsia fill is one colour argued against another, and the
+              // fill is the one the owner chose deliberately. The word stays,
+              // a step quieter than the name, and the dot goes with it —
+              // `bg-current` already follows whatever this line is.
+              block.color ? 'opacity-80' : statusTone(block.status)
             }`}
           >
             {/* `currentColor`, so the dot and the word are the same statement
@@ -1321,9 +1332,9 @@ function BookingBlock({
           its padding — where 13px fits it whole. A name shown smaller is still
           the name; a name shown as «Nur…» is not. */}
         <p
-          className={`truncate leading-tight font-semibold text-ink ${
-            width >= CARD_WIDTH.LABEL ? 'text-[15px]' : 'text-[13px]'
-          }`}
+          className={`truncate leading-tight font-semibold ${
+            block.color ? '' : 'text-ink'
+          } ${width >= CARD_WIDTH.LABEL ? 'text-[15px]' : 'text-[13px]'}`}
         >
           {block.client}
         </p>
@@ -1334,7 +1345,11 @@ function BookingBlock({
           // carried by weight instead — the name is semibold, this is not — which
           // survives being read at arm's length where a difference of two greys
           // does not.
-          <p className="truncate text-[13px] leading-tight text-ink">
+          <p
+            className={`truncate text-[13px] leading-tight ${
+              block.color ? '' : 'text-ink'
+            }`}
+          >
             {block.service}
           </p>
         )}
@@ -1344,11 +1359,18 @@ function BookingBlock({
           // foot is what it costs, and on a booking that runs three hours the
           // two should not both be huddled at the top.
           <p className="mt-auto flex items-center justify-between gap-2 truncate pt-2 text-[12px] leading-none">
-            <span className="font-display font-medium text-ink">
+            <span
+              className={`font-display font-medium ${block.color ? '' : 'text-ink'}`}
+            >
               {width >= CARD_WIDTH.RANGE ? block.range : block.from}
             </span>
             {width >= CARD_WIDTH.LABEL && (
-              <span className="shrink-0 text-muted">
+              // Muted is a grey, and a grey on a painted card is a smudge. The
+              // price steps back by opacity there instead, which works against
+              // any of the eight.
+              <span
+                className={`shrink-0 ${block.color ? 'opacity-70' : 'text-muted'}`}
+              >
                 {formatPrice(block.price)}
               </span>
             )}

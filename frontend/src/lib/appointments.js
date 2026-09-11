@@ -165,43 +165,61 @@ export const BOOKING_TINTS = {
 }
 
 /**
- * How much of the chosen hue reaches the card it tints, as a percentage.
+ * What a booking's card is filled with — its mark, exactly as the swatch shows
+ * it, or the ordinary card grey.
  *
- * **One number, so a swatch and the card it produces cannot disagree** — it was
- * two literals in two files, which is exactly the pair that drifts.
- *
- * 32, down from 38 when the palette became the saturated set. Both were checked
- * the same way, by rendering all eight mixed into `surface-card` in both themes
- * with a card's real lines on top: at 38 the muted second line starts to go on
- * gold and orange, at 24 the tint is a wash you have to already know about, and
- * 32 is where a colour is named at a glance while the card still reads as
- * *tinted* rather than painted. Ink legibility is the ceiling that decides
- * this, not taste.
- */
-export const BOOKING_TINT_MIX = 32
-
-/**
- * What a booking's card is filled with — its mark mixed into the ordinary card
- * grey, or that grey alone.
+ * **The hex itself, not a mix of it.** It was `color-mix(… 32%, surface-card)`
+ * for a day, which made a card that was recognisably *related* to the colour
+ * picked and never the same colour — indigo came out slate, fuchsia came out
+ * plum, and the swatch in the panel and the card on the grid disagreed about
+ * what the owner had chosen. A mark whose whole job is to be matched against
+ * another mark cannot be a shade of itself.
  *
  * **Only a colour the owner chose paints a card.** The automatic one is a dot
  * on a list and stops there: a week of coloured blocks is a week that looks
  * like something is happening, which is the argument that took per-booking
- * colour off this grid in the first place, and it applies exactly as much to a
+ * colour off the grid in the first place, and it applies exactly as much to a
  * hue nobody asked for. A mark the owner put on three bookings is the opposite
- * — they are the three worth spotting, and the fill is what makes them
- * spottable from across a week.
- *
- * `color-mix` in oklab, not an alpha: the card sits on a grid that is hatched
- * under a closed hour, and a translucent fill would let those stripes through.
- * Mixed against `--color-surface-card`, so the same name comes out a deep tint
- * on the dark theme and a pastel on the light one without either being written
- * down twice.
+ * — they are the three worth spotting.
  */
 export const cardFill = (color) =>
-  BOOKING_TINTS[color]
-    ? `color-mix(in oklab, ${BOOKING_TINTS[color]} ${BOOKING_TINT_MIX}%, var(--color-surface-card))`
-    : 'var(--color-surface-card)'
+  BOOKING_TINTS[color] ?? 'var(--color-surface-card)'
+
+/**
+ * What to write on that fill — white or the ink, whichever the colour can
+ * carry, and `null` on an unmarked card so it keeps the theme's own tokens.
+ *
+ * **Painting the card at full strength is what makes this necessary.** `--ink`
+ * is white on the dark theme and near-black on the light one, and neither
+ * survives all eight: white on gold is 2.2:1 and black on indigo is 2.6:1, both
+ * unreadable. A marked card is the same colour in both themes, so what is
+ * written on it cannot follow the theme either — it follows the fill.
+ *
+ * The test is the WCAG contrast ratio of each candidate against the fill, which
+ * comes out four cards in white and four in black. That the eight are not
+ * uniform is a fact about the colours rather than a wrinkle to smooth over:
+ * gold and white is the pairing nobody can read.
+ */
+export function cardInk(color) {
+  const hex = BOOKING_TINTS[color]
+  if (!hex) return null
+
+  // WCAG relative luminance: sRGB channels linearised, then weighted for the
+  // eye's own sensitivity — which is why green counts for seven times what blue
+  // does and why `#2FA36B` takes black where `#3248F2` takes white.
+  const channel = (value) =>
+    value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+  const [r, g, b] = [1, 3, 5].map((at) =>
+    channel(Number.parseInt(hex.slice(at, at + 2), 16) / 255),
+  )
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+  // Against white the ratio is 1.05 / (L + 0.05); against black, (L + 0.05) /
+  // 0.05. Comparing them is comparing those two, and they cross at L ≈ 0.179.
+  return 1.05 / (luminance + 0.05) >= (luminance + 0.05) / 0.05
+    ? '#ffffff'
+    : '#171215'
+}
 
 /**
  * The palette, in the order it is handed out.
@@ -215,11 +233,11 @@ export const cardFill = (color) =>
  *
  * **Eight, because eight is how many bookings a day can hold before two of them
  * look alike.** The six constructed at one OKLCH lightness that stood here
- * before were built to be *mixed into a card* at `BOOKING_TINT_MIX`, where
- * matching lightness is what keeps ink legible on all of them; as dots they
- * read as six pastels. These are the saturated set the owner asked for, which
- * is right for a mark six pixels across — the whole of its job is to be told
- * apart at a glance.
+ * before were built to be *mixed* into a card, where matching lightness is what
+ * keeps ink legible on all of them; as dots they read as six pastels, and a
+ * card carrying one read as a shade rather than as the colour picked. These are
+ * the saturated set the owner asked for, painted as they are — see `cardFill`,
+ * and `cardInk` for what that costs.
  *
  * `#DC2626` and `#16A34A` are deliberately absent: they mean "error" and "up"
  * elsewhere in this app, and a booking that happened to be sixth would look

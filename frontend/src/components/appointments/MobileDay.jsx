@@ -5,6 +5,7 @@ import { ArrowLeft01Icon } from '@hugeicons/core-free-icons'
 import {
   byStart,
   cardFill,
+  cardInk,
   endOf,
   formatPrice,
   fromMinutes,
@@ -632,11 +633,14 @@ function DayBlock({ block, laneWidth, services, week, timeZone, onSaved }) {
             : ''
         } ${cancelled ? 'opacity-45' : ''}`}
         style={{
-          // The mark the owner put on this booking, mixed into the ordinary
-          // card grey — the same `cardFill` the desktop grid uses, so one
-          // booking is one colour on both screens. Unmarked bookings get the
-          // grey, and an automatic colour never reaches a fill.
+          // The mark the owner put on this booking, painted exactly as the
+          // swatch showed it — the same `cardFill` the desktop grid uses, so
+          // one booking is one colour on both screens. Unmarked bookings get
+          // the grey, and an automatic colour never reaches a fill. `cardInk`
+          // is what can be read on top of it, which is a property of the colour
+          // rather than of the theme.
           backgroundColor: cardFill(block.color),
+          color: cardInk(block.color),
           top,
           height,
           // Fixed lanes, not a share of the column — see `VISIBLE_LANES`. A
@@ -646,12 +650,20 @@ function DayBlock({ block, laneWidth, services, week, timeZone, onSaved }) {
           width: Math.max(laneWidth - LANE_GAP, 0),
         }}
       >
-        <span className="truncate text-[14px] leading-tight font-semibold text-ink">
+        <span
+          className={`truncate text-[14px] leading-tight font-semibold ${
+            block.color ? '' : 'text-ink'
+          }`}
+        >
           {block.client}
         </span>
 
         {height >= 46 && (
-          <span className="truncate text-[12px] leading-tight text-ink">
+          <span
+            className={`truncate text-[12px] leading-tight ${
+              block.color ? '' : 'text-ink'
+            }`}
+          >
             {block.service}
           </span>
         )}
@@ -659,7 +671,12 @@ function DayBlock({ block, laneWidth, services, week, timeZone, onSaved }) {
         {height >= 68 && (
           <span className="mt-auto flex items-baseline justify-between gap-2 text-[12px] leading-none">
             <span
-              className={`flex min-w-0 items-center gap-1.5 font-medium ${statusTone(block.status)}`}
+              // A marked card gives up the status colour — see the desktop
+              // grid for why: the fill is a colour the owner chose, and a
+              // second one argued against it.
+              className={`flex min-w-0 items-center gap-1.5 font-medium ${
+                block.color ? 'opacity-80' : statusTone(block.status)
+              }`}
             >
               <span
                 aria-hidden="true"
@@ -667,7 +684,11 @@ function DayBlock({ block, laneWidth, services, week, timeZone, onSaved }) {
               />
               <span className="truncate">{statusLabel(block.status)}</span>
             </span>
-            <span className="shrink-0 text-muted">{formatPrice(block.price)}</span>
+            <span
+              className={`shrink-0 ${block.color ? 'opacity-70' : 'text-muted'}`}
+            >
+              {formatPrice(block.price)}
+            </span>
           </span>
         )}
       </button>

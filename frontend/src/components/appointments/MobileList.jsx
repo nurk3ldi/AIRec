@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   byStart,
   cardFill,
+  cardInk,
   formatDuration,
   formatPrice,
   fromMinutes,
@@ -263,7 +264,14 @@ function BookingRow({
           // to the standalone `scale` property, which is a different animatable
           // property from `transform` — naming `transform` here would leave the
           // dip with no transition at all and it would simply snap.
-          style={{ backgroundColor: cardFill(block.color) }}
+          // The owner's mark, exactly as the swatch showed it, with the ink
+          // the colour can carry — `cardInk` is `null` on an unmarked row, so
+          // the tokens below stay in charge there. Same pair as the grid: one
+          // booking is one colour wherever it is drawn.
+          style={{
+            backgroundColor: cardFill(block.color),
+            color: cardInk(block.color),
+          }}
           className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left outline-none transition-[opacity,scale] duration-[160ms] ease-out hover:opacity-85 focus-visible:opacity-85 active:scale-[0.97] ${
             block.status === 'cancelled' ? 'opacity-45' : ''
           }`}
@@ -278,26 +286,48 @@ function BookingRow({
               Centred, which the digits allow: `tabular-nums` makes every time
               the same width, so the rule lands under the middle of both. */}
           <span className="flex w-[52px] shrink-0 flex-col items-center gap-1 pt-0.5">
-            <span className="font-display text-[14px] font-semibold tabular-nums text-ink">
+            <span
+              className={`font-display text-[14px] font-semibold tabular-nums ${
+                block.color ? '' : 'text-ink'
+              }`}
+            >
               {block.from}
             </span>
-            <span aria-hidden="true" className="h-3 w-px bg-line-strong" />
+            {/* `bg-current` on a marked row: the rule is the same statement as
+                the two times it joins, and `line-strong` is a grey that would
+                be a smudge on a painted card. */}
+            <span
+              aria-hidden="true"
+              className={`h-3 w-px ${block.color ? 'bg-current opacity-60' : 'bg-line-strong'}`}
+            />
             {/* **Nothing under the rule when there is no end.** The line still
                 runs, because the column is a span and the span still started;
                 what is missing is the second time, and leaving the space empty
                 says that more plainly than any placeholder would. */}
-            <span className="font-display text-[13px] tabular-nums text-muted">
+            <span
+              className={`font-display text-[13px] tabular-nums ${
+                block.color ? 'opacity-70' : 'text-muted'
+              }`}
+            >
               {block.to}
             </span>
           </span>
 
           <span className="min-w-0 flex-1">
             <span className="flex items-baseline justify-between gap-2">
-              <span className="min-w-0 truncate text-[15px] font-semibold text-ink">
+              <span
+                className={`min-w-0 truncate text-[15px] font-semibold ${
+                  block.color ? '' : 'text-ink'
+                }`}
+              >
                 {block.client}
               </span>
+              {/* A marked row gives up the status colour — the fill is a colour
+                  the owner chose, and a second one argues with it. */}
               <span
-                className={`shrink-0 text-[12px] font-medium ${statusTone(block.status)}`}
+                className={`shrink-0 text-[12px] font-medium ${
+                  block.color ? 'opacity-80' : statusTone(block.status)
+                }`}
               >
                 {statusLabel(block.status)}
               </span>
@@ -306,7 +336,11 @@ function BookingRow({
             {/* **What it is, how long, what it cost — one line.** The running
                 booking swaps the length for what is left of it, which is the
                 only thing anybody wants from a booking already under way. */}
-            <span className="mt-0.5 block truncate text-[13px] text-muted">
+            <span
+              className={`mt-0.5 block truncate text-[13px] ${
+                block.color ? 'opacity-70' : 'text-muted'
+              }`}
+            >
               {/* The length is gone from here: the two times beside it are
                   the span, and saying "45 мин" next to «10:00 / 10:45» is the
                   same fact twice. What is left of it is the countdown, which
