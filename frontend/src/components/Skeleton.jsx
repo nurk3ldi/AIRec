@@ -38,10 +38,11 @@
  * it: it decided whether the bars appeared, and nothing decided how long they
  * lasted.
  */
-export default function Skeleton({ className = '' }) {
+export default function Skeleton({ className = '', style }) {
   return (
     <div
       aria-hidden="true"
+      style={style}
       className={`animate-pulse rounded-md bg-ink/8 motion-reduce:animate-none ${className}`}
     />
   )

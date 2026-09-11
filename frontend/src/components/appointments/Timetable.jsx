@@ -38,6 +38,7 @@ import {
 import BookingPopover from './BookingPopover'
 import { PANEL_MOTION } from './panel'
 import { useT } from '../../lib/i18n'
+import Skeleton from '../Skeleton'
 
 const ROW_MINUTES = 90
 /**
@@ -171,6 +172,12 @@ export default function Timetable({
   onSaved,
   expanded,
   onToggleExpanded,
+  // **Whether the day's bookings are known yet.** The grid itself is not data —
+  // the hours, the columns and the now-line are true before any request
+  // returns — so it is drawn for real and only the part nobody has been told
+  // yet is redacted. See `GhostDay`.
+  pending = false,
+  bars = false,
 }) {
   const t = useT()
   // Both remembered for the length of the tab: they are what the owner set
@@ -688,6 +695,10 @@ export default function Timetable({
           of the whole app. Scrolling belongs to the grid, not to the screen. */}
       <div
         ref={scroller}
+        // One statement about the whole grid rather than one per placeholder:
+        // the bars are `aria-hidden`, and what a reader needs told is that this
+        // region is still being filled in.
+        aria-busy={pending}
         className="min-h-0 flex-1 overflow-auto border-y border-line"
       >
         {/* The gutter plus one column per day. `minWidth` keeps a column wide
@@ -979,6 +990,21 @@ export default function Timetable({
                   about one or two moving things. It does not here because they
                   move together and identically: what the eye sees is the grid
                   refreshing, one object, not twenty. */}
+                {pending && (
+                  <GhostDay
+                    rowHeight={rowHeight}
+                    // The same fixed lane a real card takes, so the
+                    // placeholder is the shape of what is coming rather than a
+                    // bar the width of the day.
+                    laneWidth={LANE_WIDTH}
+                    visible={bars}
+                    // The date, so stepping to another day shows another
+                    // shape — a placeholder identical on every day reads as the
+                    // same screen refusing to change.
+                    seed={day.getDate()}
+                  />
+                )}
+
                 <AnimatePresence initial={false}>
                   {draw.single.map((block) => (
                     <BookingBlock
@@ -1426,6 +1452,68 @@ function BookingBlock({
         )}
       </m.div>
     </BookingPopover>
+  )
+}
+
+/**
+ * A day's worth of bookings before the day has answered.
+ *
+ * **The grid is drawn for real and only this is redacted**, which is the order
+ * Apple's own placeholders take: show the content, and where that is impossible
+ * show its *shape* — never a spinner over a region whose structure is already
+ * known. The hours, the columns, the day names and the now-line are all true
+ * before any request returns; what is not known is which hours are taken, and
+ * that is what these stand in for.
+ *
+ * **Why the grid needed them at all.** An empty column is not neutral: it says
+ * the week is free, which is a claim the screen has no business making before
+ * it has asked. Two pulsing blocks say the opposite — that the answer is on its
+ * way — and they occupy the same kind of box the answer will, so nothing jumps
+ * when it lands.
+ *
+ * **Fixed shapes, not random ones**, and they differ per column only by which
+ * of the three patterns a day takes. A placeholder that reshuffles on every
+ * render is a placeholder pretending to be busy; identical columns read as a
+ * ruled table rather than as a week.
+ *
+ * The closed hours are *not* faked. Hatching is a fact about the business and
+ * inventing one would be the same false claim in the other direction — the
+ * absence of it while these pulse reads as "not known yet", which is true.
+ */
+const GHOSTS = [
+  [
+    [10 * 60, 11 * 60],
+    [13 * 60 + 30, 15 * 60],
+  ],
+  [
+    [11 * 60, 12 * 60 + 30],
+    [16 * 60, 17 * 60],
+  ],
+  [
+    [9 * 60 + 30, 10 * 60 + 45],
+    [14 * 60, 15 * 60 + 30],
+  ],
+]
+
+function GhostDay({ rowHeight, laneWidth, visible, seed }) {
+  return GHOSTS[((seed % GHOSTS.length) + GHOSTS.length) % GHOSTS.length].map(
+    ([from, to]) => (
+      <Skeleton
+        key={from}
+        // The same fade the rest of the app's placeholders take, and the same
+        // reason it is on the bars rather than on the block: the grid is there
+        // from the first frame, and only what is unknown waits to appear.
+        className={`absolute rounded-lg transition-opacity duration-200 ease-out motion-reduce:transition-none ${
+          visible ? 'opacity-100' : 'opacity-0'
+        }`}
+        style={{
+          top: ((from - WINDOW_FROM) / 60) * rowHeight,
+          height: ((to - from) / 60) * rowHeight,
+          left: LANE_INSET,
+          width: laneWidth ?? `calc(100% - ${LANE_INSET * 2}px)`,
+        }}
+      />
+    ),
   )
 }
 

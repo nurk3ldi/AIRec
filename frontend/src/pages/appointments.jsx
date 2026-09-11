@@ -382,6 +382,12 @@ export default function AppointmentsPage() {
           onSaved={() => setReload((n) => n + 1)}
           expanded={expanded}
           onToggleExpanded={() => setExpanded((was) => !was)}
+          // **The grid redacts its bookings rather than being replaced.** It is
+          // the biggest region on the page and the only one that was still
+          // making a claim while loading: an empty week reads as a free week.
+          // The hours and the columns are true either way, so they stay.
+          pending={pending}
+          bars={bars}
         />
       </div>
 
