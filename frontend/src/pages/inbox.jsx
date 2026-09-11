@@ -17,12 +17,7 @@ import TimeField from '../components/appointments/TimeField'
 import { PANEL_MOTION } from '../components/appointments/panel'
 import { StepButton, ToolbarPill } from '../components/appointments/Timetable'
 import { dayKey, shiftDate } from '../lib/dates'
-import {
-  deleteAppointment,
-  getBusiness,
-  listAppointments,
-  listConversations,
-} from '../lib/api'
+import { getBusiness, listAppointments, listConversations } from '../lib/api'
 import { authed } from '../lib/auth'
 import { liveChats } from '../lib/conversations'
 import { StreamList } from '../components/StreamList'
@@ -136,16 +131,6 @@ export default function InboxPage() {
    * `from` и `to` — один и тот же день: эндпоинт берёт промежуток *локальных*
    * дней, и промежуток из одного дня — это ровно то, что показывает секция.
    */
-  /**
-   * Счётчик, который заставляет оба списка перечитаться.
-   *
-   * Нужен ровно одному действию — удалению записи из меню карточки, — но
-   * списка два и живут они по разным поводам: верхний зависит от дня, нижний
-   * читается один раз. Общий счётчик в зависимостях обоих — это одна строка на
-   * эффект против двух отдельных «перечитай себя».
-   */
-  const [reload, setReload] = useState(0)
-
   useEffect(() => {
     let alive = true
     const key = dayKey(day)
@@ -156,7 +141,7 @@ export default function InboxPage() {
     return () => {
       alive = false
     }
-  }, [day, reload])
+  }, [day])
 
   /**
    * Всё, что в таблице внизу.
@@ -181,7 +166,7 @@ export default function InboxPage() {
     return () => {
       alive = false
     }
-  }, [reload])
+  }, [])
 
   /**
    * Чем сужена таблица: строка поиска и промежутки в фильтре.
@@ -241,22 +226,19 @@ export default function InboxPage() {
             </div>
           }
         >
-          {/* Настоящие записи выбранного дня. Пока их читают — ничего не
-              рисуем: скелет из четырёх папок на экране, где список меняется от
-              каждого нажатия стрелки, мигал бы чаще, чем успевал что-то
-              сообщить.
+          {/* Настоящие записи выбранного дня, и только они. Пока их читают —
+              ничего не рисуем: скелет из карточек на экране, где список
+              меняется от каждого нажатия стрелки, мигал бы чаще, чем успевал
+              что-то сообщить.
 
-              **Демо-строки — только пока на сегодня нет ни одной настоящей
-              записи**, чтобы было на чём смотреть карточку, пока подгоняется
-              её форма. Та же временная метка, что была у прежнего блока —
-              удалить вместе с ним, как только форма устоится. */}
-          {bookings === null ? null : bookings.length === 0 ? (
-            <DayCardRow rows={DEMO_TODAY_ROWS.map((row) => toBlock(row, timeZone))} />
-          ) : (
-            <DayCardRow
-              rows={bookings.map((row) => toBlock(row, timeZone))}
-              onDeleted={() => setReload((n) => n + 1)}
-            />
+              **Выдуманных строк здесь больше нет.** Три штуки стояли, пока
+              подгонялась форма карточки, — ровно тот же приём, из-за которого
+              с `/dashboard` целиком снимали экран аналитики: сочинённые данные
+              выглядят как ответ и отвечают не на тот вопрос. Пустой день — это
+              и есть ответ, и увидеть его лучше здесь, чем в первый раз на чужом
+              экране. */}
+          {bookings === null ? null : (
+            <DayCardRow rows={bookings.map((row) => toBlock(row, timeZone))} />
           )}
         </Section>
 
@@ -282,16 +264,13 @@ export default function InboxPage() {
             />
           }
         >
-          {/* Демо-строки — только пока настоящих нет, как и у папок выше, и
-              удаляются тем же движением.
-
-              Сужение — здесь, а не внутри таблицы: та рисует то, что ей дали, и
-              не должна знать, почему строк стало меньше. */}
+          {/* Сужение — здесь, а не внутри таблицы: та рисует то, что ей дали,
+              и не должна знать, почему строк стало меньше. */}
           <BookingTable
             rows={
               all === null
                 ? null
-                : (all.length === 0 ? DEMO_ALL_ROWS : all)
+                : all
                     .map((row) => toBlock(row, timeZone))
                     .filter((row) => matches(row, query, filter))
             }
@@ -1045,7 +1024,21 @@ function dayLabel(iso) {
  * остатка справа; высоту карточки задаёт её содержимое, а строку выравнивает
  * `align-items: stretch`, который у flex стоит по умолчанию.
  */
-function DayCardRow({ rows, onDeleted }) {
+function DayCardRow({ rows }) {
+  const t = useT()
+
+  // **Честный ответ вместо пустого места.** Раньше здесь на пустой день стояли
+  // выдуманные карточки; без них ряд просто ничего не рисовал, а это читается
+  // как «не загрузилось», хотя загрузилось и день действительно пуст. Строка
+  // ровно об этом — и ключ для неё в словаре был всё это время.
+  if (rows.length === 0) {
+    return (
+      <p className="py-8 text-center text-[13px] text-muted">
+        {t('inbox.dayEmpty')}
+      </p>
+    )
+  }
+
   // **Цвет решается для дня целиком, а не для карточки.** Выбранный владельцем
   // берётся как есть, включая повтор; тому, у кого своего нет, цвет выдаётся —
   // и вот эти не должны совпадать между собой, иначе метка перестаёт различать.
@@ -1060,7 +1053,6 @@ function DayCardRow({ rows, onDeleted }) {
           key={row.id}
           row={row}
           color={tintOf(painted.get(row.id))}
-          onDeleted={onDeleted}
           className="w-[calc((100%-2rem)/3)] sm:w-[calc((100%-3rem)/3)]"
         />
       ))}
@@ -1102,99 +1094,22 @@ function Panel({ title, count, children }) {
  * разойтись в том, сколько длится одна и та же запись.
  */
 
-/* --------------------------------------------------------------------------
- * ВРЕМЕННО — УДАЛИТЬ ВМЕСТЕ С ЭТИМ БЛОКОМ.
- *
- * Три строки, чтобы было на чём смотреть форму карточки, пока на сегодня нет
- * ни одной настоящей записи — тот же приём, что и у снятого блока «Все чаты».
- *
- * Форма — сырая, как у API, а не как у карточки: строки проходят через тот же
- * `toBlock`, что и настоящие, иначе демо показывало бы то, чего продакшен не
- * умеет. Третья — намеренно без `ends_at`: запись без конца это разрешённый
- * случай, и «15:00 –» на карточке лучше увидеть здесь, чем в первый раз на
- * чужом экране.
- * ----------------------------------------------------------------------- */
-const DEMO_TODAY_ROWS = [
-  {
-    id: 'demo-today-1',
-    client_name: 'Айгерим Сапарова',
-    client_phone: '+7 701 555 33 22',
-    service_name: 'Шаш алу',
-    starts_at: '2026-09-09T15:00:00',
-    ends_at: '2026-09-09T16:00:00',
-  },
-  {
-    id: 'demo-today-2',
-    client_name: 'Ерлан Тоқтар',
-    client_phone: '+7 771 604 29 38',
-    service_name: 'Сақал қию',
-    starts_at: '2026-09-09T16:30:00',
-    ends_at: '2026-09-09T17:15:00',
-  },
-  {
-    id: 'demo-today-3',
-    client_name: 'Гүлнұр Асқар',
-    client_phone: '+7 700 852 47 63',
-    service_name: 'Кератин',
-    starts_at: '2026-09-09T18:15:00',
-    ends_at: null,
-  },
-]
-
-/*
- * То же самое для таблицы внизу — и дни здесь нарочно разные.
- *
- * Столбец «Дата» в таблице из трёх сегодняшних записей выглядел бы одинаковым
- * сверху донизу, то есть не показал бы себя вовсе; а он там как раз затем,
- * что окно у таблицы шире одного дня.
- *
- * Длинное название услуги — тоже намеренно: `truncate` в столбце на 24% надо
- * увидеть на строке, которая в него не влезает, а не поверить, что он есть.
- */
-const DEMO_ALL_ROWS = [
-  {
-    id: 'demo-all-1',
-    client_name: 'Данагүл Ермек',
-    client_phone: '+7 708 441 76 15',
-    service_name: 'Бояу',
-    starts_at: '2026-09-11T09:45:00',
-    ends_at: '2026-09-11T11:00:00',
-  },
-  {
-    id: 'demo-all-2',
-    client_name: 'Мадина Қайрат',
-    client_phone: '+7 702 318 55 71',
-    service_name: 'Наращивание ресниц',
-    starts_at: '2026-09-14T12:00:00',
-    ends_at: '2026-09-14T13:30:00',
-  },
-  {
-    id: 'demo-all-3',
-    client_name: 'Сая Бекзат',
-    client_phone: '+7 775 236 90 14',
-    service_name: 'Маникюр',
-    starts_at: '2026-09-18T16:00:00',
-    ends_at: '2026-09-18T17:00:00',
-  },
-]
-/* ------------------------------------------------------------ конец блока */
 
 /**
  * Что можно сделать с записью, под тремя точками.
  *
- * **Popover, а не `@radix-ui/react-dropdown-menu`.** Меню из двух пунктов — это
- * два обычных `<button>` в панели, а поповер в проекте уже есть и уже отвечает
- * за позиционирование, клик вне и столкновения с краем экрана; ставить ради
- * этого четвёртый примитив Radix значило бы добавить зависимость, которая
- * умеет ровно то же самое. Тот же выбор, что у `ViewSwitch` на телефоне.
+ * **Popover, а не `@radix-ui/react-dropdown-menu`.** Пункт меню — это обычный
+ * `<button>` в панели, а поповер в проекте уже есть и уже отвечает за
+ * позиционирование, клик вне и столкновения с краем экрана; ставить ради этого
+ * четвёртый примитив Radix значило бы добавить зависимость, которая умеет ровно
+ * то же самое. Тот же выбор, что у `ViewSwitch` на телефоне.
  *
- * **Удаление в два нажатия, без диалога.** Это правило панели записи, и здесь
- * оно тем более к месту: модальное окно поверх поповера — слой на слое ради
- * вопроса из двух слов, а одна красная строка рядом с безобидной — это один
- * промах мыши до потерянной записи. Первое нажатие меняет текст на «Точно
- * удалить?», второе удаляет; закрытие меню возвращает пункт в исходное
- * состояние, потому что подтверждение живёт ровно столько, сколько открыт
- * список.
+ * **Удаление отсюда убрано.** Оно было здесь один день: удалить запись в два
+ * нажатия из меню карточки — это самое разрушительное действие продукта на
+ * расстоянии двух промахов мыши, и живёт оно там, где запись открыта целиком, —
+ * в панели редактирования, где рядом видно, что именно удаляешь. Вместе с ним
+ * ушли счётчик перечитывания списков и вызов `deleteAppointment`: чинить
+ * нечего, пока никто отсюда ничего не меняет.
  *
  * **«Перейти в чат» пока выключен, и это честнее, чем ведущая никуда кнопка.**
  * Экрана переписки в продукте ещё нет — `/inbox` читает список диалогов, но
@@ -1202,38 +1117,12 @@ const DEMO_ALL_ROWS = [
  * недоступным; включить его — одна строка в тот день, когда появится, куда
  * идти.
  */
-function CardMenu({ row, onDeleted }) {
+function CardMenu() {
   const t = useT()
   const [open, setOpen] = useState(false)
-  const [confirming, setConfirming] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-
-  const close = (next) => {
-    setOpen(next)
-    if (!next) setConfirming(false)
-  }
-
-  const remove = async () => {
-    if (!confirming) {
-      setConfirming(true)
-      return
-    }
-
-    setDeleting(true)
-    try {
-      await authed((token) => deleteAppointment(token, row.id))
-      close(false)
-      onDeleted?.()
-    } catch {
-      // Список перечитается и сам покажет, что запись на месте: своего места
-      // для ошибки у карточки нет, а тост в этом проекте пока не заведён.
-      setDeleting(false)
-      close(false)
-    }
-  }
 
   return (
-    <Popover.Root open={open} onOpenChange={close}>
+    <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
         <button
           type="button"
@@ -1257,17 +1146,6 @@ function CardMenu({ row, onDeleted }) {
             className="flex w-full cursor-not-allowed items-center rounded-lg px-2.5 py-2 text-left text-[14px] text-muted opacity-60 outline-none"
           >
             {t('inbox.openChat')}
-          </button>
-
-          <button
-            type="button"
-            onClick={remove}
-            disabled={deleting}
-            className="flex w-full items-center rounded-lg px-2.5 py-2 text-left text-[14px] font-medium text-danger outline-none transition-colors hover:bg-danger/10 focus-visible:bg-danger/10 disabled:opacity-60"
-          >
-            {confirming
-              ? t('appointments.deleteConfirm')
-              : t('appointments.delete')}
           </button>
         </Popover.Content>
       </Popover.Portal>
@@ -1298,7 +1176,7 @@ function CardMenu({ row, onDeleted }) {
  * Поэтому же ушёл `my-auto` у времени: он делил лишнюю высоту, которой больше
  * нет. Расстояния между строками теперь названы явно.
  */
-function DayCard({ row, color, onDeleted, className = '' }) {
+function DayCard({ row, color, className = '' }) {
   return (
     <article className={`flex flex-col ${CARD} ${className}`}>
       {/* Имя и метка в одной строке. Точка выровнена по первой строке, а не
@@ -1324,7 +1202,7 @@ function DayCard({ row, color, onDeleted, className = '' }) {
 
             Три точки, а не сетка из девяти: девять означают «все приложения»,
             а не «действия над этим». */}
-        <CardMenu row={row} onDeleted={onDeleted} />
+        <CardMenu />
       </div>
 
       {/* Всё, что ниже, начинается от левого края. Отступ под имя выстроил бы
