@@ -998,10 +998,15 @@ function PanelSelect({ label, value, onChange, options }) {
           aria-label={label}
           className={`${FIELD} flex h-9 w-full cursor-pointer items-center gap-2 text-[16px] outline-none sm:text-[14px]`}
         >
-          {/* Muted, and never truncated: it is the shorter of the two and the
-              one that must always be readable — a row whose answer has eaten
-              its question is a row you cannot use. */}
-          <span className="shrink-0 text-muted">{label}</span>
+          {/* **Ink, not muted, and never truncated.** Grey is what a
+              *placeholder* is on this panel — text standing in for a value
+              nobody has typed — and this is the opposite: a permanent label
+              beside a permanent answer. At the field's own weight it reads as
+              half of one row rather than as a hint the row has outgrown. It is
+              also the shorter of the two and the one that must always be
+              readable: a row whose answer has eaten its question is a row you
+              cannot use. */}
+          <span className="shrink-0 text-ink">{label}</span>
 
           {/* The answer, held to the right edge. `ml-auto` on the group rather
               than `flex-1` on the value, so a long option truncates from its
