@@ -960,7 +960,7 @@ function Swatch({ hue, selected, label, onClick }) {
       aria-label={label}
       title={label}
       onClick={onClick}
-      className={`grid h-6 w-6 shrink-0 place-items-center rounded-full outline-none transition-[box-shadow,scale] active:scale-[0.9] ${
+      className={`grid h-6 w-6 shrink-0 place-items-center rounded-full outline-none transition-[box-shadow,scale] duration-[160ms] ease-out active:scale-[0.95] ${
         selected
           ? 'shadow-[0_0_0_2px_var(--color-ink)]'
           : 'hover:shadow-[0_0_0_2px_var(--color-line-strong)] focus-visible:shadow-[0_0_0_2px_var(--color-line-strong)]'

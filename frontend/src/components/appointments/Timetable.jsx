@@ -1483,6 +1483,17 @@ function GroupBlock({
           animate={{ opacity: 1, scale: 1 }}
           exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
           transition={{ duration: reduce ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
+          // **The press is answered, and it was not.** This card had a hover
+          // border and nothing else, and Tailwind compiles `hover:` inside
+          // `@media (hover: hover)` — so on a phone it gave back *nothing*
+          // between the finger landing and the panel opening, which is the one
+          // thing a touch target may never do. `whileTap` rather than an
+          // `active:scale-*` class for the reason the single card gives: this
+          // element already animates `scale`, so Motion owns its inline
+          // transform and a utility would be overwritten by it. It stays on
+          // under reduced motion — a 2% dip under the finger is not vestibular
+          // travel, it is the only acknowledgement a touch user gets.
+          whileTap={{ scale: 0.98 }}
           onClick={() => setOpen(true)}
           aria-label={t('appointments.groupCount', { count: group.length })}
           // **A dashed edge, which is the one thing on this grid that is
