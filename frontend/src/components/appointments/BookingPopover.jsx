@@ -903,7 +903,13 @@ function ColorRow({ value, onChange }) {
     <div
       role="radiogroup"
       aria-label={t('appointments.color')}
-      className="mb-3 flex flex-wrap items-center gap-2"
+      // **Equal air above and below, which is 24 and not the usual 12.** Every
+      // other row on this panel is a bordered field, so the eye measures the
+      // gaps from its edge; this one is a line of loose marks with no box of
+      // its own, and the 24px section break above it against 12 below left the
+      // swatches looking stuck to the status field rather than sitting between
+      // the two. Matching the larger of the two is what centres them.
+      className="mb-6 flex flex-wrap items-center gap-2"
     >
       <Swatch
         selected={value === null}
