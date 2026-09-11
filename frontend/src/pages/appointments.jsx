@@ -184,7 +184,7 @@ export default function AppointmentsPage() {
   // Only whether the bars have waited long enough. The placeholders themselves
   // are drawn for the whole of `!loaded`, so the three cards never say «Сейчас
   // никого» about a question that has not been asked.
-  const bars = useSkeleton(!loaded)
+  const { pending, bars } = useSkeleton(!loaded)
 
   // **The whole week, whichever view is showing.** The timetable switches
   // between one day and five without telling the page, and re-fetching on that
@@ -341,7 +341,7 @@ export default function AppointmentsPage() {
           {/* Now, next, and where somebody could still be fitted in — the
               three questions asked with a client on the phone, in the order
               they come up. */}
-          {!loaded ? (
+          {pending ? (
             <>
               <CardSkeleton
                 rows={2}
@@ -420,7 +420,7 @@ export default function AppointmentsPage() {
           *definite* height and `overflow-hidden`, so a child that will not
           shrink below its content puts a year of months where there is nowhere
           to put them. */}
-      {mobileView === 'list' && !loaded ? (
+      {mobileView === 'list' && pending ? (
         <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 sm:hidden">
           {/* Outside the fade: the bar is real, and it works while the list is
               still on its way. */}

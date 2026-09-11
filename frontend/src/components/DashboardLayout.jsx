@@ -91,7 +91,10 @@ export default function DashboardLayout() {
   // it. `null` is right about the *content* — protected content must never
   // flash before it is allowed — and wrong about the room around it: a page
   // that is white for a second and then complete is a page you assume failed.
-  const showShell = useSkeleton(!user)
+  // `pending` outlives the check by the hold — see `useSkeleton`. Without
+  // it an answer landing just after the bars appeared took the shell away
+  // inside a blink, which reads as a fault rather than as a page loading.
+  const { pending: shellPending, bars: showShell } = useSkeleton(!user)
 
   useEffect(() => {
     if (verifiedUser) setUser(verifiedUser)
@@ -107,7 +110,7 @@ export default function DashboardLayout() {
     setDialogSection(id)
   }
 
-  if (!user) return <ShellSkeleton visible={showShell} />
+  if (!user || shellPending) return <ShellSkeleton visible={showShell} />
 
   return (
     <div className="min-h-screen bg-ground text-ink">

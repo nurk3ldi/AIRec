@@ -25,12 +25,18 @@
  * "what is happening", and it is the only one a reader has at that moment.
  *
  * **The delay hides the bars, not the block.** This was built the other way
- * round first and it flickered: for the first 150ms the screen drew the real
- * component with no data in it — «Сейчас никого», a business with no name —
- * then the skeleton, then the answer. Three states inside a third of a second,
- * two of them false. The block is drawn from the first frame so the layout is
- * settled and nothing claims anything; only the pulsing bars inside it wait,
- * and they fade in rather than appear.
+ * round first and it flickered: for the first fraction of a second the screen
+ * drew the real component with no data in it — «Сейчас никого», a business with
+ * no name — then the skeleton, then the answer. Three states inside a third of
+ * a second, two of them false. The block is drawn from the first frame so the
+ * layout is settled and nothing claims anything; only the pulsing bars inside
+ * it wait, and they fade in rather than appear.
+ *
+ * **And once they are up they stay up** — see `useSkeleton` for both halves of
+ * that. A placeholder that appears and is taken away inside a blink is the
+ * flash this whole file exists to avoid, and the delay alone never prevented
+ * it: it decided whether the bars appeared, and nothing decided how long they
+ * lasted.
  */
 export default function Skeleton({ className = '' }) {
   return (

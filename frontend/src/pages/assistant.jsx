@@ -69,13 +69,17 @@ export default function AssistantPage() {
   // **`null` is already the loading state here**, and that is why no flag was
   // added: every one of the three starts null and is set to whatever the server
   // answered — including an empty list, which is a real answer and not a
-  // missing one. `useSkeleton` holds each back for 150ms, so a backend that
+  // missing one. `useSkeleton` holds each back a quarter of a second, so a backend that
   // answers at once draws nothing at all.
   // The card is drawn while its row is `null`; these say only whether the bars
   // inside it have waited long enough to be worth showing.
-  const barsBusiness = useSkeleton(business === null)
-  const barsServices = useSkeleton(services === null)
-  const barsWeek = useSkeleton(week === null)
+  const { pending: pendingBusiness, bars: barsBusiness } = useSkeleton(
+    business === null,
+  )
+  const { pending: pendingServices, bars: barsServices } = useSkeleton(
+    services === null,
+  )
+  const { pending: pendingWeek, bars: barsWeek } = useSkeleton(week === null)
 
   useEffect(() => {
     let alive = true
@@ -132,7 +136,7 @@ export default function AssistantPage() {
             rather than a fixed share, so the gap between them comes out of the
             column once instead of being subtracted from each half by hand. */}
         <div className={`flex w-full flex-col gap-4 sm:max-w-[350px] sm:gap-6 ${FULL}`}>
-          {services === null ? (
+          {services === null || pendingServices ? (
             <CardSkeleton
               rows={4}
               visible={barsServices}
@@ -145,7 +149,7 @@ export default function AssistantPage() {
               onSaved={() => setReload((n) => n + 1)}
             />
           )}
-          {week === null ? (
+          {week === null || pendingWeek ? (
             <CardSkeleton
               rows={2}
               strip
@@ -166,7 +170,7 @@ export default function AssistantPage() {
             carried was the other way of doing it; a card can have one or the
             other, and two is an outline around a shape that already has an
             edge. */}
-        {business === null ? (
+        {business === null || pendingBusiness ? (
           <CardSkeleton
             rows={6}
             visible={barsBusiness}
@@ -185,7 +189,7 @@ export default function AssistantPage() {
             rather than a width of its own, so it is whatever the two fixed
             columns did not use; `min-w` is what stops it being squeezed to
             nothing on a narrow window — past that it wraps to its own line. */}
-        {business === null ? (
+        {business === null || pendingBusiness ? (
           <CardSkeleton
             rows={2}
             visible={barsBusiness}

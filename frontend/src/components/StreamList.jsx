@@ -27,11 +27,11 @@ import { useSkeleton } from '../lib/skeleton'
  */
 export function StreamList({ chats, live, bleed = '-mx-6 px-6' }) {
   const t = useT()
-  const bars = useSkeleton(chats === null)
+  const { pending, bars } = useSkeleton(chats === null)
 
   return (
     <>
-      {chats === null ? (
+      {chats === null || pending ? (
         <SkeletonRegion
           label={t('home.streams.title')}
           visible={bars}

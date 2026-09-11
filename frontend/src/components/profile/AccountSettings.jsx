@@ -249,7 +249,7 @@ export default function AccountSettings({ onUserChange, onClose }) {
   // runs from inside this component, so for one round trip the form rendered
   // with every field empty — which reads as an account with no name rather
   // than as a panel that has not been told yet.
-  const bars = useSkeleton(!user)
+  const { bars } = useSkeleton(!user)
   // null | 'address' (typing the new one) | 'code' (entering what was mailed).
   // Separate from `pendingEmail`: a pending change exists whether or not the
   // user is currently on one of those screens.
