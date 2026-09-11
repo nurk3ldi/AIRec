@@ -17,7 +17,12 @@ import TimeField from '../components/appointments/TimeField'
 import { PANEL_MOTION } from '../components/appointments/panel'
 import { StepButton, ToolbarPill } from '../components/appointments/Timetable'
 import { dayKey, shiftDate } from '../lib/dates'
-import { getBusiness, listAppointments, listConversations } from '../lib/api'
+import {
+  deleteAppointment,
+  getBusiness,
+  listAppointments,
+  listConversations,
+} from '../lib/api'
 import { authed } from '../lib/auth'
 import { liveChats } from '../lib/conversations'
 import { StreamList } from '../components/StreamList'
@@ -131,6 +136,16 @@ export default function InboxPage() {
    * `from` и `to` — один и тот же день: эндпоинт берёт промежуток *локальных*
    * дней, и промежуток из одного дня — это ровно то, что показывает секция.
    */
+  /**
+   * Счётчик, который заставляет оба списка перечитаться.
+   *
+   * Нужен ровно одному действию — удалению записи из меню карточки, — но
+   * списка два и живут они по разным поводам: верхний зависит от дня, нижний
+   * читается один раз. Общий счётчик в зависимостях обоих — это одна строка на
+   * эффект против двух отдельных «перечитай себя».
+   */
+  const [reload, setReload] = useState(0)
+
   useEffect(() => {
     let alive = true
     const key = dayKey(day)
@@ -141,7 +156,7 @@ export default function InboxPage() {
     return () => {
       alive = false
     }
-  }, [day])
+  }, [day, reload])
 
   /**
    * Всё, что в таблице внизу.
@@ -166,7 +181,7 @@ export default function InboxPage() {
     return () => {
       alive = false
     }
-  }, [])
+  }, [reload])
 
   /**
    * Чем сужена таблица: строка поиска и промежутки в фильтре.
@@ -238,7 +253,10 @@ export default function InboxPage() {
           {bookings === null ? null : bookings.length === 0 ? (
             <DayCardRow rows={DEMO_TODAY_ROWS.map((row) => toBlock(row, timeZone))} />
           ) : (
-            <DayCardRow rows={bookings.map((row) => toBlock(row, timeZone))} />
+            <DayCardRow
+              rows={bookings.map((row) => toBlock(row, timeZone))}
+              onDeleted={() => setReload((n) => n + 1)}
+            />
           )}
         </Section>
 
@@ -1027,7 +1045,7 @@ function dayLabel(iso) {
  * остатка справа; высоту карточки задаёт её содержимое, а строку выравнивает
  * `align-items: stretch`, который у flex стоит по умолчанию.
  */
-function DayCardRow({ rows }) {
+function DayCardRow({ rows, onDeleted }) {
   // **Цвет решается для дня целиком, а не для карточки.** Выбранный владельцем
   // берётся как есть, включая повтор; тому, у кого своего нет, цвет выдаётся —
   // и вот эти не должны совпадать между собой, иначе метка перестаёт различать.
@@ -1042,6 +1060,7 @@ function DayCardRow({ rows }) {
           key={row.id}
           row={row}
           color={tintOf(painted.get(row.id))}
+          onDeleted={onDeleted}
           className="w-[calc((100%-2rem)/3)] sm:w-[calc((100%-3rem)/3)]"
         />
       ))}
@@ -1161,6 +1180,102 @@ const DEMO_ALL_ROWS = [
 /* ------------------------------------------------------------ конец блока */
 
 /**
+ * Что можно сделать с записью, под тремя точками.
+ *
+ * **Popover, а не `@radix-ui/react-dropdown-menu`.** Меню из двух пунктов — это
+ * два обычных `<button>` в панели, а поповер в проекте уже есть и уже отвечает
+ * за позиционирование, клик вне и столкновения с краем экрана; ставить ради
+ * этого четвёртый примитив Radix значило бы добавить зависимость, которая
+ * умеет ровно то же самое. Тот же выбор, что у `ViewSwitch` на телефоне.
+ *
+ * **Удаление в два нажатия, без диалога.** Это правило панели записи, и здесь
+ * оно тем более к месту: модальное окно поверх поповера — слой на слое ради
+ * вопроса из двух слов, а одна красная строка рядом с безобидной — это один
+ * промах мыши до потерянной записи. Первое нажатие меняет текст на «Точно
+ * удалить?», второе удаляет; закрытие меню возвращает пункт в исходное
+ * состояние, потому что подтверждение живёт ровно столько, сколько открыт
+ * список.
+ *
+ * **«Перейти в чат» пока выключен, и это честнее, чем ведущая никуда кнопка.**
+ * Экрана переписки в продукте ещё нет — `/inbox` читает список диалогов, но
+ * открыть отдельный тред некуда. Пункт стоит на своём месте и выглядит
+ * недоступным; включить его — одна строка в тот день, когда появится, куда
+ * идти.
+ */
+function CardMenu({ row, onDeleted }) {
+  const t = useT()
+  const [open, setOpen] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const close = (next) => {
+    setOpen(next)
+    if (!next) setConfirming(false)
+  }
+
+  const remove = async () => {
+    if (!confirming) {
+      setConfirming(true)
+      return
+    }
+
+    setDeleting(true)
+    try {
+      await authed((token) => deleteAppointment(token, row.id))
+      close(false)
+      onDeleted?.()
+    } catch {
+      // Список перечитается и сам покажет, что запись на месте: своего места
+      // для ошибки у карточки нет, а тост в этом проекте пока не заведён.
+      setDeleting(false)
+      close(false)
+    }
+  }
+
+  return (
+    <Popover.Root open={open} onOpenChange={close}>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          aria-label={t('inbox.actions')}
+          className="-m-1 ml-auto grid shrink-0 place-items-center rounded-lg p-1 text-ink outline-none transition-[color,background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.9]"
+        >
+          <HugeiconsIcon icon={MoreHorizontalIcon} size={16} strokeWidth={2} />
+        </button>
+      </Popover.Trigger>
+
+      <Popover.Portal>
+        <Popover.Content
+          align="end"
+          sideOffset={6}
+          collisionPadding={12}
+          className={`z-[70] w-[200px] rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] ${PANEL_MOTION}`}
+        >
+          <button
+            type="button"
+            disabled
+            className="flex w-full cursor-not-allowed items-center rounded-lg px-2.5 py-2 text-left text-[14px] text-muted opacity-60 outline-none"
+          >
+            {t('inbox.openChat')}
+          </button>
+
+          <button
+            type="button"
+            onClick={remove}
+            disabled={deleting}
+            className="flex w-full items-center rounded-lg px-2.5 py-2 text-left text-[14px] font-medium text-danger outline-none transition-colors hover:bg-danger/10 focus-visible:bg-danger/10 disabled:opacity-60"
+          >
+            {confirming
+              ? t('appointments.deleteConfirm')
+              : t('appointments.delete')}
+          </button>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  )
+}
+
+/**
  * Карточка дня: кто, когда и за чем.
  *
  * **Обычный прямоугольник со скруглением — фигуры папки больше нет.** Она была
@@ -1183,7 +1298,7 @@ const DEMO_ALL_ROWS = [
  * Поэтому же ушёл `my-auto` у времени: он делил лишнюю высоту, которой больше
  * нет. Расстояния между строками теперь названы явно.
  */
-function DayCard({ row, color, className = '' }) {
+function DayCard({ row, color, onDeleted, className = '' }) {
   return (
     <article className={`flex flex-col ${CARD} ${className}`}>
       {/* Имя и метка в одной строке. Точка выровнена по первой строке, а не
@@ -1208,13 +1323,8 @@ function DayCard({ row, color, className = '' }) {
             последняя строка; имя рядом, потому что действия относятся к нему.
 
             Три точки, а не сетка из девяти: девять означают «все приложения»,
-            а не «действия над этим». Пока ничего не открывает. */}
-        <HugeiconsIcon
-          icon={MoreHorizontalIcon}
-          size={16}
-          strokeWidth={2}
-          className="mt-[0.3em] ml-auto shrink-0 text-ink"
-        />
+            а не «действия над этим». */}
+        <CardMenu row={row} onDeleted={onDeleted} />
       </div>
 
       {/* Всё, что ниже, начинается от левого края. Отступ под имя выстроил бы

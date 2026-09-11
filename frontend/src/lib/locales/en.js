@@ -175,6 +175,8 @@ export default {
 
   'inbox.dayEmpty': 'Nothing booked for this day',
   'inbox.pickDay': 'Pick a day',
+  'inbox.openChat': 'Open the chat',
+  'inbox.actions': 'Actions',
   'inbox.today': 'Chats today',
   'inbox.all': 'All chats',
   'inbox.allEmpty': 'Nothing here yet',

@@ -176,6 +176,8 @@ export default {
 
   'inbox.dayEmpty': 'Бұл күнге жазба жоқ',
   'inbox.pickDay': 'Күн таңдау',
+  'inbox.openChat': 'Чатқа өту',
+  'inbox.actions': 'Әрекеттер',
   'inbox.today': 'Бүгінгі чаттар',
   'inbox.all': 'Барлық чаттар',
   'inbox.allEmpty': 'Әзірге ештеңе жоқ',

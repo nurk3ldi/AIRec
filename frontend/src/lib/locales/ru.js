@@ -185,6 +185,8 @@ export default {
   // ── WhatsApp ──────────────────────────────────────────────────────────────
   'inbox.dayEmpty': 'На этот день записей нет',
   'inbox.pickDay': 'Выбрать день',
+  'inbox.openChat': 'Перейти в чат',
+  'inbox.actions': 'Действия',
   'inbox.today': 'Чаты сегодня',
   'inbox.all': 'Все чаты',
   'inbox.allEmpty': 'Пока ничего нет',
