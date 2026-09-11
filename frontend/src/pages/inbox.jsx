@@ -88,6 +88,30 @@ export default function InboxPage() {
    * решение, что у поиска на «Записях».
    */
   const reduce = useReducedMotion()
+  /**
+   * Показывать ли в истории и убранные разговоры.
+   *
+   * **«Все» — это про архив, а не про количество строк.** Список по умолчанию —
+   * то, что в работе; убранный разговор никуда не делся, он просто не мешает, и
+   * кнопка возвращает его в таблицу. Отдельное состояние, а не параметр
+   * основного чтения: «Потоки» справа показывают, кто пишет *сейчас*, и
+   * архивным там делать нечего.
+   */
+  const [showArchived, setShowArchived] = useState(false)
+  const [archived, setArchived] = useState(null)
+
+  useEffect(() => {
+    if (!showArchived) return undefined
+
+    let alive = true
+    authed((token) => listConversations(token, { archived: true }))
+      .then((rows) => alive && setArchived(rows))
+      .catch(() => alive && setArchived([]))
+    return () => {
+      alive = false
+    }
+  }, [showArchived])
+
   const [openChatId, setOpenChatId] = useState(null)
   const openChat = (chats ?? []).find((chat) => chat.id === openChatId) ?? null
 
@@ -277,12 +301,20 @@ export default function InboxPage() {
           title={t('inbox.all')}
           className="mt-6 sm:mt-8"
           actions={
-            <TableTools
-              query={query}
-              onQuery={setQuery}
-              filter={filter}
-              onFilter={setFilter}
-            />
+            <div className="flex items-center gap-3">
+              {/* «Все» первым, как и в секции выше: оно решает, *сколько*
+                  показано, а поиск и фильтр — какая часть из показанного. */}
+              <ShowAllButton
+                pressed={showArchived}
+                onClick={() => setShowArchived((was) => !was)}
+              />
+              <TableTools
+                query={query}
+                onQuery={setQuery}
+                filter={filter}
+                onFilter={setFilter}
+              />
+            </div>
           }
         >
           {/* **История: переписка и то, о чём в ней договорились.** Строку
@@ -302,7 +334,11 @@ export default function InboxPage() {
               all === null || chats === null
                 ? null
                 : historyRows({
-                    chats,
+                    // Убранные — следом за обычными: порядок всё равно задаёт
+                    // свежесть внутри `historyRows`, а ждать второй ответ ради
+                    // строк, которых может и не быть, значит держать таблицу
+                    // пустой из-за архива.
+                    chats: showArchived ? [...chats, ...(archived ?? [])] : chats,
                     blocks: all.map((row) => toBlock(row, timeZone)),
                     timeZone,
                     noName: t('chat.noName'),
@@ -451,13 +487,20 @@ function Section({ title, actions, className = '', children }) {
  * что место в раскладке решено; обработчик придёт вместе с ответом на вопрос,
  * что именно она разворачивает.
  */
-function ShowAllButton() {
+function ShowAllButton({ pressed, onClick }) {
   const t = useT()
 
   return (
     <button
       type="button"
-      className="-my-1 rounded-lg py-1 text-[13px] text-muted outline-none transition-colors hover:text-ink focus-visible:text-ink"
+      onClick={onClick}
+      // `aria-pressed` только там, где кнопка действительно переключает: у
+      // верхней секции она пока ничего не делает, и обещать состояние, которого
+      // нет, — хуже, чем не обещать ничего.
+      aria-pressed={onClick ? Boolean(pressed) : undefined}
+      className={`-my-1 rounded-lg py-1 text-[13px] outline-none transition-colors hover:text-ink focus-visible:text-ink ${
+        pressed ? 'text-ink' : 'text-muted'
+      }`}
     >
       {t('chat.all')}
     </button>
