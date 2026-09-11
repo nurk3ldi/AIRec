@@ -1146,6 +1146,16 @@ function BookingBlock({
   const height = Math.max(((endOf(block) - block.start) / 60) * rowHeight, 34)
   const state = stateOf(block.status)
   const cancelled = state === 'cancelled'
+  // **The height each line below needs, in the order they are drawn.** Four
+  // numbers rather than four literals scattered through the JSX, because the
+  // one thing that must stay true is that they are consecutive — a card that
+  // draws the fourth line and not the third is a card with a hole in it.
+  //
+  // A booking with no number has three lines to place instead of four, so
+  // every floor after the name comes down a step: holding an empty slot for a
+  // client who never gave a number would cost the service a whole line of
+  // height on the commonest card there is.
+  const LINE = block.phone ? [54, 76, 98] : [54, 54, 78]
   // What this card is actually going to be, in pixels — the fixed lane in the
   // day view, and in the week view the share of a measured column that is left
   // after the insets and the gaps between lanes. It mirrors the `width` written
@@ -1286,23 +1296,48 @@ function BookingBlock({
               }),
         }}
       >
-        {/* **What is shown depends on how tall the booking is**, and the order is
-          what matters: the name first, because that is what the owner scans
-          for; then what they are here for; then the arithmetic. A card that
-          dropped the name to keep the price would be sorted the wrong way
-          round.
+        {/* **What is shown depends on how tall the booking is**, and the order
+          is what matters: the name first, because that is what the owner scans
+          for; then the number, because the next thing that happens on this
+          card is a call; then what they are here for; then the arithmetic. A
+          card that dropped the name to keep the price would be sorted the
+          wrong way round.
 
           The thresholds are what actually fits, measured against the line
-          heights below rather than guessed — 28px holds the name, 54 holds the
-          service under it, 78 adds the footer and 104 the status strip. They
-          move with the type and with the padding; a threshold left behind a
-          size change is a card that clips the line it just decided to draw. */}
-        {height >= 104 && (
-          // The muted grey is the fallback rather than a fourth entry: it is
-          // what `cancelled` takes, and it is also what a status this map has
-          // never heard of should look like.
+          heights below rather than guessed — 28px holds the head row, 54 the
+          line under it, 76 the one under that and 98 the footer. They move
+          with the type and with the padding; a threshold left behind a size
+          change is a card that clips the line it just decided to draw.
+
+          **A booking with no number gives its slot to the service**, which is
+          why the floors are read out of `LINE` rather than written in three
+          places: a client who never gave a number is the ordinary case, and
+          holding an empty line for one would cost the service a whole step of
+          height on the commonest card there is. */}
+
+        {/* **The head row: who, and how it is going.** The status shares the
+          name's line rather than taking one of its own — it is a mark, not a
+          statement, and a card that spent a whole line on one word had one
+          line fewer for the four facts that describe the booking. Against the
+          right edge, where reading down a column it is seen when looked for
+          and out of the way of the line that identifies the card.
+
+          **The one line that is never dropped is the name**, and it is the one
+          that steps down instead. At 15px a narrow lane cuts an ordinary first
+          name in half — «Nurkeldi» wants about 68px and a 90px card offers 70
+          before its padding — where 13px fits it whole. A name shown smaller is
+          still the name; a name shown as «Nur…» is not. */}
+        <div className="flex items-center gap-1.5">
           <p
-            className={`flex items-center gap-1.5 truncate text-[12px] leading-none font-medium ${
+            className={`min-w-0 truncate leading-tight font-semibold ${
+              block.color ? '' : 'text-ink'
+            } ${width >= CARD_WIDTH.LABEL ? 'text-[15px]' : 'text-[13px]'}`}
+          >
+            {block.client}
+          </p>
+
+          <p
+            className={`ml-auto flex shrink-0 items-center gap-1.5 text-[12px] leading-none font-medium ${
               // **A marked card gives up the status colour.** Green for "done"
               // on a fuchsia fill is one colour argued against another, and the
               // fill is the one the owner chose deliberately. The word stays,
@@ -1324,22 +1359,26 @@ function BookingBlock({
               {statusLabel(block.status)}
             </span>
           </p>
+        </div>
+
+        {/* **The number, directly under the name it belongs to.** It is the
+          one value on a booking that gets *used* rather than read — the card
+          is opened because somebody has to be called — and on the grid it was
+          only reachable by opening the booking first. Not a `tel:` link here,
+          unlike the cards on «Диалоги»: this card's own press opens the
+          editor, and a link inside it would be a second target inside a
+          target. */}
+        {block.phone && height >= LINE[0] && (
+          <p
+            className={`truncate font-display text-[13px] leading-tight tabular-nums ${
+              block.color ? 'opacity-80' : 'text-muted'
+            }`}
+          >
+            {block.phone}
+          </p>
         )}
 
-        {/* **The one line that is never dropped**, and the one that steps
-          down instead. At 15px a narrow lane cuts an ordinary first name in
-          half — «Nurkeldi» wants about 68px and a 90px card offers 70 before
-          its padding — where 13px fits it whole. A name shown smaller is still
-          the name; a name shown as «Nur…» is not. */}
-        <p
-          className={`truncate leading-tight font-semibold ${
-            block.color ? '' : 'text-ink'
-          } ${width >= CARD_WIDTH.LABEL ? 'text-[15px]' : 'text-[13px]'}`}
-        >
-          {block.client}
-        </p>
-
-        {height >= 54 && (
+        {height >= LINE[1] && (
           // `ink`, not `muted`: on a grey card the muted grey was a second grey
           // and the line disappeared into its own background. The hierarchy is
           // carried by weight instead — the name is semibold, this is not — which
@@ -1354,7 +1393,7 @@ function BookingBlock({
           </p>
         )}
 
-        {height >= 78 && (
+        {height >= LINE[2] && (
           // Pushed to the bottom edge: the head of the card is what it is, the
           // foot is what it costs, and on a booking that runs three hours the
           // two should not both be huddled at the top.
