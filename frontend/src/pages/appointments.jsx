@@ -558,7 +558,13 @@ export default function AppointmentsPage() {
         )}
       </AnimatePresence>
 
-      <aside className="hidden min-h-[300px] w-full shrink-0 flex-col gap-4 border-t border-line p-4 sm:flex xl:min-h-0 xl:w-[calc(300px+2rem)] xl:border-t-0 xl:border-l">
+      {/* **No `gap` and no top padding — the children space themselves.** With
+          the month folded there is nothing above the grip, and a gap plus the
+          panel's own `pt-4` left it floating 32px down a column that starts at
+          the top of the screen. The space above the calendar is the calendar's
+          own, so it carries it inside the folding box where it is clipped away
+          with everything else, and the grip carries only what it needs. */}
+      <aside className="hidden min-h-[300px] w-full shrink-0 flex-col border-t border-line px-4 pb-4 sm:flex xl:min-h-0 xl:w-[calc(300px+2rem)] xl:border-t-0 xl:border-l">
         {/* **The month folds away, and the feed takes the room.** The panel
             is the page's full height with a fixed card at the top of it, so on
             a day spent in «Диалоги» the calendar is 300px of screen answering a
@@ -581,11 +587,13 @@ export default function AppointmentsPage() {
           }`}
         >
           <div className="min-h-0 overflow-hidden" inert={!monthOpen}>
-            <MonthCalendar
-              value={selected}
-              onChange={setSelected}
-              marked={marked}
-            />
+            <div className="pt-4">
+              <MonthCalendar
+                value={selected}
+                onChange={setSelected}
+                marked={marked}
+              />
+            </div>
           </div>
         </div>
 
@@ -609,7 +617,9 @@ export default function AppointmentsPage() {
           aria-label={t(
             monthOpen ? 'appointments.hideMonth' : 'appointments.showMonth',
           )}
-          className="group hidden h-4 shrink-0 place-items-center outline-none xl:grid"
+          className={`group hidden h-4 shrink-0 place-items-center outline-none xl:grid ${
+            monthOpen ? 'mt-3' : ''
+          }`}
         >
           <span className="h-1 w-9 rounded-full bg-ink/15 transition-colors group-hover:bg-ink/30 group-focus-visible:bg-ink/30 group-active:bg-ink/40" />
         </button>
@@ -634,7 +644,10 @@ export default function AppointmentsPage() {
             true. */}
         <ChatFeed
           timeZone={timeZone}
-          className="hidden xl:flex"
+          // Close under the grip: the bar and the heading are one block — press
+          // the bar and this is what rises into the room — where 16px of air
+          // read as two regions with a gap between them.
+          className="mt-1 hidden xl:flex"
         />
       </aside>
     </div>
