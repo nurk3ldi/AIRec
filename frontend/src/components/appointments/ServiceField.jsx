@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowDown01Icon } from '@hugeicons/core-free-icons'
@@ -35,6 +35,9 @@ export default function ServiceField({
   label,
 }) {
   const [open, setOpen] = useState(false)
+  // The field itself, so the list can tell a press on its own control from a
+  // press somewhere else — see `onInteractOutside` below.
+  const anchor = useRef(null)
 
   const query = value.trim().toLowerCase()
   const matches = query
@@ -46,7 +49,7 @@ export default function ServiceField({
       {/* An anchor, not a trigger: the input must keep the focus and the
           keystrokes, and a trigger would take both. */}
       <Popover.Anchor asChild>
-        <div className="relative">
+        <div ref={anchor} className="relative">
           <input
             value={value}
             onChange={(event) => {
@@ -90,6 +93,21 @@ export default function ServiceField({
           // The focus stays in the input: this is a list you are being offered
           // while typing, not a place you were sent.
           onOpenAutoFocus={(event) => event.preventDefault()}
+          // **The press that opened this must not also close it.** Focusing the
+          // field opens the list, and the click that did the focusing carries on
+          // to the layer's own outside-interaction check — where the input is
+          // *outside*, because it is the anchor and not the content. The list
+          // opened on the press and closed on the release, which read as a
+          // field that refuses to open at all.
+          //
+          // So an interaction landing anywhere inside the field — the input or
+          // the chevron — is not an outside one. The chevron still closes it,
+          // through its own `onClick` toggle rather than through dismissal,
+          // which is what makes one press mean one thing.
+          onInteractOutside={(event) => {
+            const target = event.detail.originalEvent.target
+            if (anchor.current?.contains(target)) event.preventDefault()
+          }}
           // Above the booking panel's own `z-[60]`, and tagged so one Escape
           // closes this list and not the panel behind it.
           data-nested-overlay
