@@ -7,6 +7,7 @@ from fastapi import APIRouter, Request, Response, status
 
 from app.api.deps import CurrentUser, TelegramServiceDep
 from app.core import telegram
+from app.core.config import settings
 from app.schemas.telegram import ConnectTelegramRequest, TelegramAccountPublic
 
 logger = logging.getLogger(__name__)
@@ -32,6 +33,7 @@ def _public(account) -> TelegramAccountPublic:
         bot_username=account.bot_username,
         connected_at=account.connected_at,
         webhook_active=account.webhook_set_at is not None,
+        polling=settings.telegram_polling,
     )
 
 

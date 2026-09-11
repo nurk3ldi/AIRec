@@ -169,6 +169,17 @@ class Settings(BaseSettings):
     # The same reasoning as the WhatsApp timeout: a send is a request somebody
     # is waiting on with a reply box open.
     telegram_timeout_seconds: float = 10.0
+    # **The other way an update can arrive, and the one a laptop can use.**
+    # With this on the server asks Telegram for updates instead of waiting to
+    # be called (`getUpdates`, long-polled) — no public address, no tunnel, and
+    # nothing to re-register when a tunnel's URL changes on the next restart.
+    # See `app/services/telegram_poller.py`.
+    #
+    # Off by default, because a deployment that *has* an address should be
+    # called rather than asking: a webhook is one request per message where
+    # polling is a request every half minute per bot, and Telegram allows only
+    # one of the two per bot — turning this on deletes the webhook.
+    telegram_polling: bool = False
 
     # --- SMTP (optional) ---
     # Left unset in local dev on purpose: with no host configured, reset codes

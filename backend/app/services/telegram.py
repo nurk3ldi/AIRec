@@ -154,6 +154,26 @@ class TelegramService:
         where raising would throw away a verified credential over a call that
         may simply have timed out.
         """
+        # **Polling is the other half of this answer, not a special case of
+        # it.** With `TELEGRAM_POLLING` on the server fetches updates instead
+        # of being called, so there is no webhook to register and a stale one
+        # would take the messages away from the poller — Telegram allows a bot
+        # exactly one of the two. Cleared here rather than only in the poller,
+        # so connecting a bot while the server runs does not leave a webhook
+        # standing until the next restart. `None` is the truth either way: no
+        # webhook was set, and `TelegramAccountPublic.polling` is what tells
+        # the card the channel still receives.
+        if settings.telegram_polling:
+            try:
+                await telegram.delete_webhook(account.bot_token)
+            except Exception:
+                logger.warning(
+                    "Could not clear the webhook for bot %s while polling.",
+                    account.bot_id,
+                    exc_info=True,
+                )
+            return None
+
         if not settings.public_base_url:
             logger.info(
                 "PUBLIC_BASE_URL is unset — Telegram webhook not registered for bot %s.",

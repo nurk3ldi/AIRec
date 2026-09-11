@@ -54,3 +54,10 @@ class TelegramAccountPublic(BaseModel):
     bot_username: str | None = None
     connected_at: datetime
     webhook_active: bool = False
+    # **Whether updates arrive the other way**, which is the same question the
+    # field above asks and the reason both are here: a card needs to know that
+    # the channel *receives*, and on a machine with no public address it does
+    # so by being polled. See `app/services/telegram_poller.py`. It is a fact
+    # about the deployment rather than about the row, which is why it is filled
+    # in the route from `settings` and stored nowhere.
+    polling: bool = False

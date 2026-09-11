@@ -290,6 +290,66 @@ async def get_me(token: str) -> BotIdentity:
     return BotIdentity(bot_id=bot_id, username=_text(result.get("username"), 64))
 
 
+async def get_updates(
+    *, token: str, offset: int | None, wait_seconds: int
+) -> list[dict[str, Any]]:
+    """Ask Telegram what has arrived, and wait `wait_seconds` for it to.
+
+    **The other direction of the same channel.** A webhook is Telegram calling
+    us; this is us calling Telegram, which is the only one of the two a machine
+    with no public address can use — see `services/telegram_poller.py` for when
+    that is the right trade.
+
+    `offset` is the acknowledgement: sending the last `update_id` plus one is
+    what tells Telegram those are dealt with and must not be sent again. Until
+    it is sent they are redelivered on every call, which is the behaviour to
+    lean on when something fails — and the reason nothing here parses or stores
+    anything itself.
+
+    Long-polled, so an idle bot costs one held-open request every `timeout`
+    seconds rather than a loop of empty answers. The HTTP timeout has to be the
+    larger of the two or the client would hang up on a wait it asked for; the
+    usual send timeout is added on top as the margin for the round trip.
+
+    Raises `TelegramSendError` on anything that is not a plain answer — a
+    dropped connection, or Telegram's own 409, which is what it says when this
+    bot has a webhook registered or is already being polled somewhere else.
+    """
+    # `wait_seconds` and not `timeout`: this is how long Telegram is asked to
+    # hold the answer back, which is the opposite of a deadline — the deadline
+    # is the HTTP one below, and it has to be the larger of the two.
+    payload: dict[str, Any] = {
+        "timeout": wait_seconds,
+        # Messages only, for the same reason `set_webhook` narrows it: this bot
+        # has nothing to say about an edit, a poll answer or a chat member
+        # joining, and an update nobody reads is a round trip nobody needs.
+        "allowed_updates": ["message"],
+    }
+    if offset is not None:
+        payload["offset"] = offset
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=wait_seconds + settings.telegram_timeout_seconds
+        ) as client:
+            response = await client.post(_api_url(token, "getUpdates"), json=payload)
+    except httpx.HTTPError as exc:
+        raise TelegramSendError(f"getUpdates could not reach Telegram: {exc}") from exc
+
+    parsed = _parsed(response)
+    if response.status_code >= 400 or not parsed.get("ok"):
+        raise TelegramSendError(
+            parsed.get("description")
+            or f"getUpdates failed: HTTP {response.status_code}",
+            code=response.status_code,
+        )
+
+    result = parsed.get("result")
+    if not isinstance(result, list):
+        return []
+    return [item for item in result if isinstance(item, dict)]
+
+
 async def set_webhook(*, token: str, url: str, secret: str) -> None:
     """Point Telegram at us, and hand it the secret every update must carry back.
 

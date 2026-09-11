@@ -41,11 +41,13 @@ import Reveal from '../Reveal'
  * asked, so there is nothing to preserve and no "keep the stored one" state to
  * explain — reconnecting simply asks for it again.
  *
- * **`webhook_active` is the one thing this says that a WhatsApp card could
- * not.** A deployment with no public address cannot register a webhook, so the
- * token is stored and nothing arrives — a state that looks identical to
- * "connected" from the outside and is not. It says so rather than letting the
- * owner wait for messages that were never going to come.
+ * **Whether the channel actually *receives* is the one thing this says that a
+ * WhatsApp card could not.** There are two ways an update can arrive —
+ * `webhook_active`, Telegram calling us, and `polling`, the server asking — and
+ * the card cares only that one of them is true. With neither, the token is
+ * stored and nothing ever comes: a state that looks identical to "connected"
+ * from the outside and is not. It says so rather than letting the owner wait
+ * for messages that were never going to arrive.
  */
 
 export default function TelegramSection({ account, onSaved, className = '' }) {
@@ -65,6 +67,10 @@ export default function TelegramSection({ account, onSaved, className = '' }) {
   }, [account])
 
   const connected = Boolean(account)
+  // Whether Telegram can get an update into this server at all — by calling it
+  // (a registered webhook) or by being asked (polling). The card cares that one
+  // of the two is true; which one is a fact about the deployment.
+  const receiving = Boolean(account?.webhook_active || account?.polling)
   const ready = token.trim().length > 0
 
   const save = async (event) => {
@@ -130,22 +136,26 @@ export default function TelegramSection({ account, onSaved, className = '' }) {
           still does. */}
       {connected && !editing ? (
         <div className="mt-3 flex min-w-0 items-start gap-2">
+          {/* **The question is whether updates *arrive*, and there are two ways
+              they can.** A webhook is Telegram calling us and needs a public
+              address; polling is the server asking, which a laptop can do and
+              is what `TELEGRAM_POLLING` turns on. Either one means the channel
+              receives, so either one is the green tick — the card's job is to
+              say whether the bot works, not by which of the two. */}
           <HugeiconsIcon
-            icon={account.webhook_active ? CheckmarkCircle02Icon : Alert02Icon}
+            icon={receiving ? CheckmarkCircle02Icon : Alert02Icon}
             size={18}
             strokeWidth={1.8}
-            className={`mt-0.5 shrink-0 ${
-              account.webhook_active ? 'text-ok' : 'text-danger'
-            }`}
+            className={`mt-0.5 shrink-0 ${receiving ? 'text-ok' : 'text-danger'}`}
           />
           <div className="min-w-0">
             <p className="truncate text-[15px] text-ink">
               {account.bot_username ? `@${account.bot_username}` : account.bot_id}
             </p>
             {/* The warning, and only when there is one to give: a stored token
-                with no webhook is a channel that looks connected and receives
-                nothing. */}
-            {account.webhook_active ? null : (
+                that neither gets called nor asks is a channel that looks
+                connected and receives nothing. */}
+            {receiving ? null : (
               <p className="mt-0.5 text-[13px] leading-snug text-danger">
                 {t('telegram.webhookOff')}
               </p>

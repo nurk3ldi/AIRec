@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from http import HTTPStatus
 from pathlib import Path
 
@@ -51,6 +52,28 @@ async def _purge_deleted_accounts() -> None:
         )
 
 
+def _start_telegram_polling() -> asyncio.Task[None] | None:
+    """Fetch Telegram updates instead of waiting to be called, if asked to.
+
+    **Off unless `TELEGRAM_POLLING` says otherwise**, because a deployment with
+    a public address should be called rather than ask — see `TelegramPoller`
+    for the trade. On a laptop it is the only way an update can arrive at all,
+    and it replaces installing a tunnel and re-registering every bot each time
+    that tunnel's URL changes.
+
+    A task rather than a thread: it is HTTP and a database write, both already
+    async, and the event loop the app runs on is where they belong.
+    """
+    if not settings.telegram_polling:
+        return None
+
+    from app.db.session import session_factory
+    from app.services.telegram_poller import TelegramPoller
+
+    startup_logger.info("Telegram polling enabled — updates will be fetched.")
+    return asyncio.create_task(TelegramPoller(session_factory).run())
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     startup_logger.info("Server started — %s", settings.app_name)
@@ -70,7 +93,23 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         startup_logger.info("Database connected — %s", target)
         await _purge_deleted_accounts()
 
+    # After the database check, and only if it passed nothing above raised:
+    # the poller writes every message it receives, so starting it against a
+    # database that is down would be a loop of failures in the log.
+    poller = _start_telegram_polling()
+
     yield
+
+    # **Cancelled and awaited, not just cancelled.** A cancel only *asks*; the
+    # task gets its `CancelledError` on the next time it is scheduled, which is
+    # after this function returns unless it is awaited here — and a poll held
+    # open for thirty seconds is exactly the socket that would outlive the loop
+    # and print "Task was destroyed but it is pending!".
+    if poller is not None:
+        poller.cancel()
+        with suppress(asyncio.CancelledError):
+            await poller
+
     # Close pooled connections so shutdown doesn't leave sockets behind.
     await engine.dispose()
 
