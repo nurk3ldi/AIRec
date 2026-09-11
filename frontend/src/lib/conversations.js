@@ -114,6 +114,9 @@ export function historyRows({ chats, blocks, timeZone, noName = '' }) {
       // Ключ строки — чат: он и есть то, что здесь хранится, а запись к нему
       // может смениться на следующую.
       id: `chat-${chat.id}`,
+      // Чем открывается тред: у строки, заведённой перепиской, он есть всегда,
+      // у записи без чата — нет, и открывать там нечего.
+      chatId: chat.id,
       client: name,
       phone: chat.client_phone ?? block?.phone ?? null,
       range: block?.range ?? null,
@@ -135,6 +138,7 @@ export function historyRows({ chats, blocks, timeZone, noName = '' }) {
     if (taken.has(block.id)) continue
     rows.push({
       id: `booking-${block.id}`,
+      chatId: null,
       client: block.client,
       phone: block.phone ?? null,
       range: block.range,

@@ -1,6 +1,12 @@
 import { HugeiconsIcon } from '@hugeicons/react'
 import { useEffect, useState } from 'react'
-import { domMax, LazyMotion, m, useReducedMotion } from 'motion/react'
+import {
+  AnimatePresence,
+  domMax,
+  LazyMotion,
+  m,
+  useReducedMotion,
+} from 'motion/react'
 import * as Popover from '@radix-ui/react-popover'
 import {
   ArrowLeft01Icon,
@@ -21,6 +27,7 @@ import { getBusiness, listAppointments, listConversations } from '../lib/api'
 import { authed } from '../lib/auth'
 import { historyRows, liveChats } from '../lib/conversations'
 import { StreamList } from '../components/StreamList'
+import Thread from '../components/inbox/Thread'
 import { dayColors, tintOf, toBlock } from '../lib/appointments'
 import { getLocale, useT } from '../lib/i18n'
 import styles from '../styles/Inbox.module.css'
@@ -71,6 +78,18 @@ export default function InboxPage() {
   // `null` — ещё не читали; пустой массив — прочитали, и разговоров нет. Это
   // разные вещи: первое рисует скелет, второе — честный пустой ответ.
   const [chats, setChats] = useState(null)
+
+  /**
+   * Какой разговор открыт, если открыт.
+   *
+   * **Не в `useRemembered`, в отличие от дня и вида.** Открытый тред — это то,
+   * что делали, а не то, где были: вернувшись на экран через полчаса, читать
+   * хотят список, а не последнюю переписку, на которую нажали до обеда. То же
+   * решение, что у поиска на «Записях».
+   */
+  const reduce = useReducedMotion()
+  const [openChatId, setOpenChatId] = useState(null)
+  const openChat = (chats ?? []).find((chat) => chat.id === openChatId) ?? null
 
   useEffect(() => {
     let alive = true
@@ -192,7 +211,9 @@ export default function InboxPage() {
        индикатор дома под ней), но записаны настоящей высотой. Тот же приём, что
        на `/appointments`, и там же объяснён подробно. */
     <div
-      className={`${styles.page} flex h-[calc(100vh-118px-env(safe-area-inset-bottom))] items-stretch overflow-hidden sm:h-[calc(100vh-68px)]`}
+      // `relative` — ради треда ниже `lg`: он лежит поверх страницы, а не
+      // внутри колонки, и меряется от неё.
+      className={`${styles.page} relative flex h-[calc(100vh-118px-env(safe-area-inset-bottom))] items-stretch overflow-hidden sm:h-[calc(100vh-68px)]`}
       aria-label={t('nav.inbox')}
     >
       {/* **Доли, а не проценты.** `flex-[65]` и `flex-[35]` делят то, что
@@ -288,6 +309,8 @@ export default function InboxPage() {
                   }).filter((row) => matches(row, query, filter))
             }
             narrowed={Boolean(query.trim()) || isFiltered(filter)}
+            openId={openChatId}
+            onOpen={setOpenChatId}
           />
         </Section>
       </div>
@@ -302,13 +325,58 @@ export default function InboxPage() {
           Хайрлайна между колонками нет — в образце его тоже нет: карточки
           отделяет от фона собственная заливка, а линия рядом с ней была бы
           вторым краем у фигуры, у которой край уже есть. */}
+      {/* **Правая колонка — это деталь списка, а не окно над ним.** Разговор
+          открывается здесь: список слева остаётся на месте, выбранная строка
+          подсвечена, и переход к соседнему треду — одно нажатие, а не «закрыть
+          и открыть». Модальное окно погасило бы список ради содержимого,
+          которое как раз и читают в сравнении с ним.
+
+          «Потоки» — это её состояние «ничего не выбрано», а не отдельный блок,
+          который тред заслоняет: у колонки одна работа — показывать то, что
+          сейчас важно про разговоры. */}
       <aside className="hidden min-w-0 flex-[35] flex-col p-4 lg:flex lg:pl-3">
-        {/* Что ассистент делает прямо сейчас: с кем говорит, в каком состоянии
-            ветка, что сказано последним и как давно. */}
-        <Panel title={t('home.streams.title')} count={live.length}>
-          <StreamList chats={chats} live={live} bleed="-mx-5 px-5" />
-        </Panel>
+        {openChat ? (
+          <div className={`flex min-h-0 flex-1 flex-col ${CARD_EDGE}`}>
+            <Thread
+              conversation={openChat}
+              onClose={() => setOpenChatId(null)}
+              className="min-h-0 flex-1"
+            />
+          </div>
+        ) : (
+          /* Что ассистент делает прямо сейчас: с кем говорит, в каком состоянии
+             ветка, что сказано последним и как давно. */
+          <Panel title={t('home.streams.title')} count={live.length}>
+            <StreamList chats={chats} live={live} bleed="-mx-5 px-5" />
+          </Panel>
+        )}
       </aside>
+
+      {/* **Ниже `lg` колонки нет, и тред приезжает справа.** Это тот же
+          drill-down, которым на «Записях» открывается день: список сказал, что
+          такой разговор есть, экран показывает, что в нём, и уезжает туда же,
+          откуда приехал — по своему пути, а не вниз и не в никуда. Поверх
+          списка, а не вместо него: прокрутка и день остаются, где были. */}
+      <AnimatePresence initial={false}>
+        {openChat && (
+          <m.div
+            key="thread"
+            initial={reduce ? false : { x: '100%' }}
+            animate={{ x: 0 }}
+            exit={reduce ? { opacity: 0 } : { x: '100%' }}
+            transition={
+              reduce ? { duration: 0 } : { duration: 0.32, ease: [0.32, 0.72, 0, 1] }
+            }
+            className="absolute inset-0 z-20 flex flex-col bg-ground lg:hidden"
+          >
+            <Thread
+              conversation={openChat}
+              onBack={() => setOpenChatId(null)}
+              className="min-h-0 flex-1"
+            />
+          </m.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -875,7 +943,7 @@ function FilterGroup({ title, className = '', children }) {
 /** Прочерк для ячейки, которой нечем быть заполненной. */
 const DASH = '—'
 
-function BookingTable({ rows, narrowed = false }) {
+function BookingTable({ rows, narrowed = false, openId, onOpen }) {
   const t = useT()
   if (rows === null) return null
 
@@ -922,7 +990,34 @@ function BookingTable({ rows, narrowed = false }) {
                себе полезна и без него — она держит глаз на строке, когда тот
                идёт от имени к услуге через пять столбцов. Указатель добавится
                вместе с историей чата, к которой строка будет вести. */
-            <tr key={row.id} className="group text-[14px] text-ink">
+            <tr
+              key={row.id}
+              // **Строку открывают, если её есть чем открыть.** У записи,
+              // сделанной руками, переписки нет — нажимать не на что, и курсор
+              // об этом говорит стрелкой. Строка с чатом — настоящая кнопка:
+              // `onKeyDown` рядом с `onClick`, потому что `<tr>` сам по себе
+              // клавиатуре не отвечает.
+              onClick={row.chatId ? () => onOpen?.(row.chatId) : undefined}
+              onKeyDown={
+                row.chatId
+                  ? (event) => {
+                      if (event.key !== 'Enter' && event.key !== ' ') return
+                      event.preventDefault()
+                      onOpen?.(row.chatId)
+                    }
+                  : undefined
+              }
+              tabIndex={row.chatId ? 0 : undefined}
+              role={row.chatId ? 'button' : undefined}
+              aria-pressed={row.chatId ? row.chatId === openId : undefined}
+              // Открытая строка помечена: панель справа обязана быть откуда-то
+              // родом, и это её место в списке. `data-open` читает `Td` — заливка
+              // лежит на ячейках, см. соседний комментарий.
+              data-open={row.chatId && row.chatId === openId ? '' : undefined}
+              className={`group text-[14px] text-ink outline-none ${
+                row.chatId ? 'cursor-pointer' : ''
+              }`}
+            >
               {/* Имя — единственная полужирная ячейка: строку ищут по человеку,
                   а не по услуге или часу. */}
               <Td className="font-medium">{row.client}</Td>
@@ -997,7 +1092,7 @@ function Th({ className = '', children }) {
 function Td({ className = '', children }) {
   return (
     <td
-      className={`truncate py-3 pr-4 transition-colors duration-150 ease-out group-hover:bg-ink/12 first:rounded-l-lg first:pl-1 last:rounded-r-lg last:pr-1 ${className}`}
+      className={`truncate py-3 pr-4 transition-colors duration-150 ease-out group-hover:bg-ink/12 group-focus-visible:bg-ink/12 group-data-open:bg-ink/12 first:rounded-l-lg first:pl-1 last:rounded-r-lg last:pr-1 ${className}`}
     >
       {children}
     </td>
