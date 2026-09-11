@@ -39,6 +39,8 @@ export default {
   'appointments.next': 'Алға',
   'appointments.expand': 'Толық экранға жаю',
   'appointments.collapse': 'Жию',
+  'appointments.hideMonth': 'Күнтізбені жасыру',
+  'appointments.showMonth': 'Күнтізбені көрсету',
   'appointments.now': 'Қазір',
   'appointments.upNext': 'Кезекте',
   'appointments.upNextEmpty': 'Бүгінге басқа жазба жоқ',

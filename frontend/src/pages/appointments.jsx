@@ -106,6 +106,10 @@ export default function AppointmentsPage() {
   // Whether the grid is pulled up over the cards. The page holds it because
   // the two regions it sizes live on either side of this component.
   const [expanded, setExpanded] = useRemembered('appointments.expanded', false)
+  // **Whether the month is showing in the right-hand panel.** Remembered like
+  // every other choice on this screen: a click on «Диалоги» and back should
+  // not put the calendar back over a feed somebody just made room for.
+  const [monthOpen, setMonthOpen] = useRemembered('appointments.monthOpen', true)
 
   // **Search takes the phone's screen rather than covering it.** A sheet over a
   // year of months would leave those months scrolling behind a list that has
@@ -555,13 +559,60 @@ export default function AppointmentsPage() {
       </AnimatePresence>
 
       <aside className="hidden min-h-[300px] w-full shrink-0 flex-col gap-4 border-t border-line p-4 sm:flex xl:min-h-0 xl:w-[calc(300px+2rem)] xl:border-t-0 xl:border-l">
-        <div className="shrink-0">
-          <MonthCalendar
-            value={selected}
-            onChange={setSelected}
-            marked={marked}
-          />
+        {/* **The month folds away, and the feed takes the room.** The panel
+            is the page's full height with a fixed card at the top of it, so on
+            a day spent in «Диалоги» the calendar is 300px of screen answering a
+            question nobody is asking. It is a fold rather than a switch: the
+            feed grows into the space and the calendar comes back where it was.
+
+            **`grid-template-rows: 1fr → 0fr`** — the one place this project
+            animates a height, and the same exception `WeekStrip` earns: the
+            calendar's height is its own business (six rows of cells at
+            whatever the cell size is), so there is no number to transition to
+            and this is the only way to animate to *content*. On the sheet
+            curve, like every other fold here.
+
+            Folded, it is `inert`: a 0fr row still holds focusable day cells,
+            and a Tab that lands on a button nobody can see is a cursor that
+            has left the screen. */}
+        <div
+          className={`grid shrink-0 transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none ${
+            monthOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+          }`}
+        >
+          <div className="min-h-0 overflow-hidden" inert={!monthOpen}>
+            <MonthCalendar
+              value={selected}
+              onChange={setSelected}
+              marked={marked}
+            />
+          </div>
         </div>
+
+        {/* **The grip, and it is the timetable's own.** That screen already
+            pulls the grid up over the cards from a bar exactly like this one,
+            so the gesture is one this page has taught; a second shape for the
+            same act would be two ways of saying fold.
+
+            A button rather than a drag target, for the reason the other one
+            gives: a half-folded calendar is not an answer worth having. The
+            4px bar sits in a 16px box, so the target is a strip the width of
+            the panel and the mark on it is small.
+
+            `hidden xl:grid`: below `xl` the feed under it is hidden and the
+            panel holds the calendar alone — folding it there would leave an
+            empty column and nothing to show for it. */}
+        <button
+          type="button"
+          onClick={() => setMonthOpen((was) => !was)}
+          aria-expanded={monthOpen}
+          aria-label={t(
+            monthOpen ? 'appointments.hideMonth' : 'appointments.showMonth',
+          )}
+          className="group hidden h-4 shrink-0 place-items-center outline-none xl:grid"
+        >
+          <span className="h-1 w-9 rounded-full bg-ink/15 transition-colors group-hover:bg-ink/30 group-focus-visible:bg-ink/30 group-active:bg-ink/40" />
+        </button>
 
         {/* **The room under the month, which was empty.** The panel is the
             page's full height and the calendar is a fixed card at the top of

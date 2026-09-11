@@ -39,6 +39,8 @@ export default {
   'appointments.next': 'Forward',
   'appointments.expand': 'Expand to full height',
   'appointments.collapse': 'Collapse',
+  'appointments.hideMonth': 'Hide the calendar',
+  'appointments.showMonth': 'Show the calendar',
   'appointments.now': 'Now',
   'appointments.upNext': 'Up next',
   'appointments.upNextEmpty': 'Nothing else booked today',

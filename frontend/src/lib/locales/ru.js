@@ -45,6 +45,8 @@ export default {
   'appointments.next': 'Вперёд',
   'appointments.expand': 'Развернуть на весь экран',
   'appointments.collapse': 'Свернуть',
+  'appointments.hideMonth': 'Скрыть календарь',
+  'appointments.showMonth': 'Показать календарь',
   'appointments.now': 'Сейчас',
   'appointments.upNext': 'Дальше',
   'appointments.upNextEmpty': 'Больше записей на сегодня нет',
