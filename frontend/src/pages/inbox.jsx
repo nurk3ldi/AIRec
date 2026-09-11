@@ -1189,7 +1189,7 @@ function DayCard({ row, color, className = '' }) {
       {/* Имя и метка в одной строке. Точка выровнена по первой строке, а не
           по центру блока: имя бывает и в две строки, и тогда центр уезжает
           вниз, а метка должна стоять там, где начинается чтение. */}
-      <div className="flex min-w-0 gap-1.5">
+      <div className="flex min-w-0 items-start gap-1.5">
         <span
           className="mt-[0.45em] h-1.5 w-1.5 shrink-0 rounded-full"
           style={{ backgroundColor: color }}
@@ -1201,6 +1201,20 @@ function DayCard({ row, color, className = '' }) {
         <p className="min-w-0 font-display text-[17px] leading-snug font-medium text-ink">
           {row.client}
         </p>
+
+        {/* **Действия — в верхнем правом углу.** Они не про эту запись, а про
+            то, что с ней можно сделать, и внизу, рядом с услугой, читались как
+            часть строки фактов. В углу — это кнопка карточки, а не её
+            последняя строка; имя рядом, потому что действия относятся к нему.
+
+            Три точки, а не сетка из девяти: девять означают «все приложения»,
+            а не «действия над этим». Пока ничего не открывает. */}
+        <HugeiconsIcon
+          icon={MoreHorizontalIcon}
+          size={16}
+          strokeWidth={2}
+          className="mt-[0.3em] ml-auto shrink-0 text-ink"
+        />
       </div>
 
       {/* Всё, что ниже, начинается от левого края. Отступ под имя выстроил бы
@@ -1233,23 +1247,24 @@ function DayCard({ row, color, className = '' }) {
 
           **Крупному кеглю вес не нужен**: на 24px `semibold` читался как жирный
           заголовок, хотя это просто число. */}
-      <p className="mt-4 min-w-0 truncate font-display text-[24px] leading-none font-medium tracking-[-0.02em] text-ink tabular-nums">
-        {row.range}
-      </p>
+      {/* **Нижняя строка карточки: когда — слева, за чем — справа.** Время
+          держит левый край, по которому глаз идёт сверху вниз через все
+          карточки ряда, а услуга уходит к правому: 24 рядом с 13 читаются как
+          иерархия, а не как две строки подряд.
 
-      {/* Услуга отдельной строкой, а не рядом с именем: имя — это «кто», услуга
-          — «за чем», и на разных строках они читаются как два факта, а не как
-          одна подпись. */}
-      <div className="mt-3 flex items-end justify-between gap-2">
-        <p className="min-w-0 truncate text-[13px] text-ink">{row.service}</p>
-        {/* Три точки, а не сетка из девяти: девять означают «все приложения»,
-            а не «действия над этим». Пока ничего не открывает. */}
-        <HugeiconsIcon
-          icon={MoreHorizontalIcon}
-          size={16}
-          strokeWidth={2}
-          className="shrink-0 text-ink"
-        />
+          `items-baseline`, а не `items-end`: 24px и 13px, выровненные по низу,
+          стоят на двух разных линиях — на общей базовой это одна строка. */}
+      <div className="mt-4 flex items-baseline justify-between gap-3">
+        {/* 20, а не 24: на карточке шириной в треть ряда крупный кегль был
+            громче всего остального на ней, хотя это один из четырёх фактов, а
+            не заголовок. Ступень вниз — и время всё ещё первое, за что цепляется
+            глаз в нижней строке, но карточка читается целиком. */}
+        <p className="shrink-0 font-display text-[20px] leading-none font-medium tracking-[-0.02em] text-ink tabular-nums">
+          {row.range}
+        </p>
+        <p className="min-w-0 truncate text-right text-[13px] text-ink">
+          {row.service}
+        </p>
       </div>
     </article>
   )
