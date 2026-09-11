@@ -1338,12 +1338,15 @@ function BookingBlock({
 
           <p
             className={`ml-auto flex shrink-0 items-center gap-1.5 text-[12px] leading-none font-medium ${
-              // **A marked card gives up the status colour.** Green for "done"
-              // on a fuchsia fill is one colour argued against another, and the
-              // fill is the one the owner chose deliberately. The word stays,
-              // a step quieter than the name, and the dot goes with it —
-              // `bg-current` already follows whatever this line is.
-              block.color ? 'opacity-80' : statusTone(block.status)
+              // **A marked card gives up the status colour**, and takes the
+              // card's own ink at full strength instead. Green for "done" on a
+              // fuchsia fill is one colour argued against another, and the fill
+              // is the one the owner chose deliberately — but dimming the word
+              // was the wrong way to step it back: on a saturated card every
+              // percent of transparency is a percent of legibility, and this
+              // card is read at a glance across a week. Weight and size carry
+              // the hierarchy; the dot follows through `bg-current`.
+              block.color ? '' : statusTone(block.status)
             }`}
           >
             {/* `currentColor`, so the dot and the word are the same statement
@@ -1370,8 +1373,13 @@ function BookingBlock({
           target. */}
         {block.phone && height >= LINE[0] && (
           <p
+            // `ink`, like the service under it and for the same reason: on a
+            // card this small a muted grey is a second grey, and the line
+            // disappears into its own background. What separates the three
+            // lines is weight and order, not colour — the name is semibold,
+            // these are not.
             className={`truncate font-display text-[13px] leading-tight tabular-nums ${
-              block.color ? 'opacity-80' : 'text-muted'
+              block.color ? '' : 'text-ink'
             }`}
           >
             {block.phone}
@@ -1404,12 +1412,13 @@ function BookingBlock({
               {width >= CARD_WIDTH.RANGE ? block.range : block.from}
             </span>
             {width >= CARD_WIDTH.LABEL && (
-              // Muted is a grey, and a grey on a painted card is a smudge. The
-              // price steps back by opacity there instead, which works against
-              // any of the eight.
-              <span
-                className={`shrink-0 ${block.color ? 'opacity-70' : 'text-muted'}`}
-              >
+              // **Ink like everything else on the card.** It was muted, and a
+              // grey on a grey card is a line you have to look for twice —
+              // worse on a painted one, where every grey is a smudge. Nothing
+              // here is a caption: four short facts, all of them worth reading,
+              // told apart by weight and position rather than by fading three
+              // of them out.
+              <span className={`shrink-0 ${block.color ? '' : 'text-ink'}`}>
                 {formatPrice(block.price)}
               </span>
             )}
