@@ -19,7 +19,7 @@ import { StepButton, ToolbarPill } from '../components/appointments/Timetable'
 import { dayKey, shiftDate } from '../lib/dates'
 import { getBusiness, listAppointments, listConversations } from '../lib/api'
 import { authed } from '../lib/auth'
-import { liveChats } from '../lib/conversations'
+import { historyRows, liveChats } from '../lib/conversations'
 import { StreamList } from '../components/StreamList'
 import { dayColors, tintOf, toBlock } from '../lib/appointments'
 import { getLocale, useT } from '../lib/i18n'
@@ -264,15 +264,28 @@ export default function InboxPage() {
             />
           }
         >
-          {/* Сужение — здесь, а не внутри таблицы: та рисует то, что ей дали,
+          {/* **История: переписка и то, о чём в ней договорились.** Строку
+              заводит чат — разговор из бота попадает сюда и остаётся здесь
+              навсегда, дошло дело до записи или нет, — а запись к нему
+              прикладывается по номеру. Запись, сделанную руками и без
+              переписки, история тоже держит: правила целиком в `historyRows`.
+
+              Ждём оба списка: строка собирается из двух ответов сразу, и
+              таблица, нарисованная по одному из них, показала бы половину
+              истории как всю.
+
+              Сужение — здесь, а не внутри таблицы: та рисует то, что ей дали,
               и не должна знать, почему строк стало меньше. */}
           <BookingTable
             rows={
-              all === null
+              all === null || chats === null
                 ? null
-                : all
-                    .map((row) => toBlock(row, timeZone))
-                    .filter((row) => matches(row, query, filter))
+                : historyRows({
+                    chats,
+                    blocks: all.map((row) => toBlock(row, timeZone)),
+                    timeZone,
+                    noName: t('chat.noName'),
+                  }).filter((row) => matches(row, query, filter))
             }
             narrowed={Boolean(query.trim()) || isFiltered(filter)}
           />
@@ -486,10 +499,13 @@ const digits = (value) => value.replace(/\D/g, '')
 function matches(row, query, filter) {
   const { dateFrom, dateTo, timeFrom, timeTo } = filter
 
-  if (dateFrom && row.day < dateFrom) return false
-  if (dateTo && row.day > dateTo) return false
-  if (timeFrom && row.from < timeFrom) return false
-  if (timeTo && row.from > timeTo) return false
+  // `date` и `time` есть у любой строки истории: либо записи, либо переписки —
+  // см. `historyRows`. Раньше здесь стояли `day` и `from` самой записи, и с ними
+  // диапазон дат выбрасывал бы разговоры, до записи не дошедшие.
+  if (dateFrom && (row.date ?? '') < dateFrom) return false
+  if (dateTo && (row.date ?? '') > dateTo) return false
+  if (timeFrom && (row.time ?? '') < timeFrom) return false
+  if (timeTo && (row.time ?? '') > timeTo) return false
 
   const text = query.trim().toLowerCase()
   if (!text) return true
@@ -856,6 +872,9 @@ function FilterGroup({ title, className = '', children }) {
  * искать пропажу вместо того, чтобы снять фильтр. Поэтому суженная таблица
  * отвечает «Ничего не найдено»: это про запрос, а не про мир.
  */
+/** Прочерк для ячейки, которой нечем быть заполненной. */
+const DASH = '—'
+
 function BookingTable({ rows, narrowed = false }) {
   const t = useT()
   if (rows === null) return null
@@ -868,9 +887,9 @@ function BookingTable({ rows, narrowed = false }) {
     )
   }
 
-  const sorted = [...rows].sort(
-    (a, b) => new Date(a.startsAt) - new Date(b.startsAt),
-  )
+  // Порядок задаёт `historyRows` — сверху то, что происходило только что.
+  // Второй сортировки здесь нет намеренно: два ответа на «что считать свежим»
+  // расходятся ровно тогда, когда один из них поправят.
 
   return (
     // Прокручивается вбок, а не ломается: на узком окне пять столбцов ужимать
@@ -891,7 +910,7 @@ function BookingTable({ rows, narrowed = false }) {
         </thead>
 
         <tbody className="divide-y divide-line">
-          {sorted.map((row) => (
+          {rows.map((row) => (
             /* **`group` — ради подсветки.** Заливка лежит на ячейках, а не на
                строке: у `<tr>` скругление не обрезает фон дочерних `<td>`, а
                подсветка во всю ширину с прямыми углами читается как выделенная
@@ -909,10 +928,13 @@ function BookingTable({ rows, narrowed = false }) {
               <Td className="font-medium">{row.client}</Td>
               {/* `tabular-nums` на номере, дате и часах: цифры одной ширины,
                   иначе столбец из десяти строк выглядит рваным. */}
-              <Td className="tabular-nums">{row.phone}</Td>
-              <Td className="tabular-nums">{dayLabel(row.startsAt)}</Td>
-              <Td className="tabular-nums">{row.range}</Td>
-              <Td>{row.service}</Td>
+              <Td className="tabular-nums">{row.phone ?? DASH}</Td>
+              <Td className="tabular-nums">{dayLabel(`${row.date}T00:00:00`)}</Td>
+              {/* Прочерк, а не пусто: у разговора, не дошедшего до записи, часа
+                  и услуги нет — и пустая ячейка читалась бы как «не загрузилось»,
+                  а не как «этого не было». */}
+              <Td className="tabular-nums">{row.range ?? DASH}</Td>
+              <Td>{row.service ?? DASH}</Td>
             </tr>
           ))}
         </tbody>
