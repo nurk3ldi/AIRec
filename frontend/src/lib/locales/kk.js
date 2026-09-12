@@ -82,6 +82,7 @@ export default {
   'color.green': 'Жасыл',
   'color.cyan': 'Көгілдір',
   'chat.all': 'Барлығы',
+  'chat.back': 'Қайтару',
   'chat.empty': 'Жаңа диалог жоқ',
   'chat.new': 'Жаңа',
   'chat.waiting': 'Жауап күтуде',

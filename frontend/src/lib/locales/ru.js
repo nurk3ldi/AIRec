@@ -87,6 +87,7 @@ export default {
   'color.green': 'Зелёный',
   'color.cyan': 'Голубой',
   'chat.all': 'Все',
+  'chat.back': 'Вернуть',
   'chat.empty': 'Новых диалогов нет',
   'chat.new': 'Новый',
   'chat.waiting': 'Ждёт ответа',

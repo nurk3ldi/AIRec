@@ -81,6 +81,7 @@ export default {
   'color.green': 'Green',
   'color.cyan': 'Cyan',
   'chat.all': 'All',
+  'chat.back': 'Back',
   'chat.empty': 'No new chats',
   'chat.new': 'New',
   'chat.waiting': 'Awaiting reply',
