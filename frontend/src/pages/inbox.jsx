@@ -302,8 +302,8 @@ export default function InboxPage() {
           className="mt-6 sm:mt-8"
           actions={
             <div className="flex items-center gap-3">
-              {/* «Все» первым, как и в секции выше: оно решает, *сколько*
-                  показано, а поиск и фильтр — какая часть из показанного. */}
+              {/* «Все» первым: оно решает, *сколько* показано, а поиск и
+                  фильтр — какая часть из показанного. */}
               <ShowAllButton
                 pressed={showArchived}
                 onClick={() => setShowArchived((was) => !was)}
@@ -498,8 +498,17 @@ function ShowAllButton({ pressed, onClick }) {
       // верхней секции она пока ничего не делает, и обещать состояние, которого
       // нет, — хуже, чем не обещать ничего.
       aria-pressed={onClick ? Boolean(pressed) : undefined}
-      className={`-my-1 rounded-lg py-1 text-[13px] outline-none transition-colors hover:text-ink focus-visible:text-ink ${
-        pressed ? 'text-ink' : 'text-muted'
+      // **Белым, 14px и без подчёркивания.** Серым оно читалось как подпись, а
+      // линия под словом — приём ссылки, уводящей со страницы; здесь никуда не
+      // уводят, секция раскрывается на месте. Что оно нажимается, говорит
+      // положение: отдельная строка под заголовком, где больше ничего нет.
+      //
+      // Состояние держит вес, раз цвет теперь занят: включено — полужирным.
+      //
+      // По высоте — по центру ряда, как и круглые кнопки рядом: `items-center`
+      // родителя, и ничего, что бы это переопределяло.
+      className={`-my-1 rounded-lg py-1 text-[14px] text-ink outline-none transition-opacity hover:opacity-70 focus-visible:opacity-70 ${
+        pressed ? 'font-medium' : ''
       }`}
     >
       {t('chat.all')}
