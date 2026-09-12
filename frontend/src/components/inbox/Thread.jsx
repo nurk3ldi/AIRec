@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowLeft01Icon, Cancel01Icon } from '@hugeicons/core-free-icons'
+import {
+  ArrowLeft01Icon,
+  Cancel01Icon,
+  UserIcon,
+} from '@hugeicons/core-free-icons'
 import { listMessages, markConversationRead } from '../../lib/api'
 import { authed } from '../../lib/auth'
 import { getLocale, useT } from '../../lib/i18n'
@@ -126,8 +130,18 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
         </p>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">
-          {messages.map((message) => (
-            <Bubble key={message.id} message={message} />
+          {messages.map((message, index) => (
+            <Bubble
+              key={message.id}
+              message={message}
+              // **Аватар — у последнего сообщения подряд идущих, не у каждого.**
+              // Четыре кружка в столбик рядом с четырьмя репликами одного
+              // человека повторяют то, что уже сказано стороной, и превращают
+              // разговор в список карточек. У остальных место под него
+              // сохраняется, иначе пузыри в одной серии стояли бы по разным
+              // левым краям.
+              last={messages[index + 1]?.author !== message.author}
+            />
           ))}
         </div>
       )}
@@ -145,42 +159,82 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
  * `surface-card`, а не `surface-raised`: пузырь лежит *на* панели, а не на
  * странице, и это ровно та разница, ради которой токен заведён.
  */
-function Bubble({ message }) {
+function Bubble({ message, last = true }) {
   const t = useT()
   const mine = message.author !== 'client'
 
-  return (
-    <div className={`flex max-w-[86%] flex-col gap-1 ${mine ? 'self-end' : ''}`}>
-      {mine && (
-        <span
-          className={`text-[11px] font-medium tracking-wide text-muted uppercase ${
-            mine ? 'text-right' : ''
-          }`}
-        >
+  if (mine) {
+    return (
+      <div className="flex max-w-[86%] flex-col gap-1 self-end">
+        <span className="text-right text-[11px] font-medium tracking-wide text-muted uppercase">
           {t(`thread.author.${message.author}`)}
         </span>
-      )}
+        <Box message={message} mine />
+        <span className="text-right font-display text-[11px] text-muted tabular-nums">
+          {clock(message.sent_at)}
+        </span>
+      </div>
+    )
+  }
 
-      <div
-        className={`rounded-2xl px-3.5 py-2.5 text-[14px] leading-snug ${
-          mine ? 'bg-surface-chip text-ink' : 'bg-surface-card text-ink'
-        }`}
-      >
-        <p className="break-words whitespace-pre-wrap">{message.body}</p>
-        {/* Ошибка отправки — под текстом, а не вместо него: сообщение было
-            написано, и то, что оно не ушло, — второй факт, а не замена первому. */}
-        {message.error && (
-          <p className="mt-1 text-[12px] text-danger">{message.error}</p>
-        )}
+  return (
+    <div className="flex max-w-[86%] flex-col gap-1">
+      {/* **Аватар в одной строке с пузырём, а не со всей колонкой.** Время
+          стоит ниже, и выровненный по низу колонки кружок оказывался рядом с
+          часами — подписью, а не репликой. Здесь он держится низа самого
+          пузыря, как во всех мессенджерах: серия читается сверху вниз, и
+          кружок там, где она кончилась. */}
+      <div className="flex items-end gap-2">
+        {/* **Внутри — значок профиля, а не буква имени.** Клиент из бота часто
+            вообще без имени, и «Б» от «Без имени» была бы подписью под тем,
+            чего нет; нейтральный силуэт честно говорит «человек, фотографии
+            нет». `shrink-0`, иначе длинная реплика сплющит его в овал.
+
+            `invisible`, а не отсутствие: место держится у всей серии, иначе
+            пузыри одного человека встали бы по разным левым краям. */}
+        <span
+          aria-hidden="true"
+          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-chip text-muted ${
+            last ? '' : 'invisible'
+          }`}
+        >
+          <HugeiconsIcon icon={UserIcon} size={15} strokeWidth={2} />
+        </span>
+
+        <Box message={message} />
       </div>
 
-      <span
-        className={`font-display text-[11px] text-muted tabular-nums ${
-          mine ? 'text-right' : ''
-        }`}
-      >
+      {/* Под пузырём, а не под кружком: 28px аватара плюс 8px зазора — это те
+          самые `pl-9`, которыми время встаёт по левому краю реплики. */}
+      <span className="pl-9 font-display text-[11px] text-muted tabular-nums">
         {clock(message.sent_at)}
       </span>
+    </div>
+  )
+}
+
+/**
+ * Сам пузырь — один на обе стороны.
+ *
+ * Написан один раз и различается только заливкой: две копии текста и ошибки
+ * совпадали бы ровно до первой правки одной из них.
+ *
+ * `surface-card`, а не `surface-raised`: пузырь лежит *на* панели, а не на
+ * странице, и это ровно та разница, ради которой токен заведён.
+ */
+function Box({ message, mine = false }) {
+  return (
+    <div
+      className={`min-w-0 rounded-2xl px-3.5 py-2.5 text-[14px] leading-snug text-ink ${
+        mine ? 'bg-surface-chip' : 'bg-surface-card'
+      }`}
+    >
+      <p className="break-words whitespace-pre-wrap">{message.body}</p>
+      {/* Ошибка отправки — под текстом, а не вместо него: сообщение было
+          написано, и то, что оно не ушло, — второй факт, а не замена первому. */}
+      {message.error && (
+        <p className="mt-1 text-[12px] text-danger">{message.error}</p>
+      )}
     </div>
   )
 }
