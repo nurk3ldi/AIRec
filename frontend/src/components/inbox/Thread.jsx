@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   ArrowLeft01Icon,
@@ -36,6 +36,7 @@ import Skeleton, { SkeletonRegion } from '../Skeleton'
 export default function Thread({ conversation, onClose, onBack, className = '' }) {
   const t = useT()
   const [messages, setMessages] = useState(null)
+  const list = useRef(null)
   const { pending, bars } = useSkeleton(messages === null)
 
   const id = conversation?.id
@@ -60,6 +61,29 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
       alive = false
     }
   }, [id])
+
+  /**
+   * Открывается на последнем сообщении, а не на первом.
+   *
+   * **Это и есть «прокрутка» в жалобе на её отсутствие.** Контейнер прокручивался
+   * и раньше, но тред длиной в неделю открывался на «/help», отправленном в
+   * понедельник, а сегодняшний разговор лежал в полутора тысячах пикселей ниже —
+   * экран выглядел так, будто ничего нового в нём нет. Мессенджер открывает
+   * переписку там, где она кончилась, и по той же причине: читают последнее.
+   *
+   * `useLayoutEffect`, а не `useEffect`: прокрутка до кадра, иначе первый кадр
+   * покажет начало переписки и дёрнется. Мгновенно, без плавности — низ это не
+   * место, куда экран едет, а место, где он начинается.
+   *
+   * **В зависимостях и `pending`, и это не лишнее.** Пока держится скелет,
+   * списка в DOM ещё нет: сообщения уже пришли, `list.current` пустой, и
+   * прокручивать нечего. Список появляется, когда скелет уходит, — то есть по
+   * смене `pending`, а не `messages`.
+   */
+  useLayoutEffect(() => {
+    const box = list.current
+    if (box) box.scrollTop = box.scrollHeight
+  }, [messages, pending])
 
   if (!conversation) return null
 
@@ -151,7 +175,10 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
           {t('thread.empty')}
         </p>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">
+        <div
+          ref={list}
+          className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5"
+        >
           {messages.map((message, index) => (
             <Fragment key={message.id}>
               {/* **Дата — там, где она сменилась**, и над первым сообщением
