@@ -314,6 +314,38 @@ function Box({ message, mine = false, onPhoto }) {
   const body = message.body?.trim() ?? ''
   const caption = photo && body === PHOTO_PLACEHOLDER ? null : message.body
 
+  // **Фотография без подписи — это сама фотография, без пузыря под ней.**
+  // Заливка и отступы существуют ради текста: они дают словам поле, на котором
+  // их видно. У снимка поле своё, и рамка вокруг него — это рамка вокруг рамки,
+  // из-за которой картинка в треде выглядит вложением, а не сообщением.
+  if (photo && !caption) {
+    return (
+      <div className="group/photo relative w-fit">
+        <img
+          src={photo}
+          alt=""
+          onLoad={onPhoto}
+          className="max-h-[320px] max-w-full rounded-2xl"
+        />
+
+        {/* **Время появляется, когда на снимок наводят.** Постоянная плашка на
+            фотографии — это чужие цифры поверх чьего-то лица; здесь она нужна
+            раз в сто просмотров, и ровно тогда её и видно.
+
+            Чёрная подложка и белый текст литералами, а не токенами: под ними
+            не тема приложения, а фотография, и «ink на surface» там означало бы
+            на светлой теме чёрные цифры на тёмном снимке.
+
+            `[@media(hover:none)]` — вторая половина: на телефоне наводить
+            нечем, и правило `hover:` там мертво, так что время просто видно
+            всегда. Пропадает оно ради снимка, а не ради экономии. */}
+        <span className="pointer-events-none absolute right-2 bottom-2 rounded-full bg-black/60 px-2 py-0.5 font-display text-[11px] text-white opacity-0 backdrop-blur-sm transition-opacity duration-150 ease-out tabular-nums group-hover/photo:opacity-100 [@media(hover:none)]:opacity-100">
+          {clock(message.sent_at)}
+        </span>
+      </div>
+    )
+  }
+
   return (
     <div
       className={`relative min-w-0 rounded-2xl px-3.5 py-2.5 text-[14px] leading-snug text-ink ${
@@ -355,9 +387,8 @@ function Box({ message, mine = false, onPhoto }) {
           словом — это подпись «фотография» под фотографией. Сравнение с
           литералом хрупко ровно настолько, насколько не страшно: разойдётся —
           вернётся лишняя строка, а не пропадёт сообщение. */}
-      {caption && (
-        <p className="break-words whitespace-pre-wrap">
-          {caption}
+      <p className="break-words whitespace-pre-wrap">
+        {caption}
         {/* **Пустое место в конце текста, ровно под часы.** Время лежит в
             правом нижнем углу пузыря абсолютно — иначе короткая реплика стала
             бы двухэтажной ради строки с четырьмя цифрами, — а абсолютный
@@ -365,9 +396,8 @@ function Box({ message, mine = false, onPhoto }) {
             под него. Распорка занимает это место в потоке: хватает ширины —
             часы встают в конец той же строки, не хватает — переносится вместе
             с ними, и пузырь честно вырастает. */}
-          <span aria-hidden="true" className="inline-block w-12 select-none" />
-        </p>
-      )}
+        <span aria-hidden="true" className="inline-block w-12 select-none" />
+      </p>
 
       {/* Ошибка отправки — под текстом, а не вместо него: сообщение было
           написано, и то, что оно не ушло, — второй факт, а не замена первому.
@@ -382,13 +412,7 @@ function Box({ message, mine = false, onPhoto }) {
           время оказывалось поверх неё, на чём придётся. Тогда оно встаёт
           обычной строкой под ней: пузырь вырастает на одиннадцать пикселей,
           и это дешевле, чем цифры на чужом лице. */}
-      <span
-        className={`font-display text-[11px] text-muted tabular-nums ${
-          caption
-            ? 'absolute right-3.5 bottom-2.5'
-            : 'block pt-0.5 text-right'
-        }`}
-      >
+      <span className="absolute right-3.5 bottom-2.5 font-display text-[11px] text-muted tabular-nums">
         {clock(message.sent_at)}
       </span>
     </div>
