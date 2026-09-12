@@ -93,7 +93,6 @@ export default {
   'thread.author.client': 'Клиент',
   'thread.author.assistant': 'Ассистент',
   'thread.author.owner': 'Сіз',
-  'thread.readOnly': 'Тек оқу',
   'appointments.warnDayOff': 'Бұл күні бизнес жұмыс істемейді',
   'appointments.warnBreak': 'Бұл уақыт үзіліске тұспа-тұс келеді',
   'appointments.warnClosed': 'Бұл уақыт жұмыс сағаттарынан тыс',

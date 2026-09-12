@@ -92,7 +92,6 @@ export default {
   'thread.author.client': 'Client',
   'thread.author.assistant': 'Assistant',
   'thread.author.owner': 'You',
-  'thread.readOnly': 'Read only',
   'appointments.warnDayOff': 'The business is closed that day',
   'appointments.warnBreak': 'That time falls in the break',
   'appointments.warnClosed': 'That time is outside working hours',

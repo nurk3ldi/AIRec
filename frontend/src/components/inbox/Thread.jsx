@@ -69,6 +69,23 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
     conversation.client_phone ||
     t('chat.noName')
 
+  // **Вторая строка шапки: как с человеком связаться и где.** Номер, а если его
+  // нет — `@username`: у клиента из бота номера может не быть вовсе, и пустое
+  // место там читалось бы как «не загрузилось». Канал пишется своим именем, а
+  // не тем, как он лежит в колонке: «telegram» строчными — это значение поля,
+  // «Telegram» — название, и в шапке у читателя второе.
+  const contact =
+    conversation.client_phone ||
+    (conversation.client_username ? `@${conversation.client_username}` : null)
+
+  // **Кроме случая, когда контакт уже стоит в заголовке.** У клиента без имени
+  // именем становится его же номер — и строкой ниже он читался дважды, что
+  // выглядит не как два факта, а как ошибка. Тогда во второй строке остаётся
+  // один канал.
+  const details = [contact === title ? null : contact, channelName(conversation.channel)]
+    .filter(Boolean)
+    .join(' · ')
+
   return (
     <section className={`flex min-h-0 flex-col ${className}`}>
       {/* Шапка: кто, и как отсюда выйти. На широком экране выход — крестик
@@ -89,12 +106,11 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
 
         <div className="min-w-0 flex-1">
           <p className="truncate text-[15px] font-medium text-ink">{title}</p>
-          {/* Второй строкой — то, чем эта ветка отличается от других: канал и
-              то, что писать отсюда нельзя. Без неё пустое поле внизу читалось бы
-              как «поле ввода не загрузилось». */}
-          <p className="truncate text-[12px] text-muted">
-            {conversation.channel} · {t('thread.readOnly')}
-          </p>
+          {/* Всё `ink`, ничего серого: это три факта об одном человеке — кто,
+              по какому номеру и через что пишет, — а не подпись к имени. Серый
+              здесь означал бы «можно не читать», а читают шапку именно ради
+              номера. */}
+          <p className="truncate text-[13px] text-ink">{details}</p>
         </div>
 
         {onClose && (
@@ -268,6 +284,18 @@ function Box({ message, mine = false }) {
     </div>
   )
 }
+
+/**
+ * Канал своим именем.
+ *
+ * Хранится он строчными — это значение колонки, закрытый набор, который читает
+ * код. На экране у него есть имя, и написать его как в базе значит написать
+ * название бренда с ошибкой. Неизвестное значение показывается как есть: врать
+ * о канале хуже, чем показать сырое слово.
+ */
+const CHANNELS = { telegram: 'Telegram', whatsapp: 'WhatsApp' }
+
+const channelName = (channel) => CHANNELS[channel] ?? channel
 
 /**
  * Один ли это день — по местному календарю читателя, а не по UTC.
