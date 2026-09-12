@@ -1268,8 +1268,10 @@ function Th({ className = '', children }) {
  * этом проекте нарисована карточка, лежащая *на* чём-то. Строка под курсором
  * ровно такая и есть.
  *
- * Скругление — только на крайних ячейках, иначе оно легло бы на каждую из пяти
- * и строка распалась бы на пять таблеток.
+ * **Углы прямые.** Подсветка была со скруглением на крайних ячейках — строка
+ * читалась как таблетка, лежащая на таблице; прямая полоса во всю ширину
+ * колонки читается как сама строка, которая загорелась, а это и есть то, что
+ * происходит.
  *
  * `transition-colors` остаётся и при `prefers-reduced-motion`: смена цвета под
  * курсором — не перемещение по экрану, а единственный отклик, который строка
@@ -1278,7 +1280,7 @@ function Th({ className = '', children }) {
 function Td({ className = '', children }) {
   return (
     <td
-      className={`truncate py-3 pr-4 transition-colors duration-150 ease-out group-hover:bg-ink/12 group-focus-visible:bg-ink/12 group-data-open:bg-ink/12 first:rounded-l-lg first:pl-1 last:rounded-r-lg last:pr-1 ${className}`}
+      className={`truncate py-3 pr-4 transition-colors duration-150 ease-out group-hover:bg-ink/12 group-focus-visible:bg-ink/12 group-data-open:bg-ink/12 first:pl-1 last:pr-1 ${className}`}
     >
       {children}
     </td>
