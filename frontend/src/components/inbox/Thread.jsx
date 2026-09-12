@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   ArrowLeft01Icon,
@@ -131,17 +131,36 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5">
           {messages.map((message, index) => (
-            <Bubble
-              key={message.id}
-              message={message}
+            <Fragment key={message.id}>
+              {/* **Дата — там, где она сменилась**, и над первым сообщением
+                  тоже: разговор, начатый вчера и продолженный сегодня, без неё
+                  читается как один непрерывный час. Ровно то же, что делает
+                  любой мессенджер, и по той же причине — время в пузыре
+                  отвечает «во сколько», а не «когда».
+
+                  По центру и без линий: это не разделитель двух блоков, а
+                  подпись к тому, что ниже. Полоса через всю ширину добавила бы
+                  к разговору чертёж, которого в нём нет. */}
+              {sameDay(messages[index - 1]?.sent_at, message.sent_at) ? null : (
+                <p className="py-1 text-center text-[12px] text-muted">
+                  {dateLabel(message.sent_at)}
+                </p>
+              )}
+
+              <Bubble
+                message={message}
               // **Аватар — у последнего сообщения подряд идущих, не у каждого.**
               // Четыре кружка в столбик рядом с четырьмя репликами одного
               // человека повторяют то, что уже сказано стороной, и превращают
               // разговор в список карточек. У остальных место под него
               // сохраняется, иначе пузыри в одной серии стояли бы по разным
               // левым краям.
-              last={messages[index + 1]?.author !== message.author}
-            />
+                last={
+                  messages[index + 1]?.author !== message.author ||
+                  !sameDay(message.sent_at, messages[index + 1]?.sent_at)
+                }
+              />
+            </Fragment>
           ))}
         </div>
       )}
@@ -248,6 +267,38 @@ function Box({ message, mine = false }) {
       </span>
     </div>
   )
+}
+
+/**
+ * Один ли это день — по местному календарю читателя, а не по UTC.
+ *
+ * `toDateString` даёт «Sat Sep 12 2026» в часовом поясе браузера, и сравнение
+ * двух таких строк — это и есть вопрос «тот же день?». Отсутствие даты (первое
+ * сообщение в треде) — это «нет», и подпись над ним рисуется.
+ */
+function sameDay(a, b) {
+  if (!a || !b) return false
+  const left = new Date(a)
+  const right = new Date(b)
+  if (Number.isNaN(left.getTime()) || Number.isNaN(right.getTime())) return false
+  return left.toDateString() === right.toDateString()
+}
+
+/**
+ * День словами, на языке интерфейса.
+ *
+ * С годом, в отличие от `dayLabel` в `lib/dates`: тот подписывает день в
+ * календаре, где год известен из того, что на экране, а переписка читается из
+ * истории, и «31 августа» без года там — дата, к которой надо подбирать год.
+ */
+function dateLabel(iso) {
+  const at = new Date(iso)
+  if (Number.isNaN(at.getTime())) return ''
+  return at.toLocaleDateString(getLocale(), {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
 }
 
 /** Час и минуты в языке интерфейса — дата у треда общая, она в списке. */
