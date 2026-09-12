@@ -376,7 +376,19 @@ function Box({ message, mine = false, onPhoto }) {
         <p className="mt-1 pr-12 text-[12px] text-danger">{message.error}</p>
       )}
 
-      <span className="absolute right-3.5 bottom-2.5 font-display text-[11px] text-muted tabular-nums">
+      {/* **Часы лежат на тексте, а не на фотографии.** Абсолютный угол пузыря
+          хорош, пока под ним слова: там для часов оставлено место распоркой.
+          У снимка без подписи слов нет — угол пузыря это угол картинки, и
+          время оказывалось поверх неё, на чём придётся. Тогда оно встаёт
+          обычной строкой под ней: пузырь вырастает на одиннадцать пикселей,
+          и это дешевле, чем цифры на чужом лице. */}
+      <span
+        className={`font-display text-[11px] text-muted tabular-nums ${
+          caption
+            ? 'absolute right-3.5 bottom-2.5'
+            : 'block pt-0.5 text-right'
+        }`}
+      >
         {clock(message.sent_at)}
       </span>
     </div>
