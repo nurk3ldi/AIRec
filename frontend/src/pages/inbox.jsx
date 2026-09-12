@@ -1519,51 +1519,38 @@ function MenuItem({ icon, danger = false, onClick, children }) {
  * рисунок узнаётся быстрее слова, а подпись остаётся в `aria-label` и в
  * заголовке секции, который меняется вместе с нажатием.
  *
- * **Открытый ящик помечен заливкой** — `surface-chip`, тем же, чем в этом
+ * **Это тот же `StepButton`, что стрелки дня, поиск и фильтр рядом.** Круг
+ * 36px, заливка `bg-ink/12`, значок белым — и своей копии этих чисел здесь
+ * нет: две кнопки, стоящие в одном ряду и нарисованные по отдельности,
+ * совпадают ровно до первой правки одной из них.
+ *
+ * **Открытый ящик помечен заливкой `surface-chip`** — тем же, чем в этом
  * проекте помечено *выбранное* везде: сегмент переключателя, сегодняшний день
- * в календаре. Повторное нажатие закрывает: у ящика два состояния, и третьей
- * кнопки «назад» для него не нужно.
+ * в календаре, включённый фильтр. Повторное нажатие закрывает: у ящика два
+ * состояния, и третьей кнопки «назад» для него не нужно.
  */
 function BoxButtons({ box, onOpen }) {
   const t = useT()
 
   return (
-    <div className="flex items-center gap-1">
-      <BoxButton
+    <div className="flex items-center gap-2">
+      <StepButton
         icon={Archive02Icon}
         label={t('inbox.archive')}
-        pressed={box === 'archived'}
+        active={box === 'archived'}
+        aria-pressed={box === 'archived'}
+        title={t('inbox.archive')}
         onClick={() => onOpen('archived')}
       />
-      <BoxButton
+      <StepButton
         icon={Delete02Icon}
         label={t('inbox.trash')}
-        pressed={box === 'deleted'}
+        active={box === 'deleted'}
+        aria-pressed={box === 'deleted'}
+        title={t('inbox.trash')}
         onClick={() => onOpen('deleted')}
       />
     </div>
-  )
-}
-
-function BoxButton({ icon, label, pressed, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      aria-pressed={pressed}
-      title={label}
-      // 36px — тот же квадрат, что у всех круглых контролов этого продукта;
-      // `active:scale-[0.95]` на круге меньше 44px, как велит рецепт нажатия,
-      // и `scale` назван в `transition` явно, иначе он не анимируется вовсе.
-      className={`grid h-9 w-9 place-items-center rounded-full outline-none transition-[background-color,scale] duration-[160ms] ease-out active:scale-[0.95] ${
-        pressed
-          ? 'bg-surface-chip text-ink'
-          : 'text-muted hover:bg-ink/8 hover:text-ink focus-visible:bg-ink/8'
-      }`}
-    >
-      <HugeiconsIcon icon={icon} size={18} strokeWidth={2} />
-    </button>
   )
 }
 
