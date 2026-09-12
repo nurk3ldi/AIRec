@@ -1444,7 +1444,13 @@ function RowMenu({ row, onMove }) {
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <span
-        className="inline-flex"
+        // 16px от правого края ячейки: вплотную к нему точки упирались в
+        // границу подсветки строки, а ступень шкалы здесь та же, которой в
+        // таблице разведены столбцы (`pr-4`). Отступ здесь, а не `pr-*` на
+        // ячейке, — у `Td` уже есть свой `last:pr-1`, и два `padding-right` в
+        // одной строке классов разрешаются порядком в таблице стилей, а не
+        // порядком записи.
+        className="mr-4 inline-flex"
         onClick={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}
         role="presentation"
