@@ -13,6 +13,7 @@ from app.core.errors import (
     TelegramNotConnected,
     TelegramTokenInvalid,
 )
+from app.core.images import save_photo
 from app.core.telegram import InboundMessage, TelegramAuthError
 from app.models.conversation import ConversationChannel
 from app.models.telegram_account import TelegramAccount
@@ -214,11 +215,15 @@ class TelegramService:
         """One client message, into the inbox that bot answers for.
 
         Everything it does once it has found that inbox belongs to
-        `ConversationService`; this only translates Telegram's words into ours.
+        `ConversationService`; this only translates Telegram's words into ours —
+        and fetches the photo, if there is one, because that is the one part
+        `ConversationService` could not do: the file endpoint wants the bot's
+        token, and a token is what this class exists to hold.
         """
         await self._conversations.ingest_for_business(
             account.business_id,
             IngestMessageRequest(
+                media_name=await self._store_photo(account, message.photo_id),
                 channel=ConversationChannel.TELEGRAM,
                 # The chat id *is* the address here — it is what a reply is
                 # sent to, not merely how the thread is recognised.
@@ -231,6 +236,39 @@ class TelegramService:
                 sent_at=message.sent_at,
             ),
         )
+
+
+    async def _store_photo(
+        self, account: TelegramAccount, photo_id: str | None
+    ) -> str | None:
+        """The photo on our disk, or `None` — which is the ordinary case.
+
+        **Nothing here raises, and that is the whole design of it.** The
+        message is on its way into the inbox; a picture that could not be
+        fetched, or that Pillow refused, must not cost the owner the words it
+        came with. Both failures end the same way — no filename, the thread
+        still carries «[фото]» and its caption, and the log says why.
+
+        Re-encoded through `save_photo` rather than written as sent: the file
+        came from a stranger, and this is the one place in the app where that
+        is literally true.
+        """
+        if not photo_id:
+            return None
+
+        raw = await telegram.download_file(token=account.bot_token, file_id=photo_id)
+        if not raw:
+            return None
+
+        try:
+            return await save_photo(raw)
+        except Exception:
+            logger.warning(
+                "A Telegram photo could not be stored for bot %s.",
+                account.bot_id,
+                exc_info=True,
+            )
+            return None
 
 
 def _new_secret() -> str:

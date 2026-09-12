@@ -121,6 +121,16 @@ class Settings(BaseSettings):
     avatar_url_prefix: str = "/media/avatars"
     logo_dir: Path = Path("uploads/logos")
     logo_url_prefix: str = "/media/logos"
+    # **A third store, and it is separate for the reason the other two are.**
+    # A photo a client sent lives as long as the conversation does, which is
+    # neither an avatar's lifetime nor a logo's — and a cleanup pass over any
+    # one of the three must not be able to reach the others.
+    chat_media_dir: Path = Path("uploads/chat")
+    chat_media_url_prefix: str = "/media/chat"
+    # The long edge a stored photo is fitted into. A phone camera sends four
+    # thousand pixels of it; a bubble draws three hundred, and what is kept is
+    # what somebody might open full size — not the original file.
+    chat_photo_max_px: int = 1600
     image_max_bytes: int = 5 * 1024 * 1024
     image_size_px: int = 512
 

@@ -245,6 +245,7 @@ app.include_router(api_router, prefix=settings.api_v1_prefix)
 for _prefix, _directory, _name in (
     (settings.avatar_url_prefix, settings.avatar_dir, "avatars"),
     (settings.logo_url_prefix, settings.logo_dir, "logos"),
+    (settings.chat_media_url_prefix, settings.chat_media_dir, "chat"),
 ):
     _path = Path(_directory)
     _path.mkdir(parents=True, exist_ok=True)

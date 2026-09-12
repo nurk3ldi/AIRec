@@ -5,7 +5,7 @@ import {
   Cancel01Icon,
   UserIcon,
 } from '@hugeicons/core-free-icons'
-import { listMessages, markConversationRead } from '../../lib/api'
+import { listMessages, markConversationRead, mediaUrl } from '../../lib/api'
 import { authed } from '../../lib/auth'
 import { getLocale, useT } from '../../lib/i18n'
 import { useSkeleton } from '../../lib/skeleton'
@@ -37,6 +37,11 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
   const t = useT()
   const [messages, setMessages] = useState(null)
   const list = useRef(null)
+  // Держится ли чтение низа. Пока держится — каждая доехавшая картинка
+  // возвращает нас туда; стоит уехать вверх, и ничто больше не дёрнет экран
+  // обратно. Ref, а не состояние: это не то, что рисуется, и перерисовка на
+  // каждый пиксель прокрутки была бы платой ни за что.
+  const pinned = useRef(true)
   const { pending, bars } = useSkeleton(messages === null)
 
   const id = conversation?.id
@@ -80,9 +85,14 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
    * прокручивать нечего. Список появляется, когда скелет уходит, — то есть по
    * смене `pending`, а не `messages`.
    */
-  useLayoutEffect(() => {
+  const stick = () => {
     const box = list.current
-    if (box) box.scrollTop = box.scrollHeight
+    if (box && pinned.current) box.scrollTop = box.scrollHeight
+  }
+
+  useLayoutEffect(() => {
+    pinned.current = true
+    stick()
   }, [messages, pending])
 
   if (!conversation) return null
@@ -177,6 +187,17 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
       ) : (
         <div
           ref={list}
+          // **Низ «держится», пока читатель сам не уехал вверх.** Фотография
+          // приходит после разметки и делает тред выше — прокрутка, сделанная
+          // до неё, оказывается посреди переписки, и экран, только что
+          // открытый на последнем сообщении, показывает позапрошлое. 40px
+          // запаса: «почти низ» — это тоже низ, и попиксельное равенство
+          // отказывало бы на дробных высотах.
+          onScroll={(event) => {
+            const box = event.currentTarget
+            pinned.current =
+              box.scrollHeight - box.scrollTop - box.clientHeight < 40
+          }}
           className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5"
         >
           {messages.map((message, index) => (
@@ -198,6 +219,7 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
 
               <Bubble
                 message={message}
+                onPhoto={stick}
               // **Аватар — у последнего сообщения подряд идущих, не у каждого.**
               // Четыре кружка в столбик рядом с четырьмя репликами одного
               // человека повторяют то, что уже сказано стороной, и превращают
@@ -227,7 +249,7 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
  * `surface-card`, а не `surface-raised`: пузырь лежит *на* панели, а не на
  * странице, и это ровно та разница, ради которой токен заведён.
  */
-function Bubble({ message, last = true }) {
+function Bubble({ message, last = true, onPhoto }) {
   const t = useT()
   const mine = message.author !== 'client'
 
@@ -237,7 +259,7 @@ function Bubble({ message, last = true }) {
         <span className="text-right text-[11px] font-medium tracking-wide text-muted uppercase">
           {t(`thread.author.${message.author}`)}
         </span>
-        <Box message={message} mine />
+        <Box message={message} mine onPhoto={onPhoto} />
       </div>
     )
   }
@@ -270,7 +292,7 @@ function Bubble({ message, last = true }) {
           <HugeiconsIcon icon={UserIcon} size={18} strokeWidth={2} />
         </span>
 
-        <Box message={message} />
+        <Box message={message} onPhoto={onPhoto} />
       </div>
     </div>
   )
@@ -285,15 +307,57 @@ function Bubble({ message, last = true }) {
  * `surface-card`, а не `surface-raised`: пузырь лежит *на* панели, а не на
  * странице, и это ровно та разница, ради которой токен заведён.
  */
-function Box({ message, mine = false }) {
+const PHOTO_PLACEHOLDER = '[фото]'
+
+function Box({ message, mine = false, onPhoto }) {
+  const photo = mediaUrl(message.media_url)
+  const body = message.body?.trim() ?? ''
+  const caption = photo && body === PHOTO_PLACEHOLDER ? null : message.body
+
   return (
     <div
       className={`relative min-w-0 rounded-2xl px-3.5 py-2.5 text-[14px] leading-snug text-ink ${
         mine ? 'bg-surface-chip' : 'bg-surface-card'
       }`}
     >
-      <p className="break-words whitespace-pre-wrap">
-        {message.body}
+      {/* **Фотография — это и есть сообщение, а не вложение к нему.** Поэтому
+          она стоит первой и во всю ширину пузыря, а текст под ней: у снимка,
+          присланного в чат, подпись почти всегда объясняет его («вот такую
+          стрижку»), а не наоборот.
+
+          `max-h`, а не только ширина: вертикальный снимок с телефона иначе
+          занял бы весь тред собой одним. Размеры заданы и в атрибутах — до
+          загрузки они держат место, и пузырь не подпрыгивает, когда картинка
+          приходит.
+
+          `-mx-1 -mt-1`: съедает часть внутреннего отступа пузыря, чтобы
+          картинка не выглядела вставленной в рамку из воздуха. */}
+      {photo && (
+        <img
+          src={photo}
+          alt={message.body}
+          // Не `lazy`: тред открывается на последнем сообщении, и отложенная
+          // картинка меняет высоту уже после прокрутки. `onLoad` — вторая
+          // половина того же: доехав, она просит вернуть низ на место.
+          onLoad={onPhoto}
+          // **Картинка сама задаёт свой размер, а не вписывается в ширину.**
+          // `w-full` с `object-cover` резал вертикальный снимок посередине — а
+          // открыть его в полный рост здесь негде, экран только читают. Так
+          // пузырь принимает форму фотографии: горизонтальная занимает ширину,
+          // вертикальная — высоту, и обе видны целиком.
+          className="-mx-1 -mt-1 mb-1.5 max-h-[320px] max-w-full rounded-xl"
+        />
+      )}
+
+      {/* **Под фотографией — подпись, а не слово «[фото]».** Плейсхолдер нужен
+          там, где картинку показать нельзя: в поиске по тексту и в строке
+          превью у списка тредов. В пузыре картинка уже есть, и повторять её
+          словом — это подпись «фотография» под фотографией. Сравнение с
+          литералом хрупко ровно настолько, насколько не страшно: разойдётся —
+          вернётся лишняя строка, а не пропадёт сообщение. */}
+      {caption && (
+        <p className="break-words whitespace-pre-wrap">
+          {caption}
         {/* **Пустое место в конце текста, ровно под часы.** Время лежит в
             правом нижнем углу пузыря абсолютно — иначе короткая реплика стала
             бы двухэтажной ради строки с четырьмя цифрами, — а абсолютный
@@ -301,8 +365,9 @@ function Box({ message, mine = false }) {
             под него. Распорка занимает это место в потоке: хватает ширины —
             часы встают в конец той же строки, не хватает — переносится вместе
             с ними, и пузырь честно вырастает. */}
-        <span aria-hidden="true" className="inline-block w-12 select-none" />
-      </p>
+          <span aria-hidden="true" className="inline-block w-12 select-none" />
+        </p>
+      )}
 
       {/* Ошибка отправки — под текстом, а не вместо него: сообщение было
           написано, и то, что оно не ушло, — второй факт, а не замена первому.

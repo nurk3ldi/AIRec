@@ -39,6 +39,9 @@ class ImageStore:
 
 AVATAR_STORE = ImageStore(Path(settings.avatar_dir), settings.avatar_url_prefix)
 LOGO_STORE = ImageStore(Path(settings.logo_dir), settings.logo_url_prefix)
+CHAT_STORE = ImageStore(
+    Path(settings.chat_media_dir), settings.chat_media_url_prefix
+)
 
 
 def _process_and_save_sync(store: ImageStore, raw: bytes) -> str:
@@ -75,6 +78,56 @@ async def save_image(store: ImageStore, raw: bytes) -> str:
         megabytes = settings.image_max_bytes // (1024 * 1024)
         raise InvalidImage("Изображение должно быть меньше {size} МБ.", size=megabytes)
     return await to_thread.run_sync(_process_and_save_sync, store, raw)
+
+
+_PHOTO_FORMAT = "JPEG"
+_PHOTO_SUFFIX = ".jpg"
+
+
+def _save_photo_sync(raw: bytes) -> str:
+    """A photo from a chat, kept as a photo.
+
+    **Not `_process_and_save_sync`, and the difference is the square.** That one
+    resizes to `image_size_px` on both sides, which is right for an avatar and
+    destroys a photograph: a client's picture of the haircut they want is not a
+    frame to fit, it is the message. `thumbnail` fits the long edge and leaves
+    the ratio alone, and it never enlarges a small one.
+
+    JPEG rather than the PNG the other store writes: this is a photograph, and
+    a lossless copy of one is several megabytes for nothing anybody can see.
+    Re-encoded either way — that is what strips EXIF and anything smuggled
+    inside a file that opens as an image, which matters more here than anywhere
+    else in this app, since the file came from a stranger.
+    """
+    try:
+        with Image.open(io.BytesIO(raw)) as image:
+            image.verify()
+        with Image.open(io.BytesIO(raw)) as image:
+            image = image.convert("RGB")
+            edge = settings.chat_photo_max_px
+            image.thumbnail((edge, edge), Image.LANCZOS)
+
+            filename = f"{uuid.uuid4().hex}{_PHOTO_SUFFIX}"
+            image.save(
+                CHAT_STORE.path() / filename,
+                format=_PHOTO_FORMAT,
+                quality=82,
+                optimize=True,
+            )
+            return filename
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        raise InvalidImage from exc
+
+
+async def save_photo(raw: bytes) -> str:
+    """Store a chat photo and return its filename. Same worker thread, same
+    size ceiling as every other upload in this app."""
+    if not raw:
+        raise InvalidImage("Загруженный файл пуст.")
+    if len(raw) > settings.image_max_bytes:
+        megabytes = settings.image_max_bytes // (1024 * 1024)
+        raise InvalidImage("Изображение должно быть меньше {size} МБ.", size=megabytes)
+    return await to_thread.run_sync(_save_photo_sync, raw)
 
 
 def _delete_sync(store: ImageStore, filename: str) -> None:

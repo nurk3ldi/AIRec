@@ -31,6 +31,10 @@ class MessagePublic(BaseModel):
     # sentence rather than a code because it is drawn under the bubble.
     status: str | None = None
     error: str | None = None
+    # Where the photo that came with it is served from, and null for the
+    # ordinary message, which is words. Read off the model's computed property,
+    # so the column keeps a filename and callers get a URL.
+    media_url: str | None = None
     sent_at: datetime
     created_at: datetime
 
@@ -205,6 +209,11 @@ class IngestMessageRequest(BaseModel):
     channel: ConversationChannel = ConversationChannel.WHATSAPP
     external_id: str | None = Field(default=None, max_length=64)
     message_external_id: str | None = Field(default=None, max_length=64)
+    # The stored filename of a photo the channel has already downloaded — see
+    # `TelegramService.handle`. The channel does the fetching because only it
+    # holds the credential the provider's file endpoint wants; by the time a
+    # message reaches here the file is on disk and this is its name.
+    media_name: str | None = Field(default=None, max_length=255)
     sent_at: datetime | None = None
 
     @field_validator("client_phone")

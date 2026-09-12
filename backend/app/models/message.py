@@ -18,6 +18,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.images import CHAT_STORE, image_url
 from app.db.base import Base
 
 if TYPE_CHECKING:
@@ -133,6 +134,16 @@ class Message(Base):
     # `MessageStatus`. Updated by delivery receipts, which arrive out of order,
     # so `STATUS_RANK` and not a bare assignment is what applies them.
     status: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    # **The photo that came with the message, as a filename.** The column holds
+    # the name only and `media_url` prepends the prefix — the same split
+    # `User.avatar_url` makes, so where the files live can change without a data
+    # migration. NULL is the ordinary case: most messages are words.
+    #
+    # The *text* still carries «[фото]» plus the caption. The placeholder is not
+    # made redundant by the file: it is what a search over message bodies finds,
+    # and what the thread list shows as a preview, where an image cannot go.
+    media_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
     # Why it failed, in words the owner can act on. Meta answers with a numeric
     # code and a sentence; the sentence is what goes here, because "вне
     # 24-часового окна" tells somebody what to do and `131047` does not.
@@ -149,3 +160,8 @@ class Message(Base):
     )
 
     conversation: Mapped[Conversation] = relationship(back_populates="messages")
+
+    @property
+    def media_url(self) -> str | None:
+        """Where the photo is served from, or `None`."""
+        return image_url(CHAT_STORE, self.media_name)

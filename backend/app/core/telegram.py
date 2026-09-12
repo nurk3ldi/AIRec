@@ -134,6 +134,11 @@ class InboundMessage:
     last_name: str | None = None
     username: str | None = None
     phone: str | None = None
+    # **The file Telegram holds, not the file itself.** An update carries an id
+    # and nothing else; the bytes are a second call with the bot's token on it,
+    # which is the channel's business rather than the parser's. `None` for
+    # every message that is words.
+    photo_id: str | None = None
     sent_at: datetime | None = None
 
     @property
@@ -200,6 +205,7 @@ def parse(payload: dict[str, Any]) -> InboundMessage | None:
             if contact.get("user_id") == sender.get("id")
             else None
         ),
+        photo_id=_photo_id(message),
         sent_at=_timestamp(message.get("date")),
     )
 
@@ -227,6 +233,28 @@ def _body(message: dict[str, Any]) -> str | None:
     if caption:
         return f"{UNKNOWN_PLACEHOLDER} {caption}"
     return None
+
+
+def _photo_id(message: dict[str, Any]) -> str | None:
+    """The largest size of a photo, if the message is one.
+
+    **Telegram sends a photo as a list of sizes**, smallest first, all of one
+    picture — a thumbnail for a preview, then progressively larger files. The
+    last is the biggest, and it is the one to keep: what is stored is fitted to
+    `chat_photo_max_px` anyway, and starting from a thumbnail would mean storing
+    a blurred copy of a picture that was sent sharp.
+
+    Only `photo`. A document may be an image too, but it may equally be a PDF
+    or an archive, and a store that unpacked anything called a document would
+    be downloading whatever a stranger decided to send.
+    """
+    sizes = message.get("photo")
+    if not isinstance(sizes, list) or not sizes:
+        return None
+    largest = sizes[-1]
+    if not isinstance(largest, dict):
+        return None
+    return _text(largest.get("file_id"), 256)
 
 
 def _text(value: Any, limit: int) -> str | None:
@@ -348,6 +376,51 @@ async def get_updates(
     if not isinstance(result, list):
         return []
     return [item for item in result if isinstance(item, dict)]
+
+
+async def download_file(*, token: str, file_id: str) -> bytes | None:
+    """The bytes behind a `file_id`, or `None` if they cannot be had.
+
+    **Two calls, and Telegram gives no way round it.** `getFile` turns the id
+    into a path that is only valid for about an hour, and the bytes come from a
+    different host to the API one. Both carry the bot token — a file is as
+    private as the chat it was sent in.
+
+    **`None` rather than an exception**, because of where this is called from:
+    the message is being written into the inbox, and a photo that could not be
+    fetched must not cost the owner the message it came with. The text still
+    says «[фото]» and the caption is still there; what is missing is the
+    picture, which is what the bubble then says.
+    """
+    try:
+        async with httpx.AsyncClient(
+            timeout=settings.telegram_timeout_seconds
+        ) as client:
+            answer = await client.get(
+                _api_url(token, "getFile"), params={"file_id": file_id}
+            )
+            parsed = _parsed(answer)
+            result = parsed.get("result")
+            path = result.get("file_path") if isinstance(result, dict) else None
+            if answer.status_code >= 400 or not isinstance(path, str):
+                logger.warning(
+                    "Telegram refused getFile: HTTP %s, %s",
+                    answer.status_code,
+                    parsed.get("description"),
+                )
+                return None
+
+            base = settings.telegram_api_base.rstrip("/")
+            file = await client.get(f"{base}/file/bot{token}/{path}")
+            if file.status_code >= 400:
+                logger.warning(
+                    "Telegram file download failed: HTTP %s", file.status_code
+                )
+                return None
+            return file.content
+    except httpx.HTTPError as exc:
+        logger.warning("Telegram file could not be fetched: %s", exc)
+        return None
 
 
 async def set_webhook(*, token: str, url: str, secret: str) -> None:

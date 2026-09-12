@@ -509,6 +509,9 @@ class ConversationService:
             author=MessageAuthor.CLIENT,
             body=data.body,
             external_id=data.message_external_id,
+            # Already on disk by now — the channel fetched it, because only the
+            # channel holds the credential the provider's file endpoint wants.
+            media_name=data.media_name,
             sent_at=data.sent_at or datetime.now(UTC),
         )
         self._messages.add(message)
