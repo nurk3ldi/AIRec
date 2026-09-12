@@ -28,3 +28,11 @@ export const NAVIGATION = [
   { labelKey: 'nav.assistant', href: '/assistant', icon: AiScanIcon },
 ]
 
+/**
+ * Значок ассистента — тот же, что стоит в навигации.
+ *
+ * Отдельным именем ради одного: в переписке реплику ассистента подписывает
+ * ровно он, и две записи одной иконки разошлись бы в тот день, когда её
+ * поменяют в рейле.
+ */
+export const ASSISTANT_ICON = AiScanIcon

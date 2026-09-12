@@ -7,6 +7,7 @@ import {
   UserIcon,
 } from '@hugeicons/core-free-icons'
 import { listMessages, markConversationRead, mediaUrl } from '../../lib/api'
+import { ASSISTANT_ICON } from '../navigation'
 import { authed } from '../../lib/auth'
 import { getLocale, useT } from '../../lib/i18n'
 import { useSkeleton } from '../../lib/skeleton'
@@ -321,6 +322,37 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
 }
 
 /**
+ * Кружок рядом с репликой: значок того, кто её написал.
+ *
+ * **Один на обе стороны.** Геометрия здесь одна — 40px, ровно высота пузыря в
+ * одну строку (14px текста с `leading-snug` плюс `py-2.5`), поэтому кружок
+ * стоит вровень с репликой, а не выглядит значком, приставленным сбоку; на
+ * длинной реплике пузырь выше, и кружок держится её низа. Две копии этого
+ * совпадали бы ровно до первой правки одной из них.
+ *
+ * **Значок белый (`text-ink`), а не серый.** Серым он читался как подпись —
+ * что-то про реплику, а не тот, кто её сказал; `ink` на `surface-chip` — та же
+ * пара, которой в этом продукте нарисован *выбранный* контрол, и в обеих темах
+ * она остаётся контрастной (на светлой `ink` почти чёрный, и «белым» это
+ * перестаёт быть только на словах).
+ *
+ * **`invisible`, а не отсутствие**, когда реплика не последняя в серии: место
+ * держится у всей серии, иначе пузыри одного автора встали бы по разным краям.
+ */
+function Avatar({ icon, shown = true }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-chip text-ink ${
+        shown ? '' : 'invisible'
+      }`}
+    >
+      <HugeiconsIcon icon={icon} size={18} strokeWidth={2} />
+    </span>
+  )
+}
+
+/**
  * Одно сообщение.
  *
  * **Сторона говорит о направлении, подпись — об авторе.** Слева пришедшее,
@@ -335,12 +367,27 @@ function Bubble({ message, last = true, onPhoto }) {
   const mine = message.author !== 'client'
 
   if (mine) {
+    // **Ассистента подписывает его значок, а не слово.** Тот же, что стоит в
+    // навигации против «Ассистента» (`ASSISTANT_ICON`), — читатель уже знает
+    // его по рейлу, и узнанный значок отвечает на «кто это написал» быстрее,
+    // чем строчка прописными над репликой. Владелец подпись сохраняет:
+    // «Вы» — это про человека, и значка человека рядом со значком клиента
+    // было бы два одинаковых силуэта по разным краям.
+    const bot = message.author === 'assistant'
+
     return (
       <div className="flex max-w-[86%] flex-col gap-1 self-end">
-        <span className="text-right text-[11px] font-medium tracking-wide text-muted uppercase">
-          {t(`thread.author.${message.author}`)}
-        </span>
-        <Box message={message} mine onPhoto={onPhoto} />
+        {bot ? null : (
+          <span className="text-right text-[11px] font-medium tracking-wide text-muted uppercase">
+            {t(`thread.author.${message.author}`)}
+          </span>
+        )}
+        {/* Зеркало клиентской строки: там кружок слева от пузыря, здесь —
+            справа, и обе держатся низа самого пузыря. */}
+        <div className="flex items-end gap-2">
+          <Box message={message} mine onPhoto={onPhoto} />
+          {bot ? <Avatar icon={ASSISTANT_ICON} shown={last} /> : null}
+        </div>
       </div>
     )
   }
@@ -360,18 +407,7 @@ function Bubble({ message, last = true, onPhoto }) {
 
             `invisible`, а не отсутствие: место держится у всей серии, иначе
             пузыри одного человека встали бы по разным левым краям. */}
-        <span
-          aria-hidden="true"
-          // 40px — ровно высота пузыря в одну строку (14px текста с
-          // `leading-snug` плюс `py-2.5`), и потому кружок стоит вровень с
-          // репликой, а не выглядит значком, приставленным сбоку. На длинной
-          // реплике пузырь выше — это нормально: кружок держится её низа.
-          className={`grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-chip text-muted ${
-            last ? '' : 'invisible'
-          }`}
-        >
-          <HugeiconsIcon icon={UserIcon} size={18} strokeWidth={2} />
-        </span>
+        <Avatar icon={UserIcon} shown={last} />
 
         <Box message={message} onPhoto={onPhoto} />
       </div>
