@@ -194,19 +194,23 @@ function Bubble({ message, last = true }) {
             пузыри одного человека встали бы по разным левым краям. */}
         <span
           aria-hidden="true"
-          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-chip text-muted ${
+          // 40px — ровно высота пузыря в одну строку (14px текста с
+          // `leading-snug` плюс `py-2.5`), и потому кружок стоит вровень с
+          // репликой, а не выглядит значком, приставленным сбоку. На длинной
+          // реплике пузырь выше — это нормально: кружок держится её низа.
+          className={`grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-chip text-muted ${
             last ? '' : 'invisible'
           }`}
         >
-          <HugeiconsIcon icon={UserIcon} size={15} strokeWidth={2} />
+          <HugeiconsIcon icon={UserIcon} size={18} strokeWidth={2} />
         </span>
 
         <Box message={message} />
       </div>
 
-      {/* Под пузырём, а не под кружком: 28px аватара плюс 8px зазора — это те
-          самые `pl-9`, которыми время встаёт по левому краю реплики. */}
-      <span className="pl-9 font-display text-[11px] text-muted tabular-nums">
+      {/* Под пузырём, а не под кружком: 40px аватара плюс 8px зазора — это те
+          самые `pl-12`, которыми время встаёт по левому краю реплики. */}
+      <span className="pl-12 font-display text-[11px] text-muted tabular-nums">
         {clock(message.sent_at)}
       </span>
     </div>
