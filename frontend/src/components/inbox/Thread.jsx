@@ -170,9 +170,6 @@ function Bubble({ message, last = true }) {
           {t(`thread.author.${message.author}`)}
         </span>
         <Box message={message} mine />
-        <span className="text-right font-display text-[11px] text-muted tabular-nums">
-          {clock(message.sent_at)}
-        </span>
       </div>
     )
   }
@@ -207,12 +204,6 @@ function Bubble({ message, last = true }) {
 
         <Box message={message} />
       </div>
-
-      {/* Под пузырём, а не под кружком: 40px аватара плюс 8px зазора — это те
-          самые `pl-12`, которыми время встаёт по левому краю реплики. */}
-      <span className="pl-12 font-display text-[11px] text-muted tabular-nums">
-        {clock(message.sent_at)}
-      </span>
     </div>
   )
 }
@@ -229,16 +220,32 @@ function Bubble({ message, last = true }) {
 function Box({ message, mine = false }) {
   return (
     <div
-      className={`min-w-0 rounded-2xl px-3.5 py-2.5 text-[14px] leading-snug text-ink ${
+      className={`relative min-w-0 rounded-2xl px-3.5 py-2.5 text-[14px] leading-snug text-ink ${
         mine ? 'bg-surface-chip' : 'bg-surface-card'
       }`}
     >
-      <p className="break-words whitespace-pre-wrap">{message.body}</p>
+      <p className="break-words whitespace-pre-wrap">
+        {message.body}
+        {/* **Пустое место в конце текста, ровно под часы.** Время лежит в
+            правом нижнем углу пузыря абсолютно — иначе короткая реплика стала
+            бы двухэтажной ради строки с четырьмя цифрами, — а абсолютный
+            элемент не раздвигает текст, и длинная последняя строка уехала бы
+            под него. Распорка занимает это место в потоке: хватает ширины —
+            часы встают в конец той же строки, не хватает — переносится вместе
+            с ними, и пузырь честно вырастает. */}
+        <span aria-hidden="true" className="inline-block w-12 select-none" />
+      </p>
+
       {/* Ошибка отправки — под текстом, а не вместо него: сообщение было
-          написано, и то, что оно не ушло, — второй факт, а не замена первому. */}
+          написано, и то, что оно не ушло, — второй факт, а не замена первому.
+          `pr-12` по той же причине, что и распорка выше. */}
       {message.error && (
-        <p className="mt-1 text-[12px] text-danger">{message.error}</p>
+        <p className="mt-1 pr-12 text-[12px] text-danger">{message.error}</p>
       )}
+
+      <span className="absolute right-3.5 bottom-2.5 font-display text-[11px] text-muted tabular-nums">
+        {clock(message.sent_at)}
+      </span>
     </div>
   )
 }
