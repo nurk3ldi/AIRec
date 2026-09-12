@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { AnimatePresence, m, useReducedMotion } from 'motion/react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   ArrowLeft01Icon,
@@ -43,6 +44,7 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
   // каждый пиксель прокрутки была бы платой ни за что.
   const pinned = useRef(true)
   const { pending, bars } = useSkeleton(messages === null)
+  const reduce = useReducedMotion()
 
   const id = conversation?.id
 
@@ -64,6 +66,56 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
 
     return () => {
       alive = false
+    }
+  }, [id])
+
+  /**
+   * Пока тред открыт, он перечитывается сам.
+   *
+   * **Другого способа узнать о новом сообщении в этом проекте нет.** Ни SSE, ни
+   * вебсокета здесь не заведено, а разговор, который обновляется, только если
+   * его закрыть и открыть, — это не разговор. Опрос раз в пять секунд: у чата,
+   * открытого прямо сейчас, это разница между «увидел сразу» и «не увидел»;
+   * дороже он не стоит — один `SELECT` по индексу, который уже есть.
+   *
+   * **Только на видимой вкладке.** Фоновая вкладка, опрашивающая сервер всю
+   * ночь, — это трафик за то, чего никто не читает; `visibilitychange` будит
+   * опрос обратно вместе с вкладкой, и первым делом он перечитывает тред, а не
+   * ждёт полного интервала.
+   *
+   * Ответ кладётся целиком: новые сообщения появятся, отредактированного здесь
+   * не бывает (правки Telegram мы не применяем — см. `core/telegram.parse`), а
+   * удалённое рукой исчезнет. Одинаковый ответ — это новый массив с теми же
+   * `id`, и `AnimatePresence` по ним ничего не анимирует.
+   */
+  useEffect(() => {
+    if (!id) return undefined
+
+    let alive = true
+    const refresh = () => {
+      if (document.visibilityState !== 'visible') return
+      authed((token) => listMessages(token, id))
+        .then((rows) => {
+          if (!alive) return
+          setMessages((was) => {
+            // **Пришедшее при открытом треде — уже прочитано.** Иначе счётчик
+            // непрочитанного растёт под носом у того, кто эту реплику как раз
+            // читает, и «Диалоги» подсвечивают ветку, открытую на экране.
+            if (was && rows.length > was.length) {
+              authed((token) => markConversationRead(token, id)).catch(() => {})
+            }
+            return rows
+          })
+        })
+        .catch(() => {})
+    }
+
+    const timer = setInterval(refresh, POLL_MS)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      alive = false
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', refresh)
     }
   }, [id])
 
@@ -90,10 +142,14 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
     if (box && pinned.current) box.scrollTop = box.scrollHeight
   }
 
+  // **Низ «возвращается» при смене треда, а не при каждом ответе сервера.**
+  // Иначе опрос раз в пять секунд утаскивал бы читателя вниз из середины
+  // переписки, которую он поднялся посмотреть.
   useLayoutEffect(() => {
     pinned.current = true
-    stick()
-  }, [messages, pending])
+  }, [id])
+
+  useLayoutEffect(stick, [messages, pending])
 
   if (!conversation) return null
 
@@ -200,8 +256,16 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
           }}
           className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5"
         >
-          {messages.map((message, index) => (
-            <Fragment key={message.id}>
+          {/* **`initial={false}` — и в этом весь смысл.** Открытая переписка
+              появляется целиком, без двадцати пузырей, выезжающих по очереди:
+              это экран, который уже есть, а не двадцать событий. Анимируется
+              то, что пришло *потом*, — реплика, которую клиент написал, пока
+              тред открыт, и она единственная на экране, которая движется.
+              Ровно то же правило, по которому карточка появляется на сетке
+              «Записей». */}
+          <AnimatePresence initial={false}>
+            {messages.map((message, index) => (
+              <Fragment key={message.id}>
               {/* **Дата — там, где она сменилась**, и над первым сообщением
                   тоже: разговор, начатый вчера и продолженный сегодня, без неё
                   читается как один непрерывный час. Ровно то же, что делает
@@ -211,28 +275,45 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
                   По центру и без линий: это не разделитель двух блоков, а
                   подпись к тому, что ниже. Полоса через всю ширину добавила бы
                   к разговору чертёж, которого в нём нет. */}
-              {sameDay(messages[index - 1]?.sent_at, message.sent_at) ? null : (
-                <p className="py-1 text-center text-[12px] text-muted">
-                  {dateLabel(message.sent_at)}
-                </p>
-              )}
+                {sameDay(messages[index - 1]?.sent_at, message.sent_at) ? null : (
+                  <p className="py-1 text-center text-[12px] text-muted">
+                    {dateLabel(message.sent_at)}
+                  </p>
+                )}
 
-              <Bubble
-                message={message}
-                onPhoto={stick}
+                {/* Восемь пикселей снизу и прозрачность: сообщение приходит
+                    снизу, оттуда, где растёт переписка, а не появляется на
+                    месте. Под `prefers-reduced-motion` остаётся одна
+                    прозрачность — движения нет, а «что-то появилось» сказано. */}
+                <m.div
+                  layout={false}
+                  initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: reduce ? 0.12 : 0.2, ease: [0.16, 1, 0.3, 1] }}
+                  // Пузырь сам решает, к какому краю прижаться, и обёртка не
+                  // должна этому мешать: колонка растягивает детей по ширине,
+                  // а `self-end` стоит внутри.
+                  className="flex flex-col"
+                  onAnimationComplete={stick}
+                >
+                  <Bubble
+                    message={message}
+                    onPhoto={stick}
               // **Аватар — у последнего сообщения подряд идущих, не у каждого.**
               // Четыре кружка в столбик рядом с четырьмя репликами одного
               // человека повторяют то, что уже сказано стороной, и превращают
               // разговор в список карточек. У остальных место под него
               // сохраняется, иначе пузыри в одной серии стояли бы по разным
               // левым краям.
-                last={
-                  messages[index + 1]?.author !== message.author ||
-                  !sameDay(message.sent_at, messages[index + 1]?.sent_at)
-                }
-              />
-            </Fragment>
-          ))}
+                    last={
+                      messages[index + 1]?.author !== message.author ||
+                      !sameDay(message.sent_at, messages[index + 1]?.sent_at)
+                    }
+                  />
+                </m.div>
+              </Fragment>
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </section>
@@ -307,6 +388,17 @@ function Bubble({ message, last = true, onPhoto }) {
  * `surface-card`, а не `surface-raised`: пузырь лежит *на* панели, а не на
  * странице, и это ровно та разница, ради которой токен заведён.
  */
+/**
+ * Как часто открытый тред перечитывает себя.
+ *
+ * Пять секунд — это «сразу» для человека, который смотрит на переписку, и
+ * двенадцать запросов в минуту для сервера, который на них отвечает одним
+ * индексным чтением. Дашборд опрашивал список диалогов раз в пятнадцать: там
+ * речь о том, что где-то что-то происходит, здесь — о реплике, на которую
+ * смотрят.
+ */
+const POLL_MS = 5000
+
 const PHOTO_PLACEHOLDER = '[фото]'
 
 function Box({ message, mine = false, onPhoto }) {
