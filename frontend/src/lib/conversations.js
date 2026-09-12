@@ -87,7 +87,18 @@ const digits = (value) => (value ?? '').replace(/\D/g, '')
  * Сортировка — по свежести: сверху то, что происходило только что, будь то
  * сообщение или час записи.
  */
-export function historyRows({ chats, blocks, timeZone, noName = '' }) {
+export function historyRows({
+  chats,
+  blocks,
+  timeZone,
+  noName = '',
+  // **Запись без переписки — тоже строка, но только в самой истории.** В
+  // архиве и корзине лежат разговоры: запись туда никто не убирал, и показать
+  // её там значило бы сказать, что убрали. Записи, у которых чат есть,
+  // прикладываются к строке в любом случае — убранная переписка не перестаёт
+  // быть перепиской с тем, кто приходил.
+  loneBookings = true,
+} = {}) {
   const byPhone = new Map()
   for (const block of blocks ?? []) {
     const key = digits(block.phone)
@@ -117,6 +128,10 @@ export function historyRows({ chats, blocks, timeZone, noName = '' }) {
       // Чем открывается тред: у строки, заведённой перепиской, он есть всегда,
       // у записи без чата — нет, и открывать там нечего.
       chatId: chat.id,
+      // Где сейчас лежит переписка: меню строки предлагает либо убрать, либо
+      // вернуть, и решает это по тому, что уже сделано.
+      archived: Boolean(chat.archived),
+      deleted: Boolean(chat.deleted),
       client: name,
       phone: chat.client_phone ?? block?.phone ?? null,
       range: block?.range ?? null,
@@ -134,11 +149,13 @@ export function historyRows({ chats, blocks, timeZone, noName = '' }) {
     }
   })
 
-  for (const block of blocks ?? []) {
+  for (const block of loneBookings ? (blocks ?? []) : []) {
     if (taken.has(block.id)) continue
     rows.push({
       id: `booking-${block.id}`,
       chatId: null,
+      archived: false,
+      deleted: false,
       client: block.client,
       phone: block.phone ?? null,
       range: block.range,

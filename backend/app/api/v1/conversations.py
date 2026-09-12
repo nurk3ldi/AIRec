@@ -43,6 +43,10 @@ async def list_conversations(
         bool | None,
         Query(description="Default false. Pass null to include both."),
     ] = False,
+    deleted: Annotated[
+        bool | None,
+        Query(description="«Корзина». Default false. Pass null to include both."),
+    ] = False,
     starred: Annotated[bool | None, Query(description="«Избранное».")] = None,
     assistant: Annotated[
         bool | None,
@@ -64,6 +68,7 @@ async def list_conversations(
         statuses=[item.value for item in status_filter] if status_filter else None,
         query=query,
         archived=archived,
+        deleted=deleted,
         starred=starred,
         assistant_enabled=assistant,
         awaiting_reply=awaiting,

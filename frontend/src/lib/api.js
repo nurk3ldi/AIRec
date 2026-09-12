@@ -459,11 +459,14 @@ export function deleteNoteFolder(accessToken, id) {
 
 export function listConversations(
   accessToken,
-  { query, archived, starred, status, limit, offset } = {},
+  { query, archived, deleted, starred, status, limit, offset } = {},
 ) {
   const params = new URLSearchParams()
   if (query) params.set('query', query)
   if (archived !== undefined) params.set('archived', String(archived))
+  // «Корзина» — то же по форме, что и архив, и другое по смыслу: убранное из
+  // записи, а не разобранное. Обе по умолчанию `false` на сервере.
+  if (deleted !== undefined) params.set('deleted', String(deleted))
   if (starred !== undefined) params.set('starred', String(starred))
   if (limit !== undefined) params.set('limit', String(limit))
   if (offset !== undefined) params.set('offset', String(offset))

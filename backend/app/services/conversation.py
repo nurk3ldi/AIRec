@@ -69,6 +69,7 @@ class ConversationService:
         statuses: Sequence[str] | None = None,
         query: str | None = None,
         archived: bool | None = False,
+        deleted: bool | None = False,
         starred: bool | None = None,
         assistant_enabled: bool | None = None,
         awaiting_reply: bool | None = None,
@@ -94,6 +95,7 @@ class ConversationService:
             statuses=statuses,
             query=query,
             archived=archived,
+            deleted=deleted,
             starred=starred,
             assistant_enabled=assistant_enabled,
             awaiting_reply=awaiting_reply,
@@ -173,6 +175,13 @@ class ConversationService:
         if changes.get("archived") is not None:
             conversation.archived_at = (
                 datetime.now(UTC) if changes["archived"] else None
+            )
+        # В корзину и обратно — тем же PATCH, что и в архив: это решение
+        # владельца о треде, а не отдельное действие над базой. `DELETE` рядом
+        # остаётся и означает другое — стереть насовсем.
+        if changes.get("deleted") is not None:
+            conversation.deleted_at = (
+                datetime.now(UTC) if changes["deleted"] else None
             )
         if changes.get("pinned") is not None:
             conversation.pinned_at = (
@@ -519,6 +528,10 @@ class ConversationService:
         conversation.unread_count += 1
         if conversation.status == ConversationStatus.CLOSED:
             conversation.status = ConversationStatus.OPEN
+        # Написали снова — значит тред не закончен, и это верно и для корзины:
+        # держать в ней переписку, в которой прямо сейчас говорят, значит
+        # прятать от владельца то, чего он ещё не видел.
+        conversation.deleted_at = None
 
         _remember_last(conversation, message)
         await self._session.commit()

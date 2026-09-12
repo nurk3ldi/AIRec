@@ -9,10 +9,12 @@ import {
 } from 'motion/react'
 import * as Popover from '@radix-ui/react-popover'
 import {
+  Archive02Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
   Calendar03Icon,
   Cancel01Icon,
+  Delete02Icon,
   FilterHorizontalIcon,
   MoreHorizontalIcon,
   Search01Icon,
@@ -23,7 +25,12 @@ import TimeField from '../components/appointments/TimeField'
 import { PANEL_MOTION } from '../components/appointments/panel'
 import { StepButton, ToolbarPill } from '../components/appointments/Timetable'
 import { dayKey, shiftDate } from '../lib/dates'
-import { getBusiness, listAppointments, listConversations } from '../lib/api'
+import {
+  getBusiness,
+  listAppointments,
+  listConversations,
+  updateConversation,
+} from '../lib/api'
 import { authed } from '../lib/auth'
 import { historyRows, liveChats } from '../lib/conversations'
 import { StreamList } from '../components/StreamList'
@@ -108,19 +115,70 @@ export default function InboxPage() {
   // повторное нажатие возвращает обе. Одна функция на обе кнопки, чтобы
   // «вернуть» не оказалось где-то написано иначе, чем «развернуть».
   const toggleOnly = (which) => setOnly((was) => (was === which ? null : which))
-  const [archived, setArchived] = useState(null)
+
+  /**
+   * Какой ящик открыт: `null` — обычный список, `'archived'` — архив,
+   * `'deleted'` — корзина.
+   *
+   * **Убранное — это те же разговоры, а не другой экран**, поэтому колонка не
+   * меняется, меняется то, что в ней лежит: заголовок называет ящик, таблица
+   * показывает его содержимое, а в меню строки «В архив» становится «Вернуть
+   * из архива». Две иконки рядом с «Все» — это и есть переключатель, и каждая
+   * возвращает обратно повторным нажатием: у ящика есть только «открыт» и
+   * «закрыт», и отдельная кнопка «назад» была бы третьим состоянием, которого
+   * нет.
+   *
+   * **Секция дня при этом уходит.** «Чаты сегодня» — это записи выбранного
+   * дня (`GET /appointments`), а у записи ни архива чатов, ни корзины нет;
+   * ряд карточек над архивом переписок отвечал бы на другой вопрос.
+   */
+  const [box, setBox] = useState(null)
+  const openBox = (which) => setBox((was) => (was === which ? null : which))
+  // Содержимое открытого ящика. `null` — ещё не читали.
+  const [putAway, setPutAway] = useState(null)
+  // Счётчик перечитываний: убрали строку в архив — список обязан это показать,
+  // а ждать общего опроса значит смотреть пятнадцать секунд на то, что уже не
+  // так. Число, а не флаг: два нажатия подряд — два перечитывания.
+  const [revision, setRevision] = useState(0)
 
   useEffect(() => {
-    if (only !== 'all') return undefined
+    if (!box) return undefined
 
     let alive = true
-    authed((token) => listConversations(token, { archived: true }))
-      .then((rows) => alive && setArchived(rows))
-      .catch(() => alive && setArchived([]))
+    setPutAway(null)
+    authed((token) =>
+      listConversations(
+        token,
+        box === 'archived' ? { archived: true } : { deleted: true },
+      ),
+    )
+      .then((rows) => alive && setPutAway(rows))
+      .catch(() => alive && setPutAway([]))
     return () => {
       alive = false
     }
-  }, [only])
+  }, [box, revision])
+
+  /**
+   * Убрать разговор или вернуть его.
+   *
+   * Один PATCH на всё: архив и корзина — это решения владельца о треде, а не
+   * разные действия над базой (`DELETE` рядом остаётся и значит другое — стереть
+   * насовсем). После ответа перечитываем оба списка: строка ушла из одного и
+   * появилась в другом, и показать это должно сразу.
+   */
+  const moveChat = (chatId, patch) => {
+    authed((token) => updateConversation(token, chatId, patch))
+      .then(() => {
+        if (openChatId === chatId) setOpenChatId(null)
+        setRevision((was) => was + 1)
+        return authed((token) =>
+          listConversations(token, { archived: false, deleted: false }),
+        )
+      })
+      .then((rows) => rows && setChats(rows))
+      .catch(() => {})
+  }
 
   const [openChatId, setOpenChatId] = useState(null)
   const openChat = (chats ?? []).find((chat) => chat.id === openChatId) ?? null
@@ -129,7 +187,9 @@ export default function InboxPage() {
     let alive = true
 
     const read = () => {
-      authed((token) => listConversations(token, { archived: false }))
+      authed((token) =>
+        listConversations(token, { archived: false, deleted: false }),
+      )
         .then((rows) => alive && setChats(rows))
         // Проглатываем, как и все чтения на экранах: полоса ошибки над пустой
         // карточкой говорит меньше, чем сама пустая карточка, и починка в обоих
@@ -277,7 +337,7 @@ export default function InboxPage() {
             не тикает и не держит прокрутку, а пустая строка заголовка над
             скрытым содержимым была бы тем самым зазором, которого на экране
             быть не должно. */}
-        {only === 'all' ? null : (
+        {only === 'all' || box ? null : (
           <Section
             title={t('inbox.today')}
             // «Все» стоит первым в правой группе — слева от стрелок. Дальше
@@ -322,10 +382,18 @@ export default function InboxPage() {
             Восемь папок ещё сетка, восемьдесят — уже стена. */}
         {only === 'today' ? null : (
           <Section
-            title={t('inbox.all')}
+            // Заголовок называет то, что в таблице: открытый ящик — это не
+            // «все чаты», отфильтрованные до архива, а другое содержимое.
+            title={t(
+              box === 'archived'
+                ? 'inbox.archive'
+                : box === 'deleted'
+                  ? 'inbox.trash'
+                  : 'inbox.all',
+            )}
             // Отступ — только когда над секцией что-то есть: с убранным днём
             // история начинается с верха колонки, а не с пустой полосы.
-            className={only ? '' : 'mt-6 sm:mt-8'}
+            className={only || box ? '' : 'mt-6 sm:mt-8'}
             actions={
               <div className="flex items-center gap-3">
                 {/* «Все» первым: оно решает, *сколько* показано, а поиск и
@@ -334,6 +402,9 @@ export default function InboxPage() {
                   pressed={only === 'all'}
                   onClick={() => toggleOnly('all')}
                 />
+                {/* Два ящика сразу за ним: они решают, *что* показано, и
+                    стоят до поиска, который сужает уже показанное. */}
+                <BoxButtons box={box} onOpen={openBox} />
                 <TableTools
                   query={query}
                   onQuery={setQuery}
@@ -357,23 +428,31 @@ export default function InboxPage() {
                 и не должна знать, почему строк стало меньше. */}
             <BookingTable
               rows={
-                all === null || chats === null
+                all === null || (box ? putAway === null : chats === null)
                   ? null
                   : historyRows({
-                      // Убранные — следом за обычными: порядок всё равно задаёт
-                      // свежесть внутри `historyRows`, а ждать второй ответ ради
-                      // строк, которых может и не быть, значит держать таблицу
-                      // пустой из-за архива.
-                      chats:
-                        only === 'all' ? [...chats, ...(archived ?? [])] : chats,
+                      chats: box ? putAway : chats,
                       blocks: all.map((row) => toBlock(row, timeZone)),
+                      // Записи прикладываются к строке и в ящике: убранная
+                      // переписка не перестаёт быть перепиской с тем, кто
+                      // приходил. А вот запись *без* чата в ящике не строка —
+                      // в архив и корзину кладут разговор, а не запись.
+                      loneBookings: !box,
                       timeZone,
                       noName: t('chat.noName'),
                     }).filter((row) => matches(row, query, filter))
               }
               narrowed={Boolean(query.trim()) || isFiltered(filter)}
+              empty={
+                box === 'archived'
+                  ? 'inbox.archiveEmpty'
+                  : box === 'deleted'
+                    ? 'inbox.trashEmpty'
+                    : 'inbox.allEmpty'
+              }
               openId={openChatId}
               onOpen={setOpenChatId}
+              onMove={moveChat}
             />
           </Section>
         )}
@@ -1022,14 +1101,23 @@ function FilterGroup({ title, className = '', children }) {
 /** Прочерк для ячейки, которой нечем быть заполненной. */
 const DASH = '—'
 
-function BookingTable({ rows, narrowed = false, openId, onOpen }) {
+function BookingTable({
+  rows,
+  narrowed = false,
+  // Что сказать, когда строк нет: у пустого архива и у пустой истории разные
+  // ответы, и «Пока ничего нет» в корзине звучит как сбой, а не как порядок.
+  empty = 'inbox.allEmpty',
+  openId,
+  onOpen,
+  onMove,
+}) {
   const t = useT()
   if (rows === null) return null
 
   if (rows.length === 0) {
     return (
       <p className="py-6 text-[13px] text-muted">
-        {t(narrowed ? 'appointments.searchEmpty' : 'inbox.allEmpty')}
+        {t(narrowed ? 'appointments.searchEmpty' : empty)}
       </p>
     )
   }
@@ -1048,11 +1136,17 @@ function BookingTable({ rows, narrowed = false, openId, onOpen }) {
             линия под ним — та же, что между записями: он такой же сосед. */}
         <thead>
           <tr className="border-b border-line text-[11px] tracking-wide text-muted uppercase">
-            <Th className="w-[24%]">{t('appointments.clientName')}</Th>
-            <Th className="w-[20%]">{t('appointments.clientPhone')}</Th>
-            <Th className="w-[16%]">{t('appointments.date')}</Th>
-            <Th className="w-[16%]">{t('appointments.time')}</Th>
-            <Th className="w-[24%]">{t('appointments.service')}</Th>
+            <Th className="w-[22%]">{t('appointments.clientName')}</Th>
+            <Th className="w-[19%]">{t('appointments.clientPhone')}</Th>
+            <Th className="w-[15%]">{t('appointments.date')}</Th>
+            <Th className="w-[15%]">{t('appointments.time')}</Th>
+            <Th className="w-[22%]">{t('appointments.service')}</Th>
+            {/* Столбец действий: у заголовка слова нет — над «…» оно назвало бы
+                не столбец, а кнопку, — но место он держит, иначе меню село бы
+                на услугу. */}
+            <Th className="w-[7%]">
+              <span className="sr-only">{t('inbox.actions')}</span>
+            </Th>
           </tr>
         </thead>
 
@@ -1109,6 +1203,19 @@ function BookingTable({ rows, narrowed = false, openId, onOpen }) {
                   а не как «этого не было». */}
               <Td className="tabular-nums">{row.range ?? DASH}</Td>
               <Td>{row.service ?? DASH}</Td>
+              {/* **Меню — только у строки с перепиской.** Убирают в архив и в
+                  корзину разговор; у записи, сделанной руками, убирать нечего,
+                  и кнопка там обещала бы действие, которого нет.
+
+                  Меню рисуется через портал, поэтому `truncate` соседних
+                  ячеек ему не мешает и отменять его здесь нечего: два
+                  `overflow` в одной строке классов разрешаются порядком в
+                  таблице стилей, а не порядком записи. */}
+              <Td className="pr-1 text-right">
+                {row.chatId ? (
+                  <RowMenu row={row} onMove={onMove} />
+                ) : null}
+              </Td>
             </tr>
           ))}
         </tbody>
@@ -1292,60 +1399,163 @@ function Panel({ title, count, children }) {
 
 
 /**
- * Что можно сделать с записью, под тремя точками.
+ * «…» у строки истории: убрать разговор или вернуть его.
  *
- * **Popover, а не `@radix-ui/react-dropdown-menu`.** Пункт меню — это обычный
+ * **Появляется под курсором, а не стоит всегда.** Строка отвечает на вопрос
+ * «кто и когда», и шестая колонка из одинаковых точек по всей высоте таблицы
+ * читается как часть данных. Под курсором — ровно там, где рука, и ровно
+ * тогда, когда до строки есть дело. Клавиатуре оно тоже достаётся
+ * (`group-focus-within`), иначе действие было бы только у мыши; открытое меню
+ * остаётся видимым само по себе (`data-[state=open]`), иначе кнопка исчезала
+ * бы из-под собственного меню, стоит увести курсор на пункт; а там, где
+ * курсора нет вовсе (`hover: none`), оно видно всегда — на телефоне «под
+ * курсором» означает «никогда».
+ *
+ * **Popover, а не `@radix-ui/react-dropdown-menu`.** Пункт меню — обычный
  * `<button>` в панели, а поповер в проекте уже есть и уже отвечает за
- * позиционирование, клик вне и столкновения с краем экрана; ставить ради этого
- * четвёртый примитив Radix значило бы добавить зависимость, которая умеет ровно
- * то же самое. Тот же выбор, что у `ViewSwitch` на телефоне.
+ * позиционирование, клик вне и столкновения с краем экрана; четвёртый примитив
+ * Radix умел бы ровно то же самое.
  *
- * **Удаление отсюда убрано.** Оно было здесь один день: удалить запись в два
- * нажатия из меню карточки — это самое разрушительное действие продукта на
- * расстоянии двух промахов мыши, и живёт оно там, где запись открыта целиком, —
- * в панели редактирования, где рядом видно, что именно удаляешь. Вместе с ним
- * ушли счётчик перечитывания списков и вызов `deleteAppointment`: чинить
- * нечего, пока никто отсюда ничего не меняет.
+ * **Нажатие не открывает тред.** Строка целиком — кнопка, и без
+ * `stopPropagation` каждое обращение к меню заодно открывало бы переписку
+ * справа; то же и для клавиш, которыми отвечает строка.
  *
- * **«Перейти в чат» пока выключен, и это честнее, чем ведущая никуда кнопка.**
- * Экрана переписки в продукте ещё нет — `/inbox` читает список диалогов, но
- * открыть отдельный тред некуда. Пункт стоит на своём месте и выглядит
- * недоступным; включить его — одна строка в тот день, когда появится, куда
- * идти.
+ * **Два пункта, и каждый говорит, что случится.** В обычном списке это «В
+ * архив» и «Удалить», в архиве первый становится «Вернуть из архива», в
+ * корзине второй — «Восстановить»: один и тот же ящик открывают и закрывают
+ * одним пунктом, и называть его по состоянию — единственный способ не
+ * заставлять читателя гадать, куда он нажимает.
+ *
+ * «Удалить» красным, потому что после него разговор пропадает из списков.
+ * Стирания насовсем здесь нет: `DELETE /conversations/{id}` на сервере
+ * остался и в интерфейс не выведен — необратимое действие в двух нажатиях от
+ * строки списка это ровно то, из-за чего удаление уже убирали из меню карточки
+ * дня.
  */
-function CardMenu() {
+function RowMenu({ row, onMove }) {
   const t = useT()
   const [open, setOpen] = useState(false)
 
+  const act = (patch) => {
+    setOpen(false)
+    onMove?.(row.chatId, patch)
+  }
+
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger asChild>
-        <button
-          type="button"
-          aria-label={t('inbox.actions')}
-          className="-m-1 ml-auto grid shrink-0 place-items-center rounded-lg p-1 text-ink outline-none transition-[color,background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.9]"
-        >
-          <HugeiconsIcon icon={MoreHorizontalIcon} size={16} strokeWidth={2} />
-        </button>
-      </Popover.Trigger>
+      <span
+        className="inline-flex"
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => event.stopPropagation()}
+        role="presentation"
+      >
+        <Popover.Trigger asChild>
+          <button
+            type="button"
+            aria-label={t('inbox.actions')}
+            className="-m-1 grid place-items-center rounded-lg p-1 text-ink opacity-0 outline-none transition-[opacity,background-color,scale] duration-[160ms] ease-out group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-ink/8 focus-visible:opacity-100 active:scale-[0.9] data-[state=open]:opacity-100 [@media(hover:none)]:opacity-100"
+          >
+            <HugeiconsIcon icon={MoreHorizontalIcon} size={16} strokeWidth={2} />
+          </button>
+        </Popover.Trigger>
+      </span>
 
       <Popover.Portal>
         <Popover.Content
           align="end"
           sideOffset={6}
           collisionPadding={12}
-          className={`z-[70] w-[200px] rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] ${PANEL_MOTION}`}
+          onClick={(event) => event.stopPropagation()}
+          className={`z-[70] w-[220px] rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] ${PANEL_MOTION}`}
         >
-          <button
-            type="button"
-            disabled
-            className="flex w-full cursor-not-allowed items-center rounded-lg px-2.5 py-2 text-left text-[14px] text-muted opacity-60 outline-none"
+          <MenuItem
+            icon={Archive02Icon}
+            onClick={() => act({ archived: !row.archived })}
           >
-            {t('inbox.openChat')}
-          </button>
+            {t(row.archived ? 'inbox.fromArchive' : 'inbox.toArchive')}
+          </MenuItem>
+          <MenuItem
+            icon={Delete02Icon}
+            danger={!row.deleted}
+            onClick={() => act({ deleted: !row.deleted })}
+          >
+            {t(row.deleted ? 'inbox.restore' : 'inbox.delete')}
+          </MenuItem>
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
+  )
+}
+
+/** Пункт меню: иконка и слово. Отклик — на нажатии, а не на отпускании. */
+function MenuItem({ icon, danger = false, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[14px] outline-none transition-[background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.98] ${
+        danger ? 'text-danger' : 'text-ink'
+      }`}
+    >
+      <HugeiconsIcon icon={icon} size={16} strokeWidth={2} />
+      {children}
+    </button>
+  )
+}
+
+/**
+ * Архив и корзина — две иконки рядом с «Все».
+ *
+ * **Иконки, а не слова.** Ряд заголовка уже держит «Все», поиск и фильтр; два
+ * слова сверху сделали бы из него строку меню. Ящик — тот случай, когда
+ * рисунок узнаётся быстрее слова, а подпись остаётся в `aria-label` и в
+ * заголовке секции, который меняется вместе с нажатием.
+ *
+ * **Открытый ящик помечен заливкой** — `surface-chip`, тем же, чем в этом
+ * проекте помечено *выбранное* везде: сегмент переключателя, сегодняшний день
+ * в календаре. Повторное нажатие закрывает: у ящика два состояния, и третьей
+ * кнопки «назад» для него не нужно.
+ */
+function BoxButtons({ box, onOpen }) {
+  const t = useT()
+
+  return (
+    <div className="flex items-center gap-1">
+      <BoxButton
+        icon={Archive02Icon}
+        label={t('inbox.archive')}
+        pressed={box === 'archived'}
+        onClick={() => onOpen('archived')}
+      />
+      <BoxButton
+        icon={Delete02Icon}
+        label={t('inbox.trash')}
+        pressed={box === 'deleted'}
+        onClick={() => onOpen('deleted')}
+      />
+    </div>
+  )
+}
+
+function BoxButton({ icon, label, pressed, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={pressed}
+      title={label}
+      // 36px — тот же квадрат, что у всех круглых контролов этого продукта;
+      // `active:scale-[0.95]` на круге меньше 44px, как велит рецепт нажатия,
+      // и `scale` назван в `transition` явно, иначе он не анимируется вовсе.
+      className={`grid h-9 w-9 place-items-center rounded-full outline-none transition-[background-color,scale] duration-[160ms] ease-out active:scale-[0.95] ${
+        pressed
+          ? 'bg-surface-chip text-ink'
+          : 'text-muted hover:bg-ink/8 hover:text-ink focus-visible:bg-ink/8'
+      }`}
+    >
+      <HugeiconsIcon icon={icon} size={18} strokeWidth={2} />
+    </button>
   )
 }
 
@@ -1390,15 +1600,6 @@ function DayCard({ row, color, className = '' }) {
         <p className="min-w-0 font-display text-[17px] leading-snug font-medium text-ink">
           {row.client}
         </p>
-
-        {/* **Действия — в верхнем правом углу.** Они не про эту запись, а про
-            то, что с ней можно сделать, и внизу, рядом с услугой, читались как
-            часть строки фактов. В углу — это кнопка карточки, а не её
-            последняя строка; имя рядом, потому что действия относятся к нему.
-
-            Три точки, а не сетка из девяти: девять означают «все приложения»,
-            а не «действия над этим». */}
-        <CardMenu />
       </div>
 
       {/* Всё, что ниже, начинается от левого края. Отступ под имя выстроил бы

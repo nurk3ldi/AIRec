@@ -92,6 +92,7 @@ class ConversationRepository:
         statuses: Sequence[str] | None = None,
         query: str | None = None,
         archived: bool | None = False,
+        deleted: bool | None = False,
         starred: bool | None = None,
         assistant_enabled: bool | None = None,
         awaiting_reply: bool | None = None,
@@ -105,7 +106,10 @@ class ConversationRepository:
         the same as `False`. `archived` is the one that carries a default, and
         the default is `False` rather than `None`: an inbox that silently
         included everything ever put away would grow without bound, and the one
-        caller who wants them says so.
+        caller who wants them says so. `deleted` carries the same default for a
+        stronger reason — the bin is what the owner put out of the record, and
+        a list that quietly included it would make pressing «Удалить» look like
+        it did nothing.
 
         `active_since` is what "talking right now" is made of. It is a window
         over `last_message_at` rather than a stored flag, because a stored one
@@ -125,6 +129,12 @@ class ConversationRepository:
                 Conversation.archived_at.isnot(None)
                 if archived
                 else Conversation.archived_at.is_(None)
+            )
+        if deleted is not None:
+            stmt = stmt.where(
+                Conversation.deleted_at.isnot(None)
+                if deleted
+                else Conversation.deleted_at.is_(None)
             )
         if starred is not None:
             stmt = stmt.where(
@@ -166,6 +176,7 @@ class ConversationRepository:
         stmt = select(func.count()).where(
             Conversation.business_id == business_id,
             Conversation.archived_at.is_(None),
+            Conversation.deleted_at.is_(None),
             Conversation.unread_count > 0,
         )
         return int(await self._session.scalar(stmt) or 0)

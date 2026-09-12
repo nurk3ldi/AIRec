@@ -182,6 +182,16 @@ class Conversation(Base):
     archived_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # «Корзина» — out of every list, and still here. A separate column from
+    # `archived_at` because the two are different answers: archiving says "I
+    # have dealt with this" and keeps the thread in the history, the bin says
+    # "this should not be in the record", and one column for both would put a
+    # finished conversation and a mistaken one in the same drawer. `DELETE`
+    # still exists and still removes the row for good; this is what the owner
+    # presses, and what can be taken back.
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     # «Избранное». A timestamp again, so a starred list can be ordered by when
     # each was starred without a second column to carry that.
     starred_at: Mapped[datetime | None] = mapped_column(
@@ -222,6 +232,10 @@ class Conversation(Base):
     @property
     def archived(self) -> bool:
         return self.archived_at is not None
+
+    @property
+    def deleted(self) -> bool:
+        return self.deleted_at is not None
 
     @property
     def starred(self) -> bool:

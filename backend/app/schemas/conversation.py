@@ -61,6 +61,9 @@ class ConversationPublic(BaseModel):
     # Computed on the model — see `Conversation`. `archived` and `starred` from
     # their timestamps, `awaiting_reply` from who wrote last.
     archived: bool = False
+    # «Корзина»: убрана из всех списков и никуда не делась. Не то же, что
+    # `archived` — см. `Conversation.deleted_at`.
+    deleted: bool = False
     starred: bool = False
     # Kept at the top of the list — an ordering rather than a filter, so unlike
     # `starred` there is no query that returns only these.
@@ -139,6 +142,7 @@ class UpdateConversationRequest(BaseModel):
     status: ConversationStatus | None = None
     assistant_enabled: bool | None = None
     archived: bool | None = None
+    deleted: bool | None = None
     starred: bool | None = None
     pinned: bool | None = None
 
