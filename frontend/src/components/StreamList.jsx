@@ -187,7 +187,7 @@ function Row({ chat, onOpen }) {
           </p>
           {/* `tabular-nums`, чтобы время не дёргалось при каждом опросе, когда
               «9 мин» сменяется на «10 мин». */}
-          <p className="shrink-0 text-[13px] text-muted tabular-nums">
+          <p className="shrink-0 text-[13px] text-ink tabular-nums">
             {minutes < 1
               ? t('home.streams.now')
               : t('home.streams.minutes', { count: minutes })}
@@ -196,12 +196,16 @@ function Row({ chat, onOpen }) {
 
         {/* **Нижняя строка: что сказано последним — и что ассистент делает
             сейчас.** Реплика сжимается и обрезается, состояние — нет
-            (`shrink-0`). Состояние в цвете `--now` только когда в ветке уже
-            отвечает человек (`needsHuman`): это единственное из трёх, на что
-            владельцу надо обратить внимание, остальные два — обычный ход дел и
-            остаются серыми. */}
+            (`shrink-0`).
+
+            **Всё в строке — `ink`, ни одной серой подписи** (просили «всё
+            белым»): серый говорил «можно не читать», а в потоке читают как раз
+            реплику и состояние. Иерархию держат кегль и вес: имя 15px
+            полужирным, остальное 13px. Поэтому и «Отвечаете вы» — единственное
+            из трёх состояний, на которое владельцу надо обратить внимание
+            (`needsHuman`), — выделено весом, а не цветом. */}
         <div className="mt-0.5 flex items-baseline gap-3 text-[13px]">
-          <p className="min-w-0 flex-1 truncate text-muted">
+          <p className="min-w-0 flex-1 truncate text-ink">
             {/* **Кто сказал последнюю реплику — половина её смысла:** «записал
                 вас на четверг» от ассистента и от клиента значат разное. Реплика
                 ассистента начинается с «Ассистент:», владельца — с «Вы:», а
@@ -209,7 +213,7 @@ function Row({ chat, onOpen }) {
             {authorPrefix(chat.last_message_author, t)}
             {chat.last_message_preview}
           </p>
-          <p className={`shrink-0 ${hot ? 'text-now' : 'text-muted'}`}>
+          <p className={`shrink-0 text-ink ${hot ? 'font-medium' : ''}`}>
             {t(`home.assistant.${chatState(chat)}`)}
           </p>
         </div>
