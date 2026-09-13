@@ -36,7 +36,15 @@ class User(Base):
         DateTime(timezone=True), nullable=True
     )
     username: Mapped[str] = mapped_column(String(32), nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    # **Absent for an account made through Google** — see migration `0029`.
+    # Every reader already copes: `verify_password` fails a missing hash the way
+    # it fails a wrong one, in the same time.
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # The subject Google issues for this person: permanent, never reused, and
+    # what a Google sign-in finds the account by. Null for most accounts.
+    google_sub: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, unique=True
+    )
     first_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
     # Filename only, not a full URL — the serving prefix comes from

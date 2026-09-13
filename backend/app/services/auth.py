@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -7,6 +9,7 @@ from datetime import UTC, datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import google
 from app.core.config import settings
 from app.core.email import (
     send_email_change_email,
@@ -18,6 +21,7 @@ from app.core.errors import (
     DeleteConfirmationMismatch,
     EmailAlreadyRegistered,
     EmailNotRegistered,
+    GoogleNotConfigured,
     InactiveAccount,
     InvalidCredentials,
     InvalidCurrentPassword,
@@ -339,6 +343,122 @@ class AuthService:
             user.id, current_session_id, datetime.now(UTC)
         )
         await self._session.commit()
+
+    async def google_sign_in(
+        self,
+        access_token: str,
+        *,
+        remember: bool,
+        restore: bool = False,
+        client: ClientInfo | None = None,
+    ) -> tuple[User, TokenPair, bool]:
+        """Sign in — or sign up — with a Google account.
+
+        Returns the user, a token pair, and whether the account was created by
+        this call (the frontend has nothing different to do with it today, but
+        a first-run screen will).
+
+        **Found by Google's subject first, then by address.** The `sub` is
+        permanent; the address is what connects a Google account to one made
+        here with a password before Google was ever used. Google has verified
+        that address (`google.verify_access_token` refuses anything else), so a
+        match proves the person at the button owns the mailbox the account was
+        registered to, and the account is linked.
+
+        **Linking to an account whose address was never verified here resets
+        its password and ends its sessions.** Registration does not verify
+        email, so anyone could have made an account with this address before
+        its owner arrived — and a password they set would still open the account
+        the real owner now uses (account pre-hijacking). Google's proof of the
+        mailbox outranks a password nobody proved; the owner can set a new one
+        through the emailed code. An account whose address *was* verified keeps
+        its password: the same person already proved the same mailbox.
+
+        **A new account gets a username made from the address** — the local
+        part, cut to what `USERNAME_PATTERN` allows, with a short number added
+        if it is taken — and no password. It can be changed in the profile;
+        asking for it before letting somebody in would be a form in the middle
+        of a one-press sign-in.
+
+        A deleted account in its grace period answers `account_deleted` unless
+        `restore` asks for it back, which mirrors `/auth/restore`.
+        """
+        client_id = settings.google_client_id
+        if not client_id:
+            raise GoogleNotConfigured
+        identity = await google.verify_access_token(access_token, client_id)
+        now = datetime.now(UTC)
+
+        created = False
+        user = await self._users.get_by_google_sub(identity.sub)
+        if user is None:
+            user = await self._users.get_by_email(identity.email)
+            if user is not None:
+                if user.email_verified_at is None:
+                    user.password_hash = None
+                    await self._tokens.revoke_all_for_user(user.id, now)
+                user.google_sub = identity.sub
+                user.email_verified_at = user.email_verified_at or now
+            else:
+                user = User(
+                    email=identity.email,
+                    username=await self._free_username(identity.email),
+                    password_hash=None,
+                    google_sub=identity.sub,
+                    # Explicit, not left to the column default: that default
+                    # applies at INSERT, and the active check below runs before
+                    # the flush — an unflushed row reads `None` there, which is
+                    # "inactive", and the very first Google sign-up was refused.
+                    is_active=True,
+                    email_verified_at=now,
+                    first_name=_clip(identity.first_name, 50),
+                    last_name=_clip(identity.last_name, 50),
+                )
+                self._users.add(user)
+                created = True
+
+        if user.deleted_at is not None:
+            if not restore:
+                raise _account_deleted_error(user)
+            user.deleted_at = None
+        if not user.is_active:
+            raise InactiveAccount
+
+        try:
+            await self._session.flush()
+        except IntegrityError as exc:
+            # Two first sign-ins raced for the same address or username. The
+            # other one won; nothing here is worth retrying blind.
+            await self._session.rollback()
+            raise _conflict_for(exc) from exc
+
+        tokens = await self._issue_tokens(
+            user,
+            remember=remember,
+            user_agent=client.user_agent if client else None,
+            ip_address=client.ip_address if client else None,
+        )
+        await self._session.commit()
+        return user, tokens, created
+
+    async def _free_username(self, email: str) -> str:
+        """A username for a new Google account, made from its address."""
+        local = email.split("@", 1)[0]
+        base = re.sub(r"[^A-Za-z0-9_.-]", "", local)[:26]
+        # The pattern wants a letter first and at least three characters.
+        if not base or not base[0].isalpha():
+            base = f"user{base}"[:26]
+        base = base.ljust(3, "0")
+
+        candidate = base
+        for _ in range(20):
+            valid = USERNAME_PATTERN.match(candidate)
+            if valid and not await self._users.username_exists(candidate):
+                return candidate
+            candidate = f"{base}{secrets.randbelow(10_000):04d}"
+        # Twenty collisions on a four-digit suffix is not a real outcome; a
+        # longer random tail is the answer that cannot loop.
+        return f"user{secrets.token_hex(6)}"
 
     async def check_username_available(self, username: str) -> bool:
         # A malformed username could never be registered, so it can never be
@@ -711,3 +831,10 @@ def _conflict_for(exc: IntegrityError) -> Exception:
     if "uq_users_email" in detail:
         return EmailAlreadyRegistered()
     return exc
+
+
+def _clip(value: str | None, limit: int) -> str | None:
+    """A profile field from Google, trimmed to what our column holds."""
+    if not value:
+        return None
+    return value.strip()[:limit] or None

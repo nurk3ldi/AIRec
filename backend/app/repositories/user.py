@@ -22,6 +22,9 @@ class UserRepository:
         stmt = select(User).where(User.email == email.lower())
         return await self._session.scalar(stmt)
 
+    async def get_by_google_sub(self, sub: str) -> User | None:
+        return await self._session.scalar(select(User).where(User.google_sub == sub))
+
     async def get_by_identifier(self, identifier: str) -> User | None:
         """Look a user up by either their email or their username.
 

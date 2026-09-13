@@ -4,6 +4,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import { EyeIcon, EyeOffIcon, Tick02Icon } from '@hugeicons/core-free-icons'
 import { checkUsernameAvailability, register } from '../lib/api'
 import { saveTokens, useRedirectIfAuthed } from '../lib/auth'
+import GoogleButton from '../components/GoogleButton'
 import { useT } from '../lib/i18n'
 import {
   BUTTON_PRIMARY,
@@ -204,13 +205,10 @@ export default function SignupPage() {
         </div>
 
         <div className="flex flex-col gap-2.5">
-          <button
-            type="button"
-            className={`${BUTTON_SECONDARY} flex items-center justify-center gap-2`}
-          >
-            <img src="/google_logo.svg" alt="" className="h-4 w-4" aria-hidden="true" />
-            {t('form.google')}
-          </button>
+          {/* Signing up with Google is the same press as signing in with it —
+              the server makes the account if there is none. Remembered, like a
+              registration. */}
+          <GoogleButton />
 
           <button
             type="button"

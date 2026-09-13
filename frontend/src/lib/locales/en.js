@@ -140,6 +140,10 @@ export default {
 
   'form.or': 'or',
   'form.google': 'Continue with Google',
+  'form.googleBusy': 'Signing in with Google…',
+  'form.googleUnconfigured': 'Sign-in with Google isn’t set up yet.',
+  'form.googleBlocked': 'The browser blocked Google’s window — allow pop-ups for this site.',
+  'form.googleFailed': 'Couldn’t reach Google. Please try again.',
   'form.apple': 'Continue with Apple',
   'form.noSpaces': 'Spaces are not allowed.',
   'form.showPassword': 'Show password',

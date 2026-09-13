@@ -33,6 +33,10 @@ MESSAGES: dict[str, dict[str, str]] = {
         "Этот email уже зарегистрирован.": "Бұл email тіркелген.",
         "Этот логин уже занят.": "Бұл логин бос емес.",
         "Неверный логин или пароль.": "Логин немесе құпиясөз қате.",
+        "Вход через Google не настроен.": "Google арқылы кіру бапталмаған.",
+        "Не удалось войти через Google. Попробуйте ещё раз.": (
+            "Google арқылы кіру мүмкін болмады. Қайталап көріңіз."
+        ),
         "Сессия недействительна или истекла. Войдите заново.": (
             "Сеанс жарамсыз немесе мерзімі өткен. Қайта кіріңіз."
         ),
@@ -174,6 +178,10 @@ MESSAGES: dict[str, dict[str, str]] = {
         "Этот email уже зарегистрирован.": "That email is already registered.",
         "Этот логин уже занят.": "That username is taken.",
         "Неверный логин или пароль.": "Wrong username or password.",
+        "Вход через Google не настроен.": "Sign-in with Google is not configured.",
+        "Не удалось войти через Google. Попробуйте ещё раз.": (
+            "Couldn’t sign in with Google. Please try again."
+        ),
         "Сессия недействительна или истекла. Войдите заново.": (
             "Your session is invalid or has expired. Please log in again."
         ),

@@ -149,6 +149,10 @@ export default {
   // ── Shared form words ─────────────────────────────────────────────────────
   'form.or': 'или',
   'form.google': 'Продолжить с Google',
+  'form.googleBusy': 'Входим через Google…',
+  'form.googleUnconfigured': 'Вход через Google пока не настроен.',
+  'form.googleBlocked': 'Браузер не открыл окно Google — разрешите всплывающие окна для этого сайта.',
+  'form.googleFailed': 'Не удалось связаться с Google. Попробуйте ещё раз.',
   'form.apple': 'Продолжить с Apple',
   'form.noSpaces': 'Пробелы недопустимы.',
   'form.showPassword': 'Показать пароль',

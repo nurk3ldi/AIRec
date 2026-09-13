@@ -141,6 +141,10 @@ export default {
 
   'form.or': 'немесе',
   'form.google': 'Google арқылы жалғастыру',
+  'form.googleBusy': 'Google арқылы кіріп жатырмыз…',
+  'form.googleUnconfigured': 'Google арқылы кіру әлі бапталмаған.',
+  'form.googleBlocked': 'Браузер Google терезесін ашпады — осы сайт үшін қалқымалы терезелерге рұқсат беріңіз.',
+  'form.googleFailed': 'Google-мен байланысу мүмкін болмады. Қайталап көріңіз.',
   'form.apple': 'Apple арқылы жалғастыру',
   'form.noSpaces': 'Бос орын қолдануға болмайды.',
   'form.showPassword': 'Құпиясөзді көрсету',

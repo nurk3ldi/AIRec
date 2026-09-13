@@ -57,6 +57,22 @@ class InactiveAccount(AppError):
     message = "Аккаунт отключён."
 
 
+class GoogleNotConfigured(AppError):
+    status_code = HTTPStatus.SERVICE_UNAVAILABLE
+    code = "google_not_configured"
+    message = "Вход через Google не настроен."
+
+
+class GoogleAuthFailed(AppError):
+    status_code = HTTPStatus.UNAUTHORIZED
+    code = "google_auth_failed"
+    # One message for every way this can fail — an expired token, one issued to
+    # another app, an unverified address, Google being unreachable. The details
+    # go to the server log; the person at the button can only do one thing
+    # about any of them, which is to try again.
+    message = "Не удалось войти через Google. Попробуйте ещё раз."
+
+
 class AccountDeleted(AppError):
     """Signed in with an account that is inside its deletion grace period.
 

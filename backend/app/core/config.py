@@ -99,6 +99,22 @@ class Settings(BaseSettings):
     # change of mind (or a misclick) is recoverable.
     account_deletion_grace_days: int = 30
 
+    # --- Sign in with Google ---
+    # **The OAuth client id from Google Cloud Console** (type "Web application",
+    # with this site's origin under Authorized JavaScript origins —
+    # `http://localhost:3000` in dev). It is public by design: the browser needs
+    # it to open Google's consent popup, and `GET /auth/providers` hands it to
+    # the frontend so the id lives in one place rather than in two `.env`s.
+    # There is **no client secret** anywhere, deliberately: the browser gets an
+    # access token directly (Google's token model), and the server's whole job
+    # is to ask Google whether that token was issued *to this client id*.
+    # Unset is a working state — the Google buttons say the sign-in is not
+    # configured, and password sign-in is untouched.
+    google_client_id: str | None = None
+    google_tokeninfo_url: str = "https://oauth2.googleapis.com/tokeninfo"
+    google_userinfo_url: str = "https://openidconnect.googleapis.com/v1/userinfo"
+    google_timeout_seconds: float = 10.0
+
     # --- The conversation bin ---
     # **How long a binned conversation is kept before it is erased for good.**
     # Thirty days, like an account's grace period and like the Trash on every

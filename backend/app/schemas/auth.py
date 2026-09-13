@@ -113,6 +113,29 @@ class UsernameAvailability(BaseModel):
     available: bool
 
 
+class GoogleSignInRequest(BaseModel):
+    """An access token from Google's consent popup, and the form's own choices.
+
+    `remember` defaults to on, unlike `LoginRequest`: the Google button sits on
+    the signup page too, which has no checkbox and whose accounts are made on
+    their owner's own machine — the same answer registration gives.
+
+    `restore` is the second press after `account_deleted`, exactly as
+    `/auth/restore` is for a password: signing in with Google while the account
+    is in its grace period says nothing about wanting it back until asked.
+    """
+
+    access_token: str = Field(min_length=1, max_length=4096)
+    remember: bool = True
+    restore: bool = False
+
+
+class AuthProviders(BaseModel):
+    """Which extra sign-in methods this deployment offers, and their public ids."""
+
+    google_client_id: str | None = None
+
+
 class MessageResponse(BaseModel):
     message: str
 

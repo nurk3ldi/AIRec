@@ -6,13 +6,16 @@ from typing import Annotated
 from fastapi import APIRouter, File, Query, UploadFile, status
 
 from app.api.deps import AuthServiceDep, ClientInfoDep, CurrentUser, TokenClaims
+from app.core.config import settings
 from app.schemas.auth import (
+    AuthProviders,
     AuthResponse,
     ChangePasswordRequest,
     ConfirmEmailChangeRequest,
     DeleteAccountRequest,
     EmailChangeRequest,
     ForgotPasswordRequest,
+    GoogleSignInRequest,
     LoginRequest,
     MessageResponse,
     PendingEmailChange,
@@ -52,6 +55,38 @@ async def username_availability(
 ) -> UsernameAvailability:
     available = await auth.check_username_available(username)
     return UsernameAvailability(available=available)
+
+
+@router.get(
+    "/providers",
+    response_model=AuthProviders,
+    summary="Which extra sign-in methods are configured, with their public ids",
+)
+async def providers() -> AuthProviders:
+    """Public on purpose: the sign-in page needs it before anyone is signed in.
+
+    The Google client id is not a secret — it is sent to Google in the browser's
+    own URL bar — and serving it from here keeps it in one `.env` instead of
+    two that can disagree.
+    """
+    return AuthProviders(google_client_id=settings.google_client_id)
+
+
+@router.post(
+    "/google",
+    response_model=AuthResponse,
+    summary="Sign in or sign up with a Google access token",
+)
+async def google_sign_in(
+    payload: GoogleSignInRequest, auth: AuthServiceDep, client: ClientInfoDep
+) -> AuthResponse:
+    user, tokens, _ = await auth.google_sign_in(
+        payload.access_token,
+        remember=payload.remember,
+        restore=payload.restore,
+        client=client,
+    )
+    return AuthResponse(user=UserPublic.model_validate(user), tokens=tokens)
 
 
 @router.post(

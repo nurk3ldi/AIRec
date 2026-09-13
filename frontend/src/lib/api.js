@@ -123,6 +123,27 @@ export function login({ identifier, password, remember = false }) {
   })
 }
 
+/**
+ * Which extra sign-in methods the server offers — today the Google client id,
+ * or `null` when Google sign-in is not configured. Public: it is read before
+ * anyone is signed in.
+ */
+export function getAuthProviders() {
+  return request('/auth/providers')
+}
+
+/**
+ * Sign in or sign up with an access token from Google's popup. The server checks
+ * the token was issued to this app, then finds the account or creates it.
+ * `restore` is the second press after `account_deleted`.
+ */
+export function googleSignIn({ accessToken, remember = true, restore = false }) {
+  return request('/auth/google', {
+    method: 'POST',
+    body: { access_token: accessToken, remember, restore },
+  })
+}
+
 export function refresh(refreshToken) {
   return request('/auth/refresh', {
     method: 'POST',
