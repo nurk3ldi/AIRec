@@ -148,14 +148,14 @@ export default function AssistantCard({ className = '' }) {
 
       {/* **Одна карточка, разделённая хайрлайнами на 2×2**, а не четыре
           карточки: четыре связанных числа — один предмет. */}
-      <dl className="mt-5 grid shrink-0 grid-cols-2 border-t border-line">
+      <dl className="mt-5 grid shrink-0 grid-cols-2 border-t border-card-edge">
         {['live', 'human', 'unread', 'today'].map((key, index) => {
           const metric = metrics.find((item) => item.key === key)
           return (
             <div
               key={key}
-              className={`pt-4 ${index % 2 === 0 ? 'border-r border-line pr-4' : 'pl-4'} ${
-                index >= 2 ? 'border-t border-line' : 'pb-4'
+              className={`pt-4 ${index % 2 === 0 ? 'border-r border-card-edge pr-4' : 'pl-4'} ${
+                index >= 2 ? 'border-t border-card-edge' : 'pb-4'
               }`}
             >
               <dt className="truncate text-[13px] text-muted">

@@ -19,7 +19,13 @@
  * есть либо линии сетки, либо края панели, и вторая рамка была бы рамкой вокруг
  * рамки. Это же различие записано в таблице токенов в `CLAUDE.md`.
  */
-export const CARD_EDGE = 'rounded-2xl border border-line bg-surface-raised'
+// **A soft edge on continuous corners** (2026-09-13). The edge is Vercel's
+// `card-edge`, white at 14% / black at 8% — the solid `#454545` hairline read as
+// a hard bright ring. The corner is a 20px squircle (`corner-smooth`): a
+// squircle of the same radius looks tighter than a circle, so it is drawn
+// larger, and where `corner-shape` is unsupported the 20px circle is the
+// fallback.
+export const CARD_EDGE = 'rounded-[20px] corner-smooth border border-card-edge bg-surface-raised'
 
 /**
  * Тот же край плюс внутренний отступ и обрезка — крой карточек `/appointments`.

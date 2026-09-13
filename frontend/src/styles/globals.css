@@ -51,6 +51,10 @@
   --color-field-focus: var(--field-focus);
   --color-field-halo: var(--field-halo);
   --color-line: var(--line);
+  /* A card's edge: Vercel's gray-alpha-400. Softer than `line`, and an alpha
+     rather than a solid grey, so the curve of the corner anti-aliases into the
+     ground instead of standing out as a bright hard ring. */
+  --color-card-edge: var(--card-edge);
   --color-line-strong: var(--line-strong);
   /* The dark rail is dark in *both* themes — it is the one surface whose colour
      is an identity rather than a role, so it gets tokens of its own instead of
@@ -159,6 +163,7 @@
   --field-focus: rgb(0 0 0 / 0.34);
   --field-halo: rgb(0 0 0 / 0.16);
   --line: rgb(153 153 153 / 0.24);
+  --card-edge: rgb(0 0 0 / 0.08);
   --line-strong: rgb(153 153 153 / 0.4);
   --rail: #171215;
   --rail-ink: #ffffff;
@@ -276,6 +281,7 @@
   --field-focus: rgb(255 255 255 / 0.51);
   --field-halo: rgb(255 255 255 / 0.24);
   --line: #454545;
+  --card-edge: rgb(255 255 255 / 0.14);
   --line-strong: #454545;
   --rail: #000000;
   --rail-ink: #ffffff;
@@ -646,4 +652,15 @@ a {
       transform: translate(-50%, -50%);
     }
   }
+}
+
+/* **Continuous corners — Apple's squircle, not a quarter circle.** A plain
+   `border-radius` joins the straight edge to a circular arc, and the curvature
+   jumps from zero to full at that seam; the eye reads the jump as a corner that
+   is "sharp" even when the radius is generous. `corner-shape: squircle` eases
+   the curvature in and out along the edge, which is what iOS draws for every
+   card and icon. Chromium 139+ honours it; elsewhere the declaration is ignored
+   and the plain radius is still there. */
+@utility corner-smooth {
+  corner-shape: squircle;
 }

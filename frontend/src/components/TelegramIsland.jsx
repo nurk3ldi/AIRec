@@ -345,7 +345,7 @@ export default function TelegramIsland() {
             onPointerLeave={() => !press.current && setHeld(false)}
             onFocus={() => setHeld(true)}
             onBlur={() => setHeld(false)}
-            className="pointer-events-auto h-11 touch-none overflow-hidden rounded-full border border-line bg-surface-raised p-[5px] shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] select-none"
+            className="pointer-events-auto h-11 touch-none overflow-hidden rounded-full border border-card-edge bg-surface-raised p-[5px] shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] select-none"
           >
             {/* Ряд сразу финальной ширины: текст не переносится, пока пилюля
                 растёт, а обрезается её краем. */}
