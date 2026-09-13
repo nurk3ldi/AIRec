@@ -4,6 +4,7 @@ import { HugeiconsIcon } from '@hugeicons/react'
 import {
   ArrowLeft01Icon,
   Cancel01Icon,
+  ImageNotFound01Icon,
   UserIcon,
 } from '@hugeicons/core-free-icons'
 import { listMessages, markConversationRead, mediaUrl } from '../../lib/api'
@@ -11,6 +12,7 @@ import { ASSISTANT_ICON } from '../navigation'
 import { authed } from '../../lib/auth'
 import { getLocale, useT } from '../../lib/i18n'
 import { useSkeleton } from '../../lib/skeleton'
+import { CROSSFADE, SPRING } from '../../lib/motion'
 import Skeleton, { SkeletonRegion } from '../Skeleton'
 
 /**
@@ -228,13 +230,26 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
           visible={bars}
           className="flex min-h-0 flex-1 flex-col gap-3 p-5"
         >
-          {/* Чередуются стороны: тред — это разговор, и заглушка, где все
-              полосы слева, обещает не то, что придёт. */}
-          {[0, 1, 2, 3].map((index) => (
-            <Skeleton
+          {/* **Заглушка — это разговор, а не столбик полос.** Стороны
+              чередуются, как реплики, у клиента кружок слева, у ассистента —
+              справа, и пузыри той же высоты, что пузырь в одну строку (40px, как
+              и кружок): когда приходят сообщения, каждое встаёт на место своей
+              заглушки, и тред не прыгает. Ширины разные — одинаковые полосы
+              читаются как таблица, а не как переписка. */}
+          {THREAD_SKELETON.map(([mine, width], index) => (
+            // Строка во всю ширину, а к правому краю её прижимает
+            // `flex-row-reverse`, а не `self-end`: у прижатой строки ширина по
+            // содержимому, и процентная ширина пузыря внутри неё считалась бы
+            // от нуля — своя реплика рисовалась одним кружком.
+            <div
               key={index}
-              className={`h-12 w-[62%] rounded-2xl ${index % 2 ? 'self-end' : ''}`}
-            />
+              className={`flex w-full items-end gap-2 ${
+                mine ? 'flex-row-reverse' : ''
+              }`}
+            >
+              <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+              <Skeleton className="h-10 rounded-2xl" style={{ width }} />
+            </div>
           ))}
         </SkeletonRegion>
       ) : messages.length === 0 ? (
@@ -292,9 +307,14 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
                     прозрачность — движения нет, а «что-то появилось» сказано. */}
                 <m.div
                   layout={false}
-                  initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                  initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: reduce ? 0.12 : 0.2, ease: [0.16, 1, 0.3, 1] }}
+                  // Сдвиг — на пружине Apple, прозрачность — наплывом. Было
+                  // 0.2 с expo-out: реплика появлялась раньше, чем её успевали
+                  // увидеть приходящей.
+                  transition={
+                    reduce ? CROSSFADE.in : { y: SPRING, opacity: CROSSFADE.in }
+                  }
                   // Пузырь сам решает, к какому краю прижаться, и обёртка не
                   // должна этому мешать: колонка растягивает детей по ширине,
                   // а `self-end` стоит внутри.
@@ -441,6 +461,74 @@ const POLL_MS = 5000
 
 const PHOTO_PLACEHOLDER = '[фото]'
 
+/** Стороны и ширины реплик заглушки: `[своя ли, ширина пузыря]`. */
+const THREAD_SKELETON = [
+  [false, '58%'],
+  [false, '36%'],
+  [true, '64%'],
+  [false, '46%'],
+]
+
+/**
+ * Фотография в треде — с местом под себя, пока грузится, и с проявлением,
+ * когда пришла.
+ *
+ * **Раньше она просто возникала.** Пузырь с подписью сначала был пустым, потом
+ * в одном кадре вырастал на высоту снимка, а снимок без подписи до загрузки не
+ * занимал нисколько — реплика появлялась из ничего посреди прочитанного. Теперь
+ * до загрузки стоит заглушка того же скругления (`Skeleton`, та же пульсация,
+ * что у всех загрузок приложения), а снимок проявляется поверх неё.
+ *
+ * **Размер заглушки — не угадывание размера снимка**, а разумное место под
+ * него: 220×160. Настоящий размер известен только после загрузки, и скачок с
+ * заглушки на снимок неизбежен; но скачок от прямоугольника к картинке глаз
+ * читает как «загрузилась», а от пустоты к картинке — как «что-то вставили».
+ * После загрузки `onLoad` возвращает низ треда на место, как и раньше.
+ *
+ * Прозрачность остаётся и под пониженным движением: это не перемещение.
+ *
+ * **Не загрузилась — заглушка перестаёт пульсировать.** Пульсация — это
+ * утверждение «сейчас придёт», и снимок, файл которого пропал с диска, делал
+ * его вечно. Вместо неё — неподвижная плашка того же размера со значком
+ * «изображение недоступно»: ответ вместо ожидания.
+ */
+function Photo({ src, alt = '', onLoad, frame = '' }) {
+  // `loading` → `loaded` | `failed`.
+  const [state, setState] = useState('loading')
+  const loaded = state === 'loaded'
+
+  return (
+    // Рамка — скругление и отступы — на обёртке, а не на картинке: её носит и
+    // заглушка, и снимок, и `overflow-hidden` обрезает углы обоих одинаково.
+    // Ширина — одно из двух через тернар, а не `w-fit w-[220px]` в одной
+    // строке: две утилиты одного свойства решаются порядком в таблице стилей.
+    <span
+      className={`relative block overflow-hidden ${frame} ${
+        loaded ? 'w-fit' : 'h-40 w-[220px] max-w-full'
+      }`}
+    >
+      {state === 'loading' && <Skeleton className="absolute inset-0" />}
+      {state === 'failed' && (
+        <span className="absolute inset-0 grid place-items-center bg-ink/8 text-muted">
+          <HugeiconsIcon icon={ImageNotFound01Icon} size={20} strokeWidth={1.8} />
+        </span>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        onLoad={() => {
+          setState('loaded')
+          onLoad?.()
+        }}
+        onError={() => setState('failed')}
+        className={`block max-h-[320px] max-w-full transition-opacity duration-300 ease-out ${
+          loaded ? 'opacity-100' : 'absolute inset-0 h-full w-full object-cover opacity-0'
+        }`}
+      />
+    </span>
+  )
+}
+
 function Box({ message, mine = false, onPhoto }) {
   const photo = mediaUrl(message.media_url)
   const body = message.body?.trim() ?? ''
@@ -453,12 +541,7 @@ function Box({ message, mine = false, onPhoto }) {
   if (photo && !caption) {
     return (
       <div className="group/photo relative w-fit">
-        <img
-          src={photo}
-          alt=""
-          onLoad={onPhoto}
-          className="max-h-[320px] max-w-full rounded-2xl"
-        />
+        <Photo src={photo} onLoad={onPhoto} frame="rounded-2xl" />
 
         {/* **Время появляется, когда на снимок наводят.** Постоянная плашка на
             фотографии — это чужие цифры поверх чьего-то лица; здесь она нужна
@@ -497,7 +580,7 @@ function Box({ message, mine = false, onPhoto }) {
           `-mx-1 -mt-1`: съедает часть внутреннего отступа пузыря, чтобы
           картинка не выглядела вставленной в рамку из воздуха. */}
       {photo && (
-        <img
+        <Photo
           src={photo}
           alt={message.body}
           // Не `lazy`: тред открывается на последнем сообщении, и отложенная
@@ -509,7 +592,7 @@ function Box({ message, mine = false, onPhoto }) {
           // открыть его в полный рост здесь негде, экран только читают. Так
           // пузырь принимает форму фотографии: горизонтальная занимает ширину,
           // вертикальная — высоту, и обе видны целиком.
-          className="-mx-1 -mt-1 mb-1.5 max-h-[320px] max-w-full rounded-xl"
+          frame="-mx-1 -mt-1 mb-1.5 rounded-xl"
         />
       )}
 

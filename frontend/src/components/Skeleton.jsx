@@ -39,11 +39,23 @@
  * lasted.
  */
 export default function Skeleton({ className = '', style }) {
+  // **The default radius and fill apply only when the caller named none.** They
+  // were baked into the string, and a class the caller added could not win:
+  // two utilities for one property are decided by their order in the built
+  // stylesheet, not in the attribute, and `.rounded-md` is emitted after
+  // `.rounded-2xl` and `.rounded-full`. So every `rounded-full` avatar
+  // placeholder in the app was drawn as a 6px-cornered square, and the rail's
+  // `bg-rail-ink/10` never replaced `bg-ink/8`. Found on 2026-09-13 while
+  // shaping `/inbox`'s thread placeholder after the bubbles it stands for.
+  const names = className.split(/\s+/)
+  const radius = names.some((name) => name.startsWith('rounded')) ? '' : 'rounded-md'
+  const fill = names.some((name) => name.startsWith('bg-')) ? '' : 'bg-ink/8'
+
   return (
     <div
       aria-hidden="true"
       style={style}
-      className={`animate-pulse rounded-md bg-ink/8 motion-reduce:animate-none ${className}`}
+      className={`animate-pulse motion-reduce:animate-none ${radius} ${fill} ${className}`}
     />
   )
 }

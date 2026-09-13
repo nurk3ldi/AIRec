@@ -6,6 +6,7 @@ import {
   useReducedMotion,
 } from 'motion/react'
 import { useT } from '../lib/i18n'
+import { CROSSFADE, SPRING } from '../lib/motion'
 import { chatState, minutesSince, needsHuman } from '../lib/conversations'
 import Skeleton, { SkeletonRegion } from './Skeleton'
 import { useSkeleton } from '../lib/skeleton'
@@ -39,15 +40,38 @@ export function StreamList({ chats, live, bleed = '-mx-6 px-6' }) {
   return (
     <>
       {chats === null || pending ? (
+        // **Заглушка повторяет строку, а не рисует абстрактные полосы.** Те же
+        // отступы, та же точка слева, те же две строки с теми же кеглями и
+        // разделители между ними: когда приходят данные, на месте каждой полосы
+        // встаёт текст, и ничто не сдвигается. Прежние две полосы с зазором 20px
+        // были ниже настоящей строки, и список при загрузке «доезжал» вниз.
         <SkeletonRegion
           label={t('home.streams.title')}
           visible={bars}
-          className="mt-5 flex flex-col gap-5"
+          className={`mt-2 flex flex-col divide-y divide-line ${bleed}`}
         >
-          {Array.from({ length: 4 }, (_, index) => (
-            <div key={index} className="flex flex-col gap-2">
-              <Skeleton className="h-4 w-[35%]" />
-              <Skeleton className="h-3 w-[70%]" />
+          {[[38, 62], [30, 74], [44, 56]].map(([name, preview], index) => (
+            <div key={index} className="flex items-start gap-3 py-3.5">
+              <Skeleton className="mt-[7px] h-2 w-2 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-3 text-[15px]">
+                  <div className="min-w-0 flex-1">
+                    <Skeleton
+                      className="inline-block h-[0.75em] align-middle"
+                      style={{ width: `${name}%` }}
+                    />
+                  </div>
+                  <div className="w-14 shrink-0 text-right text-[13px]">
+                    <Skeleton className="inline-block h-[0.75em] w-10 align-middle" />
+                  </div>
+                </div>
+                <div className="mt-0.5 text-[13px]">
+                  <Skeleton
+                    className="inline-block h-[0.75em] align-middle"
+                    style={{ width: `${preview}%` }}
+                  />
+                </div>
+              </div>
             </div>
           ))}
         </SkeletonRegion>
@@ -111,8 +135,8 @@ function Row({ chat }) {
       // Переезд — под пониженным движением его нет, прозрачность остаётся: это
       // не путь по экрану, а единственное, что говорит «строка пришла».
       transition={{
-        layout: reduce ? { duration: 0 } : { duration: 0.3, ease: [0.16, 1, 0.3, 1] },
-        opacity: { duration: 0.2, ease: 'easeOut' },
+        layout: reduce ? { duration: 0 } : SPRING,
+        opacity: CROSSFADE.in,
       }}
       className="flex items-start gap-3 py-3.5"
     >

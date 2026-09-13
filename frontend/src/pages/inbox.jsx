@@ -23,7 +23,7 @@ import {
 import MonthCalendar from '../components/appointments/MonthCalendar'
 import DateField from '../components/appointments/DateField'
 import TimeField from '../components/appointments/TimeField'
-import { PANEL_MOTION, PANEL_TIMING } from '../components/appointments/panel'
+import { PANEL_MOTION } from '../components/appointments/panel'
 import { StepButton, ToolbarPill } from '../components/appointments/Timetable'
 import { dayKey, shiftDate } from '../lib/dates'
 import {
@@ -33,6 +33,7 @@ import {
   updateConversation,
 } from '../lib/api'
 import { authed } from '../lib/auth'
+import { CROSSFADE, SPRING } from '../lib/motion'
 import { historyRows, liveChats } from '../lib/conversations'
 import { StreamList } from '../components/StreamList'
 import Thread from '../components/inbox/Thread'
@@ -387,14 +388,15 @@ export default function InboxPage() {
             не перемещение, а единственное, что говорит «экран сменился».
 
             `mode="wait"`: два вида в одной колонке одновременно — это две
-            таблицы друг на друге. Уход короче прихода (`PANEL_TIMING`), чтобы
-            ожидание нового вида не превращалось в паузу. */}
+            таблицы друг на друге. Уход короче прихода (`CROSSFADE`), чтобы
+            ожидание нового вида не превращалось в паузу, но оба длиннее
+            прежних 0.15 с, которые читались как моргание. */}
         <AnimatePresence mode="wait" initial={false}>
           <m.div
             key={`${only ?? 'both'}-${box ?? 'inbox'}`}
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1, transition: PANEL_TIMING.in }}
-            exit={{ opacity: 0, transition: PANEL_TIMING.out }}
+            animate={{ opacity: 1, transition: CROSSFADE.in }}
+            exit={{ opacity: 0, transition: CROSSFADE.out }}
           >
         {/* Собственного заголовка у страницы нет: на десктопе её называет
             шапка, а на телефоне — нижняя панель, и третий раз то же слово было
@@ -574,8 +576,8 @@ export default function InboxPage() {
           <m.div
             key={openChat ? openChat.id : 'streams'}
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1, transition: PANEL_TIMING.in }}
-            exit={{ opacity: 0, transition: PANEL_TIMING.out }}
+            animate={{ opacity: 1, transition: CROSSFADE.in }}
+            exit={{ opacity: 0, transition: CROSSFADE.out }}
             className="flex min-h-0 flex-1 flex-col"
           >
             {openChat ? (
@@ -874,26 +876,50 @@ function TableTools({ query, onQuery, filter, onFilter }) {
  * спрятать причину, по которой строк осталось три. Крестик — он появляется,
  * только когда есть что стирать, — закрывает всегда и заодно чистит.
  *
- * **Значок не исчезает и не подменяется: кружок раздаётся в поле, а он остаётся
- * у левого края.** Подменить одно другим значило бы, что на месте кнопки просто
- * оказалось что-то ещё; когда та же фигура растёт, а знак стоит на месте, видно,
- * что это по-прежнему поиск, только теперь в него можно писать. Двигать при
- * этом почти нечего: в кружке значок стоит по центру, то есть в 10px от левого
- * края, а в поле — в 12px, и `layout` проезжает эти два пикселя, чтобы они не
- * скакнули.
+ * **Кружок раскрывается в поле — одна фигура, а не две по очереди.** Так это
+ * устроено у Apple: поиск вырастает из кнопки, которой его открыли, и глаз
+ * видит, что это тот же предмет, только теперь в него можно писать. Переписано
+ * 2026-09-13 по покадровой записи прежней версии, и в ней было три ошибки:
  *
- * **Фон и рамка — два слоя, которые перекрёстно гаснут**, а не один
- * перекрашиваемый. Смена класса вместо этого дала бы мгновенный скачок цвета
- * посреди плавного роста; две накрытые друг другом заливки меняются только
- * прозрачностью, что и разрешено правилами движения этого проекта.
+ * - **Росла она масштабом (`layout`), и соседи прыгали.** Проекция раскладки
+ *   двигает только сам элемент — а «Все», архив и корзина слева от него
+ *   переезжали на 204px за один кадр, пока поле ещё только начинало расти.
+ *   Теперь анимируется настоящая **ширина**: соседи едут вместе с ней,
+ *   непрерывно. Это сознательное исключение из правила «только transform и
+ *   opacity»: элемент 36×36 → 240×36 в строке заголовка перекладывает пять
+ *   кнопок, а не страницу, и честное движение соседей стоит этой раскладки.
+ * - **Масштаб растягивал детей.** Круглый слой под `scaleX` становился овалом,
+ *   скругления поля — эллипсами. С настоящей шириной искажать нечего.
+ * - **Она была слишком быстрой**: 0.22 с на кривой expo-out проходят половину
+ *   пути за первые 50 мс, и глаз видит щелчок, а не раскрытие. Теперь это
+ *   пружина Apple (`SPRING`: без перелёта, отклик 0.4 с) — и она же везёт
+ *   радиус 18 → 12, так что круг *становится* скруглённым полем, а не
+ *   подменяется им.
  *
- * Форма поля — та же, что у поиска в шапке: 240px, `rounded-xl`, `bg-surface` и
- * трёхступенчатое кольцо. Два поиска в одном продукте обязаны быть одним
+ * **Слова появляются, когда для них есть место.** Поле ввода проявляется с
+ * задержкой в десятую долю секунды — пока фигура не раскрылась, плейсхолдер
+ * был бы обрезанными буквами в кружке. Уходит оно первым и быстро: закрытие
+ * должно начинаться с того, что текст исчез. Ширина поля ввода зафиксирована
+ * на конечной (240px), а края обрезает сама фигура (`overflow-hidden`), — так
+ * текст не переносится и не ползёт, пока растёт рамка вокруг него.
+ *
+ * **Заливка и рамка перекрёстно гаснут**, а не перекрашиваются: цвета здесь —
+ * токены темы, и между двумя `var()` интерполировать нечего. Рамка —
+ * `inset`-тенью, потому что внешнюю обрезал бы `overflow-hidden`.
+ *
+ * **Под пониженным движением фигура не растёт**, а встаёт сразу; остаётся
+ * смена слоёв прозрачностью — «меньше и мягче», а не «ничего».
+ *
+ * Форма поля — та же, что у поиска в шапке: 240px, радиус `rounded-xl`,
+ * `bg-surface` и кольцо. Два поиска в одном продукте обязаны быть одним
  * предметом, и плейсхолдер у них поэтому тоже общий.
  *
  * `text-[16px]` до `sm` — правило дома против зума iOS на фокусе; выше 14, как
  * у всех полей.
  */
+const SEARCH_CLOSED = 36
+const SEARCH_OPEN = 240
+
 function SearchTool({ query, onQuery }) {
   const t = useT()
   const [open, setOpen] = useState(false)
@@ -904,118 +930,138 @@ function SearchTool({ query, onQuery }) {
     onQuery('')
   }
 
-  // Один и тот же переезд для формы и для значка: они едут вместе или не едут
-  // вовсе.
-  const travel = reduce
-    ? { duration: 0 }
-    : { duration: 0.22, ease: [0.16, 1, 0.3, 1] }
-  // **Смена слоёв — прозрачностью, и она остаётся под пониженным движением.**
-  // Рост кружка в поле — перемещение, и его там нет; а вот то, что кнопка стала
-  // полем, должно быть сказано хоть чем-то. Пониженное движение — это «меньше и
-  // мягче», а не «ничего»: мгновенная подмена слоя читалась как мигание.
-  const fade = reduce ? { duration: 0.15, ease: 'easeOut' } : travel
+  const grow = reduce ? { duration: 0 } : SPRING
+  const swap = reduce
+    ? { duration: 0.15, ease: 'easeOut' }
+    : { duration: 0.22, ease: 'easeOut' }
 
   return (
-    // `domMax`, а не `domAnimation`: проекция раскладки — единственная функция,
-    // которой в меньшем наборе нет, а именно она и растит кружок в поле. Лишнего
-    // веса это не стоит — календарь на этой же странице уже её тянет.
-    <LazyMotion features={domMax}>
-      <m.div
-        layout
-        transition={travel}
-        className={`relative flex h-9 shrink-0 items-center ${
-          open ? 'w-[240px]' : 'w-9'
+    <m.div
+      initial={false}
+      // Нажатие отвечает самой фигурой: прозрачная кнопка поверх неё не видна,
+      // и `active:` на ней сжимал бы пустоту. Только закрытым — у открытого
+      // поля нажим означает «поставить курсор», а не «нажать».
+      whileTap={open ? undefined : { scale: 0.95 }}
+      // Радиус 18 — половина высоты: закрытой фигура — ровный круг.
+      animate={{
+        width: open ? SEARCH_OPEN : SEARCH_CLOSED,
+        borderRadius: open ? 12 : SEARCH_CLOSED / 2,
+      }}
+      transition={grow}
+      className="relative flex h-9 shrink-0 items-center overflow-hidden"
+    >
+      {/* Слой «кнопка» и слой «поле». Оба всегда в разметке и оба во всю
+          фигуру, поэтому переключение между ними — одна прозрачность.
+
+          `rounded-[inherit]` — ради кольца: `inset`-тень рисуется по
+          собственным углам слоя, и без радиуса она была прямоугольником,
+          который скруглённая фигура просто обрезала, — кольцо обрывалось на
+          углах прямыми отрезками. Наследуемый радиус идёт за анимацией
+          родителя кадр в кадр. */}
+      <m.span
+        aria-hidden="true"
+        initial={false}
+        animate={{ opacity: open ? 0 : 1 }}
+        transition={swap}
+        className="absolute inset-0 rounded-[inherit] bg-ink/12"
+      />
+      <m.span
+        aria-hidden="true"
+        initial={false}
+        animate={{ opacity: open ? 1 : 0 }}
+        transition={swap}
+        className="absolute inset-0 rounded-[inherit] bg-surface shadow-[inset_0_0_0_1px_var(--color-field)]"
+      />
+
+      {/* Значок едет с фигурой на той же пружине: из центра кружка (10px от
+          края) к месту перед плейсхолдером (12px). Сдвигом, а не `left`, —
+          эти два пикселя не повод перекладывать строку. */}
+      <m.span
+        aria-hidden="true"
+        initial={false}
+        animate={{ x: open ? 12 : 10 }}
+        transition={grow}
+        // **Закрытым — `ink`, открытым — `muted`, потому что это два разных
+        // предмета.** В кружке значок и есть содержимое кнопки, и он обязан
+        // весить столько же, сколько глиф фильтра рядом; в поле он становится
+        // подсказкой рядом с плейсхолдером — там `muted` его и держит, как во
+        // всех полях приложения.
+        className={`pointer-events-none absolute left-0 z-10 grid place-items-center transition-colors duration-200 ${
+          open ? 'text-muted' : 'text-ink'
         }`}
       >
-        {/* Слой «кнопка» и слой «поле». Оба всегда в разметке и оба absolute,
-            поэтому ширину задаёт родитель, а не они, — и переключение между
-            ними стоит ровно одну прозрачность. */}
-        <m.span
-          aria-hidden="true"
-          animate={{ opacity: open ? 0 : 1 }}
-          transition={fade}
-          className="absolute inset-0 rounded-full bg-ink/12"
+        <HugeiconsIcon
+          icon={Search01Icon}
+          size={16}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
         />
-        <m.span
-          aria-hidden="true"
-          animate={{ opacity: open ? 1 : 0 }}
-          transition={fade}
-          className="absolute inset-0 rounded-xl bg-surface shadow-[0_0_0_1px_var(--color-field)]"
-        />
+      </m.span>
 
-        {/* Значок поверх обоих слоёв и с собственным `layout`: те самые два
-            пикселя от центра кружка до левого края поля. */}
-        <m.span
-          layout
-          transition={travel}
-          aria-hidden="true"
-          // **Закрытым — `ink`, открытым — `muted`, потому что это два разных
-          // предмета.** В кружке значок и есть содержимое кнопки, и он обязан
-          // весить столько же, сколько глиф фильтра рядом: два соседних круга с
-          // разной яркостью читаются как включённый и выключенный, хотя оба
-          // просто ждут нажатия. В поле он перестаёт быть кнопкой и становится
-          // подсказкой рядом с плейсхолдером — там `muted` его и держит, как во
-          // всех полях приложения.
-          //
-          // `ink`, а не литеральный белый: на тёмной теме это и есть белый, а на
-          // светлой — почти чёрный, то есть значок остаётся видимым в обеих.
-          className={`pointer-events-none absolute z-10 grid place-items-center transition-colors duration-150 ${
-            open ? 'left-3 text-muted' : 'left-[10px] text-ink'
-          }`}
-        >
-          <HugeiconsIcon
-            icon={Search01Icon}
-            size={16}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-          />
-        </m.span>
-
-        {open ? (
-          <>
-            <input
-              autoFocus
-              type="search"
-              value={query}
-              onChange={(event) => onQuery(event.target.value)}
-              onKeyDown={(event) => event.key === 'Escape' && close()}
-              onBlur={() => !query && setOpen(false)}
-              placeholder={t('header.search')}
-              aria-label={t('inbox.search')}
-              // Прозрачный: заливку и кольцо рисует слой под ним, иначе их было
-              // бы два. `pl-9` — место под значок, `pr-9` — под крестик.
-              className="relative z-10 h-full w-full appearance-none rounded-xl bg-transparent pr-9 pl-9 text-[16px] text-ink outline-none placeholder:text-muted sm:text-[14px] [&::-webkit-search-cancel-button]:appearance-none"
-            />
-            {query && (
-              <button
-                type="button"
-                onClick={close}
-                aria-label={t('appointments.close')}
-                className="absolute right-2 z-10 grid h-6 w-6 place-items-center rounded-full text-muted outline-none transition-[color,background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 hover:text-ink focus-visible:bg-ink/8 focus-visible:text-ink active:scale-[0.9]"
-              >
-                <HugeiconsIcon
-                  icon={Cancel01Icon}
-                  size={14}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.2}
-                />
-              </button>
-            )}
-          </>
-        ) : (
-          // Кнопка занимает весь кружок, а не сидит в нём: нажимают по фигуре
-          // целиком, а не по значку внутри неё.
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
+      <AnimatePresence initial={false}>
+        {open && (
+          <m.input
+            key="field"
+            autoFocus
+            type="search"
+            value={query}
+            onChange={(event) => onQuery(event.target.value)}
+            onKeyDown={(event) => event.key === 'Escape' && close()}
+            onBlur={() => !query && setOpen(false)}
+            placeholder={t('header.search')}
             aria-label={t('inbox.search')}
-            className="absolute inset-0 z-10 rounded-full outline-none transition-[background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.95]"
+            initial={{ opacity: 0 }}
+            animate={{
+              opacity: 1,
+              transition: reduce ? swap : { ...swap, delay: 0.1 },
+            }}
+            exit={{ opacity: 0, transition: { duration: 0.1, ease: 'easeIn' } }}
+            // Прозрачный: заливку и кольцо рисует слой под ним. `pl-9` —
+            // место под значок, `pr-9` — под крестик.
+            className="absolute inset-y-0 left-0 z-10 w-[240px] appearance-none bg-transparent pr-9 pl-9 text-[16px] text-ink outline-none placeholder:text-muted sm:text-[14px] [&::-webkit-search-cancel-button]:appearance-none"
           />
         )}
-      </m.div>
-    </LazyMotion>
+      </AnimatePresence>
+
+      <AnimatePresence initial={false}>
+        {open && query && (
+          <m.button
+            key="clear"
+            type="button"
+            onClick={close}
+            aria-label={t('appointments.close')}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={reduce ? swap : SPRING}
+            whileTap={{ scale: 0.9 }}
+            // От левого края, по конечной ширине: у правого края крестик ехал
+            // бы вместе со сжимающейся фигурой.
+            className="absolute left-[208px] z-10 grid h-6 w-6 place-items-center rounded-full text-muted outline-none transition-colors duration-[160ms] ease-out hover:bg-ink/8 hover:text-ink focus-visible:bg-ink/8 focus-visible:text-ink"
+          >
+            <HugeiconsIcon
+              icon={Cancel01Icon}
+              size={14}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2.2}
+            />
+          </m.button>
+        )}
+      </AnimatePresence>
+
+      {open ? null : (
+        // Кнопка занимает весь кружок, а не сидит в нём: нажимают по фигуре
+        // целиком, а не по значку внутри неё.
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={t('inbox.search')}
+          className="absolute inset-0 z-10 outline-none transition-colors duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8"
+        />
+      )}
+    </m.div>
   )
 }
 
@@ -1279,9 +1325,11 @@ function BookingTable({
   // `layout="position"`: едет только место, размер строки таблицы задают
   // столбцы, и масштабировать его нечего. Под пониженным движением переезда
   // нет — остаётся только угасание.
-  const settle = reduce
-    ? { duration: 0 }
-    : { duration: 0.26, ease: [0.16, 1, 0.3, 1] }
+  //
+  // Переезд — на пружине Apple (`SPRING`), а не на 0.26 с expo-out: та
+  // проходила половину пути за первые кадры, и строки не съезжали, а
+  // перескакивали.
+  const settle = reduce ? { duration: 0 } : SPRING
 
   // Порядок задаёт `historyRows` — сверху то, что происходило только что.
   // Второй сортировки здесь нет намеренно: два ответа на «что считать свежим»
@@ -1298,7 +1346,7 @@ function BookingTable({
         <TableHead />
 
         {/* `domMax` — проекция раскладки нужна строкам, а в `domAnimation` её
-            нет. Вес не лишний: поиск в заголовке этой же секции её уже тянет. */}
+            нет. Вес не лишний: календарь дня на этой же странице её уже тянет. */}
         <LazyMotion features={domMax}>
         <tbody className="divide-y divide-line">
           <AnimatePresence initial={false}>
@@ -1320,7 +1368,7 @@ function BookingTable({
               exit={{ opacity: 0 }}
               transition={{
                 layout: settle,
-                opacity: { duration: 0.15, ease: [0.4, 0, 1, 1] },
+                opacity: CROSSFADE.out,
               }}
               // **Строку открывают, если её есть чем открыть.** У записи,
               // сделанной руками, переписки нет — нажимать не на что, и курсор
@@ -1567,7 +1615,8 @@ function DayCardRow({ bookings, stale = false, direction = null, timeZone }) {
   // карточки не пропадают в промежутке. Только появление, без ухода: прежний ряд
   // рядом с новым на время анимации — это два дня в одной строке.
   //
-  // 12px и прозрачность — та же мера, что у заголовков дней на сетке «Записей».
+  // 16px и прозрачность: на 12px с пружиной сдвиг терялся — глаз видел
+  // проявление, но не сторону, откуда приехал день.
   // Прыжок (`0`) и пониженное движение — только прозрачность; первый кадр
   // страницы (`null`) — ничего, его уже сыграл `PageTransition`.
   const initial =
@@ -1575,7 +1624,7 @@ function DayCardRow({ bookings, stale = false, direction = null, timeZone }) {
       ? false
       : reduce || direction === 0
         ? { opacity: 0 }
-        : { opacity: 0, x: direction * 12 }
+        : { opacity: 0, x: direction * 16 }
 
   // **`PresenceContext` обнулён — иначе появления не будет вовсе.** Ряд лежит
   // внутри `AnimatePresence initial={false}`, которым колонка проявляет смену
@@ -1590,8 +1639,13 @@ function DayCardRow({ bookings, stale = false, direction = null, timeZone }) {
       key={bookings.key}
       initial={initial}
       animate={{ opacity: stale ? 0.5 : 1, x: 0 }}
+      // Приглушение — после десятой доли секунды и мягко: быстрый ответ не
+      // должен успеть мигнуть рядом. Появление — сдвиг на пружине, прозрачность
+      // на плавном наплыве: два свойства, и у каждого свой характер движения.
       transition={
-        stale ? { duration: 0.15, delay: 0.12, ease: 'easeOut' } : PANEL_TIMING.in
+        stale
+          ? { duration: 0.2, delay: 0.12, ease: 'easeOut' }
+          : { x: SPRING, opacity: CROSSFADE.in }
       }
       aria-busy={stale || undefined}
       className="flex flex-wrap content-start gap-4 sm:gap-6"

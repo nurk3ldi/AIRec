@@ -84,3 +84,34 @@ export function rubberband(overshoot, dimension, constant = 0.55) {
     (dimension + constant * Math.abs(overshoot))
   )
 }
+
+/**
+ * The spring for anything that moves because of a press — Apple's default.
+ *
+ * **Critically damped (`bounce: 0`) with a response of about 0.4s**, the values
+ * *Designing Fluid Interfaces* ships for moving and repositioning. No overshoot,
+ * because nothing that a tap starts carried momentum; bounce is for a thrown
+ * object, and a field that wobbles after opening reads as a toy.
+ *
+ * `visualDuration` rather than `duration`: it is the time to *look* arrived,
+ * which is Apple's "response". A spring's `duration` includes the long tail
+ * where it is settling by fractions of a pixel, and tuning by that number is
+ * what made earlier springs here feel either sluggish or abrupt.
+ *
+ * It replaced 0.2–0.26s ease-out tweens on `/inbox` on 2026-09-13, which were
+ * the "too fast" in the report: an expo-out covers half its distance in the
+ * first 50ms, so the eye sees a pop rather than a movement.
+ */
+export const SPRING = { type: 'spring', bounce: 0, visualDuration: 0.4 }
+
+/**
+ * One view giving way to another in place — a cross-fade, not a movement.
+ *
+ * Slower in than out, and both slower than the 0.15s that read as a blink: the
+ * leaving view should be *seen* to go, and the arriving one should settle rather
+ * than snap. Opacity only, so it holds under `prefers-reduced-motion` too.
+ */
+export const CROSSFADE = {
+  in: { duration: 0.32, ease: [0.25, 0.1, 0.25, 1] },
+  out: { duration: 0.2, ease: [0.4, 0, 1, 1] },
+}

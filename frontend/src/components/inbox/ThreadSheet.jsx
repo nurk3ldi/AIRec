@@ -11,6 +11,7 @@ import { haptic } from '../../lib/haptics'
 import {
   project,
   rubberband,
+  SPRING,
   velocityFrom,
   VELOCITY_WINDOW,
 } from '../../lib/motion'
@@ -47,7 +48,7 @@ const COMMIT_SHARE = 0.5
  * Критическое затухание (`bounce: 0`) и отклик 0.4 с — значения Apple для
  * перемещения: без перелёта, потому что край экрана — не упругая стенка.
  */
-const RELEASE = { type: 'spring', bounce: 0, duration: 0.4 }
+const RELEASE = SPRING
 
 /**
  * Насколько гаснет список под тредом, пока его тянут назад.
