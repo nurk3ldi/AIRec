@@ -1,3 +1,4 @@
+import { CARD_EDGE } from '../components/card'
 import { useT } from '../lib/i18n'
 import styles from '../styles/Dashboard.module.css'
 
@@ -32,5 +33,15 @@ import styles from '../styles/Dashboard.module.css'
 export default function DashboardHomePage() {
   const t = useT()
 
-  return <div className={styles.page} aria-label={t('nav.dashboard')} />
+  return (
+    <div
+      className={`${styles.page} flex items-stretch p-4 sm:p-6`}
+      aria-label={t('nav.dashboard')}
+    >
+      {/* Пустая карточка у левого края — 30% ширины, на всю высоту страницы.
+          На телефоне во всю ширину: 30% от 390pt — полоска, в которую ничего
+          не поместится. */}
+      <section className={`${CARD_EDGE} w-full sm:w-[30%]`} />
+    </div>
+  )
 }
