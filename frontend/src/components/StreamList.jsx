@@ -1,3 +1,10 @@
+import {
+  AnimatePresence,
+  domMax,
+  LazyMotion,
+  m,
+  useReducedMotion,
+} from 'motion/react'
 import { useT } from '../lib/i18n'
 import { chatState, minutesSince, needsHuman } from '../lib/conversations'
 import Skeleton, { SkeletonRegion } from './Skeleton'
@@ -64,13 +71,26 @@ export function StreamList({ chats, live, bleed = '-mx-6 px-6' }) {
         // `min-h-0` рядом с `flex-1` — то, что позволяет списку прокручиваться
         // внутри карточки, а не растить её: элемент flex не сжимается меньше
         // своего содержимого без него.
-        <ul
-          className={`mt-2 min-h-0 flex-1 divide-y divide-line overflow-y-auto ${bleed}`}
-        >
-          {live.map((chat) => (
-            <Row key={chat.id} chat={chat} />
-          ))}
-        </ul>
+        // **Строки приходят, уходят и меняются местами — видно.** Список живой:
+        // раз в пятнадцать секунд он перечитывается, разговор, где только что
+        // написали, поднимается наверх, остывший уходит. Мгновенная перестановка
+        // выглядела как список, у которого перепутались строки; здесь новая
+        // проявляется, ушедшая гаснет, а остальные доезжают до своих мест.
+        //
+        // `initial={false}` — открытая панель показывает список целиком, без
+        // строк, выезжающих по очереди: анимируется то, что случилось *потом*.
+        // `domMax` — ради проекции раскладки, которой в `domAnimation` нет.
+        <LazyMotion features={domMax}>
+          <ul
+            className={`mt-2 min-h-0 flex-1 divide-y divide-line overflow-y-auto ${bleed}`}
+          >
+            <AnimatePresence initial={false}>
+              {live.map((chat) => (
+                <Row key={chat.id} chat={chat} />
+              ))}
+            </AnimatePresence>
+          </ul>
+        </LazyMotion>
       )}
     </>
   )
@@ -78,11 +98,24 @@ export function StreamList({ chats, live, bleed = '-mx-6 px-6' }) {
 
 function Row({ chat }) {
   const t = useT()
+  const reduce = useReducedMotion()
   const minutes = Math.floor(minutesSince(chat.last_message_at))
   const hot = needsHuman(chat)
 
   return (
-    <li className="flex items-start gap-3 py-3.5">
+    <m.li
+      layout="position"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      // Переезд — под пониженным движением его нет, прозрачность остаётся: это
+      // не путь по экрану, а единственное, что говорит «строка пришла».
+      transition={{
+        layout: reduce ? { duration: 0 } : { duration: 0.3, ease: [0.16, 1, 0.3, 1] },
+        opacity: { duration: 0.2, ease: 'easeOut' },
+      }}
+      className="flex items-start gap-3 py-3.5"
+    >
       {/* Приподнята на пиксель-другой: точка выравнивается по строке с именем,
           а не по верхнему краю блока из двух строк. */}
       <span
@@ -129,6 +162,6 @@ function Row({ chat }) {
           </p>
         )}
       </div>
-    </li>
+    </m.li>
   )
 }

@@ -250,12 +250,16 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
           // открытый на последнем сообщении, показывает позапрошлое. 40px
           // запаса: «почти низ» — это тоже низ, и попиксельное равенство
           // отказывало бы на дробных высотах.
+          // `touch-pan-y` и здесь, а не только на слое `ThreadSheet`: разрешённые
+          // касанием жесты считаются до ближайшего прокручиваемого предка, и
+          // без него горизонтальный свайп внутри переписки браузер оставил бы
+          // себе.
           onScroll={(event) => {
             const box = event.currentTarget
             pinned.current =
               box.scrollHeight - box.scrollTop - box.clientHeight < 40
           }}
-          className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5"
+          className="flex min-h-0 flex-1 touch-pan-y flex-col gap-3 overflow-y-auto p-5"
         >
           {/* **`initial={false}` — и в этом весь смысл.** Открытая переписка
               появляется целиком, без двадцати пузырей, выезжающих по очереди:

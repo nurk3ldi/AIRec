@@ -1,10 +1,11 @@
 import { HugeiconsIcon } from '@hugeicons/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   AnimatePresence,
   domMax,
   LazyMotion,
   m,
+  PresenceContext,
   useReducedMotion,
 } from 'motion/react'
 import * as Popover from '@radix-ui/react-popover'
@@ -22,7 +23,7 @@ import {
 import MonthCalendar from '../components/appointments/MonthCalendar'
 import DateField from '../components/appointments/DateField'
 import TimeField from '../components/appointments/TimeField'
-import { PANEL_MOTION } from '../components/appointments/panel'
+import { PANEL_MOTION, PANEL_TIMING } from '../components/appointments/panel'
 import { StepButton, ToolbarPill } from '../components/appointments/Timetable'
 import { dayKey, shiftDate } from '../lib/dates'
 import {
@@ -35,6 +36,9 @@ import { authed } from '../lib/auth'
 import { historyRows, liveChats } from '../lib/conversations'
 import { StreamList } from '../components/StreamList'
 import Thread from '../components/inbox/Thread'
+import ThreadSheet from '../components/inbox/ThreadSheet'
+import Skeleton, { SkeletonRegion } from '../components/Skeleton'
+import { useSkeleton } from '../lib/skeleton'
 import { dayColors, tintOf, toBlock } from '../lib/appointments'
 import { getLocale, useT } from '../lib/i18n'
 import styles from '../styles/Inbox.module.css'
@@ -87,15 +91,6 @@ export default function InboxPage() {
   const [chats, setChats] = useState(null)
 
   /**
-   * Какой разговор открыт, если открыт.
-   *
-   * **Не в `useRemembered`, в отличие от дня и вида.** Открытый тред — это то,
-   * что делали, а не то, где были: вернувшись на экран через полчаса, читать
-   * хотят список, а не последнюю переписку, на которую нажали до обеда. То же
-   * решение, что у поиска на «Записях».
-   */
-  const reduce = useReducedMotion()
-  /**
    * Какая из двух секций забрала колонку себе, если забрала.
    *
    * `null` — обе на месте; `'today'` — остался день; `'all'` — осталась
@@ -140,12 +135,18 @@ export default function InboxPage() {
   // а ждать общего опроса значит смотреть пятнадцать секунд на то, что уже не
   // так. Число, а не флаг: два нажатия подряд — два перечитывания.
   const [revision, setRevision] = useState(0)
+  // Какой ящик был прочитан последним. Сбрасывать содержимое в `null` надо
+  // только при смене ящика: перечитывание того же после «В архив» стёрло бы
+  // таблицу на время запроса, и строка, которую только что убрали, ушла бы
+  // вместе со всеми соседями.
+  const readBox = useRef(null)
 
   useEffect(() => {
     if (!box) return undefined
 
     let alive = true
-    setPutAway(null)
+    if (readBox.current !== box) setPutAway(null)
+    readBox.current = box
     authed((token) =>
       listConversations(
         token,
@@ -168,18 +169,36 @@ export default function InboxPage() {
    * появилась в другом, и показать это должно сразу.
    */
   const moveChat = (chatId, patch) => {
+    // **Строка уходит сразу, а не после ответа сервера.** Нажатый пункт меню —
+    // это уже решение, и полсекунды, на которые строка оставалась на месте,
+    // читались как «не сработало», после чего нажимали ещё раз. Ответ сервера
+    // здесь подтверждение, а не разрешение: список перечитывается при любом
+    // исходе, и неудача просто вернёт строку туда, где она была.
+    const without = (rows) => rows && rows.filter((chat) => chat.id !== chatId)
+    setChats(without)
+    setPutAway(without)
+    if (openChatId === chatId) setOpenChatId(null)
+
     authed((token) => updateConversation(token, chatId, patch))
-      .then(() => {
-        if (openChatId === chatId) setOpenChatId(null)
+      .catch(() => {})
+      .finally(() => {
         setRevision((was) => was + 1)
-        return authed((token) =>
+        authed((token) =>
           listConversations(token, { archived: false, deleted: false }),
         )
+          .then(setChats)
+          .catch(() => {})
       })
-      .then((rows) => rows && setChats(rows))
-      .catch(() => {})
   }
 
+  /**
+   * Какой разговор открыт, если открыт.
+   *
+   * **Не в `useRemembered`, в отличие от дня и вида.** Открытый тред — это то,
+   * что делали, а не то, где были: вернувшись на экран через полчаса, читать
+   * хотят список, а не последнюю переписку, на которую нажали до обеда. То же
+   * решение, что у поиска на «Записях».
+   */
   const [openChatId, setOpenChatId] = useState(null)
   const openChat = (chats ?? []).find((chat) => chat.id === openChatId) ?? null
 
@@ -209,8 +228,33 @@ export default function InboxPage() {
   // Какой день показывает верхняя секция. Стрелки и календарь двигают одно и
   // то же состояние — два контрола, один ответ на вопрос «какой день».
   const [day, setDay] = useState(() => new Date())
-  // Записи выбранного дня. `null` — ещё не читали, пустой массив — прочитали, и
-  // на этот день ничего нет.
+  /**
+   * Откуда приходит новый день: `-1` — слева (шаг назад), `1` — справа, `0` —
+   * ниоткуда (календарь, «Сегодня»), `null` — страница только открылась.
+   *
+   * **Направление — из того, *почему* день сменился**, а не из сравнения дат:
+   * стрелка — это путь, и карточки приезжают с той стороны, куда шагнули;
+   * выбор в календаре — прыжок, и у него пути нет, поэтому карточки
+   * проявляются на месте. `null` на первом кадре — появление страницы уже
+   * сыграл `PageTransition`, и второе проявление под ним читается как рывок.
+   * То же правило, что у `entrance` на сетке «Записей».
+   */
+  const [direction, setDirection] = useState(null)
+  const pickDay = (next, step = 0) => {
+    setDirection(step)
+    setDay(next)
+  }
+  /**
+   * Записи дня **вместе с днём, которому они принадлежат**. `null` — ещё ни
+   * одного ответа.
+   *
+   * **Старый день остаётся на экране, пока не пришёл новый.** Раньше список
+   * сбрасывался в пустоту на каждое нажатие стрелки: ряд карточек исчезал,
+   * колонка схлопывалась, таблица под ней прыгала вверх, а через сотню
+   * миллисекунд всё возвращалось обратно. Теперь смена — один кадр: пришёл
+   * ответ, и ряд меняется целиком. Пока ждём, старый ряд приглушён — это и есть
+   * статус «читаю», сказанный тем, что уже на экране, без спиннера.
+   */
   const [bookings, setBookings] = useState(null)
 
   /**
@@ -247,10 +291,9 @@ export default function InboxPage() {
   useEffect(() => {
     let alive = true
     const key = dayKey(day)
-    setBookings(null)
     authed((token) => listAppointments(token, { from: key, to: key }))
-      .then((rows) => alive && setBookings(rows))
-      .catch(() => alive && setBookings([]))
+      .then((rows) => alive && setBookings({ key, rows }))
+      .catch(() => alive && setBookings({ key, rows: [] }))
     return () => {
       alive = false
     }
@@ -324,7 +367,35 @@ export default function InboxPage() {
           зазор между самими папками. С `lg:pr-3` здесь и `lg:pl-3` на панели
           посередине остаётся ровно 24px: тот же шаг, которым отделены друг от
           друга карточки внутри ряда. */}
-      <div className="min-w-0 flex-[65] overflow-y-auto p-4 sm:p-6 lg:pr-3">
+      {/* `m.div` с `layoutScroll` — ради строк таблицы: они переезжают на свои
+          места через проекцию раскладки, а та меряет их в координатах экрана и
+          без этой пометки не знала бы, что колонка между двумя замерами
+          прокрутилась. */}
+      <m.div
+        layoutScroll
+        className="min-w-0 flex-[65] overflow-y-auto p-4 sm:p-6 lg:pr-3"
+      >
+        {/* **Смена вида проявляется, а не щёлкает.** «Все», архив и корзина
+            меняют, *что* лежит в колонке, и раньше это случалось за один кадр:
+            секция исчезала, заголовок менял слово, таблица прыгала вверх — и
+            глазу не за что было зацепиться, чтобы понять, что произошло.
+            Теперь прежний вид гаснет, новый проявляется на месте.
+
+            **На месте, без сдвига**: переключатель ничего никуда не везёт —
+            колонка просто стала другой, и движение изобрело бы направление,
+            которого нет. Прозрачность остаётся и под пониженным движением: это
+            не перемещение, а единственное, что говорит «экран сменился».
+
+            `mode="wait"`: два вида в одной колонке одновременно — это две
+            таблицы друг на друге. Уход короче прихода (`PANEL_TIMING`), чтобы
+            ожидание нового вида не превращалось в паузу. */}
+        <AnimatePresence mode="wait" initial={false}>
+          <m.div
+            key={`${only ?? 'both'}-${box ?? 'inbox'}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: PANEL_TIMING.in }}
+            exit={{ opacity: 0, transition: PANEL_TIMING.out }}
+          >
         {/* Собственного заголовка у страницы нет: на десктопе её называет
             шапка, а на телефоне — нижняя панель, и третий раз то же слово было
             бы тем самым повтором в двух соседних кеглях, который тут запрещён
@@ -339,7 +410,12 @@ export default function InboxPage() {
             быть не должно. */}
         {only === 'all' || box ? null : (
           <Section
-            title={t('inbox.today')}
+            // **Заголовок называет день, который показан.** «Чаты сегодня» над
+            // карточками четверга — это экран, который отвечает не на тот
+            // вопрос: шагнули стрелкой, а слово осталось прежним, и понять, где
+            // ты, можно только по датам внутри карточек. На сегодняшнем дне
+            // слово то же, что и было; на любом другом — сам день.
+            title={dayTitle(day, t)}
             // «Все» стоит первым в правой группе — слева от стрелок. Дальше
             // вправо всё решает, *какой день* показан; «Все» решает, сколько
             // показано, и потому открывает ряд, а не встраивается в его середину.
@@ -349,7 +425,7 @@ export default function InboxPage() {
                   pressed={only === 'today'}
                   onClick={() => toggleOnly('today')}
                 />
-                <DayPicker value={day} onChange={setDay} />
+                <DayPicker value={day} onChange={pickDay} />
               </div>
             }
           >
@@ -364,9 +440,12 @@ export default function InboxPage() {
                 выглядят как ответ и отвечают не на тот вопрос. Пустой день — это
                 и есть ответ, и увидеть его лучше здесь, чем в первый раз на чужом
                 экране. */}
-            {bookings === null ? null : (
-              <DayCardRow rows={bookings.map((row) => toBlock(row, timeZone))} />
-            )}
+            <DayCardRow
+              bookings={bookings}
+              stale={bookings !== null && bookings.key !== dayKey(day)}
+              direction={direction}
+              timeZone={timeZone}
+            />
           </Section>
         )}
 
@@ -456,7 +535,9 @@ export default function InboxPage() {
             />
           </Section>
         )}
-      </div>
+          </m.div>
+        </AnimatePresence>
+      </m.div>
 
       {/* **Правая панель — во всю высоту, и появляется только начиная с `lg`.**
           Ниже неё панель шириной в треть экрана отбирает у ряда папок больше,
@@ -477,47 +558,59 @@ export default function InboxPage() {
           «Потоки» — это её состояние «ничего не выбрано», а не отдельный блок,
           который тред заслоняет: у колонки одна работа — показывать то, что
           сейчас важно про разговоры. */}
-      <aside className="hidden min-w-0 flex-[35] flex-col p-4 lg:flex lg:pl-3">
-        {openChat ? (
-          <div className={`flex min-h-0 flex-1 flex-col ${CARD_EDGE}`}>
-            <Thread
-              conversation={openChat}
-              onClose={() => setOpenChatId(null)}
-              className="min-h-0 flex-1"
-            />
-          </div>
-        ) : (
-          /* Что ассистент делает прямо сейчас: с кем говорит, в каком состоянии
-             ветка, что сказано последним и как давно. */
-          <Panel title={t('home.streams.title')} count={live.length}>
-            <StreamList chats={chats} live={live} bleed="-mx-5 px-5" />
-          </Panel>
-        )}
+      <aside className="relative hidden min-w-0 flex-[35] flex-col p-4 lg:flex lg:pl-3">
+        {/* **Деталь сменяется наплывом, и оба слоя живут в нём одновременно.**
+            Нажали строку — справа уже гаснет то, что было, и проявляется
+            разговор; следующая строка — то же самое. `popLayout`, а не `wait`:
+            ожидание ухода старого перед появлением нового добавляло бы
+            полторы сотни миллисекунд к каждому переходу между соседними
+            тредами, а переход в разделённом виде должен быть мгновенным по
+            ощущению. Уходящий слой вынимается из потока (`relative` на панели —
+            ему есть от чего мериться), новый встаёт на место сразу.
+
+            Без сдвига и без масштаба: деталь не приезжает ниоткуда, она та же
+            колонка с другим содержимым. */}
+        <AnimatePresence mode="popLayout" initial={false}>
+          <m.div
+            key={openChat ? openChat.id : 'streams'}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: PANEL_TIMING.in }}
+            exit={{ opacity: 0, transition: PANEL_TIMING.out }}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            {openChat ? (
+              <div className={`flex min-h-0 flex-1 flex-col ${CARD_EDGE}`}>
+                <Thread
+                  conversation={openChat}
+                  onClose={() => setOpenChatId(null)}
+                  className="min-h-0 flex-1"
+                />
+              </div>
+            ) : (
+              /* Что ассистент делает прямо сейчас: с кем говорит, в каком
+                 состоянии ветка, что сказано последним и как давно. */
+              <Panel title={t('home.streams.title')} count={live.length}>
+                <StreamList chats={chats} live={live} bleed="-mx-5 px-5" />
+              </Panel>
+            )}
+          </m.div>
+        </AnimatePresence>
       </aside>
 
       {/* **Ниже `lg` колонки нет, и тред приезжает справа.** Это тот же
           drill-down, которым на «Записях» открывается день: список сказал, что
           такой разговор есть, экран показывает, что в нём, и уезжает туда же,
-          откуда приехал — по своему пути, а не вниз и не в никуда. Поверх
-          списка, а не вместо него: прокрутка и день остаются, где были. */}
+          откуда приехал. Поверх списка, а не вместо него: прокрутка и день
+          остаются, где были. **И его можно утащить обратно пальцем** — как и
+          любой экран, открытый вглубь на телефоне; всё про этот жест живёт в
+          `ThreadSheet`. */}
       <AnimatePresence initial={false}>
         {openChat && (
-          <m.div
+          <ThreadSheet
             key="thread"
-            initial={reduce ? false : { x: '100%' }}
-            animate={{ x: 0 }}
-            exit={reduce ? { opacity: 0 } : { x: '100%' }}
-            transition={
-              reduce ? { duration: 0 } : { duration: 0.32, ease: [0.32, 0.72, 0, 1] }
-            }
-            className="absolute inset-0 z-20 flex flex-col bg-ground lg:hidden"
-          >
-            <Thread
-              conversation={openChat}
-              onBack={() => setOpenChatId(null)}
-              className="min-h-0 flex-1"
-            />
-          </m.div>
+            conversation={openChat}
+            onBack={() => setOpenChatId(null)}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -615,7 +708,13 @@ function ShowAllButton({ pressed, onClick }) {
       //
       // По высоте — по центру ряда, как и круглые кнопки рядом: `items-center`
       // родителя, и ничего, что бы это переопределяло.
-      className="-my-1 rounded-lg py-1 text-[14px] text-ink outline-none transition-opacity hover:opacity-70 focus-visible:opacity-70"
+      //
+      // **Отклик — на нажатии, а не на отпускании.** `hover:` на телефоне мёртв
+      // (Tailwind v4 оборачивает его в `@media (hover: hover)`), и слово без
+      // `active:` там не отвечало на палец вовсе. Приглушение и 3% масштаба —
+      // рецепт нажатия из `CLAUDE.md`, и `scale` назван в `transition` явно,
+      // иначе он не анимируется.
+      className="-my-1 rounded-lg py-1 text-[14px] text-ink outline-none transition-[opacity,scale] duration-[160ms] ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97] active:opacity-60"
     >
       {pressed ? t('chat.back') : t('chat.all')}
     </button>
@@ -651,15 +750,15 @@ function DayPicker({ value, onChange }) {
       <StepButton
         label={t('appointments.prev')}
         icon={ArrowLeft01Icon}
-        onClick={() => onChange(shiftDate(value, 'day', -1))}
+        onClick={() => onChange(shiftDate(value, 'day', -1), -1)}
       />
       <StepButton
         label={t('appointments.next')}
         icon={ArrowRight01Icon}
-        onClick={() => onChange(shiftDate(value, 'day', 1))}
+        onClick={() => onChange(shiftDate(value, 'day', 1), 1)}
       />
 
-      <ToolbarPill onClick={() => onChange(new Date())}>
+      <ToolbarPill onClick={() => onChange(new Date(), 0)}>
         {t('appointments.today')}
       </ToolbarPill>
 
@@ -679,7 +778,7 @@ function DayPicker({ value, onChange }) {
             <MonthCalendar
               value={value}
               onChange={(picked) => {
-                onChange(picked)
+                onChange(picked, 0)
                 setOpen(false)
               }}
             />
@@ -810,6 +909,11 @@ function SearchTool({ query, onQuery }) {
   const travel = reduce
     ? { duration: 0 }
     : { duration: 0.22, ease: [0.16, 1, 0.3, 1] }
+  // **Смена слоёв — прозрачностью, и она остаётся под пониженным движением.**
+  // Рост кружка в поле — перемещение, и его там нет; а вот то, что кнопка стала
+  // полем, должно быть сказано хоть чем-то. Пониженное движение — это «меньше и
+  // мягче», а не «ничего»: мгновенная подмена слоя читалась как мигание.
+  const fade = reduce ? { duration: 0.15, ease: 'easeOut' } : travel
 
   return (
     // `domMax`, а не `domAnimation`: проекция раскладки — единственная функция,
@@ -829,13 +933,13 @@ function SearchTool({ query, onQuery }) {
         <m.span
           aria-hidden="true"
           animate={{ opacity: open ? 0 : 1 }}
-          transition={travel}
+          transition={fade}
           className="absolute inset-0 rounded-full bg-ink/12"
         />
         <m.span
           aria-hidden="true"
           animate={{ opacity: open ? 1 : 0 }}
-          transition={travel}
+          transition={fade}
           className="absolute inset-0 rounded-xl bg-surface shadow-[0_0_0_1px_var(--color-field)]"
         />
 
@@ -888,7 +992,7 @@ function SearchTool({ query, onQuery }) {
                 type="button"
                 onClick={close}
                 aria-label={t('appointments.close')}
-                className="absolute right-2 z-10 grid h-6 w-6 place-items-center rounded-full text-muted outline-none transition-[color,background-color] hover:bg-ink/8 hover:text-ink focus-visible:bg-ink/8 focus-visible:text-ink"
+                className="absolute right-2 z-10 grid h-6 w-6 place-items-center rounded-full text-muted outline-none transition-[color,background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 hover:text-ink focus-visible:bg-ink/8 focus-visible:text-ink active:scale-[0.9]"
               >
                 <HugeiconsIcon
                   icon={Cancel01Icon}
@@ -907,7 +1011,7 @@ function SearchTool({ query, onQuery }) {
             type="button"
             onClick={() => setOpen(true)}
             aria-label={t('inbox.search')}
-            className="absolute inset-0 z-10 rounded-full outline-none transition-[background-color,scale] hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.95]"
+            className="absolute inset-0 z-10 rounded-full outline-none transition-[background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.95]"
           />
         )}
       </m.div>
@@ -1029,7 +1133,10 @@ function FilterMenu({ filter, onFilter }) {
             // стилей, а там `.h-10` стоит после `.h-9` и выигрывает. Кнопка
             // единственная здесь без `FIELD`, поэтому её сорок надо назвать
             // вслух — иначе она одна на четыре пикселя ниже всего столбца.
-            className="mt-4 h-10 w-full rounded-md bg-accent text-[14px] font-medium text-surface outline-none transition-[opacity,scale] hover:opacity-90 focus-visible:opacity-90 active:scale-[0.99]"
+            // `0.97`, а не `0.99`, как было: процент масштаба на кнопке
+            // шириной 268px — это меньше трёх пикселей, то есть нажатие без
+            // видимого отклика.
+            className="mt-4 h-10 w-full rounded-md bg-accent text-[14px] font-medium text-surface outline-none transition-[opacity,scale] duration-[160ms] ease-out hover:opacity-90 focus-visible:opacity-90 active:scale-[0.97]"
           >
             {t('inbox.filterApply')}
           </button>
@@ -1041,7 +1148,7 @@ function FilterMenu({ filter, onFilter }) {
                 setDraft(EMPTY_FILTER)
                 onFilter(EMPTY_FILTER)
               }}
-              className="mt-3 w-full text-[13px] text-muted underline-offset-2 outline-none hover:text-ink hover:underline focus-visible:text-ink focus-visible:underline"
+              className="mt-3 w-full text-[13px] text-muted underline-offset-2 outline-none transition-opacity duration-[160ms] ease-out hover:text-ink hover:underline focus-visible:text-ink focus-visible:underline active:opacity-60"
             >
               {t('inbox.filterReset')}
             </button>
@@ -1112,7 +1219,48 @@ function BookingTable({
   onMove,
 }) {
   const t = useT()
-  if (rows === null) return null
+  const reduce = useReducedMotion()
+  const { pending, bars } = useSkeleton(rows === null)
+
+  // **Пока строк нет — их форма, а не пустота.** Раньше таблица на первом
+  // чтении не рисовалась совсем, и когда ответ приходил, колонка вырастала на
+  // полэкрана разом. Заглушка стоит с первого кадра (раскладка уже на месте), а
+  // полосы в ней появляются, только если ждать приходится дольше, чем моргнуть,
+  // — см. `useSkeleton`.
+  if (pending) {
+    return (
+      <div className="-mx-1 overflow-x-auto px-1">
+        <table
+          aria-busy="true"
+          aria-label={t('inbox.all')}
+          className="w-full min-w-[560px] table-fixed border-collapse text-left"
+        >
+          <TableHead />
+          {/* Те же `Td`, что у настоящих строк: высоту строки задают отступы
+              ячейки и межстрочное расстояние текста, и полоса высотой в строку
+              внутри неё даёт ровно ту же высоту — таблица не прыгает, когда
+              заглушку сменяют данные. */}
+          <tbody
+            className={`divide-y divide-line transition-opacity duration-200 ease-out motion-reduce:transition-none ${
+              bars ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            {Array.from({ length: 6 }, (_, index) => (
+              <tr key={index} className="text-[14px]">
+                {SKELETON_CELLS.map((width, cell) => (
+                  <Td key={cell}>
+                    {width ? (
+                      <Skeleton className={`inline-block h-[0.8em] align-middle ${width}`} />
+                    ) : null}
+                  </Td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
 
   if (rows.length === 0) {
     return (
@@ -1121,6 +1269,19 @@ function BookingTable({
       </p>
     )
   }
+
+  // **Строки уходят и переезжают, а не исчезают.** Убранная в архив строка
+  // гаснет, а те, что были под ней, поднимаются на её место — глаз видит, что
+  // случилось и куда делся промежуток, вместо таблицы, которая на кадр стала
+  // короче. То же при новом сообщении: разговор, где только что написали,
+  // поднимается наверх, а не возникает там.
+  //
+  // `layout="position"`: едет только место, размер строки таблицы задают
+  // столбцы, и масштабировать его нечего. Под пониженным движением переезда
+  // нет — остаётся только угасание.
+  const settle = reduce
+    ? { duration: 0 }
+    : { duration: 0.26, ease: [0.16, 1, 0.3, 1] }
 
   // Порядок задаёт `historyRows` — сверху то, что происходило только что.
   // Второй сортировки здесь нет намеренно: два ответа на «что считать свежим»
@@ -1134,23 +1295,13 @@ function BookingTable({
         {/* 11px, прописные, разрядка — тот же шаг, которым в этом проекте
             набраны все заголовки столбцов. Заголовок не строка данных, и
             линия под ним — та же, что между записями: он такой же сосед. */}
-        <thead>
-          <tr className="border-b border-line text-[11px] tracking-wide text-muted uppercase">
-            <Th className="w-[22%]">{t('appointments.clientName')}</Th>
-            <Th className="w-[19%]">{t('appointments.clientPhone')}</Th>
-            <Th className="w-[15%]">{t('appointments.date')}</Th>
-            <Th className="w-[15%]">{t('appointments.time')}</Th>
-            <Th className="w-[22%]">{t('appointments.service')}</Th>
-            {/* Столбец действий: у заголовка слова нет — над «…» оно назвало бы
-                не столбец, а кнопку, — но место он держит, иначе меню село бы
-                на услугу. */}
-            <Th className="w-[7%]">
-              <span className="sr-only">{t('inbox.actions')}</span>
-            </Th>
-          </tr>
-        </thead>
+        <TableHead />
 
+        {/* `domMax` — проекция раскладки нужна строкам, а в `domAnimation` её
+            нет. Вес не лишний: поиск в заголовке этой же секции её уже тянет. */}
+        <LazyMotion features={domMax}>
         <tbody className="divide-y divide-line">
+          <AnimatePresence initial={false}>
           {rows.map((row) => (
             /* **`group` — ради подсветки.** Заливка лежит на ячейках, а не на
                строке: у `<tr>` скругление не обрезает фон дочерних `<td>`, а
@@ -1163,8 +1314,14 @@ function BookingTable({
                себе полезна и без него — она держит глаз на строке, когда тот
                идёт от имени к услуге через пять столбцов. Указатель добавится
                вместе с историей чата, к которой строка будет вести. */
-            <tr
+            <m.tr
               key={row.id}
+              layout="position"
+              exit={{ opacity: 0 }}
+              transition={{
+                layout: settle,
+                opacity: { duration: 0.15, ease: [0.4, 0, 1, 1] },
+              }}
               // **Строку открывают, если её есть чем открыть.** У записи,
               // сделанной руками, переписки нет — нажимать не на что, и курсор
               // об этом говорит стрелкой. Строка с чатом — настоящая кнопка:
@@ -1187,8 +1344,17 @@ function BookingTable({
               // родом, и это её место в списке. `data-open` читает `Td` — заливка
               // лежит на ячейках, см. соседний комментарий.
               data-open={row.chatId && row.chatId === openId ? '' : undefined}
+              // **Нажатие отвечает сразу, и на телефоне тоже.** Подсветка строки
+              // живёт в `group-hover` ячеек, а `hover` на сенсорном экране мёртв:
+              // касание строки там не давало никакого отклика до того, как
+              // справа открывался тред. `active:` — на самой строке, под
+              // прозрачными ячейками, поэтому на десктопе он ложится поверх
+              // подсветки и делает её на ступень плотнее, а на телефоне и есть
+              // вся подсветка.
               className={`group text-[14px] text-ink outline-none ${
-                row.chatId ? 'cursor-pointer' : ''
+                row.chatId
+                  ? 'cursor-pointer transition-colors duration-100 ease-out active:bg-ink/12'
+                  : ''
               }`}
             >
               {/* Имя — единственная полужирная ячейка: строку ищут по человеку,
@@ -1216,13 +1382,49 @@ function BookingTable({
                   <RowMenu row={row} onMove={onMove} />
                 ) : null}
               </Td>
-            </tr>
+            </m.tr>
           ))}
+          </AnimatePresence>
         </tbody>
+        </LazyMotion>
       </table>
     </div>
   )
 }
+
+/**
+ * Шапка таблицы — одна на настоящую таблицу и на её заглушку.
+ *
+ * Заглушка, у которой своя шапка, разошлась бы с настоящей на пиксель при первой
+ * же правке, и таблица прыгала бы в момент, когда приходят данные.
+ */
+function TableHead() {
+  const t = useT()
+
+  return (
+    <thead>
+      <tr className="border-b border-line text-[11px] tracking-wide text-muted uppercase">
+        <Th className="w-[22%]">{t('appointments.clientName')}</Th>
+        <Th className="w-[19%]">{t('appointments.clientPhone')}</Th>
+        <Th className="w-[15%]">{t('appointments.date')}</Th>
+        <Th className="w-[15%]">{t('appointments.time')}</Th>
+        <Th className="w-[22%]">{t('appointments.service')}</Th>
+        {/* Столбец действий: у заголовка слова нет — над «…» оно назвало бы
+            не столбец, а кнопку, — но место он держит, иначе меню село бы на
+            услугу. */}
+        <Th className="w-[7%]">
+          <span className="sr-only">{t('inbox.actions')}</span>
+        </Th>
+      </tr>
+    </thead>
+  )
+}
+
+/**
+ * Ширина полос в строке-заглушке, по столбцам. Разная, чтобы заглушка читалась
+ * как текст разной длины, а не как линейка; у столбца действий полосы нет.
+ */
+const SKELETON_CELLS = ['w-[70%]', 'w-[75%]', 'w-[65%]', 'w-[55%]', 'w-[60%]', null]
 
 /**
  * Ячейки таблицы.
@@ -1329,20 +1531,29 @@ function dayLabel(iso) {
  * остатка справа; высоту карточки задаёт её содержимое, а строку выравнивает
  * `align-items: stretch`, который у flex стоит по умолчанию.
  */
-function DayCardRow({ rows }) {
+function DayCardRow({ bookings, stale = false, direction = null, timeZone }) {
   const t = useT()
+  const reduce = useReducedMotion()
+  const { pending, bars } = useSkeleton(bookings === null)
 
-  // **Честный ответ вместо пустого места.** Раньше здесь на пустой день стояли
-  // выдуманные карточки; без них ряд просто ничего не рисовал, а это читается
-  // как «не загрузилось», хотя загрузилось и день действительно пуст. Строка
-  // ровно об этом — и ключ для неё в словаре был всё это время.
-  if (rows.length === 0) {
+  // **Первое чтение — форма карточек, а не пустое место.** Дальше заглушка не
+  // нужна: на смене дня на экране остаётся прежний ряд, приглушённый, пока идёт
+  // запрос (`stale`), — это и статус, и отсутствие скачка высоты.
+  if (pending) {
     return (
-      <p className="py-8 text-center text-[13px] text-muted">
-        {t('inbox.dayEmpty')}
-      </p>
+      <SkeletonRegion
+        label={t('inbox.today')}
+        visible={bars}
+        className="flex flex-wrap content-start gap-4 sm:gap-6"
+      >
+        {[0, 1, 2].map((index) => (
+          <DayCardSkeleton key={index} className={DAY_CARD_WIDTH} />
+        ))}
+      </SkeletonRegion>
     )
   }
+
+  const rows = bookings.rows.map((row) => toBlock(row, timeZone))
 
   // **Цвет решается для дня целиком, а не для карточки.** Выбранный владельцем
   // берётся как есть, включая повтор; тому, у кого своего нет, цвет выдаётся —
@@ -1351,18 +1562,120 @@ function DayCardRow({ rows }) {
   // восемь вычислений внутри карточек.
   const painted = dayColors(rows)
 
+  // **Новый день приезжает с той стороны, куда шагнули.** Ключ — день ответа, а
+  // не выбранный: ряд меняется, когда пришли данные, а не когда нажали, и
+  // карточки не пропадают в промежутке. Только появление, без ухода: прежний ряд
+  // рядом с новым на время анимации — это два дня в одной строке.
+  //
+  // 12px и прозрачность — та же мера, что у заголовков дней на сетке «Записей».
+  // Прыжок (`0`) и пониженное движение — только прозрачность; первый кадр
+  // страницы (`null`) — ничего, его уже сыграл `PageTransition`.
+  const initial =
+    direction === null
+      ? false
+      : reduce || direction === 0
+        ? { opacity: 0 }
+        : { opacity: 0, x: direction * 12 }
+
+  // **`PresenceContext` обнулён — иначе появления не будет вовсе.** Ряд лежит
+  // внутри `AnimatePresence initial={false}`, которым колонка проявляет смену
+  // вида, а Motion передаёт этот запрет *всем* потомкам, смонтированным и
+  // позже: новый день монтировался бы сразу на месте, без въезда, сколько бы
+  // `initial` ни было написано здесь. Проверено покадрово — ряд вставал с
+  // прозрачностью 1 в первом же кадре. Запрет той обёртки касается её первого
+  // кадра, а не всего, что под ней когда-либо появится.
   return (
-    <div className="flex flex-wrap content-start gap-4 sm:gap-6">
-      {rows.map((row) => (
-        <DayCard
-          key={row.id}
-          row={row}
-          color={tintOf(painted.get(row.id))}
-          className="w-[calc((100%-2rem)/3)] sm:w-[calc((100%-3rem)/3)]"
-        />
-      ))}
+    <PresenceContext.Provider value={null}>
+    <m.div
+      key={bookings.key}
+      initial={initial}
+      animate={{ opacity: stale ? 0.5 : 1, x: 0 }}
+      transition={
+        stale ? { duration: 0.15, delay: 0.12, ease: 'easeOut' } : PANEL_TIMING.in
+      }
+      aria-busy={stale || undefined}
+      className="flex flex-wrap content-start gap-4 sm:gap-6"
+    >
+      {/* **Честный ответ вместо пустого места.** Раньше здесь на пустой день
+          стояли выдуманные карточки; без них ряд просто ничего не рисовал, а
+          это читается как «не загрузилось», хотя загрузилось и день
+          действительно пуст. */}
+      {rows.length === 0 ? (
+        <p className="w-full py-8 text-center text-[13px] text-muted">
+          {t('inbox.dayEmpty')}
+        </p>
+      ) : (
+        rows.map((row) => (
+          <DayCard
+            key={row.id}
+            row={row}
+            color={tintOf(painted.get(row.id))}
+            className={DAY_CARD_WIDTH}
+          />
+        ))
+      )}
+    </m.div>
+    </PresenceContext.Provider>
+  )
+}
+
+/**
+ * Треть ряда минус два зазора — одна запись для карточки и для её заглушки.
+ *
+ * Две копии этой ширины разошлись бы на пиксель, и ряд прыгал бы в момент, когда
+ * заглушку сменяют настоящие карточки.
+ */
+const DAY_CARD_WIDTH = 'w-[calc((100%-2rem)/3)] sm:w-[calc((100%-3rem)/3)]'
+
+/**
+ * Заглушка карточки дня — **те же строки с теми же кеглями**, а не прямоугольник
+ * на глаз.
+ *
+ * Высоту карточке задают межстрочные расстояния её текста, и угаданная высота
+ * заглушки стала бы скачком ровно в момент, когда приходят данные. Поэтому
+ * здесь стоят блоки с теми же `text-*`, `leading-*` и отступами, что у её
+ * `<p>`, а полоса внутри каждого — высотой в строку. Блоки, а не сами `<p>`:
+ * полоса — это `<div>`, и внутри абзаца она была бы невалидной разметкой.
+ */
+function DayCardSkeleton({ className = '' }) {
+  return (
+    <div className={`flex flex-col ${CARD} ${className}`}>
+      <div className="font-display text-[17px] leading-snug font-medium">
+        <Skeleton className="inline-block h-[0.8em] w-[60%] align-middle" />
+      </div>
+      <div className="mt-1 text-[15px]">
+        <Skeleton className="inline-block h-[0.8em] w-[45%] align-middle" />
+      </div>
+      <div className="mt-9 flex items-baseline justify-between gap-3">
+        <div className="font-display text-[20px] leading-none font-medium">
+          <Skeleton className="inline-block h-[0.8em] w-24 align-middle" />
+        </div>
+        <div className="text-[13px]">
+          <Skeleton className="inline-block h-[0.8em] w-14 align-middle" />
+        </div>
+      </div>
     </div>
   )
+}
+
+/**
+ * Как назвать показанный день.
+ *
+ * Сегодня — прежним «Чаты сегодня»: это самый частый вопрос экрана, и у него
+ * есть слово. Любой другой день — сам день словами, на языке интерфейса, с
+ * днём недели: «четверг, 17 сентября» отвечает и «когда», и «какой это день
+ * для работы». Первая буква заглавная сама по себе, а не через `toUpperCase`
+ * всей строки — в заголовке это начало фразы.
+ */
+function dayTitle(day, t) {
+  if (dayKey(day) === dayKey(new Date())) return t('inbox.today')
+
+  const label = day.toLocaleDateString(getLocale(), {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+  return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
 /**

@@ -46,13 +46,24 @@ export const VELOCITY_WINDOW = 100
  * number with no relationship to how fast anything was moving. Returns 0 rather
  * than `Infinity` when there is not enough of a gap to divide by, which is also
  * the honest answer for a finger that was resting.
+ *
+ * **Measured up to the moment of release, not up to the last movement.** The
+ * trail only grows on `pointermove`, and a finger that drags, stops and then
+ * lifts sends no event while it rests — so a window anchored to the last sample
+ * still reported the speed of a movement that had ended a quarter of a second
+ * earlier, and a deliberate "hold, then let go" was thrown as if flicked. Found
+ * on `/inbox`'s swipe-back, where it closed the thread under a finger that had
+ * stopped; `MobileDay` and `Sheet` had the same fault. With `now` as the end of
+ * the window, a rest longer than it leaves no sample inside and reads as 0, and
+ * a shorter one dilutes the speed in proportion — which is what a slowing
+ * finger is.
  */
-export function velocityFrom(trail) {
+export function velocityFrom(trail, now = performance.now()) {
   const last = trail.at(-1)
   if (!last) return 0
-  const first = trail.find((sample) => last.at - sample.at <= VELOCITY_WINDOW)
-  if (!first || last.at - first.at < 8) return 0
-  return ((last.value - first.value) / (last.at - first.at)) * 1000
+  const first = trail.find((sample) => now - sample.at <= VELOCITY_WINDOW)
+  if (!first || now - first.at < 8) return 0
+  return ((last.value - first.value) / (now - first.at)) * 1000
 }
 
 /**
