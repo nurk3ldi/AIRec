@@ -1,55 +1,87 @@
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Cancel01Icon, TelegramIcon } from '@hugeicons/core-free-icons'
-import { domAnimation, LazyMotion, m, useReducedMotion } from 'motion/react'
+import {
+  animate,
+  domAnimation,
+  LazyMotion,
+  m,
+  useMotionValue,
+  useReducedMotion,
+} from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { listConversations } from '../lib/api'
 import { authed } from '../lib/auth'
 import { clientName } from '../lib/conversations'
 import { getLocale, useT } from '../lib/i18n'
+import {
+  project,
+  rubberband,
+  SPRING,
+  velocityFrom,
+  VELOCITY_WINDOW,
+} from '../lib/motion'
 
 /** Как часто спрашивать, не написал ли кто, — ритм открытого треда. */
 const POLL_MS = 5000
 /** Сколько уведомление держится само, если его не трогать. */
 const SHOW_MS = 6000
-/** Свёрнутый остров — круг под иконку: 36px знак и по 6px вокруг. */
-const DOT = 48
+/**
+ * Свёрнутый остров — круг. 44px: минимальная цель касания у Apple, и ровно
+ * круг под 32px знак с рамкой и полями.
+ */
+const DOT = 44
 /** Во сколько раскрывается; на узком экране — во всю ширину минус поля. */
 const MAX_WIDTH = 400
-/** Насколько выше шапки остров прячется до и после показа. */
-const RISE = -64
-
-const spring = (bounce, visualDuration) => ({ type: 'spring', bounce, visualDuration })
+/** Где остров прячется: выше шапки целиком. */
+const RISE = -60
+/** Сколько пикселей движения отличают перетаскивание от нажатия. */
+const DRAG_PX = 10
+/** Куда должен *лететь* бросок вверх, чтобы остров ушёл. */
+const FLICK_PX = -24
 
 /**
  * Новое сообщение клиента из Telegram — островом посреди шапки.
  *
- * **Форма — Dynamic Island, и порядок движений оттуда же.** Круг с иконкой
- * падает сверху и чуть пружинит (он *прилетел*), потом раздаётся в обе стороны
- * в пилюлю, и только тогда проявляется текст — имя, время, что написано.
- * Уходит в обратном порядке: текст гаснет, пилюля собирается в круг, круг
- * уезжает вверх, туда, откуда пришёл. Ширина здесь анимируется честно, а не
- * через `scale`: остров лежит поверх шапки абсолютно и никого не двигает, а
- * `scaleX` растянул бы круг в овал и сплющил буквы.
+ * **Одеждой — этот сайт, а не iPhone.** Монохром: знак Telegram белым в той же
+ * `ink/12`-подложке, что аватары и круглые кнопки «Диалогов», без фирменного
+ * синего — в продукте нет ни одного цветного акцента, и первый не должен
+ * появиться ради уведомления. Сама пилюля — край карточки (`surface-raised` +
+ * хайрлайн `line`), плюс тень «плавающего» уровня, потому что она лежит поверх
+ * страницы. Всё в ней `ink`; вторичное только время.
  *
- * **Текст не переносится, пока пилюля растёт**: внутренний ряд сразу
- * финальной ширины и обрезается краем, как поле поиска в «Диалогах».
+ * **Движением — Apple.**
+ * - *Пружины без отскока* (`SPRING`, bounce 0): уведомление прилетает само, его
+ *   никто не бросал, а отскок у Apple — только для брошенного.
+ * - *Одно непрерывное движение*, а не цепочка «упал → подождал → раскрылся»:
+ *   круг опускается и через 0.12s, пока ещё едет, начинает раздаваться — так
+ *   промежуточные кадры с первого же показывают, во что это превращается.
+ *   Текст проявляется из размытия (`blurReplace`) уже на растущей пилюле.
+ * - *Уходит тем же путём*: текст гаснет, пилюля собирается в круг, круг
+ *   поднимается туда, откуда пришёл.
+ * - *Прерываемо в любой момент.* Всё — `MotionValue` и `animate`, поэтому
+ *   каждое новое движение начинается с того, что на экране, и забирает текущую
+ *   скорость. Новое сообщение посреди ухода разворачивает остров обратно, а не
+ *   ждёт в очереди; остров можно схватить на лету.
+ * - *Смахивается вверх, как баннер iOS.* Тянется за пальцем или мышью 1:1 от
+ *   точки захвата, вниз — с резиной; решение уйти принимается по тому, куда
+ *   летел жест (`позиция + project(скорость)`), и скорость отпускания уходит в
+ *   пружину ухода, без шва.
+ * - *Отклик на нажатие*: вся пилюля и × проседают сразу, на pointer-down.
+ * - Под `prefers-reduced-motion` ничто не едет и не раздаётся — остров
+ *   проявляется на месте; смахнуть его можно, движение своим пальцем не
+ *   вестибулярное.
  *
- * **Живёт в шапке, а значит на каждом экране панели**, и сам спрашивает
- * сервер раз в пять секунд — пуша в проекте нет. Первое чтение — точка отсчёта:
- * всё, что пришло до открытия страницы, уведомлением не становится. Считается
- * только последнее сообщение ветки, и только если его написал клиент в
- * Telegram; архив и корзина не смотрятся (клиент, написавший в корзину, из неё
- * выходит сам).
+ * **Держится шесть секунд и не уходит из-под руки**: пока курсор, палец или
+ * фокус на острове, таймер стоит. × закрывает, нажатие на остальное открывает
+ * чат в «Диалогах» (`/inbox?chat=<id>`).
  *
- * **Держится шесть секунд и не уходит из-под курсора**: пока на острове мышь
- * или фокус, таймер стоит. × закрывает, нажатие на остальное открывает этот
- * чат в «Диалогах». Новое сообщение, пришедшее пока остров открыт, заменяет
- * текст и начинает шесть секунд заново; пришедшее, пока остров уходит, ждёт и
- * показывается следом.
- *
- * Под `prefers-reduced-motion` ничто не падает и не раздаётся — остров
- * проявляется сразу раскрытым и гаснет на месте.
+ * **Опрос, потому что пуша нет**: `GET /conversations` раз в пять секунд, пока
+ * вкладка видна. Первое чтение — точка отсчёта; уведомлением становится ветка,
+ * чьё последнее сообщение новее увиденного, написано клиентом и пришло из
+ * Telegram. Ветка, которой не было в первом чтении, — только если сообщение
+ * моложе открытия страницы (с минутой на расхождение часов), иначе возврат
+ * старой ветки из архива объявил бы давнее сообщение.
  */
 export default function TelegramIsland() {
   const t = useT()
@@ -57,46 +89,92 @@ export default function TelegramIsland() {
   const reduce = useReducedMotion()
 
   const [note, setNote] = useState(null)
-  // hidden → dot → open → fade → close → leave → hidden
-  const [phase, setPhase] = useState('hidden')
-  const [width, setWidth] = useState(MAX_WIDTH)
+  // Текст виден: `false`, пока пилюля уходит.
+  const [shown, setShown] = useState(false)
   const [held, setHeld] = useState(false)
 
-  const phaseRef = useRef(phase)
-  phaseRef.current = phase
-  const waiting = useRef(null)
+  const y = useMotionValue(RISE)
+  const width = useMotionValue(DOT)
+  const opacity = useMotionValue(0)
+  const full = useRef(MAX_WIDTH)
 
-  const arrive = (next) => {
-    const now = phaseRef.current
-    if (now === 'hidden') {
-      setWidth(Math.min(MAX_WIDTH, window.innerWidth - 32))
-      setNote(next)
-      setPhase(reduce ? 'open' : 'dot')
-    } else if (now === 'dot' || now === 'open') {
-      setNote(next)
-    } else {
-      waiting.current = next
+  const noteRef = useRef(null)
+  const leaving = useRef(false)
+  const running = useRef([])
+  // Номер текущего движения: завершение старого не должно убрать новое.
+  const generation = useRef(0)
+
+  const stop = () => {
+    running.current.forEach((animation) => animation.stop())
+    running.current = []
+  }
+
+  const present = (next) => {
+    const fresh = !noteRef.current
+    generation.current += 1
+    leaving.current = false
+    stop()
+
+    if (fresh) {
+      full.current = Math.min(MAX_WIDTH, window.innerWidth - 32)
+      y.jump(reduce ? 0 : RISE)
+      width.jump(reduce ? full.current : DOT)
+      opacity.jump(0)
     }
-  }
-  const arriveRef = useRef(arrive)
-  arriveRef.current = arrive
+    noteRef.current = next
+    setNote(next)
+    setShown(true)
 
-  const dismiss = () => {
-    const now = phaseRef.current
-    // Из круга текст гасить не нужно — его ещё не было, и ожидание его угасания
-    // не кончилось бы никогда.
-    if (now === 'dot') setPhase('close')
-    else if (now === 'open') setPhase(reduce ? 'leave' : 'fade')
+    running.current = reduce
+      ? [animate(opacity, 1, { duration: 0.2 })]
+      : [
+          animate(y, 0, SPRING),
+          animate(opacity, 1, { duration: 0.2 }),
+          animate(width, full.current, { ...SPRING, delay: fresh ? 0.12 : 0 }),
+        ]
   }
 
-  // Опрос. `seen` — когда в каждой ветке было последнее сообщение, которое мы
-  // уже видели; `null` до первого ответа, чтобы старое не всплыло уведомлением.
+  const dismiss = (velocity = 0) => {
+    if (!noteRef.current || leaving.current) return
+    leaving.current = true
+    const mine = ++generation.current
+    stop()
+    setShown(false)
+
+    const thrown = velocity < -50
+    running.current = reduce
+      ? [animate(opacity, 0, { duration: 0.2 })]
+      : [
+          animate(width, DOT, { ...SPRING, visualDuration: 0.35 }),
+          // Брошенный уходит сразу и со своей скоростью; закрытый — после
+          // того как начал собираться в круг, тем же путём, каким пришёл.
+          animate(y, RISE, {
+            ...SPRING,
+            visualDuration: 0.35,
+            velocity,
+            delay: thrown ? 0 : 0.15,
+          }),
+          animate(opacity, 0, { duration: 0.2, delay: thrown ? 0.08 : 0.3 }),
+        ]
+
+    Promise.all(running.current).then(() => {
+      if (generation.current !== mine) return
+      leaving.current = false
+      noteRef.current = null
+      setNote(null)
+      setHeld(false)
+    })
+  }
+
+  const presentRef = useRef(present)
+  presentRef.current = present
+  const dismissRef = useRef(dismiss)
+  dismissRef.current = dismiss
+
+  // Опрос.
   useEffect(() => {
     let alive = true
     let seen = null
-    // Ветка, которой не было в первом чтении (новый клиент, вернули из архива),
-    // считается новой только если её сообщение моложе открытия страницы —
-    // минута запаса на расхождение часов сервера и браузера.
     const since = Date.now() - 60_000
 
     const read = () =>
@@ -115,10 +193,8 @@ export default function TelegramIsland() {
             const at = Date.parse(row.last_message_at)
             seen.set(row.id, at)
             if (first) continue
-            const was = before.get(row.id)
-            const fresh = at > (was ?? since)
             if (
-              fresh &&
+              at > (before.get(row.id) ?? since) &&
               row.channel === 'telegram' &&
               row.last_message_author === 'client' &&
               (!newest || at > newest.at)
@@ -129,7 +205,7 @@ export default function TelegramIsland() {
 
           if (newest) {
             const { row, at } = newest
-            arriveRef.current({
+            presentRef.current({
               key: `${row.id}-${at}`,
               id: row.id,
               name: clientName(row, t('chat.noName')),
@@ -156,120 +232,148 @@ export default function TelegramIsland() {
       document.removeEventListener('visibilitychange', wake)
     }
     // `t` намеренно не в зависимостях: смена языка не повод сбрасывать точку
-    // отсчёта, а имя «Без имени» возьмётся на следующем уведомлении.
+    // отсчёта.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Шесть секунд — заново на каждое новое сообщение, и стоят, пока остров
-  // держат курсором или фокусом.
+  // Шесть секунд — заново на каждое сообщение; стоят, пока остров держат.
   useEffect(() => {
-    if (phase !== 'open' || held) return
-    const timer = setTimeout(dismiss, SHOW_MS)
+    if (!shown || held) return
+    const timer = setTimeout(() => dismissRef.current(), SHOW_MS)
     return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, held, note?.key])
+  }, [shown, held, note?.key])
 
-  // То, что пришло, пока остров уходил, показывается следом.
-  useEffect(() => {
-    if (note || !waiting.current) return
-    const next = waiting.current
-    waiting.current = null
-    arriveRef.current(next)
-  }, [note])
+  // ——— Жест ———
+  const press = useRef(null)
+  const dragged = useRef(false)
 
-  const island = reduce
-    ? {
-        hidden: { opacity: 0, width },
-        open: { opacity: 1, width, transition: { duration: 0.2 } },
-        leave: { opacity: 0, width, transition: { duration: 0.2 } },
-      }
-    : {
-        hidden: { y: RISE, opacity: 0, width: DOT },
-        dot: { y: 0, opacity: 1, width: DOT, transition: { ...spring(0.3, 0.45), restDelta: 0.5 } },
-        open: { y: 0, opacity: 1, width, transition: spring(0.2, 0.5) },
-        fade: { y: 0, opacity: 1, width },
-        // `restDelta` — чтобы круг не ждал последних долей пикселя, прежде чем
-        // уехать вверх: хвост пружины невидим, а пауза перед подъёмом — нет.
-        close: { y: 0, opacity: 1, width: DOT, transition: { ...spring(0, 0.35), restDelta: 0.5 } },
-        leave: {
-          y: RISE,
-          opacity: 0,
-          width: DOT,
-          transition: { ...spring(0, 0.35), opacity: { duration: 0.25, delay: 0.1 } },
-        },
-      }
+  const onPointerDown = (event) => {
+    if (event.button !== 0 || event.target.closest('[data-island-close]')) return
+    // Схватить остров на лету — значит остановить его там, где он сейчас:
+    // уходящий перестаёт уходить и дальше идёт за рукой.
+    stop()
+    if (leaving.current) {
+      generation.current += 1
+      leaving.current = false
+      setShown(true)
+    }
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+    dragged.current = false
+    press.current = {
+      id: event.pointerId,
+      offset: event.clientY - y.get(),
+      origin: event.clientY,
+      trail: [{ at: performance.now(), value: y.get() }],
+    }
+    setHeld(true)
+  }
 
-  const settled = (definition) => {
-    if (definition === 'dot') setPhase('open')
-    else if (definition === 'close') setPhase('leave')
-    else if (definition === 'leave') {
-      setHeld(false)
-      setNote(null)
-      setPhase('hidden')
+  const onPointerMove = (event) => {
+    const now = press.current
+    if (!now || now.id !== event.pointerId) return
+    if (!dragged.current && Math.abs(event.clientY - now.origin) < DRAG_PX) return
+    dragged.current = true
+    const raw = event.clientY - now.offset
+    const next = raw <= 0 ? raw : rubberband(raw, DOT)
+    y.set(next)
+    const at = performance.now()
+    now.trail.push({ at, value: next })
+    while (now.trail.length > 2 && at - now.trail[1].at > VELOCITY_WINDOW) {
+      now.trail.shift()
     }
   }
 
-  const content = {
-    gone: { opacity: 0, filter: 'blur(4px)', transition: { duration: 0.12 } },
-    shown: {
-      opacity: 1,
-      filter: 'blur(0px)',
-      transition: { duration: 0.25, delay: reduce ? 0 : 0.12, ease: [0.23, 1, 0.32, 1] },
-    },
+  const onPointerUp = (event) => {
+    const now = press.current
+    if (!now || now.id !== event.pointerId) return
+    press.current = null
+    if (event.pointerType !== 'mouse') setHeld(false)
+    const velocity = dragged.current ? velocityFrom(now.trail) : 0
+    // Флаг гасит только тот `click`, что браузер пришлёт сразу за этим
+    // отпусканием; дольше он жить не должен, иначе следующее нажатие —
+    // клавишей или на новом уведомлении — молча пропадёт.
+    if (dragged.current) setTimeout(() => (dragged.current = false), 0)
+    if (dragged.current && y.get() + project(velocity) < FLICK_PX) {
+      dismissRef.current(velocity)
+      return
+    }
+    // Не бросили — остров возвращается на место с той скоростью, с какой его
+    // отпустили, и доводит всё, что остановило касание.
+    running.current = [
+      animate(y, 0, { ...SPRING, velocity }),
+      animate(width, full.current, SPRING),
+      animate(opacity, 1, { duration: 0.2 }),
+    ]
   }
 
   const open = () => {
-    if (!note) return
-    navigate(`/inbox?chat=${note.id}`)
-    dismiss()
+    // Отпущенное после перетаскивания — не нажатие.
+    if (dragged.current) {
+      dragged.current = false
+      return
+    }
+    if (!noteRef.current) return
+    navigate(`/inbox?chat=${noteRef.current.id}`)
+    dismissRef.current()
+  }
+
+  const reveal = {
+    gone: { opacity: 0, filter: 'blur(6px)', transition: { duration: 0.12 } },
+    shown: {
+      opacity: 1,
+      filter: 'blur(0px)',
+      transition: { duration: 0.3, delay: reduce ? 0 : 0.2, ease: [0.23, 1, 0.32, 1] },
+    },
   }
 
   return (
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-none absolute inset-x-0 top-[10px] z-10 flex justify-center"
+      className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center"
     >
       {note && (
         <LazyMotion features={domAnimation} strict>
           <m.div
-            initial="hidden"
-            animate={phase}
-            variants={island}
-            onAnimationComplete={settled}
-            whileTap={{ scale: 0.98 }}
+            style={{ y, width, opacity }}
+            whileTap={{ scale: 0.97 }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
             onPointerEnter={() => setHeld(true)}
-            onPointerLeave={() => setHeld(false)}
+            onPointerLeave={() => !press.current && setHeld(false)}
             onFocus={() => setHeld(true)}
             onBlur={() => setHeld(false)}
-            className="pointer-events-auto h-12 overflow-hidden rounded-full bg-surface-card p-1.5 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] ring-1 ring-line"
+            className="pointer-events-auto h-11 touch-none overflow-hidden rounded-full border border-line bg-surface-raised p-[5px] shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] select-none"
           >
+            {/* Ряд сразу финальной ширины: текст не переносится, пока пилюля
+                растёт, а обрезается её краем. */}
             <div
               className="flex h-full items-center gap-2"
-              style={{ width: width - 12 }}
+              style={{ width: full.current - 12 }}
             >
               <button
                 type="button"
                 onClick={open}
                 aria-label={t('island.open', { name: note.name })}
-                className="flex h-full min-w-0 flex-1 items-center gap-3 text-left outline-none"
+                className="flex h-full min-w-0 flex-1 items-center gap-2.5 rounded-full text-left outline-none"
               >
-                {/* Цвет Telegram — единственный цвет на острове, и он говорит,
-                    откуда пришло, а не украшает. */}
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#2AABEE] text-white">
-                  <HugeiconsIcon icon={TelegramIcon} size={20} strokeWidth={1.8} />
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink/12 text-ink">
+                  <HugeiconsIcon
+                    icon={TelegramIcon}
+                    size={17}
+                    strokeWidth={1.8}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </span>
 
                 <m.span
                   key={note.key}
                   initial="gone"
-                  animate={phase === 'open' ? 'shown' : 'gone'}
-                  variants={content}
-                  onAnimationComplete={(definition) => {
-                    if (definition === 'gone' && phaseRef.current === 'fade') {
-                      setPhase('close')
-                    }
-                  }}
+                  animate={shown ? 'shown' : 'gone'}
+                  variants={reveal}
                   className="flex min-w-0 flex-1 flex-col"
                 >
                   <span className="flex items-baseline gap-2">
@@ -280,7 +384,7 @@ export default function TelegramIsland() {
                       {note.time}
                     </span>
                   </span>
-                  <span className="mt-0.5 truncate text-[13px] leading-4 text-muted">
+                  <span className="truncate text-[13px] leading-4 text-ink">
                     {note.text}
                   </span>
                 </m.span>
@@ -288,12 +392,13 @@ export default function TelegramIsland() {
 
               <m.button
                 type="button"
-                onClick={dismiss}
+                data-island-close
+                onClick={() => dismissRef.current()}
                 aria-label={t('island.close')}
                 initial="gone"
-                animate={phase === 'open' ? 'shown' : 'gone'}
-                variants={content}
-                className="touch-target relative grid h-7 w-7 shrink-0 place-items-center rounded-full bg-ink/12 text-ink transition-colors duration-150 hover:bg-ink/20"
+                animate={shown ? 'shown' : 'gone'}
+                variants={reveal}
+                className="touch-target relative mr-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-ink/12 text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/20 focus-visible:bg-ink/20 active:scale-90"
               >
                 <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={2.2} />
               </m.button>
