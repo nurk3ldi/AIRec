@@ -308,9 +308,7 @@ export default {
   'settings.language': 'Language',
 
   'notifications.aria': 'Notifications page',
-  'notifications.empty': 'No notifications yet',
-  'notifications.emptyLead':
-    'New bookings, cancellations and chats where the assistant needs your help will show up here.',
+  'notifications.telegram': 'Telegram',
   'comingSoon.title': 'Coming soon',
   'comingSoon': 'This section is coming soon.',
   'notFound.title': 'Page not found',

@@ -309,9 +309,7 @@ export default {
   'settings.language': 'Тіл',
 
   'notifications.aria': 'Хабарламалар беті',
-  'notifications.empty': 'Әзірге хабарлама жоқ',
-  'notifications.emptyLead':
-    'Мұнда жаңа жазбалар, бас тартылған брондар және ассистентке көмегіңіз керек диалогтар пайда болады.',
+  'notifications.telegram': 'Telegram',
   'comingSoon.title': 'Жақында',
   'comingSoon': 'Бұл бөлім жақында қосылады.',
   'notFound.title': 'Бет табылмады',

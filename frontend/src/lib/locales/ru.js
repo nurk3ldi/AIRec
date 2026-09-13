@@ -326,9 +326,7 @@ export default {
 
   // ── Notifications, empty states, errors ───────────────────────────────────
   'notifications.aria': 'Страница уведомлений',
-  'notifications.empty': 'Пока нет уведомлений',
-  'notifications.emptyLead':
-    'Здесь появятся новые записи, отменённые брони и диалоги, в которых ассистенту нужна ваша помощь.',
+  'notifications.telegram': 'Telegram',
   'comingSoon.title': 'Скоро',
   'comingSoon': 'Скоро здесь появится этот раздел.',
   'notFound.title': 'Страница не найдена',
