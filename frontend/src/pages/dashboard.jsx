@@ -35,13 +35,18 @@ export default function DashboardHomePage() {
 
   return (
     <div
-      className={`${styles.page} flex items-stretch p-4 sm:p-6`}
+      className={`${styles.page} flex items-start p-4 sm:p-6`}
       aria-label={t('nav.dashboard')}
     >
-      {/* Пустая карточка у левого края — 30% ширины, на всю высоту страницы.
+      {/* Пустая карточка у левого края — 30% ширины и половина высоты.
           На телефоне во всю ширину: 30% от 390pt — полоска, в которую ничего
-          не поместится. */}
-      <section className={`${CARD_EDGE} w-full sm:w-[30%]`} />
+          не поместится.
+          Высота посчитана из тех же чисел, что и страница (шапка, нижняя
+          панель, отступы), а не `h-1/2`: у страницы только `min-height`, и
+          процент от неё не разрешается. */}
+      <section
+        className={`${CARD_EDGE} h-[calc((100vh-118px-env(safe-area-inset-bottom)-2rem)/2)] w-full sm:h-[calc((100vh-68px-3rem)/2)] sm:w-[30%]`}
+      />
     </div>
   )
 }
