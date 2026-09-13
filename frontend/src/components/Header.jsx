@@ -5,6 +5,7 @@ import {
   Search01Icon,
 } from '@hugeicons/core-free-icons'
 import { useT } from '../lib/i18n'
+import TelegramIsland from './TelegramIsland'
 
 // Translation keys rather than titles: this map is built once at import, so a
 // translated string would freeze in whichever language loaded first.
@@ -68,6 +69,11 @@ export default function Header({ className = '' }) {
       <h1 className="hidden min-w-0 truncate font-display text-[24px] font-bold tracking-[-0.02em] text-ink sm:block">
         {title}
       </h1>
+
+      {/* A client's new Telegram message drops in over the middle of the bar
+          and leaves by itself — see `TelegramIsland`. The header is `sticky`,
+          so it is already the positioned box the island centres in. */}
+      <TelegramIsland />
 
       {/* Search and the two icon links travel as one group, so the space
           between the title and the controls is a single gap rather than two

@@ -58,6 +58,16 @@ export function chatState(chat) {
  */
 export const needsHuman = (chat) => Boolean(chat) && !chat.assistant_enabled
 
+/**
+ * Как назвать клиента одной строкой: имя, `@username`, номер — что есть первым.
+ * У клиента из бота может не быть ни имени, ни номера, и тогда `noName`.
+ */
+export const clientName = (chat, noName) =>
+  chat.client_name ||
+  (chat.client_username ? `@${chat.client_username}` : null) ||
+  chat.client_phone ||
+  noName
+
 /** Только цифры номера — по ним и сходятся запись с перепиской. */
 const digits = (value) => (value ?? '').replace(/\D/g, '')
 

@@ -101,6 +101,8 @@ export default {
   'chat.waiting': 'Ждёт ответа',
   'chat.answered': 'Отвечен',
   'chat.noName': 'Без имени',
+  'island.open': 'Открыть чат: {name}',
+  'island.close': 'Закрыть уведомление',
   'thread.empty': 'В этом разговоре пока ничего нет',
   'thread.back': 'Назад к списку',
   'thread.close': 'Закрыть разговор',

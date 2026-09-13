@@ -11,6 +11,7 @@ import { listMessages, markConversationRead, mediaUrl } from '../../lib/api'
 import { ASSISTANT_ICON } from '../navigation'
 import Avatar from './Avatar'
 import { authed } from '../../lib/auth'
+import { clientName } from '../../lib/conversations'
 import { getLocale, useT } from '../../lib/i18n'
 import { useSkeleton } from '../../lib/skeleton'
 import { CROSSFADE, SPRING } from '../../lib/motion'
@@ -157,11 +158,7 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
 
   if (!conversation) return null
 
-  const title =
-    conversation.client_name ||
-    (conversation.client_username ? `@${conversation.client_username}` : null) ||
-    conversation.client_phone ||
-    t('chat.noName')
+  const title = clientName(conversation, t('chat.noName'))
 
   // **Вторая строка шапки: как с человеком связаться и где.** Номер, а если его
   // нет — `@username`: у клиента из бота номера может не быть вовсе, и пустое

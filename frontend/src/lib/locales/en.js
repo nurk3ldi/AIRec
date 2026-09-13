@@ -95,6 +95,8 @@ export default {
   'chat.waiting': 'Awaiting reply',
   'chat.answered': 'Answered',
   'chat.noName': 'No name',
+  'island.open': 'Open chat: {name}',
+  'island.close': 'Dismiss notification',
   'thread.empty': 'Nothing has been said here yet',
   'thread.back': 'Back to the list',
   'thread.close': 'Close the conversation',

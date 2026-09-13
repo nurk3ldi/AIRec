@@ -1,5 +1,6 @@
 import { HugeiconsIcon } from '@hugeicons/react'
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   AnimatePresence,
   domMax,
@@ -226,6 +227,26 @@ export default function InboxPage() {
 
   const [openChatId, setOpenChatId] = useState(null)
   const openChat = (chats ?? []).find((chat) => chat.id === openChatId) ?? null
+
+  /**
+   * `?chat=<id>` открывает разговор — так сюда ведёт уведомление из шапки.
+   *
+   * **Читается в эффекте и сразу стирается** (`replace`): это приказ «открой»,
+   * а не адрес состояния, и оставшись в строке, он открывал бы тот же тред
+   * снова после каждого закрытия и перезагрузки. В эффекте, а не при рендере, —
+   * иначе ловушка `PageTransition` (уходящая страница видит адрес следующей).
+   * Ящик закрывается: разговор ищется в основном списке.
+   */
+  const [searchParams, setSearchParams] = useSearchParams()
+  const chatParam = searchParams.get('chat')
+
+  useEffect(() => {
+    if (!chatParam) return
+    setOpenChatId(chatParam)
+    setBox(null)
+    setOnly(null)
+    setSearchParams({}, { replace: true })
+  }, [chatParam, setSearchParams])
 
   useEffect(() => {
     let alive = true
