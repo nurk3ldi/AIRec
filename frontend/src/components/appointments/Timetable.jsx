@@ -1808,7 +1808,13 @@ export function ToolbarPill({ children, ...props }) {
  * пятнадцати строк совпадала бы с оригиналом ровно до первой правки одной из
  * них.
  */
-export function StepButton({ label, icon, active = false, ...props }) {
+export function StepButton({
+  label,
+  icon,
+  active = false,
+  selected = false,
+  ...props
+}) {
   return (
     <button
       type="button"
@@ -1829,8 +1835,27 @@ export function StepButton({ label, icon, active = false, ...props }) {
       // *выбранное*: сегмент в переключателе, сегодняшний день в календаре.
       // Включённый фильтр — ровно такой случай, и важно, чтобы он читался с
       // закрытым меню: иначе строки пропали, а почему — не сказано.
-      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-ink outline-none transition-[color,background-color,border-color,scale] focus-visible:bg-ink/20 active:scale-[0.95] ${
-        active ? 'bg-surface-chip' : 'bg-ink/12 hover:bg-ink/20'
+      //
+      // **`selected` — второе, сильное «включено»: режим, который меняет весь
+      // экран.** `surface-chip` рядом с `bg-ink/12` — это `#2a2a2a` рядом с
+      // `#1f1f1f` на чёрном: разницу можно измерить и нельзя увидеть, и
+      // открытый архив выглядел закрытым. Для отметки «фильтр применён» этой
+      // тишины хватает, для «вы сейчас в корзине» — нет. Так включённая кнопка
+      // выглядит у Apple: заливка цветом текста и символ, вывернутый в цвет
+      // фона, — `bg-accent` с `text-surface`, белый круг с тёмным значком на
+      // тёмной теме и чёрный с белым на светлой. Цвет текста — внутри тернара,
+      // а не рядом, по той же причине, что и заливка: `text-ink` и
+      // `text-surface` в одной строке решались бы порядком в таблице стилей.
+      //
+      // Смена цвета — 200 мс ease-out: достаточно, чтобы включение читалось как
+      // переход, а не щелчок, и меньше, чем ждёт палец. Фокус на включённой
+      // гасит заливку прозрачностью: `bg-ink/20` превратил бы белый круг в серый.
+      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full outline-none transition-[color,background-color,border-color,opacity,scale] duration-200 ease-out active:scale-[0.95] ${
+        selected
+          ? 'bg-accent text-surface focus-visible:opacity-85'
+          : active
+            ? 'bg-surface-chip text-ink focus-visible:bg-ink/20'
+            : 'bg-ink/12 text-ink hover:bg-ink/20 focus-visible:bg-ink/20'
       }`}
     >
       <HugeiconsIcon

@@ -1891,9 +1891,11 @@ function MenuItem({ icon, danger = false, onClick, children }) {
  * нет: две кнопки, стоящие в одном ряду и нарисованные по отдельности,
  * совпадают ровно до первой правки одной из них.
  *
- * **Открытый ящик помечен заливкой `surface-chip`** — тем же, чем в этом
- * проекте помечено *выбранное* везде: сегмент переключателя, сегодняшний день
- * в календаре, включённый фильтр. Повторное нажатие закрывает: у ящика два
+ * **Открытый ящик — белый круг с тёмным значком** (`selected`), а не
+ * `surface-chip`, как было: та заливка на чёрном отличалась от закрытой на
+ * несколько единиц яркости, и открытый архив читался закрытым. Ящик меняет
+ * весь экран, и его «включено» должно быть видно с другого конца стола —
+ * подробности у `StepButton`. Повторное нажатие закрывает: у ящика два
  * состояния, и третьей кнопки «назад» для него не нужно.
  */
 function BoxButtons({ box, onOpen }) {
@@ -1904,7 +1906,7 @@ function BoxButtons({ box, onOpen }) {
       <StepButton
         icon={Archive02Icon}
         label={t('inbox.archive')}
-        active={box === 'archived'}
+        selected={box === 'archived'}
         aria-pressed={box === 'archived'}
         title={t('inbox.archive')}
         onClick={() => onOpen('archived')}
@@ -1912,7 +1914,7 @@ function BoxButtons({ box, onOpen }) {
       <StepButton
         icon={Delete02Icon}
         label={t('inbox.trash')}
-        active={box === 'deleted'}
+        selected={box === 'deleted'}
         aria-pressed={box === 'deleted'}
         title={t('inbox.trash')}
         onClick={() => onOpen('deleted')}
