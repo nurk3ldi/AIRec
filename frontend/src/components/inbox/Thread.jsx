@@ -9,6 +9,7 @@ import {
 } from '@hugeicons/core-free-icons'
 import { listMessages, markConversationRead, mediaUrl } from '../../lib/api'
 import { ASSISTANT_ICON } from '../navigation'
+import Avatar from './Avatar'
 import { authed } from '../../lib/auth'
 import { getLocale, useT } from '../../lib/i18n'
 import { useSkeleton } from '../../lib/skeleton'
@@ -346,37 +347,6 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
         </div>
       )}
     </section>
-  )
-}
-
-/**
- * Кружок рядом с репликой: значок того, кто её написал.
- *
- * **Один на обе стороны.** Геометрия здесь одна — 40px, ровно высота пузыря в
- * одну строку (14px текста с `leading-snug` плюс `py-2.5`), поэтому кружок
- * стоит вровень с репликой, а не выглядит значком, приставленным сбоку; на
- * длинной реплике пузырь выше, и кружок держится её низа. Две копии этого
- * совпадали бы ровно до первой правки одной из них.
- *
- * **Значок белый (`text-ink`), а не серый.** Серым он читался как подпись —
- * что-то про реплику, а не тот, кто её сказал; `ink` на `surface-chip` — та же
- * пара, которой в этом продукте нарисован *выбранный* контрол, и в обеих темах
- * она остаётся контрастной (на светлой `ink` почти чёрный, и «белым» это
- * перестаёт быть только на словах).
- *
- * **`invisible`, а не отсутствие**, когда реплика не последняя в серии: место
- * держится у всей серии, иначе пузыри одного автора встали бы по разным краям.
- */
-function Avatar({ icon, shown = true }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-chip text-ink ${
-        shown ? '' : 'invisible'
-      }`}
-    >
-      <HugeiconsIcon icon={icon} size={18} strokeWidth={2} />
-    </span>
   )
 }
 

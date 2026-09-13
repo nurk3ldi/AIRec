@@ -8,6 +8,8 @@ import {
 import { useT } from '../lib/i18n'
 import { CROSSFADE, SPRING } from '../lib/motion'
 import { chatState, minutesSince, needsHuman } from '../lib/conversations'
+import { ASSISTANT_ICON } from './navigation'
+import Avatar from './inbox/Avatar'
 import Skeleton, { SkeletonRegion } from './Skeleton'
 import { useSkeleton } from '../lib/skeleton'
 
@@ -51,25 +53,28 @@ export function StreamList({ chats, live, bleed = '-mx-6 px-6', onOpen }) {
           className={`mt-2 flex flex-col divide-y divide-line ${bleed}`}
         >
           {[[38, 62], [30, 74], [44, 56]].map(([name, preview], index) => (
-            <div key={index} className="flex items-start gap-3 py-3.5">
-              <Skeleton className="mt-[7px] h-2 w-2 shrink-0 rounded-full" />
+            <div key={index} className="flex items-center gap-3 py-3.5">
+              <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
               <div className="min-w-0 flex-1">
-                <div className="flex items-baseline gap-3 text-[15px]">
-                  <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-3">
+                  <div className="min-w-0 flex-1 text-[15px]">
                     <Skeleton
                       className="inline-block h-[0.75em] align-middle"
                       style={{ width: `${name}%` }}
                     />
                   </div>
-                  <div className="w-14 shrink-0 text-right text-[13px]">
+                  <div className="shrink-0 text-[13px]">
                     <Skeleton className="inline-block h-[0.75em] w-10 align-middle" />
                   </div>
                 </div>
-                <div className="mt-0.5 text-[13px]">
-                  <Skeleton
-                    className="inline-block h-[0.75em] align-middle"
-                    style={{ width: `${preview}%` }}
-                  />
+                <div className="mt-0.5 flex items-baseline gap-3 text-[13px]">
+                  <div className="min-w-0 flex-1">
+                    <Skeleton
+                      className="inline-block h-[0.75em] align-middle"
+                      style={{ width: `${preview}%` }}
+                    />
+                  </div>
+                  <Skeleton className="inline-block h-[0.75em] w-16 shrink-0 align-middle" />
                 </div>
               </div>
             </div>
@@ -154,55 +159,76 @@ function Row({ chat, onOpen }) {
         type="button"
         onClick={onOpen ? () => onOpen(chat.id) : undefined}
         disabled={!onOpen}
-        className="-mx-2 flex w-[calc(100%+1rem)] items-start gap-3 rounded-xl px-2 py-2 text-left outline-none transition-[background-color,scale] duration-[160ms] ease-out enabled:hover:bg-ink/6 enabled:focus-visible:bg-ink/6 enabled:active:scale-[0.99] enabled:active:bg-ink/12 disabled:cursor-default"
+        className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-xl px-2 py-2 text-left outline-none transition-[background-color,scale] duration-[160ms] ease-out enabled:hover:bg-ink/6 enabled:focus-visible:bg-ink/6 enabled:active:scale-[0.99] enabled:active:bg-ink/12 disabled:cursor-default"
       >
-      {/* Приподнята на пиксель-другой: точка выравнивается по строке с именем,
-          а не по верхнему краю блока из двух строк. */}
-      <span
-        aria-hidden="true"
-        className={`mt-[7px] h-2 w-2 shrink-0 rounded-full ${
-          hot ? 'bg-now' : 'bg-muted/40'
-        }`}
-      />
+      {/* **Слева — кружок ассистента, как аватар в списке чатов.** Это список
+          потоков, которые ведёт ассистент, и значок — тот же, что стоит против
+          «Ассистента» в навигации и рядом с его репликами в треде
+          (`ASSISTANT_ICON` через общий `Avatar`): один предмет — один знак на
+          весь продукт. Кружок в 40px, по центру высоты двух строк. */}
+      <Avatar icon={ASSISTANT_ICON} />
 
       <div className="min-w-0 flex-1">
+        {/* **Три ступени, а не две, и третью добавил Telegram.** На WhatsApp
+            номер есть всегда, поэтому «имя, иначе номер» покрывало всё. У
+            клиента в Telegram номера может не быть вовсе — там опознаётся
+            `@username`, и он встаёт между ними. Если нет и его, строка была бы
+            пустой, а пустая строка в списке читается как сломанный экран:
+            последнее слово — честное «без имени». */}
+        {/* **Верхняя строка: кто — слева, когда — у правого края.** Время
+            стоит напротив имени, как в списке чатов любого мессенджера: взгляд
+            идёт по именам вниз и по времени вниз, двумя столбцами. */}
         <div className="flex items-baseline gap-3">
-          {/* **Три ступени, а не две, и третью добавил Telegram.** На WhatsApp
-              номер есть всегда, поэтому «имя, иначе номер» покрывало всё. У
-              клиента в Telegram номера может не быть вовсе — там опознаётся
-              `@username`, и он встаёт между ними. Если нет и его, строка была
-              бы пустой, а пустая строка в списке читается как сломанный экран:
-              последнее слово — честное «без имени». */}
           <p className="min-w-0 flex-1 truncate text-[15px] font-medium text-ink">
             {chat.client_name ||
               (chat.client_username ? `@${chat.client_username}` : null) ||
               chat.client_phone ||
               t('chat.noName')}
           </p>
-          <p
-            className={`shrink-0 text-[13px] ${hot ? 'text-now' : 'text-muted'}`}
-          >
-            {t(`home.assistant.${chatState(chat)}`)}
-          </p>
-          {/* `tabular-nums`, чтобы столбец времени не дёргался при каждом
-              опросе, когда «9 мин» сменяется на «10 мин». */}
-          <p className="w-14 shrink-0 text-right text-[13px] text-muted tabular-nums">
+          {/* `tabular-nums`, чтобы время не дёргалось при каждом опросе, когда
+              «9 мин» сменяется на «10 мин». */}
+          <p className="shrink-0 text-[13px] text-muted tabular-nums">
             {minutes < 1
               ? t('home.streams.now')
               : t('home.streams.minutes', { count: minutes })}
           </p>
         </div>
 
-        {chat.last_message_preview && (
-          <p className="mt-0.5 truncate text-[13px] text-muted">
-            {/* Кто сказал последнюю реплику — половина её смысла: «записал вас
-                на четверг» от ассистента и от клиента значат разное. */}
-            {chat.last_message_author === 'client' ? '' : t('home.streams.said')}
+        {/* **Нижняя строка: что сказано последним — и что ассистент делает
+            сейчас.** Реплика сжимается и обрезается, состояние — нет
+            (`shrink-0`). Состояние в цвете `--now` только когда в ветке уже
+            отвечает человек (`needsHuman`): это единственное из трёх, на что
+            владельцу надо обратить внимание, остальные два — обычный ход дел и
+            остаются серыми. */}
+        <div className="mt-0.5 flex items-baseline gap-3 text-[13px]">
+          <p className="min-w-0 flex-1 truncate text-muted">
+            {/* **Кто сказал последнюю реплику — половина её смысла:** «записал
+                вас на четверг» от ассистента и от клиента значат разное. Реплика
+                ассистента начинается с «Ассистент:», владельца — с «Вы:», а
+                клиентская — без подписи: список и так про клиентов. */}
+            {authorPrefix(chat.last_message_author, t)}
             {chat.last_message_preview}
           </p>
-        )}
+          <p className={`shrink-0 ${hot ? 'text-now' : 'text-muted'}`}>
+            {t(`home.assistant.${chatState(chat)}`)}
+          </p>
+        </div>
       </div>
       </button>
     </m.li>
   )
+}
+
+/**
+ * Подпись перед последней репликой: чья она.
+ *
+ * Ассистент — «Ассистент: », владелец — «Вы: », клиент — ничего. Слова те же,
+ * которыми подписаны авторы в треде (`thread.author.*`); у ассистента своя
+ * готовая строка с двоеточием, `home.streams.said`, — она старше и уже
+ * переведена.
+ */
+function authorPrefix(author, t) {
+  if (author === 'assistant') return t('home.streams.said')
+  if (author === 'owner') return `${t('thread.author.owner')}: `
+  return ''
 }
