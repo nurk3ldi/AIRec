@@ -50,10 +50,10 @@ export function StreamList({ chats, live, bleed = '-mx-6 px-6', onOpen }) {
         <SkeletonRegion
           label={t('home.streams.title')}
           visible={bars}
-          className={`mt-2 flex flex-col divide-y divide-line ${bleed}`}
+          className={`flex flex-col divide-y divide-line ${bleed}`}
         >
           {[[38, 62], [30, 74], [44, 56]].map(([name, preview], index) => (
-            <div key={index} className="flex items-center gap-3 py-3.5">
+            <div key={index} className="flex items-center gap-3 py-3.5 first:pt-2">
               <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-3">
@@ -111,7 +111,7 @@ export function StreamList({ chats, live, bleed = '-mx-6 px-6', onOpen }) {
         // `domMax` — ради проекции раскладки, которой в `domAnimation` нет.
         <LazyMotion features={domMax}>
           <ul
-            className={`mt-2 min-h-0 flex-1 divide-y divide-line overflow-y-auto ${bleed} ${
+            className={`min-h-0 flex-1 divide-y divide-line overflow-y-auto ${bleed} ${
               reveal ? 'animate-content-reveal' : ''
             }`}
           >
@@ -145,7 +145,12 @@ function Row({ chat, onOpen }) {
         layout: reduce ? { duration: 0 } : SPRING,
         opacity: CROSSFADE.in,
       }}
-      className="py-1.5"
+      // **Первая строка — без верхнего отступа.** Над ней стояли `mt-2` списка
+      // и `py-1.5` строки поверх `p-5` карточки: имя первого потока начиналось
+      // в 42px от верха, дальше, чем от левого края (28), и строка висела в
+      // карточке, а не открывала её. Теперь сверху 28 — ровно столько же, сколько
+      // слева: `p-5` карточки и `py-2` кнопки, у которой подсветка.
+      className="py-1.5 first:pt-0"
     >
       {/* **Строка разговора открывает разговор.** Список показывал, с кем идёт
           переписка прямо сейчас, и на нажатие не отвечал ничем — ряд, который
