@@ -1787,7 +1787,7 @@ function ClosedSpan({ range, label, rowHeight }) {
  * `surface-chip`, а не акцент: на тёмной теме акцент — чистый белый, и сплошная
  * белая пилюля в чёрном тулбаре читалась бы предупреждением, а не приглашением.
  */
-export function ToolbarPill({ children, ...props }) {
+export function ToolbarPill({ children, fill = 'chip', ...props }) {
   return (
     <button
       type="button"
@@ -1795,7 +1795,18 @@ export function ToolbarPill({ children, ...props }) {
       // окажется триггером поповера, а компонент, теряющий пропы, откроет
       // ровно ничего.
       {...props}
-      className="h-8 shrink-0 rounded-full bg-surface-chip px-4 text-[14px] font-medium text-ink outline-none transition-[opacity,scale] hover:opacity-85 focus-visible:opacity-85 active:scale-[0.97]"
+      // **Заливка — по соседям, а не одна на все ряды.** На «Записях» рядом с
+      // пилюлей стоит «+ Добавить» в `surface-chip`, и две заполненные формы в
+      // одном ряду обязаны быть залиты одинаково. В заголовке «Диалогов» её
+      // соседи — круги `StepButton` в `bg-ink/12`, и та же `surface-chip`
+      // выглядела там отдельной, «выбранной» кнопкой среди простых
+      // (`fill="step"`). Одно или другое — тернаром: две утилиты заливки в
+      // одной строке решались бы порядком в таблице стилей.
+      className={`h-8 shrink-0 rounded-full px-4 text-[14px] font-medium text-ink outline-none duration-200 ease-out active:scale-[0.97] ${
+        fill === 'step'
+          ? 'bg-ink/12 transition-[background-color,scale] hover:bg-ink/20 focus-visible:bg-ink/20'
+          : 'bg-surface-chip transition-[opacity,scale] hover:opacity-85 focus-visible:opacity-85'
+      }`}
     >
       {children}
     </button>

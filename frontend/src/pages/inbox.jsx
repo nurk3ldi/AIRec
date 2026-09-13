@@ -760,7 +760,9 @@ function DayPicker({ value, onChange }) {
         onClick={() => onChange(shiftDate(value, 'day', 1), 1)}
       />
 
-      <ToolbarPill onClick={() => onChange(new Date(), 0)}>
+      {/* Залита как круги рядом, а не как пилюля на «Записях»: здесь все
+          соседи в ряду — `StepButton`. */}
+      <ToolbarPill fill="step" onClick={() => onChange(new Date(), 0)}>
         {t('appointments.today')}
       </ToolbarPill>
 
