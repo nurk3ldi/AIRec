@@ -64,6 +64,10 @@ class ConversationPublic(BaseModel):
     # «Корзина»: убрана из всех списков и никуда не делась. Не то же, что
     # `archived` — см. `Conversation.deleted_at`.
     deleted: bool = False
+    # When it went into the bin, and when the bin will erase it — the second is
+    # what the bin's countdown and its notice read. Both null outside the bin.
+    deleted_at: datetime | None = None
+    purge_at: datetime | None = None
     starred: bool = False
     # Kept at the top of the list — an ordering rather than a filter, so unlike
     # `starred` there is no query that returns only these.

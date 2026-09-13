@@ -52,6 +52,40 @@ async def _purge_deleted_accounts() -> None:
         )
 
 
+async def _sweep_conversation_bin() -> None:
+    """Erase binned conversations past their 30 days — now, and then on a timer.
+
+    **A loop, not a startup call like the accounts' purge.** That one only runs
+    when the server restarts, which is honest about a grace period nobody is
+    watching tick; a bin whose notice says "deleted after 30 days" is watched,
+    and on a server that stays up for weeks a startup-only sweep would keep a
+    thread for as long as the uptime. Every `conversation_bin_sweep_hours` is
+    close enough to the stated day that nobody can tell, and cheap: one indexed
+    delete that usually finds nothing.
+
+    Each sweep gets its own session and its own error handling — a failed sweep
+    is logged and the next one runs on schedule, because housekeeping must never
+    take the server down with it.
+    """
+    from app.api.deps import get_conversation_service
+    from app.db.session import session_factory
+
+    while True:
+        try:
+            async with session_factory() as session:
+                erased = await get_conversation_service(session).purge_bin()
+        except Exception as exc:  # logged, and the next sweep runs on schedule
+            startup_logger.error("Conversation bin sweep FAILED — %s", exc)
+        else:
+            if erased:
+                startup_logger.info(
+                    "Erased %d conversation(s) past %d days in the bin",
+                    erased,
+                    settings.conversation_bin_days,
+                )
+        await asyncio.sleep(settings.conversation_bin_sweep_hours * 3600)
+
+
 def _start_telegram_polling() -> asyncio.Task[None] | None:
     """Fetch Telegram updates instead of waiting to be called, if asked to.
 
@@ -97,6 +131,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     # the poller writes every message it receives, so starting it against a
     # database that is down would be a loop of failures in the log.
     poller = _start_telegram_polling()
+    # The bin sweep, for the same reason it waits on the check above.
+    sweeper = asyncio.create_task(_sweep_conversation_bin())
 
     yield
 
@@ -109,6 +145,9 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         poller.cancel()
         with suppress(asyncio.CancelledError):
             await poller
+    sweeper.cancel()
+    with suppress(asyncio.CancelledError):
+        await sweeper
 
     # Close pooled connections so shutdown doesn't leave sockets behind.
     await engine.dispose()

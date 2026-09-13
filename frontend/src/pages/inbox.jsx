@@ -559,6 +559,7 @@ export default function InboxPage() {
               onOpen={setOpenChatId}
               onMove={moveChat}
               onRemove={removeChat}
+              bin={box === 'deleted'}
             />
           </Section>
         )}
@@ -1327,6 +1328,9 @@ function BookingTable({
   onOpen,
   onMove,
   onRemove,
+  // Корзина: столбец даты становится обратным отсчётом, а над таблицей —
+  // предупреждение, сколько она хранит.
+  bin = false,
 }) {
   const t = useT()
   const reduce = useReducedMotion()
@@ -1345,7 +1349,7 @@ function BookingTable({
           aria-label={t('inbox.all')}
           className={TABLE}
         >
-          <TableHead />
+          <TableHead bin={bin} />
           {/* Те же `Td`, что у настоящих строк: высоту строки задают отступы
               ячейки и межстрочное расстояние текста, и полоса высотой в строку
               внутри неё даёт ровно ту же высоту — таблица не прыгает, когда
@@ -1412,11 +1416,12 @@ function BookingTable({
         reveal ? 'animate-content-reveal' : ''
       }`}
     >
+      {bin && <BinNotice rows={rows} />}
       <table className={TABLE}>
         {/* 11px, прописные, разрядка — тот же шаг, которым в этом проекте
             набраны все заголовки столбцов. Заголовок не строка данных, и
             линия под ним — та же, что между записями: он такой же сосед. */}
-        <TableHead />
+        <TableHead bin={bin} />
 
         {/* `domMax` — проекция раскладки нужна строкам, а в `domAnimation` её
             нет. Вес не лишний: календарь дня на этой же странице её уже тянет. */}
@@ -1485,7 +1490,11 @@ function BookingTable({
                   иначе столбец из десяти строк выглядит рваным. */}
               <Td className={PHONE_CELL.phone}>{row.phone ?? DASH}</Td>
               <Td className={PHONE_CELL.date}>
-                {dayLabel(`${row.date}T00:00:00`)}
+                {bin && row.purgeAt ? (
+                  <PurgeCountdown purgeAt={row.purgeAt} />
+                ) : (
+                  dayLabel(`${row.date}T00:00:00`)
+                )}
               </Td>
               {/* Прочерк, а не пусто: у разговора, не дошедшего до записи, часа
                   и услуги нет — и пустая ячейка читалась бы как «не загрузилось»,
@@ -1516,12 +1525,76 @@ function BookingTable({
 }
 
 /**
+ * Предупреждение корзины: сколько она хранит и что будет потом.
+ *
+ * **Над списком, а не в пустом состоянии и не во всплывающем окне.** Так это
+ * устроено в «Недавно удалённых» у Apple: одна строка над содержимым говорит
+ * правило, а каждый элемент — сколько дней осталось именно ему. Правило читают
+ * один раз, поэтому оно тихое — серый текст рядом со значком, без рамки и без
+ * красного: это не ошибка и не угроза, а договорённость о том, как работает
+ * ящик. Красным становится только отсчёт у строки, которой осталось совсем
+ * немного.
+ *
+ * **Число дней — из данных, а не записано здесь.** Сервер хранит его в
+ * настройке и отдаёт каждой строке `deletedAt` и `purgeAt`; разница между ними
+ * и есть срок. Написанное в интерфейсе «30» разошлось бы с сервером в первый же
+ * день, когда настройку поменяют.
+ */
+function BinNotice({ rows }) {
+  const t = useT()
+  const sample = rows.find((row) => row.deletedAt && row.purgeAt)
+  if (!sample) return null
+
+  const days = Math.round(
+    (new Date(sample.purgeAt) - new Date(sample.deletedAt)) / DAY_MS,
+  )
+
+  return (
+    <p className="mb-3 flex items-start gap-2 px-1 text-[13px] leading-snug text-muted">
+      <HugeiconsIcon
+        icon={Delete02Icon}
+        size={16}
+        strokeWidth={2}
+        className="mt-px shrink-0"
+      />
+      {t('inbox.binNotice', { days })}
+    </p>
+  )
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/**
+ * Сколько дней осталось разговору в корзине.
+ *
+ * **Остаток, а не дата.** «Удалится 8 октября» заставляет считать; «12 дн.»
+ * отвечает сразу, и так же подписаны элементы в «Недавно удалённых» у Apple.
+ * Округление — вверх: разговор, которому осталось полтора дня, ещё переживёт
+ * завтра, и «1 дн.» сказало бы о нём меньше правды, чем «2 дн.». Когда меньше
+ * суток — «Сегодня».
+ *
+ * **Последние три дня — красным.** Это единственный момент, когда отсчёт
+ * требует действия: вернуть разговор, пока он есть. Раньше красный значил бы
+ * тревогу там, где до срока ещё недели.
+ */
+function PurgeCountdown({ purgeAt }) {
+  const t = useT()
+  const days = Math.ceil((new Date(purgeAt) - Date.now()) / DAY_MS)
+
+  return (
+    <span className={days <= 3 ? 'text-danger' : ''}>
+      {days <= 0 ? t('inbox.purgeToday') : t('inbox.purgeIn', { days })}
+    </span>
+  )
+}
+
+/**
  * Шапка таблицы — одна на настоящую таблицу и на её заглушку.
  *
  * Заглушка, у которой своя шапка, разошлась бы с настоящей на пиксель при первой
  * же правке, и таблица прыгала бы в момент, когда приходят данные.
  */
-function TableHead() {
+function TableHead({ bin = false }) {
   const t = useT()
 
   return (
@@ -1529,7 +1602,11 @@ function TableHead() {
       <tr className="border-b border-line text-[11px] tracking-wide text-muted uppercase">
         <Th className="w-[22%]">{t('appointments.clientName')}</Th>
         <Th className="w-[19%]">{t('appointments.clientPhone')}</Th>
-        <Th className="w-[15%]">{t('appointments.date')}</Th>
+        {/* В корзине столбец отвечает не «когда было», а «когда сотрётся» — и
+            называется так же. */}
+        <Th className="w-[15%]">
+          {t(bin ? 'inbox.purgeColumn' : 'appointments.date')}
+        </Th>
         <Th className="w-[15%]">{t('appointments.time')}</Th>
         <Th className="w-[22%]">{t('appointments.service')}</Th>
         {/* Столбец действий: у заголовка слова нет — над «…» оно назвало бы

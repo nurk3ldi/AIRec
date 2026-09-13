@@ -132,6 +132,12 @@ export function historyRows({
       // вернуть, и решает это по тому, что уже сделано.
       archived: Boolean(chat.archived),
       deleted: Boolean(chat.deleted),
+      // Когда корзина сотрёт разговор насовсем, и когда он в неё попал: из этой
+      // пары корзина показывает, сколько дней осталось, и сколько дней хранит
+      // вообще. Число дней на клиенте не записано нигде — оно приходит с
+      // сервером, вычисленное из его настройки.
+      deletedAt: chat.deleted_at ?? null,
+      purgeAt: chat.purge_at ?? null,
       client: name,
       phone: chat.client_phone ?? block?.phone ?? null,
       range: block?.range ?? null,
@@ -156,6 +162,8 @@ export function historyRows({
       chatId: null,
       archived: false,
       deleted: false,
+      deletedAt: null,
+      purgeAt: null,
       client: block.client,
       phone: block.phone ?? null,
       range: block.range,

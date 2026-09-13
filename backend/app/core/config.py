@@ -99,6 +99,21 @@ class Settings(BaseSettings):
     # change of mind (or a misclick) is recoverable.
     account_deletion_grace_days: int = 30
 
+    # --- The conversation bin ---
+    # **How long a binned conversation is kept before it is erased for good.**
+    # Thirty days, like an account's grace period and like the Trash on every
+    # Apple device: long enough that a wrong press is noticed and undone, short
+    # enough that "deleted" stops meaning "kept forever in a folder called
+    # deleted". The frontend never repeats the number — every binned thread
+    # carries its own `purge_at`, computed from this.
+    conversation_bin_days: int = 30
+    # How often the running server sweeps the bin. There is no scheduler in this
+    # project, so a background task does it — once at startup and then on this
+    # interval — which keeps "30 days" true on a server that stays up for weeks,
+    # where a startup-only purge (the accounts' kind) would not. An hour late is
+    # nothing against thirty days, and a sweep is one indexed delete.
+    conversation_bin_sweep_hours: int = 6
+
     # **How recently a thread must have been spoken in to count as live.**
     # «Сейчас переписываются» is a window over the last message rather than a
     # stored flag, because a stored one needs something to turn it off again

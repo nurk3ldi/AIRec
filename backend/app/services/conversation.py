@@ -229,6 +229,21 @@ class ConversationService:
         for name in media:
             await delete_image(CHAT_STORE, name)
 
+    async def purge_bin(self) -> int:
+        """Erase threads that have sat in the bin past `conversation_bin_days`.
+
+        Returns how many threads were erased. Their photo files are unlinked
+        *after* the commit,
+        the order every delete here follows: a failed commit must not cost a
+        thread that still exists its pictures.
+        """
+        cutoff = datetime.now(UTC) - timedelta(days=settings.conversation_bin_days)
+        erased, media = await self._conversations.take_expired_bin(cutoff)
+        await self._session.commit()
+        for name in media:
+            await delete_image(CHAT_STORE, name)
+        return erased
+
     async def mark_read(self, user: User, conversation_id: uuid.UUID) -> Conversation:
         """Opening a thread is what clears its unread count.
 

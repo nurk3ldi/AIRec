@@ -4,7 +4,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import datetime
 
-from sqlalchemy import Select, exists, func, or_, select
+from sqlalchemy import Select, delete, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.elements import ColumnElement
@@ -194,6 +194,54 @@ class ConversationRepository:
 
     async def remove(self, conversation: Conversation) -> None:
         await self._session.delete(conversation)
+
+    async def take_expired_bin(self, cutoff: datetime) -> tuple[int, list[str]]:
+        """Erase every thread binned before `cutoff`.
+
+        Returns how many threads went and the names of the photo files they
+        held, for the caller to unlink once the commit has landed.
+
+        **The one other unscoped query here, and it has to be.** It is the bin's
+        housekeeping, run by the server for every business at once, the way
+        `purge_deleted_accounts` is; nothing a request can reach calls it.
+
+        **The rows are locked before anything is read from them.** A client can
+        write into a binned thread at any moment, and `ingest` then takes it out
+        of the bin. Without the lock that write could land between reading the
+        photo names and deleting the rows — the thread would survive and its
+        pictures would be unlinked from under it. `FOR UPDATE` makes the ingest
+        wait for this transaction instead, and `SKIP LOCKED` lets the sweep pass
+        over a thread an ingest already holds rather than stall behind it; that
+        thread is no longer binned by the time it is free anyway.
+
+        The messages go with their thread through the foreign key's
+        `ON DELETE CASCADE`. The caller commits, and unlinks the files after.
+        """
+        expired = (
+            await self._session.scalars(
+                select(Conversation.id)
+                .where(
+                    Conversation.deleted_at.isnot(None),
+                    Conversation.deleted_at < cutoff,
+                )
+                .with_for_update(skip_locked=True)
+            )
+        ).all()
+        if not expired:
+            return 0, []
+
+        media = (
+            await self._session.scalars(
+                select(Message.media_name).where(
+                    Message.conversation_id.in_(expired),
+                    Message.media_name.isnot(None),
+                )
+            )
+        ).all()
+        await self._session.execute(
+            delete(Conversation).where(Conversation.id.in_(expired))
+        )
+        return len(expired), [name for name in media if name]
 
 
 class MessageRepository:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
@@ -236,6 +236,21 @@ class Conversation(Base):
     @property
     def deleted(self) -> bool:
         return self.deleted_at is not None
+
+    @property
+    def purge_at(self) -> datetime | None:
+        """When the bin will erase this thread for good; `None` outside the bin.
+
+        Derived rather than stored, so changing `conversation_bin_days` moves
+        every countdown at once instead of leaving the old deadline written on
+        rows binned before the change. The frontend reads this and never the
+        setting: one number, in one place.
+        """
+        if self.deleted_at is None:
+            return None
+        from app.core.config import settings
+
+        return self.deleted_at + timedelta(days=settings.conversation_bin_days)
 
     @property
     def starred(self) -> bool:
