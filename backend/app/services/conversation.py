@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import telegram, whatsapp
 from app.core.config import settings
 from app.core.errors import ConversationNotFound, MessageNotFound
+from app.core.images import CHAT_STORE, delete_image
 from app.core.telegram import TelegramSendError
 from app.core.whatsapp import DeliveryReceipt, WhatsAppSendError
 from app.models.conversation import (
@@ -211,10 +212,22 @@ class ConversationService:
         exist. Archiving is "I have dealt with this" and keeps the history;
         this is for a thread that should not be in the record at all, a test or
         a wrong number. The messages go with it through `ON DELETE CASCADE`.
+
+        **And the photos go with them.** The cascade removes rows; the files a
+        client sent live on disk under `uploads/chat` and nothing pointed at
+        them any more, so «Удалить навсегда» left every picture of the thread
+        behind — a delete the owner was told is permanent that kept the most
+        personal part. The names are read before the delete and the files
+        removed *after* the commit, the order avatars and logos already follow:
+        a failed commit must not cost a thread its pictures while the thread is
+        still there. `delete_image` tolerates a file that is already gone.
         """
-        conversation = await self.get(user, conversation_id)
+        conversation = await self.get(user, conversation_id, with_messages=True)
+        media = [m.media_name for m in conversation.messages if m.media_name]
         await self._conversations.remove(conversation)
         await self._session.commit()
+        for name in media:
+            await delete_image(CHAT_STORE, name)
 
     async def mark_read(self, user: User, conversation_id: uuid.UUID) -> Conversation:
         """Opening a thread is what clears its unread count.

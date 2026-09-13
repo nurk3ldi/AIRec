@@ -27,11 +27,13 @@ import { PANEL_MOTION } from '../components/appointments/panel'
 import { StepButton, ToolbarPill } from '../components/appointments/Timetable'
 import { dayKey, shiftDate } from '../lib/dates'
 import {
+  deleteConversation,
   getBusiness,
   listAppointments,
   listConversations,
   updateConversation,
 } from '../lib/api'
+import { haptic } from '../lib/haptics'
 import { authed } from '../lib/auth'
 import { CROSSFADE, SPRING } from '../lib/motion'
 import { historyRows, liveChats } from '../lib/conversations'
@@ -201,6 +203,27 @@ export default function InboxPage() {
    * хотят список, а не последнюю переписку, на которую нажали до обеда. То же
    * решение, что у поиска на «Записях».
    */
+  /**
+   * Стереть разговор насовсем — только из корзины.
+   *
+   * Строка уходит сразу, как и при переносе между ящиками, а ответ сервера —
+   * подтверждение: список корзины перечитывается при любом исходе, и неудача
+   * вернёт строку на место. Вибро — здесь, на самом событии, а не в эффекте
+   * после: это момент фиксации необратимого решения, один из двух видов
+   * моментов, на которые в этом проекте тратится тактильный отклик.
+   */
+  const removeChat = (chatId) => {
+    haptic('commit')
+    const without = (rows) => rows && rows.filter((chat) => chat.id !== chatId)
+    setPutAway(without)
+    setChats(without)
+    if (openChatId === chatId) setOpenChatId(null)
+
+    authed((token) => deleteConversation(token, chatId))
+      .catch(() => {})
+      .finally(() => setRevision((was) => was + 1))
+  }
+
   const [openChatId, setOpenChatId] = useState(null)
   const openChat = (chats ?? []).find((chat) => chat.id === openChatId) ?? null
 
@@ -535,6 +558,7 @@ export default function InboxPage() {
               openId={openChatId}
               onOpen={setOpenChatId}
               onMove={moveChat}
+              onRemove={removeChat}
             />
           </Section>
         )}
@@ -1302,6 +1326,7 @@ function BookingTable({
   openId,
   onOpen,
   onMove,
+  onRemove,
 }) {
   const t = useT()
   const reduce = useReducedMotion()
@@ -1477,7 +1502,7 @@ function BookingTable({
                   таблице стилей, а не порядком записи. */}
               <Td className={PHONE_CELL.menu}>
                 {row.chatId ? (
-                  <RowMenu row={row} onMove={onMove} />
+                  <RowMenu row={row} onMove={onMove} onRemove={onRemove} />
                 ) : null}
               </Td>
             </m.tr>
@@ -1922,9 +1947,19 @@ function Panel({ title, count, children }) {
  * строки списка это ровно то, из-за чего удаление уже убирали из меню карточки
  * дня.
  */
-function RowMenu({ row, onMove }) {
+function RowMenu({ row, onMove, onRemove }) {
   const t = useT()
   const [open, setOpen] = useState(false)
+  // Второй шаг «Удалить навсегда»: меню сменилось вопросом. Сбрасывается при
+  // каждом открытии — меню, открытое заново, начинается с пунктов, а не с
+  // вопроса, заданного в прошлый раз.
+  const [confirming, setConfirming] = useState(false)
+  const reduce = useReducedMotion()
+
+  const show = (next) => {
+    if (next) setConfirming(false)
+    setOpen(next)
+  }
 
   const act = (patch) => {
     setOpen(false)
@@ -1932,7 +1967,7 @@ function RowMenu({ row, onMove }) {
   }
 
   return (
-    <Popover.Root open={open} onOpenChange={setOpen}>
+    <Popover.Root open={open} onOpenChange={show}>
       <span
         // 16px от правого края ячейки: вплотную к нему точки упирались в
         // границу подсветки строки, а ступень шкалы здесь та же, которой в
@@ -1962,8 +1997,21 @@ function RowMenu({ row, onMove }) {
           sideOffset={6}
           collisionPadding={12}
           onClick={(event) => event.stopPropagation()}
-          className={`z-[70] w-[220px] rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] ${PANEL_MOTION}`}
+          className={`z-[70] rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] ${PANEL_MOTION} ${
+            confirming ? 'w-[260px]' : 'w-[220px]'
+          }`}
         >
+          {confirming ? (
+            <ConfirmForever
+              reduce={reduce}
+              onCancel={() => setConfirming(false)}
+              onConfirm={() => {
+                setOpen(false)
+                onRemove?.(row.chatId)
+              }}
+            />
+          ) : (
+          <>
           {/* **Из корзины «В архив» — это переезд, а не пометка.** Разговор
               выходит из корзины и ложится в архив; прежде этот пункт ставил
               только отметку архива, и тред оставался в двух ящиках сразу —
@@ -1994,9 +2042,93 @@ function RowMenu({ row, onMove }) {
           >
             {t(row.deleted ? 'inbox.restore' : 'inbox.delete')}
           </MenuItem>
+          {/* **Стереть насовсем — только из корзины, и отдельной строкой ниже.**
+              Корзина — это «убрать из записи, но можно вернуть»; сюда
+              приходят, когда вернуть уже точно не понадобится. Ниже двух
+              обратимых пунктов и за линией: необратимое не стоит в одном ряду с
+              тем, что отменяется одним нажатием. */}
+          {row.deleted && (
+            <>
+              <div className="mx-2.5 my-1 h-px bg-line" />
+              <MenuItem
+                icon={Delete02Icon}
+                danger
+                onClick={() => setConfirming(true)}
+              >
+                {t('inbox.deleteForever')}
+              </MenuItem>
+            </>
+          )}
+          </>
+          )}
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
+  )
+}
+
+/**
+ * Вопрос перед «Удалить навсегда» — в том же меню, а не окном поверх страницы.
+ *
+ * **Подтверждение — только здесь, и это не противоречит правилу «два нажатия
+ * вместо диалога».** Необратимое действие — единственный случай, где Apple
+ * требует спросить: разговор со всеми сообщениями и фотографиями стирается с
+ * диска, и корзины за ним уже нет. Вопрос встаёт на место пунктов в том же
+ * поповере — так iPad показывает разрушительное подтверждение: листом у кнопки,
+ * которая его вызвала, а не модальным окном посреди экрана, гасящим список, из
+ * которого удаляют.
+ *
+ * **Фокус — на «Отмене».** Безопасный ответ получает клавиатуру по умолчанию:
+ * Enter, нажатый по привычке, не должен стирать переписку. Разрушительная
+ * кнопка — красным текстом на нейтральной заливке, а не сплошной красной: цвет
+ * говорит «это нельзя вернуть», а не «нажми меня».
+ *
+ * Появляется наплывом (прозрачность): сменилось содержимое, а не место.
+ */
+function ConfirmForever({ reduce, onCancel, onConfirm }) {
+  const t = useT()
+
+  return (
+    <m.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={reduce ? { duration: 0.15 } : CROSSFADE.in}
+      className="flex flex-col gap-3 p-3"
+      role="alertdialog"
+      aria-labelledby="delete-forever-title"
+      aria-describedby="delete-forever-text"
+    >
+      <div>
+        <p id="delete-forever-title" className="text-[15px] font-semibold text-ink">
+          {t('inbox.deleteForeverTitle')}
+        </p>
+        <p id="delete-forever-text" className="mt-1 text-[13px] leading-snug text-muted">
+          {t('inbox.deleteForeverText')}
+        </p>
+      </div>
+      {/* **Кнопки столбцом, разрушительная — первой.** В ряд «Удалить
+          навсегда» не помещалось в половину поповера и ломалось на две строки
+          поверх края кнопки; Apple в такой тесноте ставит кнопки алерта одна
+          под другой, и так же, как в листе действий iOS: разрушительное
+          действие сверху, «Отмена» — последней, у края, где палец её и ищет. */}
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="touch-target relative h-10 rounded-lg bg-ink/12 text-[14px] font-medium text-danger outline-none transition-[background-color,scale] duration-[160ms] ease-out hover:bg-danger/15 focus-visible:bg-danger/15 active:scale-[0.97]"
+        >
+          {t('inbox.deleteForever')}
+        </button>
+        <button
+          type="button"
+          autoFocus
+          onClick={onCancel}
+          className="touch-target relative h-10 rounded-lg bg-ink/12 text-[14px] font-medium text-ink outline-none transition-[background-color,scale] duration-[160ms] ease-out hover:bg-ink/20 focus-visible:bg-ink/20 active:scale-[0.97]"
+        >
+          {t('appointments.cancel')}
+        </button>
+      </div>
+    </m.div>
   )
 }
 
