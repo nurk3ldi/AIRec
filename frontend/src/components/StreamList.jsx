@@ -35,7 +35,7 @@ import { useSkeleton } from '../lib/skeleton'
  */
 export function StreamList({ chats, live, bleed = '-mx-6 px-6' }) {
   const t = useT()
-  const { pending, bars } = useSkeleton(chats === null)
+  const { pending, bars, reveal } = useSkeleton(chats === null)
 
   return (
     <>
@@ -106,7 +106,9 @@ export function StreamList({ chats, live, bleed = '-mx-6 px-6' }) {
         // `domMax` — ради проекции раскладки, которой в `domAnimation` нет.
         <LazyMotion features={domMax}>
           <ul
-            className={`mt-2 min-h-0 flex-1 divide-y divide-line overflow-y-auto ${bleed}`}
+            className={`mt-2 min-h-0 flex-1 divide-y divide-line overflow-y-auto ${bleed} ${
+              reveal ? 'animate-content-reveal' : ''
+            }`}
           >
             <AnimatePresence initial={false}>
               {live.map((chat) => (

@@ -41,12 +41,25 @@ const HOLD_MS = 420
  * so nothing on screen can appear and vanish inside a blink.
  *
  * ```jsx
- * const { pending, bars } = useSkeleton(!loaded)
- * return pending ? <CardSkeleton visible={bars} /> : <NowCard … />
+ * const { pending, bars, reveal } = useSkeleton(!loaded)
+ * return pending
+ *   ? <CardSkeleton visible={bars} />
+ *   : <NowCard className={reveal ? 'animate-content-reveal' : ''} … />
  * ```
+ *
+ * **`reveal` — whether the content is replacing bars somebody saw.** Apple's
+ * redacted content does not *swap* for the real thing, it resolves into it
+ * (`.blurReplace`): the grey bars and the words overlap for a moment, and a
+ * blur is what makes that one surface coming into focus rather than two things
+ * trading places. But only when there was a placeholder to resolve from — on
+ * the fast path the content takes the first frame with no bars before it, and
+ * a fade there would be a second entrance under `PageTransition`'s, which reads
+ * as a stutter. So it is true exactly when the bars were shown and have just
+ * been taken away.
  */
 export function useSkeleton(loading, { delay = DELAY_MS, hold = HOLD_MS } = {}) {
   const [bars, setBars] = useState(false)
+  const [reveal, setReveal] = useState(false)
   // `pending` starts wherever `loading` does: a screen that mounts already
   // loading must draw the block on its first frame, not one render later.
   const [pending, setPending] = useState(loading)
@@ -67,6 +80,7 @@ export function useSkeleton(loading, { delay = DELAY_MS, hold = HOLD_MS } = {}) 
     // The answer has arrived. With no bars ever shown there is nothing to hold
     // and the content takes the frame — the fast path, and the common one.
     if (shownAt.current === 0) {
+      setReveal(false)
       setPending(false)
       return
     }
@@ -75,6 +89,7 @@ export function useSkeleton(loading, { delay = DELAY_MS, hold = HOLD_MS } = {}) 
     if (left <= 0) {
       shownAt.current = 0
       setBars(false)
+      setReveal(true)
       setPending(false)
       return
     }
@@ -82,10 +97,11 @@ export function useSkeleton(loading, { delay = DELAY_MS, hold = HOLD_MS } = {}) 
     const timer = setTimeout(() => {
       shownAt.current = 0
       setBars(false)
+      setReveal(true)
       setPending(false)
     }, left)
     return () => clearTimeout(timer)
   }, [loading, delay, hold])
 
-  return { pending, bars }
+  return { pending, bars, reveal }
 }

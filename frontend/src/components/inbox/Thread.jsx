@@ -46,7 +46,7 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
   // обратно. Ref, а не состояние: это не то, что рисуется, и перерисовка на
   // каждый пиксель прокрутки была бы платой ни за что.
   const pinned = useRef(true)
-  const { pending, bars } = useSkeleton(messages === null)
+  const { pending, bars, reveal } = useSkeleton(messages === null)
   const reduce = useReducedMotion()
 
   const id = conversation?.id
@@ -274,7 +274,11 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
             pinned.current =
               box.scrollHeight - box.scrollTop - box.clientHeight < 40
           }}
-          className="flex min-h-0 flex-1 touch-pan-y flex-col gap-3 overflow-y-auto p-5"
+          // Переписка, пришедшая на смену заглушке, проявляется из размытия —
+          // тот же приём, что у таблицы и списков: см. `useSkeleton`.
+          className={`flex min-h-0 flex-1 touch-pan-y flex-col gap-3 overflow-y-auto p-5 ${
+            reveal ? 'animate-content-reveal' : ''
+          }`}
         >
           {/* **`initial={false}` — и в этом весь смысл.** Открытая переписка
               появляется целиком, без двадцати пузырей, выезжающих по очереди:
@@ -521,8 +525,12 @@ function Photo({ src, alt = '', onLoad, frame = '' }) {
           onLoad?.()
         }}
         onError={() => setState('failed')}
-        className={`block max-h-[320px] max-w-full transition-opacity duration-300 ease-out ${
-          loaded ? 'opacity-100' : 'absolute inset-0 h-full w-full object-cover opacity-0'
+        // Пришедший снимок проявляется из размытия поверх заглушки — так же, как
+        // содержимое всех остальных загрузок, а не отдельной, своей прозрачностью.
+        className={`block max-h-[320px] max-w-full ${
+          loaded
+            ? 'animate-content-reveal'
+            : 'absolute inset-0 h-full w-full object-cover opacity-0'
         }`}
       />
     </span>

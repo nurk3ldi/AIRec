@@ -1,3 +1,11 @@
+import { useState } from 'react'
+
+/**
+ * How long one breath of a placeholder takes, in ms. Must equal the duration
+ * of `animate-placeholder` in `globals.css`, or the shared phase below drifts.
+ */
+const BREATH_MS = 2000
+
 /**
  * The shape of what is coming, drawn while it is still on its way.
  *
@@ -14,11 +22,15 @@
  * both were false — the screen had not asked yet. An empty state is an answer;
  * a skeleton is the absence of one.
  *
- * **It pulses; it does not shimmer.** A shimmer is a gradient travelling across
- * the surface — a large object moving on every placeholder on screen at once,
- * which is exactly what Apple's reduced-motion guidance asks you not to build,
- * and what a loop near 0.2 Hz feels like. Tailwind's `animate-pulse` is a 2s
- * opacity cycle: no travel, half a hertz, and nothing to hand-roll.
+ * **It breathes; it does not shimmer.** A shimmer is a gradient travelling
+ * across the surface — a large object moving on every placeholder on screen at
+ * once, which is exactly what Apple's reduced-motion guidance asks you not to
+ * build, and what a loop near 0.2 Hz feels like. `animate-placeholder` (in
+ * `globals.css`) is a 2s opacity cycle between 100% and 55% on an even
+ * ease-in-out — Apple's redacted-content breath, where Tailwind's
+ * `animate-pulse` it replaced dropped to 50% on a sharper curve and read as a
+ * blink. All bars share its phase, and the fill is `--placeholder`, Apple's
+ * system grey.
  *
  * Under `prefers-reduced-motion` the pulse stops and the bars stay. Reduced
  * motion means gentler, never nothing — a still skeleton is still the answer to
@@ -49,13 +61,26 @@ export default function Skeleton({ className = '', style }) {
   // shaping `/inbox`'s thread placeholder after the bubbles it stands for.
   const names = className.split(/\s+/)
   const radius = names.some((name) => name.startsWith('rounded')) ? '' : 'rounded-md'
-  const fill = names.some((name) => name.startsWith('bg-')) ? '' : 'bg-ink/8'
+  // `bg-placeholder` — Apple's system fill, see `--placeholder` in globals.css.
+  const fill = names.some((name) => name.startsWith('bg-')) ? '' : 'bg-placeholder'
+
+  // **Every placeholder on screen breathes in one phase.** A CSS animation
+  // starts when its element mounts, so the table's bars, the thread's bubbles
+  // and a photo's frame — mounted at different moments — each dimmed on its
+  // own beat, and the screen shimmered like a set of unrelated lights. Apple's
+  // redacted content breathes as one surface. A negative delay equal to how
+  // far into a breath the page clock already is puts each new bar on the
+  // shared beat from its first frame. Read once, at mount, in a state
+  // initialiser: a re-render must not restart it.
+  const [phase] = useState(() =>
+    typeof performance === 'undefined' ? 0 : -(performance.now() % BREATH_MS),
+  )
 
   return (
     <div
       aria-hidden="true"
-      style={style}
-      className={`animate-pulse motion-reduce:animate-none ${radius} ${fill} ${className}`}
+      style={{ animationDelay: `${phase}ms`, ...style }}
+      className={`animate-placeholder ${radius} ${fill} ${className}`}
     />
   )
 }

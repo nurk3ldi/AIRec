@@ -1268,7 +1268,7 @@ function BookingTable({
 }) {
   const t = useT()
   const reduce = useReducedMotion()
-  const { pending, bars } = useSkeleton(rows === null)
+  const { pending, bars, reveal } = useSkeleton(rows === null)
 
   // **Пока строк нет — их форма, а не пустота.** Раньше таблица на первом
   // чтении не рисовалась совсем, и когда ответ приходил, колонка вырастала на
@@ -1340,7 +1340,12 @@ function BookingTable({
   return (
     // Прокручивается вбок, а не ломается: на узком окне пять столбцов ужимать
     // дальше некуда, и честнее увезти их за край, чем показать пять обрубков.
-    <div className="-mx-1 overflow-x-auto px-1">
+    // Сменив заглушку, которую видели, таблица проявляется из размытия.
+    <div
+      className={`-mx-1 overflow-x-auto px-1 ${
+        reveal ? 'animate-content-reveal' : ''
+      }`}
+    >
       <table className="w-full min-w-[560px] table-fixed border-collapse text-left">
         {/* 11px, прописные, разрядка — тот же шаг, которым в этом проекте
             набраны все заголовки столбцов. Заголовок не строка данных, и
@@ -1584,7 +1589,7 @@ function dayLabel(iso) {
 function DayCardRow({ bookings, stale = false, direction = null, timeZone }) {
   const t = useT()
   const reduce = useReducedMotion()
-  const { pending, bars } = useSkeleton(bookings === null)
+  const { pending, bars, reveal } = useSkeleton(bookings === null)
 
   // **Первое чтение — форма карточек, а не пустое место.** Дальше заглушка не
   // нужна: на смене дня на экране остаётся прежний ряд, приглушённый, пока идёт
@@ -1650,7 +1655,14 @@ function DayCardRow({ bookings, stale = false, direction = null, timeZone }) {
           : { x: SPRING, opacity: CROSSFADE.in }
       }
       aria-busy={stale || undefined}
-      className="flex flex-wrap content-start gap-4 sm:gap-6"
+      // Пришли на смену заглушке, которую видели, — проявляются из размытия
+      // (`animate-content-reveal`, см. `useSkeleton`), а не подменяют её.
+      // Только на первом чтении (`direction === null`): у смены дня уже есть
+      // своё появление — въезд со стороны шага, — и второе поверх него было бы
+      // двумя анимациями на одном ряду.
+      className={`flex flex-wrap content-start gap-4 sm:gap-6 ${
+        reveal && direction === null ? 'animate-content-reveal' : ''
+      }`}
     >
       {/* **Честный ответ вместо пустого места.** Раньше здесь на пустой день
           стояли выдуманные карточки; без них ряд просто ничего не рисовал, а
