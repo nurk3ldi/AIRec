@@ -176,6 +176,14 @@ class ConversationService:
             conversation.archived_at = (
                 datetime.now(UTC) if changes["archived"] else None
             )
+            # **A thread is in one box at a time.** Archiving is a decision
+            # about where it belongs, and a binned thread that is archived has
+            # been taken out of the bin — left with both marks it matched
+            # neither the archive's list nor, until the repository learned
+            # otherwise, the bin's, and disappeared. Unless this same PATCH also
+            # says where it stands on `deleted`, in which case that wins below.
+            if changes["archived"] and "deleted" not in changes:
+                conversation.deleted_at = None
         # В корзину и обратно — тем же PATCH, что и в архив: это решение
         # владельца о треде, а не отдельное действие над базой. `DELETE` рядом
         # остаётся и означает другое — стереть насовсем.

@@ -124,7 +124,15 @@ class ConversationRepository:
 
         if statuses is not None:
             stmt = stmt.where(Conversation.status.in_(statuses))
-        if archived is not None:
+        # **The bin holds everything binned, archived or not.** Filtering it on
+        # the `archived=False` default as well made a thread that was archived
+        # *and then* binned belong to neither list — the archive asks for "not
+        # deleted", the bin asked for "not archived" — so binning from the
+        # archive, or archiving from the bin before the service cleared the
+        # flag, made a conversation vanish from every screen. `archived_at` is
+        # kept on a binned thread on purpose: it is where «Восстановить» puts it
+        # back.
+        if archived is not None and not deleted:
             stmt = stmt.where(
                 Conversation.archived_at.isnot(None)
                 if archived

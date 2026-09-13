@@ -1964,11 +1964,28 @@ function RowMenu({ row, onMove }) {
           onClick={(event) => event.stopPropagation()}
           className={`z-[70] w-[220px] rounded-xl border border-line bg-surface p-1 shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] ${PANEL_MOTION}`}
         >
+          {/* **Из корзины «В архив» — это переезд, а не пометка.** Разговор
+              выходит из корзины и ложится в архив; прежде этот пункт ставил
+              только отметку архива, и тред оставался в двух ящиках сразу —
+              то есть ни в одном из списков. `deleted: false` сказан явно,
+              хотя сервер и сам снимает корзину при архивации: пункт меню
+              обязан значить одно и то же с любым сервером. В архиве пункт
+              возвращает из архива, в общем списке — кладёт в него. */}
           <MenuItem
             icon={Archive02Icon}
-            onClick={() => act({ archived: !row.archived })}
+            onClick={() =>
+              act(
+                row.deleted
+                  ? { archived: true, deleted: false }
+                  : { archived: !row.archived },
+              )
+            }
           >
-            {t(row.archived ? 'inbox.fromArchive' : 'inbox.toArchive')}
+            {t(
+              row.archived && !row.deleted
+                ? 'inbox.fromArchive'
+                : 'inbox.toArchive',
+            )}
           </MenuItem>
           <MenuItem
             icon={Delete02Icon}
