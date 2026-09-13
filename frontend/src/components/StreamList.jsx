@@ -33,7 +33,7 @@ import { useSkeleton } from '../lib/skeleton'
  * это и делает пара «отрицательный внешний, равный ему внутренний». Значение
  * зависит от `p-*` оболочки, поэтому его задаёт вызывающий, а не список.
  */
-export function StreamList({ chats, live, bleed = '-mx-6 px-6' }) {
+export function StreamList({ chats, live, bleed = '-mx-6 px-6', onOpen }) {
   const t = useT()
   const { pending, bars, reveal } = useSkeleton(chats === null)
 
@@ -112,7 +112,7 @@ export function StreamList({ chats, live, bleed = '-mx-6 px-6' }) {
           >
             <AnimatePresence initial={false}>
               {live.map((chat) => (
-                <Row key={chat.id} chat={chat} />
+                <Row key={chat.id} chat={chat} onOpen={onOpen} />
               ))}
             </AnimatePresence>
           </ul>
@@ -122,7 +122,7 @@ export function StreamList({ chats, live, bleed = '-mx-6 px-6' }) {
   )
 }
 
-function Row({ chat }) {
+function Row({ chat, onOpen }) {
   const t = useT()
   const reduce = useReducedMotion()
   const minutes = Math.floor(minutesSince(chat.last_message_at))
@@ -140,8 +140,22 @@ function Row({ chat }) {
         layout: reduce ? { duration: 0 } : SPRING,
         opacity: CROSSFADE.in,
       }}
-      className="flex items-start gap-3 py-3.5"
+      className="py-1.5"
     >
+      {/* **Строка разговора открывает разговор.** Список показывал, с кем идёт
+          переписка прямо сейчас, и на нажатие не отвечал ничем — ряд, который
+          выглядит как список чатов и не открывает чат, нарушает то, чего от
+          него ждут по любому мессенджеру. Кнопка во всю строку, а подсветка
+          выходит за текст на 8px с каждой стороны (`-mx-2 px-2`) и скруглена:
+          это строка, которую берут, а не полоса таблицы. Нажатие отвечает сразу
+          (`active:`), и тред открывается в той же правой колонке — вместо
+          этого списка. */}
+      <button
+        type="button"
+        onClick={onOpen ? () => onOpen(chat.id) : undefined}
+        disabled={!onOpen}
+        className="-mx-2 flex w-[calc(100%+1rem)] items-start gap-3 rounded-xl px-2 py-2 text-left outline-none transition-[background-color,scale] duration-[160ms] ease-out enabled:hover:bg-ink/6 enabled:focus-visible:bg-ink/6 enabled:active:scale-[0.99] enabled:active:bg-ink/12 disabled:cursor-default"
+      >
       {/* Приподнята на пиксель-другой: точка выравнивается по строке с именем,
           а не по верхнему краю блока из двух строк. */}
       <span
@@ -188,6 +202,7 @@ function Row({ chat }) {
           </p>
         )}
       </div>
+      </button>
     </m.li>
   )
 }

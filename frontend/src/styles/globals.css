@@ -617,3 +617,33 @@ a {
     animation: content-reveal-reduced 200ms ease-out backwards;
   }
 }
+
+/* --- touch targets --------------------------------------------------------- */
+
+/* **A 44pt hit area on touch screens, without changing what anything looks
+   like.** Apple's minimum for anything a finger presses is 44×44pt, and most of
+   this app's small controls are drawn smaller on purpose — 36px circles, a
+   24px «…», a 14px word — because on a desktop, with a pointer, that is the
+   right density. An audit of `/inbox` on a 390px phone found fourteen of them
+   under the minimum. This grows the *pressable* area to at least 44px, centred
+   on the control, and leaves the drawn shape alone; `pointer: coarse` keeps a
+   mouse's precise targets exactly where they were.
+
+   The element must be positioned (`relative` or `absolute`) — the area is an
+   absolutely placed `::after` — and must not sit inside an `overflow: hidden`
+   box smaller than 44px, which would clip it back down. Where neighbours sit
+   closer than 44px apart the areas overlap, and the later element in the DOM
+   takes the overlap; with 8px gaps that is a few pixels at the seam. */
+@utility touch-target {
+  @media (pointer: coarse) {
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      transform: translate(-50%, -50%);
+    }
+  }
+}

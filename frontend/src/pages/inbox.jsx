@@ -40,6 +40,7 @@ import Thread from '../components/inbox/Thread'
 import ThreadSheet from '../components/inbox/ThreadSheet'
 import Skeleton, { SkeletonRegion } from '../components/Skeleton'
 import { useSkeleton } from '../lib/skeleton'
+import { useMediaQuery } from '../lib/media'
 import { dayColors, tintOf, toBlock } from '../lib/appointments'
 import { getLocale, useT } from '../lib/i18n'
 import styles from '../styles/Inbox.module.css'
@@ -592,7 +593,12 @@ export default function InboxPage() {
               /* Что ассистент делает прямо сейчас: с кем говорит, в каком
                  состоянии ветка, что сказано последним и как давно. */
               <Panel title={t('home.streams.title')} count={live.length}>
-                <StreamList chats={chats} live={live} bleed="-mx-5 px-5" />
+                <StreamList
+                  chats={chats}
+                  live={live}
+                  bleed="-mx-5 px-5"
+                  onOpen={setOpenChatId}
+                />
               </Panel>
             )}
           </m.div>
@@ -636,7 +642,12 @@ export default function InboxPage() {
  */
 function SectionHeading({ title, count, actions }) {
   return (
-    <div className="flex shrink-0 items-center gap-2 px-1 pb-3">
+    // **На телефоне контролы уходят строкой ниже названия.** В одну строку с
+    // пятью кнопками заголовок сжимался до «Чаты …» — экран переставал говорить,
+    // где ты находишься, ради того, чтобы кнопки стояли рядом с ним. Так
+    // устроены экраны Apple: большой заголовок своей строкой, инструменты — под
+    // ним. С `sm` всё снова в одну строку, места там хватает.
+    <div className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-3 px-1 pb-3">
       <h2 className="min-w-0 truncate font-display text-[24px] leading-tight font-bold tracking-[-0.02em] text-ink">
         {title}
         {/* Число рядом с названием, а не подписью под ним: это про то же самое
@@ -656,7 +667,11 @@ function SectionHeading({ title, count, actions }) {
           `ml-auto` вместо `justify-between` на строке — с одним дочерним
           элементом `justify-between` вырождается в `flex-start`, и без
           заголовка кнопки уехали бы влево. */}
-      {actions ? <div className="ml-auto shrink-0">{actions}</div> : null}
+      {actions ? (
+        <div className="ml-auto shrink-0 max-sm:ml-0 max-sm:basis-full">
+          {actions}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -716,7 +731,7 @@ function ShowAllButton({ pressed, onClick }) {
       // `active:` там не отвечало на палец вовсе. Приглушение и 3% масштаба —
       // рецепт нажатия из `CLAUDE.md`, и `scale` назван в `transition` явно,
       // иначе он не анимируется.
-      className="-my-1 rounded-lg py-1 text-[14px] text-ink outline-none transition-[opacity,scale] duration-[160ms] ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97] active:opacity-60"
+      className="touch-target relative -my-1 rounded-lg py-1 text-[14px] text-ink outline-none transition-[opacity,scale] duration-[160ms] ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97] active:opacity-60"
     >
       {pressed ? t('chat.back') : t('chat.all')}
     </button>
@@ -921,11 +936,28 @@ function TableTools({ query, onQuery, filter, onFilter }) {
  */
 const SEARCH_CLOSED = 36
 const SEARCH_OPEN = 240
+// На телефоне ряд инструментов — во всю ширину экрана под заголовком, и
+// раскрытое на 240px поле вытолкнуло бы фильтр за край: 180 — то, что остаётся
+// после «Все», двух ящиков и фильтра на 390pt.
+const SEARCH_OPEN_PHONE = 180
 
 function SearchTool({ query, onQuery }) {
   const t = useT()
   const [open, setOpen] = useState(false)
   const reduce = useReducedMotion()
+  const wide = useMediaQuery('(min-width: 640px)')
+  const openWidth = wide ? SEARCH_OPEN : SEARCH_OPEN_PHONE
+  // **Обрезка — только пока фигура открыта или ещё закрывается.** Она нужна,
+  // чтобы плейсхолдер не торчал из растущей рамки; но закрытый кружок в
+  // `overflow-hidden` обрезал бы и 44-пиксельную зону нажатия
+  // (`touch-target`) обратно до 36. Поэтому на закрытии она держится до конца
+  // пружины и снимается в `onAnimationComplete`.
+  const [clip, setClip] = useState(false)
+
+  const show = () => {
+    setClip(true)
+    setOpen(true)
+  }
 
   const close = () => {
     setOpen(false)
@@ -946,11 +978,14 @@ function SearchTool({ query, onQuery }) {
       whileTap={open ? undefined : { scale: 0.95 }}
       // Радиус 18 — половина высоты: закрытой фигура — ровный круг.
       animate={{
-        width: open ? SEARCH_OPEN : SEARCH_CLOSED,
+        width: open ? openWidth : SEARCH_CLOSED,
         borderRadius: open ? 12 : SEARCH_CLOSED / 2,
       }}
       transition={grow}
-      className="relative flex h-9 shrink-0 items-center overflow-hidden"
+      onAnimationComplete={() => !open && setClip(false)}
+      className={`relative flex h-9 shrink-0 items-center ${
+        clip ? 'overflow-hidden' : ''
+      }`}
     >
       {/* Слой «кнопка» и слой «поле». Оба всегда в разметке и оба во всю
           фигуру, поэтому переключение между ними — одна прозрачность.
@@ -1021,7 +1056,8 @@ function SearchTool({ query, onQuery }) {
             exit={{ opacity: 0, transition: { duration: 0.1, ease: 'easeIn' } }}
             // Прозрачный: заливку и кольцо рисует слой под ним. `pl-9` —
             // место под значок, `pr-9` — под крестик.
-            className="absolute inset-y-0 left-0 z-10 w-[240px] appearance-none bg-transparent pr-9 pl-9 text-[16px] text-ink outline-none placeholder:text-muted sm:text-[14px] [&::-webkit-search-cancel-button]:appearance-none"
+            style={{ width: openWidth }}
+            className="absolute inset-y-0 left-0 z-10 appearance-none bg-transparent pr-9 pl-9 text-[16px] text-ink outline-none placeholder:text-muted sm:text-[14px] [&::-webkit-search-cancel-button]:appearance-none"
           />
         )}
       </AnimatePresence>
@@ -1040,7 +1076,8 @@ function SearchTool({ query, onQuery }) {
             whileTap={{ scale: 0.9 }}
             // От левого края, по конечной ширине: у правого края крестик ехал
             // бы вместе со сжимающейся фигурой.
-            className="absolute left-[208px] z-10 grid h-6 w-6 place-items-center rounded-full text-muted outline-none transition-colors duration-[160ms] ease-out hover:bg-ink/8 hover:text-ink focus-visible:bg-ink/8 focus-visible:text-ink"
+            style={{ left: openWidth - 32 }}
+            className="absolute z-10 grid h-6 w-6 place-items-center rounded-full text-muted outline-none transition-colors duration-[160ms] ease-out hover:bg-ink/8 hover:text-ink focus-visible:bg-ink/8 focus-visible:text-ink"
           >
             <HugeiconsIcon
               icon={Cancel01Icon}
@@ -1058,9 +1095,9 @@ function SearchTool({ query, onQuery }) {
         // целиком, а не по значку внутри неё.
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={show}
           aria-label={t('inbox.search')}
-          className="absolute inset-0 z-10 outline-none transition-colors duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8"
+          className="touch-target absolute inset-0 z-10 rounded-full outline-none transition-colors duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8"
         />
       )}
     </m.div>
@@ -1281,7 +1318,7 @@ function BookingTable({
         <table
           aria-busy="true"
           aria-label={t('inbox.all')}
-          className="w-full min-w-[560px] table-fixed border-collapse text-left"
+          className={TABLE}
         >
           <TableHead />
           {/* Те же `Td`, что у настоящих строк: высоту строки задают отступы
@@ -1289,14 +1326,14 @@ function BookingTable({
               внутри неё даёт ровно ту же высоту — таблица не прыгает, когда
               заглушку сменяют данные. */}
           <tbody
-            className={`divide-y divide-line transition-opacity duration-200 ease-out motion-reduce:transition-none ${
+            className={`divide-y divide-line transition-opacity duration-200 ease-out motion-reduce:transition-none max-sm:block ${
               bars ? 'opacity-100' : 'opacity-0'
             }`}
           >
             {Array.from({ length: 6 }, (_, index) => (
-              <tr key={index} className="text-[14px]">
-                {SKELETON_CELLS.map((width, cell) => (
-                  <Td key={cell}>
+              <tr key={index} className={`text-[14px] ${ROW_GRID}`}>
+                {SKELETON_CELLS.map(([cell, width]) => (
+                  <Td key={cell} className={PHONE_CELL[cell]}>
                     {width ? (
                       <Skeleton className={`inline-block h-[0.8em] align-middle ${width}`} />
                     ) : null}
@@ -1341,12 +1378,16 @@ function BookingTable({
     // Прокручивается вбок, а не ломается: на узком окне пять столбцов ужимать
     // дальше некуда, и честнее увезти их за край, чем показать пять обрубков.
     // Сменив заглушку, которую видели, таблица проявляется из размытия.
+    //
+    // На телефоне прокрутки вбок нет вовсе (`max-sm:overflow-visible`): строки
+    // там — список, а не столбцы, и зона нажатия «…» у правого края, выходя за
+    // ячейку, иначе рисовала полосу прокрутки под списком.
     <div
-      className={`-mx-1 overflow-x-auto px-1 ${
+      className={`-mx-1 overflow-x-auto px-1 max-sm:overflow-visible ${
         reveal ? 'animate-content-reveal' : ''
       }`}
     >
-      <table className="w-full min-w-[560px] table-fixed border-collapse text-left">
+      <table className={TABLE}>
         {/* 11px, прописные, разрядка — тот же шаг, которым в этом проекте
             набраны все заголовки столбцов. Заголовок не строка данных, и
             линия под ним — та же, что между записями: он такой же сосед. */}
@@ -1355,7 +1396,7 @@ function BookingTable({
         {/* `domMax` — проекция раскладки нужна строкам, а в `domAnimation` её
             нет. Вес не лишний: календарь дня на этой же странице её уже тянет. */}
         <LazyMotion features={domMax}>
-        <tbody className="divide-y divide-line">
+        <tbody className="divide-y divide-line max-sm:block">
           <AnimatePresence initial={false}>
           {rows.map((row) => (
             /* **`group` — ради подсветки.** Заливка лежит на ячейках, а не на
@@ -1406,7 +1447,7 @@ function BookingTable({
               // прозрачными ячейками, поэтому на десктопе он ложится поверх
               // подсветки и делает её на ступень плотнее, а на телефоне и есть
               // вся подсветка.
-              className={`group text-[14px] text-ink outline-none ${
+              className={`group text-[14px] text-ink outline-none ${ROW_GRID} ${
                 row.chatId
                   ? 'cursor-pointer transition-colors duration-100 ease-out active:bg-ink/12'
                   : ''
@@ -1414,16 +1455,18 @@ function BookingTable({
             >
               {/* Имя — единственная полужирная ячейка: строку ищут по человеку,
                   а не по услуге или часу. */}
-              <Td className="font-medium">{row.client}</Td>
+              <Td className={PHONE_CELL.name}>{row.client}</Td>
               {/* `tabular-nums` на номере, дате и часах: цифры одной ширины,
                   иначе столбец из десяти строк выглядит рваным. */}
-              <Td className="tabular-nums">{row.phone ?? DASH}</Td>
-              <Td className="tabular-nums">{dayLabel(`${row.date}T00:00:00`)}</Td>
+              <Td className={PHONE_CELL.phone}>{row.phone ?? DASH}</Td>
+              <Td className={PHONE_CELL.date}>
+                {dayLabel(`${row.date}T00:00:00`)}
+              </Td>
               {/* Прочерк, а не пусто: у разговора, не дошедшего до записи, часа
                   и услуги нет — и пустая ячейка читалась бы как «не загрузилось»,
                   а не как «этого не было». */}
-              <Td className="tabular-nums">{row.range ?? DASH}</Td>
-              <Td>{row.service ?? DASH}</Td>
+              <Td className={PHONE_CELL.time}>{row.range ?? DASH}</Td>
+              <Td className={PHONE_CELL.service}>{row.service ?? DASH}</Td>
               {/* **Меню — только у строки с перепиской.** Убирают в архив и в
                   корзину разговор; у записи, сделанной руками, убирать нечего,
                   и кнопка там обещала бы действие, которого нет.
@@ -1432,7 +1475,7 @@ function BookingTable({
                   ячеек ему не мешает и отменять его здесь нечего: два
                   `overflow` в одной строке классов разрешаются порядком в
                   таблице стилей, а не порядком записи. */}
-              <Td className="pr-1 text-right">
+              <Td className={PHONE_CELL.menu}>
                 {row.chatId ? (
                   <RowMenu row={row} onMove={onMove} />
                 ) : null}
@@ -1457,7 +1500,7 @@ function TableHead() {
   const t = useT()
 
   return (
-    <thead>
+    <thead className="max-sm:hidden">
       <tr className="border-b border-line text-[11px] tracking-wide text-muted uppercase">
         <Th className="w-[22%]">{t('appointments.clientName')}</Th>
         <Th className="w-[19%]">{t('appointments.clientPhone')}</Th>
@@ -1479,7 +1522,49 @@ function TableHead() {
  * Ширина полос в строке-заглушке, по столбцам. Разная, чтобы заглушка читалась
  * как текст разной длины, а не как линейка; у столбца действий полосы нет.
  */
-const SKELETON_CELLS = ['w-[70%]', 'w-[75%]', 'w-[65%]', 'w-[55%]', 'w-[60%]', null]
+const SKELETON_CELLS = [
+  ['name', 'w-[70%]'],
+  ['phone', 'w-[75%]'],
+  ['date', 'w-[65%]'],
+  ['time', 'w-[55%]'],
+  ['service', 'w-[60%]'],
+  ['menu', null],
+]
+
+/**
+ * Таблица на широком экране — список на телефоне.
+ *
+ * **На iPhone у Apple нет таблиц со столбцами, есть строки списка.** Аудит на
+ * 390pt показал таблицу, уехавшую вбок: пять столбцов по 560px минимум, номер
+ * «+7 700 000 …», дата «14.09.2…», а услуга и меню — за правым краем, куда
+ * никто не листает. Здесь та же разметка перестраивается ниже `sm`: шапка
+ * прячется (подписи столбцов нужны, когда столбцы есть), строка становится
+ * сеткой в две линии — имя и время сверху, услуга и дата под ними серым, меню
+ * справа во всю высоту. Номер на телефоне не показывается: он в шапке открытого
+ * треда, куда строка и ведёт, а третья линия удлинила бы каждую строку ради
+ * того, что и так в одном нажатии.
+ *
+ * Одна разметка, а не две: заглушка, анимации ухода и переезда строк, меню и
+ * нажатие — всё то же самое, и две копии разошлись бы на первой же правке.
+ * Классы с `max-sm:` стоят в таблице стилей после обычных, поэтому перебивают
+ * `py-3 pr-4` ячейки без спора о порядке.
+ */
+const TABLE =
+  'w-full border-collapse text-left max-sm:block sm:min-w-[560px] sm:table-fixed'
+
+const ROW_GRID =
+  'max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto_28px] max-sm:items-baseline max-sm:gap-x-3 max-sm:gap-y-1 max-sm:py-3 max-sm:pl-1'
+
+const PHONE_CELL = {
+  name: 'font-medium max-sm:[grid-area:1/1] max-sm:p-0',
+  phone: 'tabular-nums max-sm:hidden',
+  date: 'tabular-nums max-sm:[grid-area:2/2] max-sm:p-0 max-sm:pr-0 max-sm:text-right max-sm:text-[13px] max-sm:text-muted',
+  time: 'tabular-nums max-sm:[grid-area:1/2] max-sm:p-0 max-sm:pr-0 max-sm:text-right',
+  service: 'max-sm:[grid-area:2/1] max-sm:p-0 max-sm:pr-0 max-sm:text-[13px] max-sm:text-muted',
+  // `overflow-visible` на телефоне: у ячейки `truncate`, и её `overflow: hidden`
+  // обрезал 44-пиксельную зону нажатия «…» до самой точки в 24px.
+  menu: 'pr-1 text-right max-sm:[grid-area:1/3/3/4] max-sm:self-center max-sm:overflow-visible max-sm:p-0 max-sm:pr-0',
+}
 
 /**
  * Ячейки таблицы.
@@ -1537,7 +1622,12 @@ function Th({ className = '', children }) {
 function Td({ className = '', children }) {
   return (
     <td
-      className={`truncate py-3 pr-4 transition-colors duration-150 ease-out group-hover:bg-ink/12 group-focus-visible:bg-ink/12 group-data-open:bg-ink/12 first:pl-1 last:pr-1 ${className}`}
+      // `sm:first:` / `sm:last:`, а не просто `first:` / `last:`: на телефоне
+      // строка — сетка, и крайние отступы ячеек там только сдвигали имя на 4px
+      // от услуги под ним, а `max-sm:pl-0` их не перебивал — вариант `first:`
+      // стоит в таблице стилей позже. Отступ, который не применяется, не с чем
+      // и спорить.
+      className={`truncate py-3 pr-4 transition-colors duration-150 ease-out group-hover:bg-ink/12 group-focus-visible:bg-ink/12 group-data-open:bg-ink/12 sm:first:pl-1 sm:last:pr-1 ${className}`}
     >
       {children}
     </td>
@@ -1599,7 +1689,7 @@ function DayCardRow({ bookings, stale = false, direction = null, timeZone }) {
       <SkeletonRegion
         label={t('inbox.today')}
         visible={bars}
-        className="flex flex-wrap content-start gap-4 sm:gap-6"
+        className={DAY_ROW}
       >
         {[0, 1, 2].map((index) => (
           <DayCardSkeleton key={index} className={DAY_CARD_WIDTH} />
@@ -1660,7 +1750,7 @@ function DayCardRow({ bookings, stale = false, direction = null, timeZone }) {
       // Только на первом чтении (`direction === null`): у смены дня уже есть
       // своё появление — въезд со стороны шага, — и второе поверх него было бы
       // двумя анимациями на одном ряду.
-      className={`flex flex-wrap content-start gap-4 sm:gap-6 ${
+      className={`${DAY_ROW} ${
         reveal && direction === null ? 'animate-content-reveal' : ''
       }`}
     >
@@ -1693,7 +1783,24 @@ function DayCardRow({ bookings, stale = false, direction = null, timeZone }) {
  * Две копии этой ширины разошлись бы на пиксель, и ряд прыгал бы в момент, когда
  * заглушку сменяют настоящие карточки.
  */
-const DAY_CARD_WIDTH = 'w-[calc((100%-2rem)/3)] sm:w-[calc((100%-3rem)/3)]'
+const DAY_CARD_WIDTH =
+  'w-[78%] shrink-0 snap-start sm:w-[calc((100%-3rem)/3)] sm:shrink'
+
+/**
+ * Ряд карточек: сетка по три — и полка, листаемая вбок, на телефоне.
+ *
+ * **Три в ряд на 390pt — это три обрубка.** Аудит показал на телефоне
+ * «+7 701 5…» и «10:00 – 11»: карточка шириной в треть экрана не вмещает ни
+ * номер, ни промежуток, ради которых её открывают. Apple решает ту же задачу
+ * полкой — App Store, «Музыка»: карточки в полную читаемую ширину, листаются
+ * вбок с доводкой к краю (`snap`), и следующая выглядывает из-за края, говоря,
+ * что ряд продолжается. Полка выходит к краям экрана (`-mx-4 px-4`), как у
+ * Apple, а доводка учитывает тот же отступ (`scroll-px-4`), чтобы карточка
+ * вставала на поле, а не на край стекла. Полоса прокрутки скрыта: подсказку
+ * «есть ещё» даёт выглядывающая карточка.
+ */
+const DAY_ROW =
+  'flex content-start gap-4 max-sm:-mx-4 max-sm:snap-x max-sm:snap-mandatory max-sm:scroll-px-4 max-sm:overflow-x-auto max-sm:px-4 max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden sm:flex-wrap sm:gap-6'
 
 /**
  * Заглушка карточки дня — **те же строки с теми же кеглями**, а не прямоугольник
@@ -1833,7 +1940,7 @@ function RowMenu({ row, onMove }) {
         // ячейке, — у `Td` уже есть свой `last:pr-1`, и два `padding-right` в
         // одной строке классов разрешаются порядком в таблице стилей, а не
         // порядком записи.
-        className="mr-4 inline-flex"
+        className="mr-4 inline-flex max-sm:mr-1"
         onClick={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}
         role="presentation"
@@ -1842,7 +1949,7 @@ function RowMenu({ row, onMove }) {
           <button
             type="button"
             aria-label={t('inbox.actions')}
-            className="-m-1 grid place-items-center rounded-lg p-1 text-ink opacity-0 outline-none transition-[opacity,background-color,scale] duration-[160ms] ease-out group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-ink/8 focus-visible:opacity-100 active:scale-[0.9] data-[state=open]:opacity-100 [@media(hover:none)]:opacity-100"
+            className="touch-target relative -m-1 grid place-items-center rounded-lg p-1 text-ink opacity-0 outline-none transition-[opacity,background-color,scale] duration-[160ms] ease-out group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-ink/8 focus-visible:opacity-100 active:scale-[0.9] data-[state=open]:opacity-100 [@media(hover:none)]:opacity-100"
           >
             <HugeiconsIcon icon={MoreHorizontalIcon} size={16} strokeWidth={2} />
           </button>
@@ -1882,7 +1989,10 @@ function MenuItem({ icon, danger = false, onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[14px] outline-none transition-[background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.98] ${
+      // Пункт в 37px высотой — удобно мышью и мало пальцем: на сенсорном экране
+      // он дорастает до 44 (`pointer: coarse`), и меню становится на две
+      // строки выше, а не тесным.
+      className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[14px] outline-none transition-[background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.98] [@media(pointer:coarse)]:py-3 ${
         danger ? 'text-danger' : 'text-ink'
       }`}
     >

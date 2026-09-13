@@ -1802,7 +1802,7 @@ export function ToolbarPill({ children, fill = 'chip', ...props }) {
       // выглядела там отдельной, «выбранной» кнопкой среди простых
       // (`fill="step"`). Одно или другое — тернаром: две утилиты заливки в
       // одной строке решались бы порядком в таблице стилей.
-      className={`h-8 shrink-0 rounded-full px-4 text-[14px] font-medium text-ink outline-none duration-200 ease-out active:scale-[0.97] ${
+      className={`touch-target relative h-8 shrink-0 rounded-full px-4 text-[14px] font-medium text-ink outline-none duration-200 ease-out active:scale-[0.97] ${
         fill === 'step'
           ? 'bg-ink/12 transition-[background-color,scale] hover:bg-ink/20 focus-visible:bg-ink/20'
           : 'bg-surface-chip transition-[opacity,scale] hover:opacity-85 focus-visible:opacity-85'
@@ -1861,7 +1861,9 @@ export function StepButton({
       // Смена цвета — 200 мс ease-out: достаточно, чтобы включение читалось как
       // переход, а не щелчок, и меньше, чем ждёт палец. Фокус на включённой
       // гасит заливку прозрачностью: `bg-ink/20` превратил бы белый круг в серый.
-      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full outline-none transition-[color,background-color,border-color,opacity,scale] duration-200 ease-out active:scale-[0.95] ${
+      // `relative touch-target` — на сенсорном экране нажимается круг в 44px,
+      // а рисуется прежний в 36: см. утилиту в `globals.css`.
+      className={`touch-target relative grid h-9 w-9 shrink-0 place-items-center rounded-full outline-none transition-[color,background-color,border-color,opacity,scale] duration-200 ease-out active:scale-[0.95] ${
         selected
           ? 'bg-accent text-surface focus-visible:opacity-85'
           : active

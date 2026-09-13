@@ -191,7 +191,7 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
             type="button"
             onClick={onBack}
             aria-label={t('thread.back')}
-            className="-ml-2 grid h-9 w-9 shrink-0 place-items-center rounded-full text-ink outline-none transition-[background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.95]"
+            className="touch-target relative -ml-2 grid h-9 w-9 shrink-0 place-items-center rounded-full text-ink outline-none transition-[background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.95]"
           >
             <HugeiconsIcon icon={ArrowLeft01Icon} size={18} strokeWidth={2} />
           </button>
@@ -217,7 +217,7 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
             type="button"
             onClick={onClose}
             aria-label={t('thread.close')}
-            className="-mr-2 grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted outline-none transition-[color,background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 hover:text-ink focus-visible:bg-ink/8 focus-visible:text-ink active:scale-[0.95]"
+            className="touch-target relative -mr-2 grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted outline-none transition-[color,background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 hover:text-ink focus-visible:bg-ink/8 focus-visible:text-ink active:scale-[0.95]"
           >
             <HugeiconsIcon icon={Cancel01Icon} size={18} strokeWidth={2} />
           </button>
