@@ -34,11 +34,11 @@ import styles from '../styles/Dashboard.module.css'
 /**
  * Высота одной карточки — общая для всех, чтобы ряды не разошлись. На
  * компьютере два ряда делят страницу пополам за вычетом зазора между ними
- * (`1.5rem`), иначе страница прокручивалась бы на эти 24px; на телефоне
+ * (68px шапки + 48px отступов + 24px зазора = 140px), иначе страница прокручивалась бы на эти 24px; на телефоне
  * карточки идут столбиком и страница прокручивается всё равно.
  */
 const CARD_HEIGHT =
-  'h-[calc((100vh-118px-env(safe-area-inset-bottom)-2rem)/2)] sm:h-[calc((100vh-68px-3rem-1.5rem)/2)]'
+  'h-[calc((100vh-118px-env(safe-area-inset-bottom)-2rem)/2)] sm:h-[calc((100vh-140px)/2)]'
 
 export default function DashboardHomePage() {
   const t = useT()
@@ -61,9 +61,15 @@ export default function DashboardHomePage() {
         <section className={`${CARD_EDGE} ${CARD_HEIGHT} min-w-0 flex-1`} />
       </div>
 
-      {/* Третья — под рядом, у левого края, ровно размером со второй: её
-          ширина — это ряд без первой карточки (30%) и зазора между ними. */}
-      <section className={`${CARD_EDGE} ${CARD_HEIGHT} w-full sm:w-[calc(70%-1.5rem)]`} />
+      <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
+        {/* Третья — под рядом, у левого края, ровно размером со второй: её
+            ширина — это ряд без первой карточки (30%) и зазора между ними. */}
+        <section className={`${CARD_EDGE} ${CARD_HEIGHT} w-full shrink-0 sm:w-[calc(70%-1.5rem)]`} />
+
+        {/* Четвёртая — справа от третьей, на оставшееся место, то есть под
+            первой и её ширины: два ряда складываются в зеркальную сетку. */}
+        <section className={`${CARD_EDGE} ${CARD_HEIGHT} min-w-0 flex-1`} />
+      </div>
     </div>
   )
 }
