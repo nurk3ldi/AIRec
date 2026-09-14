@@ -21,6 +21,7 @@ from app.models.user import User
 from app.repositories.telegram import TelegramAccountRepository
 from app.schemas.conversation import IngestMessageRequest
 from app.schemas.telegram import ConnectTelegramRequest
+from app.services.assistant import schedule_reply
 from app.services.business import BusinessService
 from app.services.conversation import ConversationService
 
@@ -220,7 +221,7 @@ class TelegramService:
         `ConversationService` could not do: the file endpoint wants the bot's
         token, and a token is what this class exists to hold.
         """
-        await self._conversations.ingest_for_business(
+        conversation, stored = await self._conversations.ingest_for_business(
             account.business_id,
             IngestMessageRequest(
                 media_name=await self._store_photo(account, message.photo_id),
@@ -236,7 +237,8 @@ class TelegramService:
                 sent_at=message.sent_at,
             ),
         )
-
+        # The assistant answers in its own task, so Telegram gets its 200 now.
+        schedule_reply(conversation.id, stored.id)
 
     async def _store_photo(
         self, account: TelegramAccount, photo_id: str | None

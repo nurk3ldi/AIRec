@@ -16,6 +16,7 @@ from app.models.whatsapp_account import WhatsAppAccount
 from app.repositories.whatsapp import WhatsAppAccountRepository
 from app.schemas.conversation import IngestMessageRequest
 from app.schemas.whatsapp import ConnectWhatsAppRequest
+from app.services.assistant import schedule_reply
 from app.services.business import BusinessService
 from app.services.conversation import ConversationService
 
@@ -150,7 +151,7 @@ class WhatsAppService:
                 )
                 continue
 
-            await self._conversations.ingest_for_business(
+            conversation, stored = await self._conversations.ingest_for_business(
                 business_id,
                 IngestMessageRequest(
                     # `wa_id` is the number without a `+`; putting it back is
@@ -164,6 +165,7 @@ class WhatsAppService:
                     sent_at=inbound.sent_at,
                 ),
             )
+            schedule_reply(conversation.id, stored.id)
 
         for receipt in delivery.receipts:
             business_id = await business_for(receipt.phone_number_id)

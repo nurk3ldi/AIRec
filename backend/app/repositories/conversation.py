@@ -189,6 +189,25 @@ class ConversationRepository:
         )
         return int(await self._session.scalar(stmt) or 0)
 
+    async def get_with_business(self, conversation_id: uuid.UUID) -> Conversation | None:
+        """A thread and the business it belongs to, by id alone.
+
+        **The third unscoped conversation read, and like the other two it is
+        not reachable from a request.** It is how the assistant, woken by a
+        message that already went through a verified channel, finds what it is
+        answering and for whom — there is no signed-in owner to scope by. The
+        id it is handed came out of `ingest_for_business` a moment earlier.
+        `populate_existing` because the task reads a thread that may have moved
+        on since this session last saw it.
+        """
+        stmt = (
+            select(Conversation)
+            .where(Conversation.id == conversation_id)
+            .options(selectinload(Conversation.business))
+            .execution_options(populate_existing=True)
+        )
+        return await self._session.scalar(stmt)
+
     def add(self, conversation: Conversation) -> None:
         self._session.add(conversation)
 

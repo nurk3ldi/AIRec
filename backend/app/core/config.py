@@ -222,6 +222,32 @@ class Settings(BaseSettings):
     # one of the two per bot — turning this on deletes the webhook.
     telegram_polling: bool = False
 
+    # --- The assistant's language model ---
+    # **Which model writes the replies, named in one place.** `llm_provider`
+    # picks the adapter in `app/core/llm.py`; only `gemini` exists today, and
+    # GPT or Claude is a second adapter there plus its key here — nothing in
+    # the services knows which model answered.
+    #
+    # **Unset key is a working state**: the assistant stays silent, the message
+    # still lands in the inbox, and the log says why. That is right for a
+    # machine without a key and the only safe default for a deployment that
+    # forgot one.
+    llm_provider: str = "gemini"
+    gemini_api_key: SecretStr | None = None
+    # A Flash model: a receptionist's reply is short and somebody is waiting
+    # for it, which is what Flash is for. Pinned rather than "latest" for the
+    # reason the WhatsApp API version is — a model that changes under the app
+    # changes how the business talks without anybody deploying.
+    gemini_model: str = "gemini-3.5-flash"
+    gemini_api_base: str = "https://generativelanguage.googleapis.com/v1beta"
+    # Longer than a send: a model thinks before it answers, and a client is
+    # used to waiting a few seconds for a person to type.
+    llm_timeout_seconds: float = 30.0
+    # How much of the thread the model reads. Enough to remember what was
+    # asked a few messages ago; not the whole history of a regular client,
+    # which costs tokens on every reply and says nothing about today.
+    assistant_history_messages: int = 20
+
     # --- SMTP (optional) ---
     # Left unset in local dev on purpose: with no host configured, reset codes
     # are logged to the console instead of emailed — see app/core/email.py.

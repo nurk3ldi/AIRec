@@ -284,18 +284,42 @@ class ConversationService:
         the bubble.
         """
         conversation = await self.get(user, conversation_id)
+        return await self._say(
+            conversation, data.author, data.body, data.sent_at or datetime.now(UTC)
+        )
+
+    async def say_as_assistant(self, conversation: Conversation, body: str) -> Message:
+        """The assistant's reply, written into its thread and sent.
+
+        **No user, because nobody is signed in** — this is reached from a
+        background task after a client wrote, with the conversation already
+        found by the caller. Everything else is `add_message`'s path exactly,
+        so a reply the model wrote and a reply the owner typed are recorded and
+        delivered by the same lines.
+        """
+        return await self._say(
+            conversation, MessageAuthor.ASSISTANT, body, datetime.now(UTC)
+        )
+
+    async def _say(
+        self,
+        conversation: Conversation,
+        author: MessageAuthor,
+        body: str,
+        sent_at: datetime,
+    ) -> Message:
         message = Message(
             conversation_id=conversation.id,
-            author=data.author.value,
-            body=data.body,
-            sent_at=data.sent_at or datetime.now(UTC),
+            author=author.value,
+            body=body,
+            sent_at=sent_at,
             # Ours, so it has a delivery state; the client's messages keep NULL
             # — see `MessageStatus`.
             status=MessageStatus.PENDING,
         )
         self._messages.add(message)
 
-        if data.author is MessageAuthor.OWNER:
+        if author is MessageAuthor.OWNER:
             conversation.assistant_enabled = False
         # A thread nobody had answered has now been answered.
         if conversation.status == ConversationStatus.NEW:
