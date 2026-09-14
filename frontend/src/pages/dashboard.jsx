@@ -31,28 +31,39 @@ import styles from '../styles/Dashboard.module.css'
  * пустая страница — честный ответ, 404 — нет. Это домашний экран после входа, а
  * не `/` — по тому адресу лендинг.
  */
-/** Половина высоты страницы — общая для карточек в ряду, чтобы они не разошлись. */
+/**
+ * Высота одной карточки — общая для всех, чтобы ряды не разошлись. На
+ * компьютере два ряда делят страницу пополам за вычетом зазора между ними
+ * (`1.5rem`), иначе страница прокручивалась бы на эти 24px; на телефоне
+ * карточки идут столбиком и страница прокручивается всё равно.
+ */
 const CARD_HEIGHT =
-  'h-[calc((100vh-118px-env(safe-area-inset-bottom)-2rem)/2)] sm:h-[calc((100vh-68px-3rem)/2)]'
+  'h-[calc((100vh-118px-env(safe-area-inset-bottom)-2rem)/2)] sm:h-[calc((100vh-68px-3rem-1.5rem)/2)]'
 
 export default function DashboardHomePage() {
   const t = useT()
 
   return (
     <div
-      className={`${styles.page} flex flex-col items-stretch gap-4 p-4 sm:flex-row sm:items-start sm:gap-6 sm:p-6`}
+      className={`${styles.page} flex flex-col gap-4 p-4 sm:gap-6 sm:p-6`}
       aria-label={t('nav.dashboard')}
     >
-      {/* 30% ширины и половина высоты. На телефоне во всю ширину: 30% от
-          390pt — полоска, в которую ничего не поместится. Высота посчитана из
-          тех же чисел, что и страница (шапка, нижняя панель, отступы), а не
-          `h-1/2`: у страницы только `min-height`, и процент от неё не
-          разрешается. */}
-      <AssistantCard className={`${CARD_HEIGHT} w-full shrink-0 sm:w-[30%]`} />
+      <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
+        {/* 30% ширины и половина высоты. На телефоне во всю ширину: 30% от
+            390pt — полоска, в которую ничего не поместится. Высота посчитана из
+            тех же чисел, что и страница (шапка, нижняя панель, отступы), а не
+            `h-1/2`: у страницы только `min-height`, и процент от неё не
+            разрешается. */}
+        <AssistantCard className={`${CARD_HEIGHT} w-full shrink-0 sm:w-[30%]`} />
 
-      {/* Вторая карточка — пока пустая, справа от первой на ту же высоту и
-          на всю оставшуюся ширину. На телефоне — под первой. */}
-      <section className={`${CARD_EDGE} ${CARD_HEIGHT} min-w-0 flex-1`} />
+        {/* Вторая карточка — пока пустая, справа от первой на всю оставшуюся
+            ширину. На телефоне — под первой. */}
+        <section className={`${CARD_EDGE} ${CARD_HEIGHT} min-w-0 flex-1`} />
+      </div>
+
+      {/* Третья — под рядом, у левого края, ровно размером со второй: её
+          ширина — это ряд без первой карточки (30%) и зазора между ними. */}
+      <section className={`${CARD_EDGE} ${CARD_HEIGHT} w-full sm:w-[calc(70%-1.5rem)]`} />
     </div>
   )
 }
