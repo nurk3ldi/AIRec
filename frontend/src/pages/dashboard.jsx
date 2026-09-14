@@ -1,4 +1,5 @@
 import AssistantCard from '../components/home/AssistantCard'
+import { CARD_EDGE } from '../components/card'
 import { useT } from '../lib/i18n'
 import styles from '../styles/Dashboard.module.css'
 
@@ -30,12 +31,16 @@ import styles from '../styles/Dashboard.module.css'
  * пустая страница — честный ответ, 404 — нет. Это домашний экран после входа, а
  * не `/` — по тому адресу лендинг.
  */
+/** Половина высоты страницы — общая для карточек в ряду, чтобы они не разошлись. */
+const CARD_HEIGHT =
+  'h-[calc((100vh-118px-env(safe-area-inset-bottom)-2rem)/2)] sm:h-[calc((100vh-68px-3rem)/2)]'
+
 export default function DashboardHomePage() {
   const t = useT()
 
   return (
     <div
-      className={`${styles.page} flex items-start p-4 sm:p-6`}
+      className={`${styles.page} flex flex-col items-stretch gap-4 p-4 sm:flex-row sm:items-start sm:gap-6 sm:p-6`}
       aria-label={t('nav.dashboard')}
     >
       {/* 30% ширины и половина высоты. На телефоне во всю ширину: 30% от
@@ -43,7 +48,11 @@ export default function DashboardHomePage() {
           тех же чисел, что и страница (шапка, нижняя панель, отступы), а не
           `h-1/2`: у страницы только `min-height`, и процент от неё не
           разрешается. */}
-      <AssistantCard className="h-[calc((100vh-118px-env(safe-area-inset-bottom)-2rem)/2)] w-full sm:h-[calc((100vh-68px-3rem)/2)] sm:w-[30%]" />
+      <AssistantCard className={`${CARD_HEIGHT} w-full shrink-0 sm:w-[30%]`} />
+
+      {/* Вторая карточка — пока пустая, справа от первой на ту же высоту и
+          на всю оставшуюся ширину. На телефоне — под первой. */}
+      <section className={`${CARD_EDGE} ${CARD_HEIGHT} min-w-0 flex-1`} />
     </div>
   )
 }
