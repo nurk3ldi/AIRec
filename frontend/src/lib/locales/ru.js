@@ -49,6 +49,7 @@ export default {
   'nav.assistant': 'Ассистент',
   'nav.profile': 'Профиль',
   'nav.notifications': 'Уведомления',
+  'notifications.viewAll': 'Все уведомления',
   'appointments.prev': 'Назад',
   'appointments.next': 'Вперёд',
   'appointments.expand': 'Развернуть на весь экран',

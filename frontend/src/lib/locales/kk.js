@@ -43,6 +43,7 @@ export default {
   'nav.assistant': 'Ассистент',
   'nav.profile': 'Профиль',
   'nav.notifications': 'Хабарламалар',
+  'notifications.viewAll': 'Барлық хабарламалар',
   'appointments.prev': 'Артқа',
   'appointments.next': 'Алға',
   'appointments.expand': 'Толық экранға жаю',

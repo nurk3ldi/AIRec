@@ -13,6 +13,7 @@ import LandingPage from './pages/index'
 import LoginPage from './pages/login'
 import NotFoundPage from './pages/404'
 import NotesPage from './pages/notes'
+import NotificationsPage from './pages/notifications'
 import ProfilePage from './pages/profile'
 import ResetPasswordPage from './pages/reset-password'
 import SignupPage from './pages/signup'
@@ -71,6 +72,8 @@ export default function App() {
             points at it and a back gesture has to have somewhere to go. */}
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/notes" element={<NotesPage />} />
+        {/* Reached only from the notifications window's «Все уведомления». */}
+        <Route path="/notifications" element={<NotificationsPage />} />
       </Route>
 
       {/* Next.js served `pages/404.jsx` for anything unmatched; a router has to

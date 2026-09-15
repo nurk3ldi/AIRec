@@ -43,6 +43,7 @@ export default {
   'nav.assistant': 'Assistant',
   'nav.profile': 'Profile',
   'nav.notifications': 'Notifications',
+  'notifications.viewAll': 'View all notifications',
   'appointments.prev': 'Back',
   'appointments.next': 'Forward',
   'appointments.expand': 'Expand to full height',

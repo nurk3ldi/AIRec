@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import * as Popover from '@radix-ui/react-popover'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
+  ArrowRight02Icon,
   Notification01Icon,
   Search01Icon,
 } from '@hugeicons/core-free-icons'
@@ -22,6 +23,7 @@ import TelegramIsland from './TelegramIsland'
 // hidden there, which is why it never shows.)
 const PAGE_TITLE_KEYS = {
   '/dashboard': 'nav.dashboard',
+  '/notifications': 'nav.notifications',
   '/inbox': 'nav.inbox',
   '/appointments': 'nav.appointments',
   '/assistant': 'nav.assistant',
@@ -32,6 +34,7 @@ const PAGE_TITLE_KEYS = {
 export default function Header({ className = '' }) {
   const t = useT()
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const titleKey = PAGE_TITLE_KEYS[pathname]
   const title = titleKey ? t(titleKey) : 'AIRec'
 
@@ -145,9 +148,30 @@ export default function Header({ className = '' }) {
         // Grows out of the bell rather than out of the middle of the screen —
         // the window came from that button, and the notch says so too.
         style={notch ? { transformOrigin: `${notch.centre}px ${notch.top}px` } : undefined}
-        className={`${CARD_EDGE} ${PANEL_MOTION} z-[60] h-[50vh] w-[calc(var(--radix-popover-trigger-width)*0.99)] shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none`}
+        className={`${CARD_EDGE} ${PANEL_MOTION} z-[60] flex h-[50vh] w-[calc(var(--radix-popover-trigger-width)*0.99)] flex-col shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none`}
       >
         {notch && <BellNotch notch={notch} />}
+
+        {/* **The way to the whole list, and nothing else in the footer.** A
+            strip one step off the window's fill, held to the bottom, with one
+            text button in the middle — the arrow says it leads somewhere rather
+            than acting here. It closes the window as it goes, or the window
+            would sit over the page it just opened. The strip takes the window's
+            bottom corners itself: the window cannot clip it, because the caret
+            hangs outside its top edge. */}
+        <div className="mt-auto grid h-12 shrink-0 place-items-center rounded-b-[20px] corner-smooth bg-ink/4">
+          <button
+            type="button"
+            onClick={() => {
+              setNotificationsOpen(false)
+              navigate('/notifications')
+            }}
+            className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[14px] font-medium text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
+          >
+            {t('notifications.viewAll')}
+            <HugeiconsIcon icon={ArrowRight02Icon} size={16} strokeWidth={2} />
+          </button>
+        </div>
       </Popover.Content>
     </Popover.Portal>
     </Popover.Root>
