@@ -148,16 +148,35 @@ export default function Header({ className = '' }) {
         // Grows out of the bell rather than out of the middle of the screen —
         // the window came from that button, and the notch says so too.
         style={notch ? { transformOrigin: `${notch.centre}px ${notch.top}px` } : undefined}
-        className={`${CARD_EDGE} ${PANEL_MOTION} z-[60] flex h-[50vh] w-[calc(var(--radix-popover-trigger-width)*0.99)] flex-col shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none`}
+        className={`${CARD_EDGE} ${PANEL_MOTION} z-[60] flex h-[60vh] w-[calc(var(--radix-popover-trigger-width)*0.99)] flex-col shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none`}
       >
         {notch && <BellNotch notch={notch} />}
+
+        {/* **Four columns, each a heading card over a body card** — eight
+            cards, empty for now. No edges: they sit inside a window that
+            already has one, and a frame inside a frame is noise; a fill one
+            step off the window's is what separates them. 8px of air all round,
+            so their 12px corners run concentric with the window's 20px. On a
+            phone four columns do not fit side by side, so they become a shelf
+            that scrolls sideways, the next column peeking in. */}
+        <div className="flex min-h-0 flex-1 snap-x gap-2 overflow-x-auto p-2 pb-0 sm:grid sm:grid-cols-4 sm:overflow-visible">
+          {[0, 1, 2, 3].map((column) => (
+            <div
+              key={column}
+              className="flex w-[78%] shrink-0 snap-start flex-col gap-2 sm:w-auto"
+            >
+              <div className="h-12 shrink-0 rounded-[12px] corner-smooth bg-ink/5" />
+              <div className="min-h-0 flex-1 rounded-[12px] corner-smooth bg-ink/5" />
+            </div>
+          ))}
+        </div>
 
         {/* **The way to the whole list, and nothing else in the footer.** One
             text button held to the bottom centre, no strip behind it — the
             arrow says it leads somewhere rather than acting here. It closes the
             window as it goes, or the window would sit over the page it just
             opened. */}
-        <div className="mt-auto grid h-12 shrink-0 place-items-center">
+        <div className="grid h-12 shrink-0 place-items-center">
           <button
             type="button"
             onClick={() => {
