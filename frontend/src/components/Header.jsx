@@ -33,12 +33,14 @@ export default function Header({ className = '' }) {
   const title = titleKey ? t(titleKey) : 'AIRec'
 
   return (
-    // **The notifications window hangs off the whole header, not off the bell.**
-    // The header is the popover's anchor, so the window opens under it at the
-    // header's own width (less a 16px margin each side), where anchoring to a
-    // 36px bell would have left Radix nothing to size a four-column panel by.
-    // The bell stays the trigger — it opens and closes it, and the window grows
-    // out of the edge it came from.
+    // **The notifications window spans the whole screen, not the header.** It
+    // lies over everything — the navigation rail included — at 99% of the
+    // viewport's width, centred, with 0.5% of air at each edge. Its anchor is an
+    // invisible, full-width line fixed at the header's bottom edge: Radix
+    // centres the panel on it and reports its width as
+    // `--radix-popover-trigger-width`, which is what the 99% is taken of (the
+    // header itself stops at the rail, so it would have centred the panel
+    // 32px off). The bell stays the trigger that opens and closes it.
     <Popover.Root>
     {/* No white strip, but a rule. Dropping the fill was right — a filled bar is
     // a box drawn around a title and one icon — and dropping the line with it
@@ -57,7 +59,6 @@ export default function Header({ className = '' }) {
     // one to reach for if this should ever read as glass; it costs a
     // compositing layer and says "there is something under here", which is a
     // claim this header does not need to make. */}
-    <Popover.Anchor asChild>
     <header
       className={`sticky top-0 z-40 h-[68px] items-center justify-between gap-4 border-b border-line-strong bg-ground px-4 sm:px-6 lg:px-8 ${className}`}
     >
@@ -106,20 +107,24 @@ export default function Header({ className = '' }) {
         </Popover.Trigger>
       </div>
     </header>
+
+    <Popover.Anchor asChild>
+      <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-[68px] h-0" />
     </Popover.Anchor>
 
     <Popover.Portal>
       {/* **Empty for now**, on purpose: the window is the shape that was asked
           for, and what goes in it comes next. A floating layer, so it takes
           the floating shadow tier on top of the card edge, and it is capped to
-          what fits under the header. */}
+          what fits under the header. Above the rail (`z-50`), because it lies
+          over the whole site. */}
       <Popover.Content
         side="bottom"
         align="center"
         sideOffset={8}
-        collisionPadding={16}
+        avoidCollisions={false}
         aria-label={t('nav.notifications')}
-        className={`${CARD_EDGE} ${PANEL_MOTION} z-[60] h-[min(480px,calc(100vh-92px))] w-[calc(var(--radix-popover-trigger-width)-2rem)] shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none`}
+        className={`${CARD_EDGE} ${PANEL_MOTION} z-[60] h-[min(480px,calc(100vh-92px))] w-[calc(var(--radix-popover-trigger-width)*0.99)] shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none`}
       />
     </Popover.Portal>
     </Popover.Root>
