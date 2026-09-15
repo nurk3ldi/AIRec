@@ -70,7 +70,7 @@ export default function TelegramFeed({ rows, onOpen }) {
                 <span className="truncate text-[14px] font-medium text-ink">
                   {clientName(row, t('chat.noName'))}
                 </span>
-                <span className="ml-auto shrink-0 text-[12px] text-muted">
+                <span className="ml-auto shrink-0 text-[12px] text-ink">
                   {timeAgo(row.last_message_at)}
                 </span>
               </span>
