@@ -163,7 +163,7 @@ export default function Header({ className = '' }) {
           {[0, 1, 2, 3].map((column) => (
             <div
               key={column}
-              className="flex w-[78%] shrink-0 snap-start flex-col gap-2 sm:w-auto"
+              className="flex w-[78%] shrink-0 snap-start flex-col gap-0.5 sm:w-auto"
             >
               <div className="h-12 shrink-0 rounded-[12px] corner-smooth bg-ink/5" />
               <div className="min-h-0 flex-1 rounded-[12px] corner-smooth bg-ink/5" />
