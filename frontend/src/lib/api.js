@@ -515,6 +515,11 @@ export function updateConversation(accessToken, id, changes) {
   })
 }
 
+/** How many threads have something unread — threads, not messages. */
+export function getUnreadCount(accessToken) {
+  return request('/conversations/unread-count', { method: 'GET', accessToken })
+}
+
 /** Clears the thread's unread count. Opening it is what calls this. */
 export function markConversationRead(accessToken, id) {
   return request(`/conversations/${id}/read`, { method: 'POST', accessToken })

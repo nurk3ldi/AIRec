@@ -1,3 +1,4 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import * as Popover from '@radix-ui/react-popover'
 import { HugeiconsIcon } from '@hugeicons/react'
@@ -5,6 +6,8 @@ import {
   Notification01Icon,
   Search01Icon,
 } from '@hugeicons/core-free-icons'
+import { getUnreadCount } from '../lib/api'
+import { authed } from '../lib/auth'
 import { useT } from '../lib/i18n'
 import { PANEL_MOTION } from './appointments/panel'
 import { CARD_EDGE } from './card'
@@ -32,6 +35,12 @@ export default function Header({ className = '' }) {
   const titleKey = PAGE_TITLE_KEYS[pathname]
   const title = titleKey ? t(titleKey) : 'AIRec'
 
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const bellRef = useRef(null)
+  const anchorRef = useRef(null)
+  const notch = useBellNotch(notificationsOpen, bellRef, anchorRef)
+  const unread = useUnread()
+
   return (
     // **The notifications window spans the whole screen, not the header.** It
     // lies over everything — the navigation rail included — at 99% of the
@@ -41,7 +50,7 @@ export default function Header({ className = '' }) {
     // `--radix-popover-trigger-width`, which is what the 99% is taken of (the
     // header itself stops at the rail, so it would have centred the panel
     // 32px off). The bell stays the trigger that opens and closes it.
-    <Popover.Root>
+    <Popover.Root open={notificationsOpen} onOpenChange={setNotificationsOpen}>
     {/* No white strip, but a rule. Dropping the fill was right — a filled bar is
     // a box drawn around a title and one icon — and dropping the line with it
     // was not: without it the header and the page are one flat field, which is
@@ -103,13 +112,22 @@ export default function Header({ className = '' }) {
             **A window, not a page, from 2026-09-15** — `/notifications` was
             removed; the bell opens the (still empty) window below. */}
         <Popover.Trigger asChild>
-          <HeaderButton label={t('nav.notifications')} icon={Notification01Icon} />
+          <HeaderButton
+            ref={bellRef}
+            label={t('nav.notifications')}
+            icon={Notification01Icon}
+            dot={unread > 0}
+          />
         </Popover.Trigger>
       </div>
     </header>
 
     <Popover.Anchor asChild>
-      <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-[68px] h-0" />
+      <div
+        ref={anchorRef}
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-x-0 top-[68px] h-0"
+      />
     </Popover.Anchor>
 
     <Popover.Portal>
@@ -121,13 +139,161 @@ export default function Header({ className = '' }) {
       <Popover.Content
         side="bottom"
         align="center"
-        sideOffset={8}
+        sideOffset={PANEL_OFFSET}
         avoidCollisions={false}
         aria-label={t('nav.notifications')}
-        className={`${CARD_EDGE} ${PANEL_MOTION} z-[60] h-[min(480px,calc(100vh-92px))] w-[calc(var(--radix-popover-trigger-width)*0.99)] shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none`}
-      />
+        // Grows out of the bell rather than out of the middle of the screen —
+        // the window came from that button, and the notch says so too.
+        style={notch ? { transformOrigin: `${notch.centre}px ${notch.top}px` } : undefined}
+        className={`${CARD_EDGE} ${PANEL_MOTION} z-[60] h-[min(480px,calc(100vh-72px))] w-[calc(var(--radix-popover-trigger-width)*0.99)] shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none`}
+      >
+        {notch && <BellNotch notch={notch} />}
+      </Popover.Content>
     </Popover.Portal>
     </Popover.Root>
+  )
+}
+
+/**
+ * How many conversations have something unread, for the bell's dot.
+ *
+ * Read on mount and every 15 seconds while the tab is visible — the same rhythm
+ * as «Диалоги»; a failure keeps the last answer rather than flashing the dot
+ * off.
+ */
+function useUnread() {
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    let alive = true
+    const read = () =>
+      authed(getUnreadCount)
+        .then((value) => alive && setCount(Number(value) || 0))
+        .catch(() => {})
+    read()
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') read()
+    }, 15000)
+    return () => {
+      alive = false
+      clearInterval(timer)
+    }
+  }, [])
+
+  return count
+}
+
+/** The notch's geometry, in px. */
+const NOTCH_WIDTH = 18 // the caret's base, centred under the bell glyph
+const NOTCH_GAP = 4 // air between the bottom of the glyph and the caret's tip
+const NOTCH_TIP = 5 // how much the tip is rounded, along each side — enough to read blunt
+const NOTCH_FLARE = 3 // the soft curve where each side meets the window's edge
+const BELL_GLYPH = 18 // the icon's size inside the 36px button
+// **Negative, so the window hangs close under the icon** rather than below the
+// header: the anchor line is the header's bottom edge (68px), the bell glyph
+// ends at 43px, and the window starts 14px under the glyph — over the lower
+// band of the header, which it is allowed to cover since it lies over the site.
+const PANEL_OFFSET = -11
+
+/**
+ * Where the notch goes, measured once per opening (and on resize) — not while
+ * anything animates, so a scaled frame is never read. The window's own box is
+ * known without measuring it: it hangs `PANEL_OFFSET` under the anchor line
+ * and is 99% of its width, centred.
+ */
+function useBellNotch(open, bellRef, anchorRef) {
+  const [notch, setNotch] = useState(null)
+
+  useLayoutEffect(() => {
+    if (!open) return
+    const measure = () => {
+      const bell = bellRef.current?.getBoundingClientRect()
+      const anchor = anchorRef.current?.getBoundingClientRect()
+      if (!bell || !anchor) return
+      const panelLeft = anchor.left + (anchor.width * 0.01) / 2
+      const panelTop = anchor.top + PANEL_OFFSET
+      const centre = bell.left + bell.width / 2 - panelLeft
+      // From the glyph, not the button: the button's 36px box is invisible
+      // while closed, so a notch measured from it floated away from the icon.
+      const glyphBottom = bell.top + bell.height / 2 + BELL_GLYPH / 2
+      const top = glyphBottom + NOTCH_GAP - panelTop
+      setNotch({
+        left: centre - NOTCH_WIDTH / 2 - NOTCH_FLARE,
+        top,
+        // Down to the window's top edge and 1px past it, so the window's own
+        // hairline is covered where the two become one shape.
+        height: -top + 1,
+        centre,
+      })
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [open, bellRef, anchorRef])
+
+  return open ? notch : null
+}
+
+/**
+ * A small caret under the bell, joining it to the window it opened.
+ *
+ * **Under the icon, not around it, and pointed.** A tab wrapping the whole bell
+ * was built first and read as a box pulled over the button, then a rounded bump
+ * that read as a second button; what connects them is a triangle rising from
+ * the window's top edge to just below the glyph, tip and joins softened, so the
+ * window visibly points at the thing that opened it while the bell stays as
+ * it is.
+ *
+ * An SVG, because the flares have to be a curved *line* as well as a curved
+ * fill, and a border cannot bend inwards. The stroke leaves the bottom open,
+ * which is where the notch and the window are the same surface.
+ */
+function BellNotch({ notch }) {
+  const w = NOTCH_WIDTH
+  const f = NOTCH_FLARE
+  const t = NOTCH_TIP
+  const h = notch.height
+  const width = w + f * 2
+  // The line runs along the middle of the window's own 1px top edge (`b`), so
+  // the caret's stroke and the window's border are one line where they meet.
+  const b = h - 0.5
+  const tip = { x: width / 2, y: 0.5 }
+  const leftBase = { x: f, y: b }
+  const rightBase = { x: f + w, y: b }
+  // Unit vector along the left side, from its base up to the tip; the right
+  // side is its mirror.
+  const side = Math.hypot(w / 2, b - tip.y)
+  const ux = w / 2 / side
+  const uy = (tip.y - b) / side
+  const at = (point, dx, dy, k) => `${point.x + dx * k} ${point.y + dy * k}`
+  // A triangle with its three joins softened: a short curve off the window's
+  // edge on each side, and a rounded tip — a sharp point reads as a pixel
+  // error at this size, a round one as a tab.
+  const outline =
+    `M 0 ${b} Q ${leftBase.x} ${leftBase.y} ${at(leftBase, ux, uy, f)} ` +
+    `L ${at(tip, -ux, -uy, t)} Q ${tip.x} ${tip.y} ${at(tip, ux, -uy, t)} ` +
+    `L ${at(rightBase, -ux, uy, f)} Q ${rightBase.x} ${rightBase.y} ${width} ${b}`
+
+  return (
+    <svg
+      aria-hidden="true"
+      width={width}
+      height={h}
+      viewBox={`0 0 ${width} ${h}`}
+      className="pointer-events-none absolute overflow-visible"
+      style={{ left: notch.left, top: notch.top }}
+    >
+      {/* The fill runs 1px further down than the line, over the window's
+          border, so no hairline shows across the join. */}
+      <path d={`${outline} L ${width} ${h} L 0 ${h} Z`} fill="var(--color-surface-raised)" />
+      <path
+        d={outline}
+        fill="none"
+        stroke="var(--color-card-edge)"
+        strokeWidth="1"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
   )
 }
 
@@ -193,7 +359,7 @@ function HeaderSearch() {
  * sets of navigation read as one family. A button rather than a link: what it
  * opens is a window over the page, not a page.
  */
-function HeaderButton({ label, icon, ...props }) {
+function HeaderButton({ label, icon, dot = false, ...props }) {
   // Every other prop is spread onto the button: Radix's `asChild` hands the
   // trigger its ref, its handlers and `data-state`, and a button that swallowed
   // them would never open anything.
@@ -202,7 +368,7 @@ function HeaderButton({ label, icon, ...props }) {
       type="button"
       aria-label={label}
       {...props}
-      className="touch-target relative grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-accent/8 focus-visible:bg-accent/8 active:scale-95 data-[state=open]:bg-accent/8"
+      className="touch-target relative grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-accent/8 focus-visible:bg-accent/8 active:scale-95"
     >
       <HugeiconsIcon
         icon={icon}
@@ -211,6 +377,15 @@ function HeaderButton({ label, icon, ...props }) {
         strokeLinejoin="round"
         strokeWidth={2.15}
       />
+      {/* Something unread. Red, because it is the one thing in the header that
+          asks to be looked at; ringed in the header's own ground so it reads
+          as sitting on the bell rather than smudged into it. */}
+      {dot && (
+        <span
+          aria-hidden="true"
+          className="absolute top-[7px] right-[8px] h-2 w-2 rounded-full bg-danger ring-2 ring-ground"
+        />
+      )}
     </button>
   )
 }
