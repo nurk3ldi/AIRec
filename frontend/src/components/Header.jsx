@@ -7,7 +7,7 @@ import {
   Notification01Icon,
   Search01Icon,
 } from '@hugeicons/core-free-icons'
-import { getUnreadCount } from '../lib/api'
+import { listConversations } from '../lib/api'
 import { authed } from '../lib/auth'
 import { useT } from '../lib/i18n'
 import { PANEL_MOTION } from './appointments/panel'
@@ -50,7 +50,7 @@ export default function Header({ className = '' }) {
   const bellRef = useRef(null)
   const anchorRef = useRef(null)
   const notch = useBellNotch(notificationsOpen, bellRef, anchorRef)
-  const unread = useUnread()
+  const unread = useUnseen(notificationsOpen)
   const telegram = useTelegramFeed(notificationsOpen)
 
   return (
@@ -128,7 +128,7 @@ export default function Header({ className = '' }) {
             ref={bellRef}
             label={t('nav.notifications')}
             icon={Notification01Icon}
-            dot={unread > 0}
+            badge={unread}
           />
         </Popover.Trigger>
       </div>
@@ -233,21 +233,43 @@ export default function Header({ className = '' }) {
   )
 }
 
+/** Where the moment the window was last looked at is kept, per browser. */
+const SEEN_KEY = 'airec_notifications_seen'
+
+function readSeen() {
+  try {
+    return Number(localStorage.getItem(SEEN_KEY)) || 0
+  } catch {
+    return 0
+  }
+}
+
 /**
- * How many conversations have something unread, for the bell's dot.
+ * How many notifications arrived since the window was last opened, for the
+ * bell's badge — the unread Telegram conversations the window's Telegram column
+ * lists, counting only those whose last message is newer than that moment.
  *
- * Read on mount and every 15 seconds while the tab is visible — the same rhythm
- * as «Диалоги»; a failure keeps the last answer rather than flashing the dot
- * off.
+ * **Opening the window is what clears it**, not reading every chat: the badge
+ * says "there is something you have not looked at", and opening the window is
+ * looking. The moment is written on open *and* on close, so a message that
+ * arrived while the window was open — and so was on screen — does not light the
+ * badge the instant it shuts. Kept in `localStorage` so a reload does not
+ * resurrect what was already seen.
+ *
+ * Read on mount and every 15 seconds while the tab is visible; a failure keeps
+ * the last answer rather than flashing the badge off and on.
  */
-function useUnread() {
-  const [count, setCount] = useState(0)
+function useUnseen(open) {
+  const [rows, setRows] = useState([])
+  const [seen, setSeen] = useState(readSeen)
 
   useEffect(() => {
     let alive = true
     const read = () =>
-      authed(getUnreadCount)
-        .then((value) => alive && setCount(Number(value) || 0))
+      authed((token) =>
+        listConversations(token, { archived: false, deleted: false, limit: 100 }),
+      )
+        .then((all) => alive && setRows(all))
         .catch(() => {})
     read()
     const timer = setInterval(() => {
@@ -259,7 +281,30 @@ function useUnread() {
     }
   }, [])
 
-  return count
+  // Both edges of the window count as having looked: open, and close — but
+  // not the page arriving, or every reload would mark everything as seen.
+  // Compared with the last value rather than skipped once, because StrictMode
+  // runs an effect twice on mount and a "first run" flag is spent by the first.
+  const was = useRef(open)
+  useEffect(() => {
+    if (was.current === open) return
+    was.current = open
+    const now = Date.now()
+    setSeen(now)
+    try {
+      localStorage.setItem(SEEN_KEY, String(now))
+    } catch {
+      // Private mode: the badge still clears for this session.
+    }
+  }, [open])
+
+  if (open) return 0
+  return rows.filter(
+    (row) =>
+      row.channel === 'telegram' &&
+      row.unread_count > 0 &&
+      Date.parse(row.last_message_at) > seen,
+  ).length
 }
 
 /**
@@ -446,7 +491,7 @@ function HeaderSearch() {
  * sets of navigation read as one family. A button rather than a link: what it
  * opens is a window over the page, not a page.
  */
-function HeaderButton({ label, icon, dot = false, ...props }) {
+function HeaderButton({ label, icon, badge = 0, ...props }) {
   // Every other prop is spread onto the button: Radix's `asChild` hands the
   // trigger its ref, its handlers and `data-state`, and a button that swallowed
   // them would never open anything.
@@ -464,14 +509,18 @@ function HeaderButton({ label, icon, dot = false, ...props }) {
         strokeLinejoin="round"
         strokeWidth={2.15}
       />
-      {/* Something unread. Red, because it is the one thing in the header that
-          asks to be looked at; ringed in the header's own ground so it reads
-          as sitting on the bell rather than smudged into it. */}
-      {dot && (
+      {/* How many new notifications. Red, because it is the one thing in the
+          header that asks to be looked at; ringed in the header's own ground
+          so it reads as sitting on the bell rather than smudged into it.
+          Past nine it says «9+»: the badge answers "is there something", and
+          a two-digit number would outgrow the bell it sits on. */}
+      {badge > 0 && (
         <span
           aria-hidden="true"
-          className="absolute top-[7px] right-[8px] h-2 w-2 rounded-full bg-danger ring-2 ring-ground"
-        />
+          className="absolute top-[2px] right-[1px] grid h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[10px] leading-none font-semibold text-white tabular-nums ring-2 ring-ground"
+        >
+          {badge > 9 ? '9+' : badge}
+        </span>
       )}
     </button>
   )
