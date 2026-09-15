@@ -166,18 +166,27 @@ export default function Header({ className = '' }) {
             phone four columns do not fit side by side, so they become a shelf
             that scrolls sideways, the next column peeking in. */}
         <div className="flex min-h-0 flex-1 snap-x gap-2 overflow-x-auto p-2 pb-0 sm:grid sm:grid-cols-4 sm:overflow-visible">
-          {[0, 1, 2, 3].map((column) => (
+          {NOTIFICATION_COLUMNS.map((column) => (
             <div
               key={column}
               className="flex w-[78%] shrink-0 snap-start flex-col gap-1 sm:w-auto"
             >
-              {/* The heading carries «Очистить всё» against its right edge —
-                  a text button, as the reference has it; it clears nothing
-                  yet, there being nothing in the column to clear. */}
-              <div className="flex h-12 shrink-0 items-center justify-end rounded-t-[12px] corner-smooth bg-surface-raised px-3">
+              {/* The heading: the column's name with how many it holds, and
+                  «Очистить всё» against the right edge — both as the reference
+                  has them. The count is 0 and the button clears nothing yet,
+                  there being nothing in the column. */}
+              <div className="flex h-12 shrink-0 items-center justify-between gap-2 rounded-t-[12px] corner-smooth bg-surface-raised pr-2.5 pl-4">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate text-[14px] font-medium text-ink">
+                    {t(`notifications.${column}`)}
+                  </span>
+                  <span className="shrink-0 rounded-md bg-ink/8 px-1.5 text-[12px] leading-5 text-muted tabular-nums">
+                    0
+                  </span>
+                </span>
                 <button
                   type="button"
-                  className="rounded-md px-1.5 py-1 text-[13px] font-medium text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
+                  className="shrink-0 rounded-md px-1.5 py-1 text-[13px] font-medium text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
                 >
                   {t('notifications.dismissAll')}
                 </button>
@@ -239,6 +248,14 @@ function useUnread() {
 
   return count
 }
+
+/**
+ * The window's four columns, left to right. Keys, not labels — translated at
+ * render. Telegram holds the right edge, where the bell that opens the window
+ * is, with the assistant beside it: the two that speak for the business in
+ * conversations sit nearest the thing you pressed.
+ */
+const NOTIFICATION_COLUMNS = ['system', 'news', 'assistant', 'telegram']
 
 /** The notch's geometry, in px. */
 const NOTCH_WIDTH = 18 // the caret's base, centred under the bell glyph
