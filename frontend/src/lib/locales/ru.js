@@ -55,7 +55,7 @@ export default {
   'notifications.news': 'Новости',
   'notifications.assistant': 'Ассистент',
   'notifications.telegram': 'Telegram',
-  'notifications.reply': 'Ответить',
+  'notifications.view': 'Посмотреть',
   'notifications.telegramEmpty': 'Новых сообщений из Telegram нет',
   'appointments.prev': 'Назад',
   'appointments.next': 'Вперёд',

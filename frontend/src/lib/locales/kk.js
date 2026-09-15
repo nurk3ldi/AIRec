@@ -49,7 +49,7 @@ export default {
   'notifications.news': 'Жаңалықтар',
   'notifications.assistant': 'Ассистент',
   'notifications.telegram': 'Telegram',
-  'notifications.reply': 'Жауап беру',
+  'notifications.view': 'Қарау',
   'notifications.telegramEmpty': 'Telegram-нан жаңа хабарлама жоқ',
   'appointments.prev': 'Артқа',
   'appointments.next': 'Алға',

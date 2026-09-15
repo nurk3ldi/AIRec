@@ -1,5 +1,4 @@
-import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowTurnBackwardIcon, UserIcon } from '@hugeicons/core-free-icons'
+import { UserIcon } from '@hugeicons/core-free-icons'
 import { clientName } from '../../lib/conversations'
 import { getLocale, useT } from '../../lib/i18n'
 import { useSkeleton } from '../../lib/skeleton'
@@ -22,9 +21,9 @@ function timeAgo(iso) {
 /**
  * The Telegram column's body: one card per unread conversation, laid out from
  * the reference — the client's circle, their name with how long ago against the
- * right edge, the last thing they wrote, and «Ответить».
+ * right edge, the last thing they wrote, and «Посмотреть» under the time.
  *
- * **The whole card is the button, and «Ответить» is its label, not a second
+ * **The whole card is the button, and «Посмотреть» is its label, not a second
  * target.** Both would do the same thing — open that conversation in «Диалоги»
  * — and two presses meaning one action is a row asking which to aim for.
  */
@@ -75,12 +74,13 @@ export default function TelegramFeed({ rows, onOpen }) {
                   {timeAgo(row.last_message_at)}
                 </span>
               </span>
-              <span className="mt-0.5 truncate text-[13px] text-muted">
-                {row.last_message_preview}
-              </span>
-              <span className="mt-1.5 flex items-center gap-1.5 text-[13px] font-medium text-ink">
-                <HugeiconsIcon icon={ArrowTurnBackwardIcon} size={15} strokeWidth={2} />
-                {t('notifications.reply')}
+              <span className="mt-0.5 flex items-baseline gap-2">
+                <span className="truncate text-[13px] text-muted">
+                  {row.last_message_preview}
+                </span>
+                <span className="ml-auto shrink-0 text-[13px] font-medium text-ink">
+                  {t('notifications.view')}
+                </span>
               </span>
             </span>
           </button>

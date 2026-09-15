@@ -49,7 +49,7 @@ export default {
   'notifications.news': 'News',
   'notifications.assistant': 'Assistant',
   'notifications.telegram': 'Telegram',
-  'notifications.reply': 'Reply',
+  'notifications.view': 'View',
   'notifications.telegramEmpty': 'No new Telegram messages',
   'appointments.prev': 'Back',
   'appointments.next': 'Forward',
