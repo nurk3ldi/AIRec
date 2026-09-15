@@ -165,7 +165,17 @@ export default function Header({ className = '' }) {
               key={column}
               className="flex w-[78%] shrink-0 snap-start flex-col gap-1 sm:w-auto"
             >
-              <div className="h-12 shrink-0 rounded-t-[12px] corner-smooth bg-ink/5" />
+              {/* The heading carries «Очистить всё» against its right edge —
+                  a text button, as the reference has it; it clears nothing
+                  yet, there being nothing in the column to clear. */}
+              <div className="flex h-12 shrink-0 items-center justify-end rounded-t-[12px] corner-smooth bg-ink/5 px-3">
+                <button
+                  type="button"
+                  className="rounded-md px-1.5 py-1 text-[13px] font-medium text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
+                >
+                  {t('notifications.dismissAll')}
+                </button>
+              </div>
               <div className="min-h-0 flex-1 rounded-b-[12px] corner-smooth bg-ink/5" />
             </div>
           ))}

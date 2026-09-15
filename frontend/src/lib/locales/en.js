@@ -44,6 +44,7 @@ export default {
   'nav.profile': 'Profile',
   'nav.notifications': 'Notifications',
   'notifications.viewAll': 'View all notifications',
+  'notifications.dismissAll': 'Dismiss all',
   'appointments.prev': 'Back',
   'appointments.next': 'Forward',
   'appointments.expand': 'Expand to full height',

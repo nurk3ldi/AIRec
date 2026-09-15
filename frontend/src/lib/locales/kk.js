@@ -44,6 +44,7 @@ export default {
   'nav.profile': 'Профиль',
   'nav.notifications': 'Хабарламалар',
   'notifications.viewAll': 'Барлық хабарламалар',
+  'notifications.dismissAll': 'Барлығын тазалау',
   'appointments.prev': 'Артқа',
   'appointments.next': 'Алға',
   'appointments.expand': 'Толық экранға жаю',

@@ -50,6 +50,7 @@ export default {
   'nav.profile': 'Профиль',
   'nav.notifications': 'Уведомления',
   'notifications.viewAll': 'Все уведомления',
+  'notifications.dismissAll': 'Очистить всё',
   'appointments.prev': 'Назад',
   'appointments.next': 'Вперёд',
   'appointments.expand': 'Развернуть на весь экран',
