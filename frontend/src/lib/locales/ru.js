@@ -327,8 +327,6 @@ export default {
   'settings.language': 'Язык',
 
   // ── Notifications, empty states, errors ───────────────────────────────────
-  'notifications.aria': 'Страница уведомлений',
-  'notifications.telegram': 'Telegram',
   'comingSoon.title': 'Скоро',
   'comingSoon': 'Скоро здесь появится этот раздел.',
   'notFound.title': 'Страница не найдена',

@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Notification01Icon,
@@ -21,7 +21,6 @@ const PAGE_TITLE_KEYS = {
   '/assistant': 'nav.assistant',
   '/notes': 'nav.notes',
   '/profile': 'nav.profile',
-  '/notifications': 'nav.notifications',
 }
 
 export default function Header({ className = '' }) {
@@ -29,7 +28,6 @@ export default function Header({ className = '' }) {
   const { pathname } = useLocation()
   const titleKey = PAGE_TITLE_KEYS[pathname]
   const title = titleKey ? t(titleKey) : 'AIRec'
-  const isOnNotifications = pathname === '/notifications'
 
   return (
     // No white strip, but a rule. Dropping the fill was right — a filled bar is
@@ -88,13 +86,12 @@ export default function Header({ className = '' }) {
 
             That is also why it is not in `NAVIGATION` — the bottom bar's five
             slots are full, and this row is present on a phone too, so it stays
-            reachable there without a sixth glyph squeezing the others. */}
-        <HeaderLink
-          to="/notifications"
-          label={t('nav.notifications')}
-          icon={Notification01Icon}
-          isActive={isOnNotifications}
-        />
+            reachable there without a sixth glyph squeezing the others.
+
+            **A window, not a page, from 2026-09-15** — `/notifications` was
+            removed, and the window it will open is still to be built, so for
+            now the button does nothing. */}
+        <HeaderButton label={t('nav.notifications')} icon={Notification01Icon} />
       </div>
     </header>
   )
@@ -159,19 +156,16 @@ function HeaderSearch() {
  * One of the header's icon buttons.
  *
  * Same 18px glyph at the same stroke weight as the sidebar rail, so the two
- * sets of navigation read as one family, and the active page keeps the tint
- * rather than gaining an outline — an icon in a row of icons says "you are
- * here" with a filled ground more quietly than a border does.
+ * sets of navigation read as one family. A button rather than a link: what it
+ * opens is a window over the page, not a page.
  */
-function HeaderLink({ to, label, icon, isActive }) {
+function HeaderButton({ label, icon, onClick }) {
   return (
-    <Link
-      to={to}
+    <button
+      type="button"
+      onClick={onClick}
       aria-label={label}
-      aria-current={isActive ? 'page' : undefined}
-      className={`grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-ink outline-none transition-colors ${
-        isActive ? 'bg-accent/8' : 'hover:bg-accent/8 focus-visible:bg-accent/8'
-      }`}
+      className="touch-target relative grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-accent/8 focus-visible:bg-accent/8 active:scale-95"
     >
       <HugeiconsIcon
         icon={icon}
@@ -180,6 +174,6 @@ function HeaderLink({ to, label, icon, isActive }) {
         strokeLinejoin="round"
         strokeWidth={2.15}
       />
-    </Link>
+    </button>
   )
 }

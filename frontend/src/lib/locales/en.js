@@ -309,8 +309,6 @@ export default {
   'settings.theme.dark': 'Dark',
   'settings.language': 'Language',
 
-  'notifications.aria': 'Notifications page',
-  'notifications.telegram': 'Telegram',
   'comingSoon.title': 'Coming soon',
   'comingSoon': 'This section is coming soon.',
   'notFound.title': 'Page not found',

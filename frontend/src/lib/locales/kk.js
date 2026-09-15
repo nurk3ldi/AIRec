@@ -310,8 +310,6 @@ export default {
   'settings.theme.dark': 'Қараңғы',
   'settings.language': 'Тіл',
 
-  'notifications.aria': 'Хабарламалар беті',
-  'notifications.telegram': 'Telegram',
   'comingSoon.title': 'Жақында',
   'comingSoon': 'Бұл бөлім жақында қосылады.',
   'notFound.title': 'Бет табылмады',
