@@ -201,7 +201,7 @@ export default function Header({ className = '' }) {
             arrow says it leads somewhere rather than acting here. It closes the
             window as it goes, or the window would sit over the page it just
             opened. */}
-        <div className="grid h-12 shrink-0 place-items-center">
+        <div className="grid h-14 shrink-0 place-items-center">
           <button
             type="button"
             onClick={() => {
