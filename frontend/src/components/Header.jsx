@@ -11,7 +11,13 @@ import { getUnreadCount } from '../lib/api'
 import { authed } from '../lib/auth'
 import { useT } from '../lib/i18n'
 import { PANEL_MOTION } from './appointments/panel'
-import { CARD_EDGE } from './card'
+
+/**
+ * The notifications window's fill — one step off a card's, so the cards inside
+ * it can wear the card fill and sit *in* the window rather than on top of it.
+ * The notch has to be painted the same, so it is one constant.
+ */
+const WINDOW_FILL = 'color-mix(in oklab, var(--color-ink) 5%, var(--color-surface-raised))'
 import TelegramIsland from './TelegramIsland'
 
 // Translation keys rather than titles: this map is built once at import, so a
@@ -147,8 +153,8 @@ export default function Header({ className = '' }) {
         aria-label={t('nav.notifications')}
         // Grows out of the bell rather than out of the middle of the screen —
         // the window came from that button, and the notch says so too.
-        style={notch ? { transformOrigin: `${notch.centre}px ${notch.top}px` } : undefined}
-        className={`${CARD_EDGE} ${PANEL_MOTION} z-[60] flex h-[60vh] w-[calc(var(--radix-popover-trigger-width)*0.99)] flex-col shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none`}
+        style={{ ...(notch ? { transformOrigin: `${notch.centre}px ${notch.top}px` } : {}), background: WINDOW_FILL }}
+        className={`rounded-[20px] corner-smooth border border-card-edge ${PANEL_MOTION} z-[60] flex h-[60vh] w-[calc(var(--radix-popover-trigger-width)*0.99)] flex-col shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none`}
       >
         {notch && <BellNotch notch={notch} />}
 
@@ -168,7 +174,7 @@ export default function Header({ className = '' }) {
               {/* The heading carries «Очистить всё» against its right edge —
                   a text button, as the reference has it; it clears nothing
                   yet, there being nothing in the column to clear. */}
-              <div className="flex h-12 shrink-0 items-center justify-end rounded-t-[12px] corner-smooth bg-ink/5 px-3">
+              <div className="flex h-12 shrink-0 items-center justify-end rounded-t-[12px] corner-smooth bg-surface-raised px-3">
                 <button
                   type="button"
                   className="rounded-md px-1.5 py-1 text-[13px] font-medium text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
@@ -176,7 +182,7 @@ export default function Header({ className = '' }) {
                   {t('notifications.dismissAll')}
                 </button>
               </div>
-              <div className="min-h-0 flex-1 rounded-b-[12px] corner-smooth bg-ink/5" />
+              <div className="min-h-0 flex-1 rounded-b-[12px] corner-smooth bg-surface-raised" />
             </div>
           ))}
         </div>
@@ -336,7 +342,7 @@ function BellNotch({ notch }) {
     >
       {/* The fill runs 1px further down than the line, over the window's
           border, so no hairline shows across the join. */}
-      <path d={`${outline} L ${width} ${h} L 0 ${h} Z`} fill="var(--color-surface-raised)" />
+      <path d={`${outline} L ${width} ${h} L 0 ${h} Z`} style={{ fill: WINDOW_FILL }} />
       <path
         d={outline}
         fill="none"
