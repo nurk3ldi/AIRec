@@ -306,7 +306,9 @@ export default function TelegramIsland() {
     ]
   }
 
-  const open = () => {
+  const open = (event) => {
+    // Крестик закрывает, а не открывает: его `click` всплывает сюда же.
+    if (event.target.closest('[data-island-close]')) return
     // Отпущенное после перетаскивания — не нажатие.
     if (dragged.current) {
       dragged.current = false
@@ -343,6 +345,12 @@ export default function TelegramIsland() {
             onPointerCancel={onPointerUp}
             onPointerEnter={() => setHeld(true)}
             onPointerLeave={() => !press.current && setHeld(false)}
+            // **Открытие слушает сама пилюля, а не кнопка внутри.** Захват
+            // указателя (`setPointerCapture` при нажатии) переносит `pointerup`
+            // на пилюлю, и Chrome шлёт `click` ей, а не кнопке под пальцем —
+            // `onClick` на кнопке молчал. Клавиатура по-прежнему жмёт кнопку,
+            // и её `click` всплывает сюда.
+            onClick={open}
             onFocus={() => setHeld(true)}
             onBlur={() => setHeld(false)}
             className="pointer-events-auto h-11 touch-none overflow-hidden rounded-full border border-card-edge bg-surface-raised p-[5px] shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] select-none"
@@ -355,7 +363,6 @@ export default function TelegramIsland() {
             >
               <button
                 type="button"
-                onClick={open}
                 aria-label={t('island.open', { name: note.name })}
                 className="flex h-full min-w-0 flex-1 items-center gap-2.5 rounded-full text-left outline-none"
               >
