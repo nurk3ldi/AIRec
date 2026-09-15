@@ -19,6 +19,8 @@ import { PANEL_MOTION } from './appointments/panel'
  */
 const WINDOW_FILL = 'color-mix(in oklab, var(--color-ink) 5%, var(--color-surface-raised))'
 import TelegramIsland from './TelegramIsland'
+import TelegramFeed from './notifications/TelegramFeed'
+import { useTelegramFeed } from './notifications/useTelegramFeed'
 
 // Translation keys rather than titles: this map is built once at import, so a
 // translated string would freeze in whichever language loaded first.
@@ -49,6 +51,7 @@ export default function Header({ className = '' }) {
   const anchorRef = useRef(null)
   const notch = useBellNotch(notificationsOpen, bellRef, anchorRef)
   const unread = useUnread()
+  const telegram = useTelegramFeed(notificationsOpen)
 
   return (
     // **The notifications window spans the whole screen, not the header.** It
@@ -181,7 +184,7 @@ export default function Header({ className = '' }) {
                     {t(`notifications.${column}`)}
                   </span>
                   <span className="shrink-0 rounded-md bg-ink/8 px-1.5 text-[12px] leading-5 text-muted tabular-nums">
-                    0
+                    {column === 'telegram' ? (telegram?.length ?? 0) : 0}
                   </span>
                 </span>
                 <button
@@ -191,7 +194,17 @@ export default function Header({ className = '' }) {
                   {t('notifications.dismissAll')}
                 </button>
               </div>
-              <div className="min-h-0 flex-1 rounded-b-[12px] corner-smooth bg-surface-raised" />
+              <div className="min-h-0 flex-1 overflow-y-auto rounded-b-[12px] corner-smooth bg-surface-raised">
+                {column === 'telegram' && (
+                  <TelegramFeed
+                    rows={telegram}
+                    onOpen={(id) => {
+                      setNotificationsOpen(false)
+                      navigate(`/inbox?chat=${id}`)
+                    }}
+                  />
+                )}
+              </div>
             </div>
           ))}
         </div>
