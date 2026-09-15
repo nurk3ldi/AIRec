@@ -145,7 +145,7 @@ export default function Header({ className = '' }) {
         // Grows out of the bell rather than out of the middle of the screen —
         // the window came from that button, and the notch says so too.
         style={notch ? { transformOrigin: `${notch.centre}px ${notch.top}px` } : undefined}
-        className={`${CARD_EDGE} ${PANEL_MOTION} z-[60] h-[min(480px,calc(100vh-72px))] w-[calc(var(--radix-popover-trigger-width)*0.99)] shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none`}
+        className={`${CARD_EDGE} ${PANEL_MOTION} z-[60] h-[50vh] w-[calc(var(--radix-popover-trigger-width)*0.99)] shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none`}
       >
         {notch && <BellNotch notch={notch} />}
       </Popover.Content>
