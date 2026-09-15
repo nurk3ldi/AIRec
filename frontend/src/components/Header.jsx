@@ -1,10 +1,13 @@
 import { useLocation } from 'react-router-dom'
+import * as Popover from '@radix-ui/react-popover'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Notification01Icon,
   Search01Icon,
 } from '@hugeicons/core-free-icons'
 import { useT } from '../lib/i18n'
+import { PANEL_MOTION } from './appointments/panel'
+import { CARD_EDGE } from './card'
 import TelegramIsland from './TelegramIsland'
 
 // Translation keys rather than titles: this map is built once at import, so a
@@ -30,7 +33,14 @@ export default function Header({ className = '' }) {
   const title = titleKey ? t(titleKey) : 'AIRec'
 
   return (
-    // No white strip, but a rule. Dropping the fill was right — a filled bar is
+    // **The notifications window hangs off the whole header, not off the bell.**
+    // The header is the popover's anchor, so the window opens under it at the
+    // header's own width (less a 16px margin each side), where anchoring to a
+    // 36px bell would have left Radix nothing to size a four-column panel by.
+    // The bell stays the trigger — it opens and closes it, and the window grows
+    // out of the edge it came from.
+    <Popover.Root>
+    {/* No white strip, but a rule. Dropping the fill was right — a filled bar is
     // a box drawn around a title and one icon — and dropping the line with it
     // was not: without it the header and the page are one flat field, which is
     // most obvious in dark mode, where there is no shadow doing the work
@@ -46,7 +56,8 @@ export default function Header({ className = '' }) {
     // A blur (`bg-ground/80 backdrop-blur`) is the other way to do it and the
     // one to reach for if this should ever read as glass; it costs a
     // compositing layer and says "there is something under here", which is a
-    // claim this header does not need to make.
+    // claim this header does not need to make. */}
+    <Popover.Anchor asChild>
     <header
       className={`sticky top-0 z-40 h-[68px] items-center justify-between gap-4 border-b border-line-strong bg-ground px-4 sm:px-6 lg:px-8 ${className}`}
     >
@@ -89,11 +100,29 @@ export default function Header({ className = '' }) {
             reachable there without a sixth glyph squeezing the others.
 
             **A window, not a page, from 2026-09-15** — `/notifications` was
-            removed, and the window it will open is still to be built, so for
-            now the button does nothing. */}
-        <HeaderButton label={t('nav.notifications')} icon={Notification01Icon} />
+            removed; the bell opens the (still empty) window below. */}
+        <Popover.Trigger asChild>
+          <HeaderButton label={t('nav.notifications')} icon={Notification01Icon} />
+        </Popover.Trigger>
       </div>
     </header>
+    </Popover.Anchor>
+
+    <Popover.Portal>
+      {/* **Empty for now**, on purpose: the window is the shape that was asked
+          for, and what goes in it comes next. A floating layer, so it takes
+          the floating shadow tier on top of the card edge, and it is capped to
+          what fits under the header. */}
+      <Popover.Content
+        side="bottom"
+        align="center"
+        sideOffset={8}
+        collisionPadding={16}
+        aria-label={t('nav.notifications')}
+        className={`${CARD_EDGE} ${PANEL_MOTION} z-[60] h-[min(480px,calc(100vh-92px))] w-[calc(var(--radix-popover-trigger-width)-2rem)] shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] outline-none`}
+      />
+    </Popover.Portal>
+    </Popover.Root>
   )
 }
 
@@ -159,13 +188,16 @@ function HeaderSearch() {
  * sets of navigation read as one family. A button rather than a link: what it
  * opens is a window over the page, not a page.
  */
-function HeaderButton({ label, icon, onClick }) {
+function HeaderButton({ label, icon, ...props }) {
+  // Every other prop is spread onto the button: Radix's `asChild` hands the
+  // trigger its ref, its handlers and `data-state`, and a button that swallowed
+  // them would never open anything.
   return (
     <button
       type="button"
-      onClick={onClick}
       aria-label={label}
-      className="touch-target relative grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-accent/8 focus-visible:bg-accent/8 active:scale-95"
+      {...props}
+      className="touch-target relative grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-accent/8 focus-visible:bg-accent/8 active:scale-95 data-[state=open]:bg-accent/8"
     >
       <HugeiconsIcon
         icon={icon}
