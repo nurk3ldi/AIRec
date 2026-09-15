@@ -152,14 +152,12 @@ export default function Header({ className = '' }) {
       >
         {notch && <BellNotch notch={notch} />}
 
-        {/* **The way to the whole list, and nothing else in the footer.** A
-            strip one step off the window's fill, held to the bottom, with one
-            text button in the middle — the arrow says it leads somewhere rather
-            than acting here. It closes the window as it goes, or the window
-            would sit over the page it just opened. The strip takes the window's
-            bottom corners itself: the window cannot clip it, because the caret
-            hangs outside its top edge. */}
-        <div className="mt-auto grid h-12 shrink-0 place-items-center rounded-b-[20px] corner-smooth bg-ink/4">
+        {/* **The way to the whole list, and nothing else in the footer.** One
+            text button held to the bottom centre, no strip behind it — the
+            arrow says it leads somewhere rather than acting here. It closes the
+            window as it goes, or the window would sit over the page it just
+            opened. */}
+        <div className="mt-auto grid h-12 shrink-0 place-items-center">
           <button
             type="button"
             onClick={() => {
