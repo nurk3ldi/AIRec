@@ -40,6 +40,8 @@ class AppointmentStatus(StrEnum):
 
 class AppointmentSource(StrEnum):
     WHATSAPP = "whatsapp"
+    # Filed by the assistant from a Telegram chat, as a pending request.
+    TELEGRAM = "telegram"
     MANUAL = "manual"
 
 
@@ -154,6 +156,14 @@ class Appointment(Base):
         server_default=AppointmentSource.MANUAL,
     )
     note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # The chat this booking was agreed in, when the assistant filed it — see
+    # migration 0030. It is how the owner's confirmation reaches the client.
+    conversation_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     # What the owner marked this booking with, as a palette *name* — see the
     # note in migration 0019. Null is the ordinary case: most bookings are not
     # marked, and a calendar where every card is coloured is a calendar where

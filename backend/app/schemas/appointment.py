@@ -55,6 +55,8 @@ class AppointmentPublic(BaseModel):
     source: str
     note: str | None = None
     color: str | None = None
+    # Set on a booking the assistant filed from a chat; the panel links to it.
+    conversation_id: uuid.UUID | None = None
     # Computed on the model from `archived_at`.
     archived: bool = False
     created_at: datetime

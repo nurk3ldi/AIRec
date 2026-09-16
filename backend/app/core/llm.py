@@ -14,6 +14,7 @@ switching Gemini for GPT or Claude later is a new function here and a key in
 from __future__ import annotations
 
 import logging
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal
 
@@ -22,6 +23,10 @@ import httpx
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+# How many times one reply may call a tool before it has to answer in words. One
+# call is the ordinary case; the ceiling only stops a model that loops.
+MAX_TOOL_ROUNDS = 3
 
 # Telegram refuses a message over 4096 characters. A receptionist never needs
 # that much, and a model that produced it has gone wrong somewhere — cut rather
@@ -42,6 +47,22 @@ class Turn:
     text: str
 
 
+@dataclass(frozen=True, slots=True)
+class Tool:
+    """Something the model may do rather than say.
+
+    `parameters` is a JSON Schema object (the OpenAPI subset every provider
+    accepts). `run` takes the arguments the model chose and returns a plain
+    dict the model is shown as the result — errors included, as data, so the
+    model can explain them to the client instead of the reply failing.
+    """
+
+    name: str
+    description: str
+    parameters: dict[str, Any]
+    run: Callable[[dict[str, Any]], Awaitable[dict[str, Any]]]
+
+
 class LLMNotConfigured(Exception):
     """No key for the chosen provider — the assistant stays silent."""
 
@@ -50,18 +71,24 @@ class LLMError(Exception):
     """The model could not produce a reply: refused, blocked, or unreachable."""
 
 
-async def generate_reply(system: str, turns: list[Turn]) -> str:
-    """The next thing the business says, or an exception saying why not."""
+async def generate_reply(
+    system: str, turns: list[Turn], tools: Sequence[Tool] = ()
+) -> str:
+    """The next thing the business says, or an exception saying why not.
+
+    With `tools`, the model may call them first; each call is run and its
+    result handed back, and what comes out at the end is still text.
+    """
     provider = settings.llm_provider.lower()
     if provider == "gemini":
-        return await _gemini(system, turns)
+        return await _gemini(system, turns, tools)
     raise LLMNotConfigured(f"Unknown LLM_PROVIDER {settings.llm_provider!r}")
 
 
 # --- Gemini ------------------------------------------------------------------
 
 
-async def _gemini(system: str, turns: list[Turn]) -> str:
+async def _gemini(system: str, turns: list[Turn], tools: Sequence[Tool]) -> str:
     """`models.generateContent` over REST.
 
     **The key travels in `x-goog-api-key`, not in `?key=`**, which the docs
@@ -73,6 +100,11 @@ async def _gemini(system: str, turns: list[Turn]) -> str:
     `contents` as a dialogue that opens with the user, and two assistant
     messages in a row (a reply, then the owner) are one side speaking twice —
     joined, they say the same thing in the shape the API expects.
+
+    **A function call is answered and the model asked again.** The model's own
+    parts go back *unchanged* — a thinking model signs them, and a call sent
+    back without its signature is refused — followed by the result as a
+    `functionResponse`.
     """
     if settings.gemini_api_key is None:
         raise LLMNotConfigured("GEMINI_API_KEY is not set")
@@ -83,16 +115,54 @@ async def _gemini(system: str, turns: list[Turn]) -> str:
         if not contents and role == "model":
             continue
         if contents and contents[-1]["role"] == role:
-            contents[-1]["parts"][0]["text"] += f"\n\n{turn.text}"
+            contents[-1]["parts"][0]["text"] += "\n\n" + turn.text
         else:
             contents.append({"role": role, "parts": [{"text": turn.text}]})
 
     if not contents:
         raise LLMError("Nothing from the client to answer")
 
+    by_name = {tool.name: tool for tool in tools}
+    for _ in range(MAX_TOOL_ROUNDS + 1):
+        candidate = await _gemini_call(system, contents, tools)
+        parts = (candidate.get("content") or {}).get("parts") or []
+        calls = [part["functionCall"] for part in parts if part.get("functionCall")]
+
+        if not calls:
+            # A thinking model may return its reasoning as parts marked
+            # `thought`; only the answer goes to the client.
+            text = "".join(
+                part.get("text", "") for part in parts if not part.get("thought")
+            ).strip()
+            if not text:
+                reason = candidate.get("finishReason")
+                raise LLMError(f"Gemini gave no text (finishReason={reason})")
+            return text[:MAX_REPLY_CHARS]
+
+        contents.append({"role": "model", "parts": parts})
+        responses = []
+        for call in calls:
+            name = call.get("name", "")
+            tool = by_name.get(name)
+            if tool is None:
+                result: dict[str, Any] = {"ok": False, "error": f"Unknown tool {name}"}
+            else:
+                result = await tool.run(call.get("args") or {})
+            responses.append(
+                {"functionResponse": {"name": name, "response": result}}
+            )
+        contents.append({"role": "user", "parts": responses})
+
+    raise LLMError("Gemini kept calling tools without answering")
+
+
+async def _gemini_call(
+    system: str, contents: list[dict[str, Any]], tools: Sequence[Tool]
+) -> dict[str, Any]:
+    """One `generateContent` request; the first candidate, or `LLMError`."""
     base = settings.gemini_api_base.rstrip("/")
     url = f"{base}/models/{settings.gemini_model}:generateContent"
-    body = {
+    body: dict[str, Any] = {
         "systemInstruction": {"parts": [{"text": system}]},
         "contents": contents,
         "generationConfig": {
@@ -105,6 +175,19 @@ async def _gemini(system: str, turns: list[Turn]) -> str:
             "maxOutputTokens": 2048,
         },
     }
+    if tools:
+        body["tools"] = [
+            {
+                "functionDeclarations": [
+                    {
+                        "name": tool.name,
+                        "description": tool.description,
+                        "parameters": tool.parameters,
+                    }
+                    for tool in tools
+                ]
+            }
+        ]
 
     try:
         async with httpx.AsyncClient(timeout=settings.llm_timeout_seconds) as client:
@@ -133,16 +216,4 @@ async def _gemini(system: str, turns: list[Turn]) -> str:
     candidates = payload.get("candidates") or []
     if not candidates:
         raise LLMError("Gemini returned no candidates")
-
-    candidate = candidates[0]
-    parts = (candidate.get("content") or {}).get("parts") or []
-    # A thinking model may return its reasoning as parts marked `thought`;
-    # only the answer goes to the client.
-    text = "".join(
-        part.get("text", "") for part in parts if not part.get("thought")
-    ).strip()
-    if not text:
-        reason = candidate.get("finishReason")
-        raise LLMError(f"Gemini gave no text (finishReason={reason})")
-
-    return text[:MAX_REPLY_CHARS]
+    return candidates[0]

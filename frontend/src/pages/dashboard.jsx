@@ -1,4 +1,4 @@
-import { CARD_EDGE } from '../components/card'
+import ConfirmationsCard from '../components/home/ConfirmationsCard'
 import { useT } from '../lib/i18n'
 import styles from '../styles/Dashboard.module.css'
 
@@ -41,9 +41,7 @@ export default function DashboardHomePage() {
           68px шапки и 48px отступов; на телефоне — шапка с нижней панелью
           (118px) и 32px отступов, а ширина во всю строку, потому что половина
           от 390pt — полоска. */}
-      <section
-        className={`${CARD_EDGE} h-[calc((100vh-118px-env(safe-area-inset-bottom)-2rem)/2)] w-full sm:h-[calc((100vh-116px)/2)] sm:w-1/2`}
-      />
+      <ConfirmationsCard className="h-[calc((100vh-118px-env(safe-area-inset-bottom)-2rem)/2)] w-full sm:h-[calc((100vh-116px)/2)] sm:w-1/2" />
     </div>
   )
 }

@@ -8,7 +8,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
-from app.models.appointment import BLOCKING_STATUSES, Appointment
+from app.models.appointment import BLOCKING_STATUSES, Appointment, AppointmentStatus
 
 
 class AppointmentRepository:
@@ -25,6 +25,35 @@ class AppointmentRepository:
         stmt = select(Appointment).where(
             Appointment.business_id == business_id,
             Appointment.id == appointment_id,
+        )
+        return await self._session.scalar(stmt)
+
+    async def get_unscoped(self, appointment_id: uuid.UUID) -> Appointment | None:
+        """One booking by id alone — **the one exception to business scoping.**
+
+        For the assistant announcing a decision in a background task, where the
+        id came from a row this process just committed under a scoped update,
+        not from anything a client sent. No route may call it.
+        """
+        return await self._session.get(Appointment, appointment_id)
+
+    async def get_pending_for_conversation(
+        self, business_id: uuid.UUID, conversation_id: uuid.UUID
+    ) -> Appointment | None:
+        """The request the assistant already filed in this chat, if still open.
+
+        One pending booking per conversation: a client who changes their mind
+        about the time moves that request rather than leaving a second one.
+        """
+        stmt = (
+            select(Appointment)
+            .where(
+                Appointment.business_id == business_id,
+                Appointment.conversation_id == conversation_id,
+                Appointment.status == AppointmentStatus.PENDING,
+            )
+            .order_by(Appointment.created_at.desc())
+            .limit(1)
         )
         return await self._session.scalar(stmt)
 

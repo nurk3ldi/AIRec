@@ -16,7 +16,7 @@ from app.core.errors import (
     ServiceNotFound,
     SlotUnavailable,
 )
-from app.models.appointment import Appointment, AppointmentSource
+from app.models.appointment import Appointment, AppointmentSource, AppointmentStatus
 from app.models.business import Business
 from app.models.service import Service
 from app.models.user import User
@@ -172,7 +172,10 @@ class AppointmentService:
     # --- writing ---------------------------------------------------------
 
     async def create(
-        self, user: User, data: CreateAppointmentRequest
+        self,
+        user: User,
+        data: CreateAppointmentRequest,
+        conversation_id: uuid.UUID | None = None,
     ) -> Appointment:
         business = await self._businesses.get_or_create(user)
         # Before anything is read: the check below and the insert that follows
@@ -255,6 +258,9 @@ class AppointmentService:
             source=data.source.value,
             note=data.note,
             color=data.color,
+            # Not on the request schema: only the assistant files a booking from
+            # a chat, and it says which chat itself.
+            conversation_id=conversation_id,
         )
         self._appointments.add(appointment)
         await self._session.commit()
@@ -262,8 +268,19 @@ class AppointmentService:
         return appointment
 
     async def update(
-        self, user: User, appointment_id: uuid.UUID, data: UpdateAppointmentRequest
+        self,
+        user: User,
+        appointment_id: uuid.UUID,
+        data: UpdateAppointmentRequest,
+        by_client: bool = False,
     ) -> Appointment:
+        """Edit a booking.
+
+        `by_client` is the assistant moving a request it filed: then the client
+        rules (hours, notice, horizon) apply to the new time exactly as they did
+        when it was first filed. Every other caller is the owner, who is not
+        bound by them.
+        """
         business = await self._businesses.get_or_create(user)
         await self._businesses.lock(business)
 
@@ -336,6 +353,7 @@ class AppointmentService:
             if field in changes:
                 setattr(appointment, field, changes[field])
 
+        previous_status = appointment.status
         if changes.get("status") is not None:
             appointment.status = changes["status"].value
 
@@ -352,9 +370,8 @@ class AppointmentService:
         # of it somewhere new. Marking an old booking as completed must not fail
         # because its time is long past the notice period.
         if moved:
-            # Every edit here comes from the panel, so the owner is the one
-            # moving it — the same reasoning as a manual booking above. When the
-            # assistant gets its own way in, it will have to say so.
+            # From the panel the owner is moving it — the same reasoning as a
+            # manual booking above. The assistant says so with `by_client`.
             await self._ensure_within_rules(
                 user,
                 business,
@@ -362,7 +379,7 @@ class AppointmentService:
                 # A zero-length instant when the booking has no end, exactly as
                 # on create: there is no span to test.
                 appointment.ends_at or appointment.starts_at,
-                enforce_client_rules=False,
+                enforce_client_rules=by_client,
             )
 
         # Room is re-checked whenever this booking starts occupying something it
@@ -380,6 +397,20 @@ class AppointmentService:
 
         await self._session.commit()
         await self._session.refresh(appointment)
+
+        # **The owner's decision on a request goes back to the client.** A
+        # pending booking the assistant filed from a chat, confirmed or declined
+        # here, is announced in that chat — after the commit, in a task of its
+        # own, so a slow model never holds up the panel.
+        if (
+            appointment.conversation_id is not None
+            and previous_status == AppointmentStatus.PENDING.value
+            and appointment.status
+            in (AppointmentStatus.CONFIRMED.value, AppointmentStatus.CANCELLED.value)
+        ):
+            from app.services.assistant import schedule_decision
+
+            schedule_decision(appointment.id)
         return appointment
 
     async def delete(self, user: User, appointment_id: uuid.UUID) -> None:
