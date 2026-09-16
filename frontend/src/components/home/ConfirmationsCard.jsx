@@ -142,10 +142,9 @@ export default function ConfirmationsCard({ className = '' }) {
         </SkeletonRegion>
       ) : rows.length === 0 ? (
         <div className="grid min-h-0 flex-1 place-items-center px-6 text-center">
-          <div className={reveal ? 'animate-content-reveal' : ''}>
-            <p className="text-[14px] font-medium text-ink">{t('confirm.empty')}</p>
-            <p className="mt-1 text-[13px] text-muted">{t('confirm.emptyHint')}</p>
-          </div>
+          <p className={`text-[14px] text-muted ${reveal ? 'animate-content-reveal' : ''}`}>
+            {t('confirm.empty')}
+          </p>
         </div>
       ) : (
         <div
