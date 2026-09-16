@@ -70,50 +70,48 @@ export default function AssistantCard({ className = '' }) {
   const modelOn = Boolean(model?.configured)
 
   return (
-    <section className={`${CARD_EDGE} flex flex-col overflow-hidden p-4 ${className}`}>
-      {/* The robot takes what the three lines leave, centred and held to the
+    <section className={`${CARD_EDGE} flex flex-col items-center overflow-hidden p-4 ${className}`}>
+      {/* The robot at three quarters of the card, centred and held to the
           top; `object-contain` so it is never cropped whatever the card's
           shape. */}
-      <div className="flex min-h-0 flex-1 justify-center">
-        <img
-          src="/ai.png"
-          alt=""
-          draggable="false"
-          className="h-full w-3/4 object-contain object-top select-none"
-        />
-      </div>
+      <img
+        src="/ai.png"
+        alt=""
+        draggable="false"
+        className="h-3/4 w-3/4 object-contain object-top select-none"
+      />
 
-      <dl className="mt-3 flex shrink-0 flex-col divide-y divide-card-edge">
-        <Row label={t('home.bot')} value={botName} />
-        <Row label={t('home.flows')} value={flows === undefined ? '…' : flows} />
-        <Row
-          label={t('home.model')}
-          value={
-            model === undefined ? (
-              '…'
-            ) : (
-              <span className="flex items-center justify-end gap-1.5">
-                <span
-                  aria-hidden="true"
-                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${modelOn ? 'bg-ok' : 'bg-danger'}`}
-                />
-                {modelOn ? t('home.modelOn') : t('home.modelOff')}
-              </span>
-            )
-          }
-        />
+      {/* Under it, one row of three: the bot, how many conversations are
+          live, and whether the model can answer — each named above its value
+          and parted from the next by a hairline. Each column is as wide as
+          what it says and the leftover is shared, so a short number does not
+          take a third of the row from the two words beside it. */}
+      <dl className="mt-3 flex w-full divide-x divide-card-edge text-center">
+        <Stat label={t('home.bot')}>{botName}</Stat>
+        <Stat label={t('home.flows')}>
+          <span className="tabular-nums">{flows === undefined ? '…' : flows}</span>
+        </Stat>
+        <Stat label={t('home.model')}>
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              aria-hidden="true"
+              className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                model === undefined ? 'bg-muted' : modelOn ? 'bg-ok' : 'bg-danger'
+              }`}
+            />
+            {model === undefined ? '…' : modelOn ? t('home.modelOn') : t('home.modelOff')}
+          </span>
+        </Stat>
       </dl>
     </section>
   )
 }
 
-function Row({ label, value }) {
+function Stat({ label, children }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 py-2">
-      <dt className="shrink-0 text-[13px] text-muted">{label}</dt>
-      <dd className="min-w-0 truncate text-right text-[14px] text-ink tabular-nums">
-        {value}
-      </dd>
+    <div className="flex min-w-0 flex-auto flex-col gap-1 px-2">
+      <dt className="truncate text-[12px] text-muted">{label}</dt>
+      <dd className="truncate text-[14px] font-medium text-ink">{children}</dd>
     </div>
   )
 }
