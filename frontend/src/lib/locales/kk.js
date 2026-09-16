@@ -42,6 +42,7 @@ export default {
   'home.botNone': 'Қосылмаған',
   'home.flows': 'Ағындар',
   'home.modelOn': 'Жұмыс істеп тұр',
+  'home.modelPaused': 'Өшірулі',
   'home.modelOff': 'Қосылмаған',
   'home.limit': 'Лимит',
   'home.limitUsed': 'пайдаланылды',

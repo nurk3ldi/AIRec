@@ -48,6 +48,7 @@ export default {
   'home.botNone': 'Не подключён',
   'home.flows': 'Потоки',
   'home.modelOn': 'Работает',
+  'home.modelPaused': 'Выключена',
   'home.modelOff': 'Не подключена',
   'home.limit': 'Лимит',
   'home.limitUsed': 'использовано',

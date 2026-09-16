@@ -42,6 +42,7 @@ export default {
   'home.botNone': 'Not connected',
   'home.flows': 'Live chats',
   'home.modelOn': 'Working',
+  'home.modelPaused': 'Off',
   'home.modelOff': 'Not connected',
   'home.limit': 'Limit',
   'home.limitUsed': 'used',

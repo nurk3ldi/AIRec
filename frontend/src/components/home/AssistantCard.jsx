@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { HugeiconsIcon } from '@hugeicons/react'
 import {
   getAssistantModel,
   getBusiness,
@@ -12,7 +10,6 @@ import { authed } from '../../lib/auth'
 import { liveChats } from '../../lib/conversations'
 import { useT } from '../../lib/i18n'
 import { CARD_EDGE } from '../card'
-import { ASSISTANT_ICON } from '../navigation'
 
 /** The panel's own rhythm for things that change while somebody is looking. */
 const POLL_MS = 15000
@@ -72,7 +69,6 @@ function useAssistantState() {
  */
 export default function AssistantCard({ className = '' }) {
   const t = useT()
-  const navigate = useNavigate()
   const { bot, flows, model, enabled, setEnabled } = useAssistantState()
 
   // Optimistic: the switch moves under the finger, and a failed save puts it
@@ -88,20 +84,30 @@ export default function AssistantCard({ className = '' }) {
   const botName =
     bot === undefined ? '…' : bot ? `@${bot.bot_username ?? bot.bot_id}` : t('home.botNone')
   const modelOn = Boolean(model?.configured)
+  // What «Модель» says: switched off by the owner outranks everything, since a
+  // model with a key that has been told not to answer is not working.
+  const modelState =
+    model === undefined || enabled === undefined
+      ? 'loading'
+      : enabled === false
+        ? 'paused'
+        : modelOn
+          ? 'on'
+          : 'off'
+  const MODEL_DOT = { loading: 'bg-muted', paused: 'bg-muted', on: 'bg-ok', off: 'bg-danger' }
+  const MODEL_WORD = {
+    loading: '…',
+    paused: t('home.modelPaused'),
+    on: t('home.modelOn'),
+    off: t('home.modelOff'),
+  }
 
   return (
     <section className={`${CARD_EDGE} flex flex-col items-center overflow-hidden p-4 ${className}`}>
-      {/* Top row: the way to the assistant's own screen on the left, and the
-          switch that turns it on or off for every client on the right. */}
+      {/* Top row: the card's name, set exactly as «Лимит» is on the card beside
+          it, and the switch that turns the assistant on or off for every client. */}
       <div className="flex w-full shrink-0 items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => navigate('/assistant')}
-          className="flex h-8 items-center gap-1.5 rounded-full bg-ink/8 pr-3 pl-2.5 text-[13px] font-medium text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/12 focus-visible:bg-ink/12 active:scale-[0.97]"
-        >
-          <HugeiconsIcon icon={ASSISTANT_ICON} size={15} strokeWidth={2} />
-          {t('home.assistant')}
-        </button>
+        <h2 className="text-[15px] font-semibold text-ink">{t('home.assistant')}</h2>
         <Switch
           checked={Boolean(enabled)}
           disabled={enabled === undefined}
@@ -135,11 +141,9 @@ export default function AssistantCard({ className = '' }) {
           <span className="inline-flex items-center gap-1.5">
             <span
               aria-hidden="true"
-              className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                model === undefined ? 'bg-muted' : modelOn ? 'bg-ok' : 'bg-danger'
-              }`}
+              className={`h-1.5 w-1.5 shrink-0 rounded-full ${MODEL_DOT[modelState]}`}
             />
-            {model === undefined ? '…' : modelOn ? t('home.modelOn') : t('home.modelOff')}
+            {MODEL_WORD[modelState]}
           </span>
         </Stat>
       </dl>
