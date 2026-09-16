@@ -104,7 +104,6 @@ export default {
   'chat.answered': 'Answered',
   'chat.noName': 'No name',
   'island.open': 'Open chat: {name}',
-  'island.more': '{count} more messages',
   'island.close': 'Dismiss notification',
   'thread.empty': 'Nothing has been said here yet',
   'thread.back': 'Back to the list',

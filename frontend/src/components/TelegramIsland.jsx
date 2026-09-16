@@ -27,18 +27,19 @@ const POLL_MS = 5000
 /** Сколько уведомление держится само, если его не трогать. */
 const SHOW_MS = 6000
 /**
- * Высота острова и, значит, диаметр свёрнутого круга. 72px держат три строки
- * по 18: имя и две строки сообщения (или одну и «ещё N») — как баннер iOS, где
- * текст не сжат в полоску.
+ * Высота острова и, значит, диаметр свёрнутого круга. **Остров целиком живёт
+ * внутри шапки**: шапка 68px, остров 52px с 8px сверху — снизу остаётся столько
+ * же воздуха, и страница под шапкой ничем не перекрыта. Две строки по 16 —
+ * имя и сообщение — плюс поля.
  */
-const DOT = 72
+const DOT = 52
 /**
- * Радиус раскрытой карточки. Не полный круг: у 72px-пилюли концы — две
- * полуокружности, и двухстрочный текст зажат между ними. 22px — как у
- * раскрытого Dynamic Island и баннеров iOS. Свёрнутый круг — `DOT / 2`, и радиус
- * едет вместе с шириной, так что круг *становится* карточкой.
+ * Радиус раскрытой карточки. Не полный круг: у пилюли концы — две
+ * полуокружности, и текст зажат между ними. 16px на 52px высоты — та же
+ * пропорция, что 22px у раскрытого Dynamic Island. Свёрнутый круг — `DOT / 2`,
+ * и радиус едет вместе с шириной, так что круг *становится* карточкой.
  */
-const RADIUS = 22
+const RADIUS = 16
 /** Во сколько раскрывается; на узком экране — во всю ширину минус поля. */
 const MAX_WIDTH = 400
 /** Где остров прячется: выше шапки целиком. */
@@ -346,7 +347,7 @@ export default function TelegramIsland() {
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center"
+      className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center"
     >
       {note && (
         <LazyMotion features={domAnimation} strict>
@@ -377,23 +378,23 @@ export default function TelegramIsland() {
             >
               {/* Ряд сразу финальной ширины: текст не переносится, пока
                   карточка растёт, а обрезается её краем. Левое поле — чтобы
-                  40px аватар стоял ровно в центре свёрнутого 72px круга. */}
+                  36px аватар стоял ровно в центре свёрнутого 52px круга. */}
               <button
                 type="button"
                 aria-label={t('island.open', { name: note.name })}
-                className="flex h-full items-center gap-3 pr-4 pl-[15px] text-left outline-none"
+                className="flex h-full items-center gap-2.5 pr-3.5 pl-[7px] text-left outline-none"
                 style={{ width: full.current - 2 }}
               >
                 {/* Кто написал — главное; из какого приложения — значок в углу,
                     как у «коммуникационных» уведомлений iOS. */}
                 <span className="relative shrink-0">
-                  <span className="grid h-10 w-10 place-items-center rounded-full bg-ink/12 text-[14px] font-semibold text-ink">
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-ink/12 text-[13px] font-semibold text-ink">
                     {note.initials ?? (
-                      <HugeiconsIcon icon={UserIcon} size={18} strokeWidth={2} />
+                      <HugeiconsIcon icon={UserIcon} size={16} strokeWidth={2} />
                     )}
                   </span>
-                  <span className="absolute -right-1 -bottom-1 grid h-[18px] w-[18px] place-items-center rounded-full bg-ink text-surface ring-2 ring-surface-raised">
-                    <HugeiconsIcon icon={TelegramIcon} size={11} strokeWidth={2.2} />
+                  <span className="absolute -right-0.5 -bottom-0.5 grid h-4 w-4 place-items-center rounded-full bg-ink text-surface ring-2 ring-surface-raised">
+                    <HugeiconsIcon icon={TelegramIcon} size={10} strokeWidth={2.2} />
                   </span>
                 </span>
 
@@ -404,26 +405,24 @@ export default function TelegramIsland() {
                   variants={reveal}
                   className="flex min-w-0 flex-1 flex-col"
                 >
-                  <span className="flex items-baseline gap-2">
-                    <span className="truncate text-[15px] leading-[18px] font-semibold text-ink">
+                  <span className="flex items-baseline gap-1.5">
+                    <span className="truncate text-[14px] leading-4 font-semibold text-ink">
                       {note.name}
                     </span>
-                    <span className="ml-auto shrink-0 text-[13px] leading-[18px] text-muted">
+                    {/* Остальные непрочитанные этой ветки — числом рядом с
+                        именем: третьей строки в шапке нет. */}
+                    {note.more > 0 && (
+                      <span className="shrink-0 text-[12px] leading-4 text-muted tabular-nums">
+                        +{note.more}
+                      </span>
+                    )}
+                    <span className="ml-auto shrink-0 pl-1 text-[12px] leading-4 text-muted">
                       {timeAgo(note.at)}
                     </span>
                   </span>
-                  <span
-                    className={`text-[14px] leading-[18px] break-words text-ink ${
-                      note.more ? 'line-clamp-1' : 'line-clamp-2'
-                    }`}
-                  >
+                  <span className="mt-0.5 truncate text-[13px] leading-4 text-ink">
                     {note.text}
                   </span>
-                  {note.more > 0 && (
-                    <span className="truncate text-[13px] leading-[18px] text-muted">
-                      {t('island.more', { count: note.more })}
-                    </span>
-                  )}
                 </m.span>
               </button>
             </m.div>
@@ -437,9 +436,9 @@ export default function TelegramIsland() {
               data-island-close
               onClick={() => dismissRef.current()}
               aria-label={t('island.close')}
-              className="pointer-events-none absolute -top-2 -left-2 grid h-6 w-6 place-items-center rounded-full border border-card-edge bg-surface-raised text-ink opacity-0 shadow-[0_2px_8px_rgba(23,18,21,0.18)] outline-none transition-[opacity,scale,background-color] duration-150 ease-out group-hover:pointer-events-auto group-hover:opacity-100 hover:bg-surface-chip focus-visible:pointer-events-auto focus-visible:opacity-100 active:scale-90 [@media(hover:none)]:hidden"
+              className="pointer-events-none absolute -top-1.5 -left-1.5 grid h-[22px] w-[22px] place-items-center rounded-full border border-card-edge bg-surface-raised text-ink opacity-0 shadow-[0_2px_8px_rgba(23,18,21,0.18)] outline-none transition-[opacity,scale,background-color] duration-150 ease-out group-hover:pointer-events-auto group-hover:opacity-100 hover:bg-surface-chip focus-visible:pointer-events-auto focus-visible:opacity-100 active:scale-90 [@media(hover:none)]:hidden"
             >
-              <HugeiconsIcon icon={Cancel01Icon} size={12} strokeWidth={2.4} />
+              <HugeiconsIcon icon={Cancel01Icon} size={11} strokeWidth={2.4} />
             </button>
           </m.div>
         </LazyMotion>

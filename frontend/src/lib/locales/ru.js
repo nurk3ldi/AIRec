@@ -110,7 +110,6 @@ export default {
   'chat.answered': 'Отвечен',
   'chat.noName': 'Без имени',
   'island.open': 'Открыть чат: {name}',
-  'island.more': 'Ещё сообщений: {count}',
   'island.close': 'Закрыть уведомление',
   'thread.empty': 'В этом разговоре пока ничего нет',
   'thread.back': 'Назад к списку',
