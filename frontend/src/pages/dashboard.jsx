@@ -48,7 +48,18 @@ export default function DashboardHomePage() {
           нижней панелью (118px) и 32px отступов, и карточки идут столбиком во
           всю ширину, потому что четверть от 390pt — полоска. */}
       <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
-        <section className={`${CARD_EDGE} ${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
+        {/* Робот ассистента на всю карточку: `object-contain`, чтобы фигура не
+            обрезалась, какой бы вытянутой ни вышла карточка. */}
+        <section
+          className={`${CARD_EDGE} ${HALF_HEIGHT} grid w-full place-items-center overflow-hidden p-4 sm:w-[calc(25%-0.75rem)]`}
+        >
+          <img
+            src="/ai.png"
+            alt=""
+            draggable="false"
+            className="h-full w-full object-contain select-none"
+          />
+        </section>
         <section className={`${CARD_EDGE} ${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
         <ConfirmationsCard className={`${HALF_HEIGHT} w-full sm:w-[calc(50%-1.5rem)]`} />
       </div>
