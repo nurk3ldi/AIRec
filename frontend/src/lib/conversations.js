@@ -1,4 +1,5 @@
 import { dayOf, fromMinutes, minutesOf } from './appointments'
+import { getLocale } from './i18n'
 
 /**
  * Что значит «сейчас» для разговора.
@@ -195,3 +196,31 @@ const momentClock = (iso, timeZone) =>
 /** Та из двух отметок времени, что позже; `null` не мешает. */
 const maxMoment = (left, right) =>
   new Date(left ?? 0) > new Date(right ?? 0) ? (left ?? right) : (right ?? left)
+
+/**
+ * «сейчас» / «3 минуты назад» на языке читателя, через `Intl.RelativeTimeFormat`.
+ * Меньше минуты — это `0 секунд` с `numeric: 'auto'`, то есть «сейчас» / «now»,
+ * а не «в эту минуту», которое `0 минут` дал бы по-русски.
+ */
+export function timeAgo(iso) {
+  const seconds = Math.max(0, (Date.now() - Date.parse(iso)) / 1000)
+  const format = new Intl.RelativeTimeFormat(getLocale(), { numeric: 'auto' })
+  if (seconds < 60) return format.format(0, 'second')
+  if (seconds < 3600) return format.format(-Math.floor(seconds / 60), 'minute')
+  if (seconds < 86400) return format.format(-Math.floor(seconds / 3600), 'hour')
+  return format.format(-Math.floor(seconds / 86400), 'day')
+}
+
+/**
+ * Инициалы для кружка: первые буквы двух первых слов имени. У `@username` —
+ * первая буква после `@`; у номера или «Без имени» букв нет, и тогда `null` —
+ * вызывающий рисует силуэт, а не цифру.
+ */
+export function initials(name) {
+  const letters = (name ?? '')
+    .replace(/^@/, '')
+    .split(/\s+/)
+    .map((word) => word.match(/\p{L}/u)?.[0])
+    .filter(Boolean)
+  return letters.length ? letters.slice(0, 2).join('').toUpperCase() : null
+}

@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Cancel01Icon, TelegramIcon } from '@hugeicons/core-free-icons'
+import { Cancel01Icon, TelegramIcon, UserIcon } from '@hugeicons/core-free-icons'
 import {
   animate,
   domAnimation,
@@ -12,8 +12,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { listConversations } from '../lib/api'
 import { authed } from '../lib/auth'
-import { clientName } from '../lib/conversations'
-import { getLocale, useT } from '../lib/i18n'
+import { clientName, initials, timeAgo } from '../lib/conversations'
+import { useT } from '../lib/i18n'
 import {
   project,
   rubberband,
@@ -27,14 +27,22 @@ const POLL_MS = 5000
 /** Сколько уведомление держится само, если его не трогать. */
 const SHOW_MS = 6000
 /**
- * Свёрнутый остров — круг. 44px: минимальная цель касания у Apple, и ровно
- * круг под 32px знак с рамкой и полями.
+ * Высота острова и, значит, диаметр свёрнутого круга. 72px держат три строки
+ * по 18: имя и две строки сообщения (или одну и «ещё N») — как баннер iOS, где
+ * текст не сжат в полоску.
  */
-const DOT = 44
+const DOT = 72
+/**
+ * Радиус раскрытой карточки. Не полный круг: у 72px-пилюли концы — две
+ * полуокружности, и двухстрочный текст зажат между ними. 22px — как у
+ * раскрытого Dynamic Island и баннеров iOS. Свёрнутый круг — `DOT / 2`, и радиус
+ * едет вместе с шириной, так что круг *становится* карточкой.
+ */
+const RADIUS = 22
 /** Во сколько раскрывается; на узком экране — во всю ширину минус поля. */
 const MAX_WIDTH = 400
 /** Где остров прячется: выше шапки целиком. */
-const RISE = -60
+const RISE = -96
 /** Сколько пикселей движения отличают перетаскивание от нажатия. */
 const DRAG_PX = 10
 /** Куда должен *лететь* бросок вверх, чтобы остров ушёл. */
@@ -96,6 +104,7 @@ export default function TelegramIsland() {
   const y = useMotionValue(RISE)
   const width = useMotionValue(DOT)
   const opacity = useMotionValue(0)
+  const radius = useMotionValue(DOT / 2)
   const full = useRef(MAX_WIDTH)
 
   const noteRef = useRef(null)
@@ -119,6 +128,7 @@ export default function TelegramIsland() {
       full.current = Math.min(MAX_WIDTH, window.innerWidth - 32)
       y.jump(reduce ? 0 : RISE)
       width.jump(reduce ? full.current : DOT)
+      radius.jump(reduce ? RADIUS : DOT / 2)
       opacity.jump(0)
     }
     noteRef.current = next
@@ -131,6 +141,7 @@ export default function TelegramIsland() {
           animate(y, 0, SPRING),
           animate(opacity, 1, { duration: 0.2 }),
           animate(width, full.current, { ...SPRING, delay: fresh ? 0.12 : 0 }),
+          animate(radius, RADIUS, { ...SPRING, delay: fresh ? 0.12 : 0 }),
         ]
   }
 
@@ -146,6 +157,7 @@ export default function TelegramIsland() {
       ? [animate(opacity, 0, { duration: 0.2 })]
       : [
           animate(width, DOT, { ...SPRING, visualDuration: 0.35 }),
+          animate(radius, DOT / 2, { ...SPRING, visualDuration: 0.35 }),
           // Брошенный уходит сразу и со своей скоростью; закрытый — после
           // того как начал собираться в круг, тем же путём, каким пришёл.
           animate(y, RISE, {
@@ -209,11 +221,12 @@ export default function TelegramIsland() {
               key: `${row.id}-${at}`,
               id: row.id,
               name: clientName(row, t('chat.noName')),
-              time: new Date(at).toLocaleTimeString(getLocale(), {
-                hour: '2-digit',
-                minute: '2-digit',
-              }),
+              // Из имени или @username, но не из номера и не из «Без имени».
+              initials: initials(row.client_name || row.client_username),
+              at: row.last_message_at,
               text: row.last_message_preview ?? '',
+              // Остальные непрочитанные этой ветки — «ещё N», а не потерянные.
+              more: Math.max(0, (row.unread_count ?? 1) - 1),
             })
           }
         })
@@ -302,6 +315,7 @@ export default function TelegramIsland() {
     running.current = [
       animate(y, 0, { ...SPRING, velocity }),
       animate(width, full.current, SPRING),
+      animate(radius, RADIUS, SPRING),
       animate(opacity, 1, { duration: 0.2 }),
     ]
   }
@@ -336,8 +350,11 @@ export default function TelegramIsland() {
     >
       {note && (
         <LazyMotion features={domAnimation} strict>
+          {/* Внешний слой несёт движение, жест и ×; внутренний — форму и
+              обрезку. Раздельно, потому что × висит *за* краем карточки, а
+              `overflow-hidden`, нужный растущей ширине, срезал бы его. */}
           <m.div
-            style={{ y, width, opacity }}
+            style={{ y, width, opacity, height: DOT }}
             whileTap={{ scale: 0.97 }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
@@ -345,35 +362,39 @@ export default function TelegramIsland() {
             onPointerCancel={onPointerUp}
             onPointerEnter={() => setHeld(true)}
             onPointerLeave={() => !press.current && setHeld(false)}
-            // **Открытие слушает сама пилюля, а не кнопка внутри.** Захват
+            // **Открытие слушает сама карточка, а не кнопка внутри.** Захват
             // указателя (`setPointerCapture` при нажатии) переносит `pointerup`
-            // на пилюлю, и Chrome шлёт `click` ей, а не кнопке под пальцем —
-            // `onClick` на кнопке молчал. Клавиатура по-прежнему жмёт кнопку,
-            // и её `click` всплывает сюда.
+            // на карточку, и Chrome шлёт `click` ей, а не кнопке под пальцем.
+            // Клавиатура по-прежнему жмёт кнопку, и её `click` всплывает сюда.
             onClick={open}
             onFocus={() => setHeld(true)}
             onBlur={() => setHeld(false)}
-            className="pointer-events-auto h-11 touch-none overflow-hidden rounded-full border border-card-edge bg-surface-raised p-[5px] shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)] select-none"
+            className="group pointer-events-auto relative touch-none select-none"
           >
-            {/* Ряд сразу финальной ширины: текст не переносится, пока пилюля
-                растёт, а обрезается её краем. */}
-            <div
-              className="flex h-full items-center gap-2"
-              style={{ width: full.current - 12 }}
+            <m.div
+              style={{ borderRadius: radius }}
+              className="h-full overflow-hidden border border-card-edge bg-surface-raised shadow-[0_16px_48px_-8px_rgba(23,18,21,0.28)]"
             >
+              {/* Ряд сразу финальной ширины: текст не переносится, пока
+                  карточка растёт, а обрезается её краем. Левое поле — чтобы
+                  40px аватар стоял ровно в центре свёрнутого 72px круга. */}
               <button
                 type="button"
                 aria-label={t('island.open', { name: note.name })}
-                className="flex h-full min-w-0 flex-1 items-center gap-2.5 rounded-full text-left outline-none"
+                className="flex h-full items-center gap-3 pr-4 pl-[15px] text-left outline-none"
+                style={{ width: full.current - 2 }}
               >
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink/12 text-ink">
-                  <HugeiconsIcon
-                    icon={TelegramIcon}
-                    size={17}
-                    strokeWidth={1.8}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                {/* Кто написал — главное; из какого приложения — значок в углу,
+                    как у «коммуникационных» уведомлений iOS. */}
+                <span className="relative shrink-0">
+                  <span className="grid h-10 w-10 place-items-center rounded-full bg-ink/12 text-[14px] font-semibold text-ink">
+                    {note.initials ?? (
+                      <HugeiconsIcon icon={UserIcon} size={18} strokeWidth={2} />
+                    )}
+                  </span>
+                  <span className="absolute -right-1 -bottom-1 grid h-[18px] w-[18px] place-items-center rounded-full bg-ink text-surface ring-2 ring-surface-raised">
+                    <HugeiconsIcon icon={TelegramIcon} size={11} strokeWidth={2.2} />
+                  </span>
                 </span>
 
                 <m.span
@@ -384,32 +405,42 @@ export default function TelegramIsland() {
                   className="flex min-w-0 flex-1 flex-col"
                 >
                   <span className="flex items-baseline gap-2">
-                    <span className="truncate text-[13px] leading-4 font-medium text-ink">
+                    <span className="truncate text-[15px] leading-[18px] font-semibold text-ink">
                       {note.name}
                     </span>
-                    <span className="shrink-0 text-[12px] leading-4 text-muted">
-                      {note.time}
+                    <span className="ml-auto shrink-0 text-[13px] leading-[18px] text-muted">
+                      {timeAgo(note.at)}
                     </span>
                   </span>
-                  <span className="truncate text-[13px] leading-4 text-ink">
+                  <span
+                    className={`text-[14px] leading-[18px] break-words text-ink ${
+                      note.more ? 'line-clamp-1' : 'line-clamp-2'
+                    }`}
+                  >
                     {note.text}
                   </span>
+                  {note.more > 0 && (
+                    <span className="truncate text-[13px] leading-[18px] text-muted">
+                      {t('island.more', { count: note.more })}
+                    </span>
+                  )}
                 </m.span>
               </button>
+            </m.div>
 
-              <m.button
-                type="button"
-                data-island-close
-                onClick={() => dismissRef.current()}
-                aria-label={t('island.close')}
-                initial="gone"
-                animate={shown ? 'shown' : 'gone'}
-                variants={reveal}
-                className="touch-target relative mr-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-ink/12 text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/20 focus-visible:bg-ink/20 active:scale-90"
-              >
-                <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={2.2} />
-              </m.button>
-            </div>
+            {/* × как у уведомлений macOS: в левом верхнем углу и только под
+                курсором или с клавиатуры — всегда видимый крестик забирал
+                половину веса карточки. Где курсора нет, его нет вовсе:
+                уведомление смахивается вверх. */}
+            <button
+              type="button"
+              data-island-close
+              onClick={() => dismissRef.current()}
+              aria-label={t('island.close')}
+              className="pointer-events-none absolute -top-2 -left-2 grid h-6 w-6 place-items-center rounded-full border border-card-edge bg-surface-raised text-ink opacity-0 shadow-[0_2px_8px_rgba(23,18,21,0.18)] outline-none transition-[opacity,scale,background-color] duration-150 ease-out group-hover:pointer-events-auto group-hover:opacity-100 hover:bg-surface-chip focus-visible:pointer-events-auto focus-visible:opacity-100 active:scale-90 [@media(hover:none)]:hidden"
+            >
+              <HugeiconsIcon icon={Cancel01Icon} size={12} strokeWidth={2.4} />
+            </button>
           </m.div>
         </LazyMotion>
       )}

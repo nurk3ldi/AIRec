@@ -1,22 +1,9 @@
 import { UserIcon } from '@hugeicons/core-free-icons'
-import { clientName } from '../../lib/conversations'
-import { getLocale, useT } from '../../lib/i18n'
+import { clientName, timeAgo } from '../../lib/conversations'
+import { useT } from '../../lib/i18n'
 import { useSkeleton } from '../../lib/skeleton'
 import Avatar from '../inbox/Avatar'
 import Skeleton, { SkeletonRegion } from '../Skeleton'
-
-/**
- * "3 min ago" in the reader's language. `Intl.RelativeTimeFormat` rather than
- * three hand-written tables, so Kazakh and English come out right on their own.
- */
-function timeAgo(iso) {
-  const seconds = Math.max(0, (Date.now() - Date.parse(iso)) / 1000)
-  const format = new Intl.RelativeTimeFormat(getLocale(), { numeric: 'auto' })
-  if (seconds < 60) return format.format(0, 'minute')
-  if (seconds < 3600) return format.format(-Math.floor(seconds / 60), 'minute')
-  if (seconds < 86400) return format.format(-Math.floor(seconds / 3600), 'hour')
-  return format.format(-Math.floor(seconds / 86400), 'day')
-}
 
 /**
  * The Telegram column's body: one card per unread conversation, laid out from

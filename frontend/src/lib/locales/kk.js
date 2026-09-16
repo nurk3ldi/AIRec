@@ -105,6 +105,7 @@ export default {
   'chat.answered': 'Жауап берілді',
   'chat.noName': 'Атсыз',
   'island.open': 'Чатты ашу: {name}',
+  'island.more': 'Тағы {count} хабарлама',
   'island.close': 'Хабарламаны жабу',
   'thread.empty': 'Бұл сөйлесуде әзірге ештеңе жоқ',
   'thread.back': 'Тізімге қайту',
