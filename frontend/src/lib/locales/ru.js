@@ -41,6 +41,8 @@ export default {
   'nav.assistant': 'Ассистент',
   'nav.profile': 'Профиль',
   'nav.notifications': 'Уведомления',
+  'home.assistant': 'Ассистент',
+  'home.assistantSwitch': 'Ассистент отвечает клиентам',
   'home.bot': 'Бот',
   'home.model': 'Модель',
   'home.botNone': 'Не подключён',

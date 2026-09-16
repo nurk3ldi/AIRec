@@ -306,7 +306,13 @@ class AssistantService:
 
     @staticmethod
     def _still_ours(conversation: Conversation, message: Message | None) -> bool:
-        """Whether this thread still wants an answer to this message."""
+        """Whether this thread still wants an answer to this message.
+
+        Silent when the owner switched the assistant off for the whole
+        business from the dashboard, as well as in this one thread.
+        """
+        if not conversation.business.assistant_enabled:
+            return False
         if not conversation.assistant_enabled or conversation.deleted_at is not None:
             return False
         if conversation.last_message_author != MessageAuthor.CLIENT:

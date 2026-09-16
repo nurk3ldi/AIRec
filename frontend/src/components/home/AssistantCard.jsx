@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { HugeiconsIcon } from '@hugeicons/react'
 import {
   getAssistantModel,
+  getBusiness,
   getTelegram,
   listConversations,
+  updateBusiness,
 } from '../../lib/api'
 import { authed } from '../../lib/auth'
 import { liveChats } from '../../lib/conversations'
 import { useT } from '../../lib/i18n'
 import { CARD_EDGE } from '../card'
+import { ASSISTANT_ICON } from '../navigation'
 
 /** The panel's own rhythm for things that change while somebody is looking. */
 const POLL_MS = 15000
@@ -21,6 +26,7 @@ function useAssistantState() {
   const [bot, setBot] = useState(undefined)
   const [flows, setFlows] = useState(undefined)
   const [model, setModel] = useState(undefined)
+  const [enabled, setEnabled] = useState(undefined)
 
   useEffect(() => {
     let alive = true
@@ -36,6 +42,9 @@ function useAssistantState() {
       authed(getAssistantModel)
         .then((value) => alive && setModel(value))
         .catch(() => {})
+      authed(getBusiness)
+        .then((value) => alive && setEnabled(value.assistant_enabled))
+        .catch(() => {})
     }
     read()
     const timer = setInterval(() => {
@@ -47,7 +56,7 @@ function useAssistantState() {
     }
   }, [])
 
-  return { bot, flows, model }
+  return { bot, flows, model, enabled, setEnabled }
 }
 
 /**
@@ -63,7 +72,18 @@ function useAssistantState() {
  */
 export default function AssistantCard({ className = '' }) {
   const t = useT()
-  const { bot, flows, model } = useAssistantState()
+  const navigate = useNavigate()
+  const { bot, flows, model, enabled, setEnabled } = useAssistantState()
+
+  // Optimistic: the switch moves under the finger, and a failed save puts it
+  // back where the server still has it.
+  const toggle = () => {
+    const next = !enabled
+    setEnabled(next)
+    authed((token) => updateBusiness(token, { assistant_enabled: next })).catch(() =>
+      setEnabled(!next),
+    )
+  }
 
   const botName =
     bot === undefined ? '…' : bot ? `@${bot.bot_username ?? bot.bot_id}` : t('home.botNone')
@@ -71,14 +91,34 @@ export default function AssistantCard({ className = '' }) {
 
   return (
     <section className={`${CARD_EDGE} flex flex-col items-center overflow-hidden p-4 ${className}`}>
-      {/* The robot at three quarters of the card, centred and held to the
-          top; `object-contain` so it is never cropped whatever the card's
-          shape. */}
+      {/* Top row: the way to the assistant's own screen on the left, and the
+          switch that turns it on or off for every client on the right. */}
+      <div className="flex w-full shrink-0 items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => navigate('/assistant')}
+          className="flex h-8 items-center gap-1.5 rounded-full bg-ink/8 pr-3 pl-2.5 text-[13px] font-medium text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/12 focus-visible:bg-ink/12 active:scale-[0.97]"
+        >
+          <HugeiconsIcon icon={ASSISTANT_ICON} size={15} strokeWidth={2} />
+          {t('home.assistant')}
+        </button>
+        <Switch
+          checked={Boolean(enabled)}
+          disabled={enabled === undefined}
+          onChange={toggle}
+          label={t('home.assistantSwitch')}
+        />
+      </div>
+
+      {/* The robot, smaller now that the row above shares the card: it takes
+          what is left between the two rows, centred, never cropped. */}
       <img
         src="/ai.png"
         alt=""
         draggable="false"
-        className="h-3/4 w-3/4 object-contain object-top select-none"
+        className={`my-2 min-h-0 w-3/5 flex-1 object-contain transition-opacity duration-200 select-none ${
+          enabled === false ? 'opacity-40' : ''
+        }`}
       />
 
       {/* Under it, one row of three: the bot, how many conversations are
@@ -86,7 +126,7 @@ export default function AssistantCard({ className = '' }) {
           and parted from the next by a hairline. Each column is as wide as
           what it says and the leftover is shared, so a short number does not
           take a third of the row from the two words beside it. */}
-      <dl className="mt-3 flex w-full divide-x divide-card-edge text-center">
+      <dl className="flex w-full shrink-0 divide-x divide-card-edge text-center">
         <Stat label={t('home.bot')}>{botName}</Stat>
         <Stat label={t('home.flows')}>
           <span className="tabular-nums">{flows === undefined ? '…' : flows}</span>
@@ -113,5 +153,35 @@ function Stat({ label, children }) {
       <dt className="truncate text-[12px] text-muted">{label}</dt>
       <dd className="truncate text-[14px] font-medium text-ink">{children}</dd>
     </div>
+  )
+}
+
+/**
+ * An on/off switch that slides, the way iOS draws one: a pill track with a
+ * round thumb that travels to the side it means. `role="switch"` with
+ * `aria-checked`, so it is announced as the control it looks like. On is the
+ * solid ink track with a surface thumb (white on black, black on white), off
+ * is the quiet `ink/15` track.
+ */
+function Switch({ checked, disabled, onChange, label }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onChange}
+      className={`touch-target relative h-[26px] w-[44px] shrink-0 rounded-full outline-none transition-[background-color,scale] duration-200 ease-out focus-visible:ring-2 focus-visible:ring-ink/30 active:scale-95 disabled:opacity-50 ${
+        checked ? 'bg-ink' : 'bg-ink/15'
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className={`absolute top-[3px] left-[3px] h-5 w-5 rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-[translate,background-color] duration-200 ease-out motion-reduce:transition-none ${
+          checked ? 'translate-x-[18px] bg-surface' : 'translate-x-0 bg-white'
+        }`}
+      />
+    </button>
   )
 }

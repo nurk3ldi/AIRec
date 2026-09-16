@@ -23,6 +23,7 @@ class BusinessPublic(BaseModel):
     capacity: int
     booking_horizon_days: int
     min_lead_minutes: int
+    assistant_enabled: bool = True
     # Computed on the model from the stored filename.
     logo_url: str | None = None
     created_at: datetime
@@ -44,6 +45,8 @@ class UpdateBusinessRequest(BaseModel):
     capacity: int | None = None
     booking_horizon_days: int | None = None
     min_lead_minutes: int | None = None
+    # The dashboard's on/off switch for the whole assistant.
+    assistant_enabled: bool | None = None
 
     @field_validator(
         "name",

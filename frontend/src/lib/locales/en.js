@@ -35,6 +35,8 @@ export default {
   'nav.assistant': 'Assistant',
   'nav.profile': 'Profile',
   'nav.notifications': 'Notifications',
+  'home.assistant': 'Assistant',
+  'home.assistantSwitch': 'Assistant replies to clients',
   'home.bot': 'Bot',
   'home.model': 'Model',
   'home.botNone': 'Not connected',

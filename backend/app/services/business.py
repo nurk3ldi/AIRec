@@ -60,7 +60,8 @@ class BusinessService:
         # `exclude_unset` is what separates "field omitted" from "field set to
         # null" — only keys the client actually sent are touched.
         for field, value in data.model_dump(exclude_unset=True).items():
-            if field == "timezone" and value is None:
+            # Neither column can be null: an explicit null means nothing here.
+            if field in ("timezone", "assistant_enabled") and value is None:
                 continue
             setattr(business, field, value)
 

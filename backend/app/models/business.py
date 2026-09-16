@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, func, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func, text, true
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -76,6 +76,12 @@ class Business(Base):
     # none until someone says otherwise.
     min_lead_minutes: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default=text("0")
+    )
+
+    # The dashboard's switch for the whole assistant — see migration 0031. Off,
+    # no client in any thread gets a reply; messages wait in the inbox.
+    assistant_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
     )
 
     # Filename only, not a full URL — the serving prefix comes from

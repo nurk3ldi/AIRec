@@ -35,6 +35,8 @@ export default {
   'nav.assistant': 'Ассистент',
   'nav.profile': 'Профиль',
   'nav.notifications': 'Хабарламалар',
+  'home.assistant': 'Ассистент',
+  'home.assistantSwitch': 'Ассистент клиенттерге жауап береді',
   'home.bot': 'Бот',
   'home.model': 'Модель',
   'home.botNone': 'Қосылмаған',
