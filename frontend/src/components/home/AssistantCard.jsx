@@ -10,6 +10,7 @@ import { authed } from '../../lib/auth'
 import { liveChats } from '../../lib/conversations'
 import { useT } from '../../lib/i18n'
 import { CARD_EDGE } from '../card'
+import Switch from '../Switch'
 import RobotFace from './RobotFace'
 
 /** The panel's own rhythm for things that change while somebody is looking. */
@@ -157,35 +158,5 @@ function Stat({ label, children }) {
       <dt className="truncate text-[12px] text-muted">{label}</dt>
       <dd className="truncate text-[14px] font-medium text-ink">{children}</dd>
     </div>
-  )
-}
-
-/**
- * An on/off switch that slides, the way iOS draws one: a pill track with a
- * round thumb that travels to the side it means. `role="switch"` with
- * `aria-checked`, so it is announced as the control it looks like. On is the
- * solid ink track with a surface thumb (white on black, black on white), off
- * is the quiet `ink/15` track.
- */
-function Switch({ checked, disabled, onChange, label }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label={label}
-      disabled={disabled}
-      onClick={onChange}
-      className={`touch-target relative h-[26px] w-[44px] shrink-0 rounded-full outline-none transition-[background-color,scale] duration-200 ease-out focus-visible:ring-2 focus-visible:ring-ink/30 active:scale-95 disabled:opacity-50 ${
-        checked ? 'bg-ink' : 'bg-ink/15'
-      }`}
-    >
-      <span
-        aria-hidden="true"
-        className={`absolute top-[3px] left-[3px] h-5 w-5 rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.25)] transition-[translate,background-color] duration-200 ease-out motion-reduce:transition-none ${
-          checked ? 'translate-x-[18px] bg-surface' : 'translate-x-0 bg-white'
-        }`}
-      />
-    </button>
   )
 }

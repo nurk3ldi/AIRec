@@ -51,6 +51,7 @@ export default {
   'home.limitUsed': 'used',
   'confirm.title': 'Live chats',
   'confirm.empty': 'No live chats',
+  'confirm.aiSwitch': 'Assistant in this chat',
   'confirm.service': 'Service',
   'confirm.when': 'When',
   'confirm.price': 'Price',

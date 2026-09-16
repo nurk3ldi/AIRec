@@ -51,6 +51,7 @@ export default {
   'home.limitUsed': 'пайдаланылды',
   'confirm.title': 'Ағындар',
   'confirm.empty': 'Ағын жоқ',
+  'confirm.aiSwitch': 'Осы чаттағы ассистент',
   'confirm.service': 'Қызмет',
   'confirm.when': 'Қашан',
   'confirm.price': 'Бағасы',

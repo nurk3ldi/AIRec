@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowRight02Icon } from '@hugeicons/core-free-icons'
-import { listAppointments, updateAppointment } from '../../lib/api'
+import {
+  listAppointments,
+  listConversations,
+  updateAppointment,
+  updateConversation,
+} from '../../lib/api'
 import { authed } from '../../lib/auth'
 import { formatPrice } from '../../lib/appointments'
 import { dayKey } from '../../lib/dates'
@@ -10,28 +15,37 @@ import { getLocale, useT } from '../../lib/i18n'
 import { useSkeleton } from '../../lib/skeleton'
 import { CARD_EDGE } from '../card'
 import Skeleton, { SkeletonRegion } from '../Skeleton'
+import Switch from '../Switch'
 
 // --- DEMO: delete this block once real requests arrive -----------------------
 /**
- * One invented request so the card can be seen with something in it while no
+ * Two invented requests so the card can be seen with something in it while no
  * real request exists. Shown **only when the real list is empty**, never mixed
- * into real ones, and answering it touches nothing on the server.
+ * into real ones, and answering one touches nothing on the server.
  */
-function demoRow() {
-  const start = new Date()
-  start.setDate(start.getDate() + 1)
-  start.setHours(14, 0, 0, 0)
-  return {
-    id: 'demo',
+function demoRows() {
+  const at = (days, hours, minutes) => {
+    const start = new Date()
+    start.setDate(start.getDate() + days)
+    start.setHours(hours, minutes, 0, 0)
+    return start
+  }
+  const row = (id, client_name, service_name, price, start, last_message) => ({
+    id,
     demo: true,
-    client_name: 'Nurkeldi',
+    last_message,
+    client_name,
     client_phone: null,
-    service_name: 'Мужская стрижка',
-    price: 5000,
+    service_name,
+    price,
     starts_at: start.toISOString(),
     ends_at: new Date(start.getTime() + 30 * 60000).toISOString(),
     conversation_id: null,
-  }
+  })
+  return [
+    row('demo-1', 'Nurkeldi', 'Service 1', 5000, at(1, 14, 0), 'Можно завтра в 14:00?'),
+    row('demo-2', 'Unknown', 'Service 1', 8000, at(2, 11, 30), 'Здравствуйте, запишите меня'),
+  ]
 }
 // --- end DEMO -----------------------------------------------------------------
 
@@ -78,6 +92,37 @@ function usePending() {
   return [rows, setRows, read]
 }
 
+/**
+ * The chats behind the requests, by id: what was said last and whether the
+ * assistant is on in that thread. Read with the same rhythm as the requests.
+ */
+function useThreads() {
+  const [threads, setThreads] = useState({})
+
+  useEffect(() => {
+    let alive = true
+    const read = () =>
+      authed((token) =>
+        listConversations(token, { archived: false, deleted: false, limit: 100 }),
+      )
+        .then((rows) => {
+          if (!alive) return
+          setThreads(Object.fromEntries(rows.map((row) => [row.id, row])))
+        })
+        .catch(() => {})
+    read()
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') read()
+    }, POLL_MS)
+    return () => {
+      alive = false
+      clearInterval(timer)
+    }
+  }, [])
+
+  return [threads, setThreads]
+}
+
 /** «Сегодня, 14:00» / «Завтра, 14:00» / «Пт, 19 сентября, 14:00». */
 function whenLabel(iso) {
   const at = new Date(iso)
@@ -121,19 +166,54 @@ export default function ConfirmationsCard({ className = '' }) {
   const t = useT()
   const navigate = useNavigate()
   const [realRows, setRows, reread] = usePending()
-  // DEMO: the invented row stands in only while nothing real is waiting, and
-  // only until it has been answered once.
-  const [demoDone, setDemoDone] = useState(false)
+  // DEMO: the invented rows stand in only while nothing real is waiting, each
+  // until it has been answered once.
+  const [demoDone, setDemoDone] = useState([])
   const rows =
-    realRows && realRows.length === 0 && !demoDone ? [demoRow()] : realRows
+    realRows && realRows.length === 0
+      ? demoRows().filter((row) => !demoDone.includes(row.id))
+      : realRows
   const [chosenId, setChosenId] = useState(null)
+  const [threads, setThreads] = useThreads()
+  // DEMO: the invented rows' switches live here, since they have no thread.
+  const [demoAi, setDemoAi] = useState({})
+
+  /** The last thing said in the request's chat; nothing for one with no chat. */
+  const lastMessage = (row) =>
+    row.demo ? row.last_message : threads[row.conversation_id]?.last_message_preview
+
+  /** Whether the assistant is on in that chat; `null` when there is no chat. */
+  const aiOn = (row) => {
+    if (row.demo) return demoAi[row.id] ?? true
+    const thread = threads[row.conversation_id]
+    return thread ? thread.assistant_enabled : null
+  }
+
+  // Optimistic, like every switch here: it moves under the finger, and a
+  // failed save puts it back.
+  const toggleAi = (row) => {
+    const next = !aiOn(row)
+    if (row.demo) {
+      setDemoAi((was) => ({ ...was, [row.id]: next }))
+      return
+    }
+    const id = row.conversation_id
+    const put = (value) =>
+      setThreads((was) => ({ ...was, [id]: { ...was[id], assistant_enabled: value } }))
+    put(next)
+    authed((token) => updateConversation(token, id, { assistant_enabled: next })).catch(() =>
+      put(!next),
+    )
+  }
   const { pending, bars, reveal } = useSkeleton(rows === null)
 
   const chosen = rows?.find((row) => row.id === chosenId) ?? rows?.[0] ?? null
 
   const decide = (row, status) => {
     if (row.demo) {
-      setDemoDone(true)
+      const rest = rows.filter((item) => item.id !== row.id)
+      setDemoDone((done) => [...done, row.id])
+      setChosenId(rest[0]?.id ?? null)
       return
     }
     const index = rows.findIndex((item) => item.id === row.id)
@@ -187,8 +267,12 @@ export default function ConfirmationsCard({ className = '' }) {
           <ul className="flex max-h-[45%] shrink-0 flex-col divide-y divide-card-edge overflow-y-auto border-b border-card-edge p-2 sm:max-h-none sm:w-1/2 sm:border-r sm:border-b-0">
             {rows.map((row) => {
               const selected = row.id === chosen?.id
+              const on = aiOn(row)
               return (
-                <li key={row.id}>
+                // The switch is a sibling laid over the row, not a child of its
+                // button: a button inside a button is not valid, and a press on
+                // the switch must not also choose the row.
+                <li key={row.id} className="relative">
                   <button
                     type="button"
                     onClick={() => setChosenId(row.id)}
@@ -196,7 +280,7 @@ export default function ConfirmationsCard({ className = '' }) {
                     // No fill at rest, the chosen one included — the details on
                     // the right already say which it is. Grey only under the
                     // cursor or keyboard focus, and hairlines part the rows.
-                    className="my-1 flex w-full flex-col gap-0.5 rounded-[10px] px-3 py-2.5 text-left outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.98]"
+                    className="my-1 flex w-full flex-col gap-1 rounded-[10px] px-3 py-2.5 text-left outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.98]"
                   >
                     <span className="flex items-baseline gap-2">
                       <span className="truncate text-[14px] font-medium text-ink">
@@ -206,8 +290,20 @@ export default function ConfirmationsCard({ className = '' }) {
                         {whenLabel(row.starts_at)}
                       </span>
                     </span>
-                    <span className="truncate text-[13px] text-muted">{row.service_name}</span>
+                    <span className="truncate pr-12 text-[13px] text-muted">
+                      {lastMessage(row) || '—'}
+                    </span>
                   </button>
+                  {on !== null && (
+                    <span className="absolute right-3 bottom-[13px]">
+                      <Switch
+                        size="sm"
+                        checked={on}
+                        onChange={() => toggleAi(row)}
+                        label={t('confirm.aiSwitch')}
+                      />
+                    </span>
+                  )}
                 </li>
               )
             })}
