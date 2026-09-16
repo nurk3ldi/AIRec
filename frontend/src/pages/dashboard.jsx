@@ -53,7 +53,7 @@ export default function DashboardHomePage() {
         <AssistantCard className={`${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
         {/* Лимит тарифа — кольцом. Считать пока нечего, поэтому 0: когда появятся
             тарифы и учёт, сюда придёт настоящая доля. */}
-        <LimitCard percent={35} className={`${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
+        <LimitCard percent={0} className={`${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
         <ConfirmationsCard className={`${HALF_HEIGHT} w-full sm:w-[calc(50%-1.5rem)]`} />
       </div>
     </div>

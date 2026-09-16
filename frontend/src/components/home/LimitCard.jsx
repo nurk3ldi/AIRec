@@ -2,9 +2,10 @@ import { useT } from '../../lib/i18n'
 import { CARD_EDGE } from '../card'
 
 /** The ring's geometry, in its own 120-unit box. */
-const SIZE = 120
-const STROKE = 26
-const RADIUS = (SIZE - STROKE) / 2
+const SIZE = 124
+const STROKE = 18
+// Two units of air each side so the marker's overhang is not clipped.
+const RADIUS = (SIZE - STROKE) / 2 - 2
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS
 
 /**
@@ -22,6 +23,15 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS
 export default function LimitCard({ percent = 0, className = '' }) {
   const t = useT()
   const value = Math.min(100, Math.max(0, Math.round(percent)))
+  // Where the used arc ends, in the SVG's own (unrotated) angle: the dash
+  // starts at 0 and runs with increasing angle, so the marker sits there.
+  const angle = (2 * Math.PI * value) / 100
+  const tick = (distance) => ({
+    x: SIZE / 2 + distance * Math.cos(angle),
+    y: SIZE / 2 + distance * Math.sin(angle),
+  })
+  const tickFrom = tick(RADIUS - STROKE / 2 - 2)
+  const tickTo = tick(RADIUS + STROKE / 2 + 2)
 
   return (
     <section
@@ -55,8 +65,23 @@ export default function LimitCard({ percent = 0, className = '' }) {
               strokeDasharray={CIRCUMFERENCE}
               strokeDashoffset={CIRCUMFERENCE * (1 - value / 100)}
               // Flat ends, as in the reference: a thick round cap would
-              // overshoot the value by half the ring's width at each end.
-              className="stroke-ink transition-[stroke-dashoffset] duration-700 ease-out motion-reduce:transition-none"
+              // overshoot the value by half the ring's width at each end. At
+              // 0% the zero-length dash still antialiases into a hairline at
+              // the bottom, so nothing used draws nothing.
+              className={`stroke-ink transition-[stroke-dashoffset] duration-700 ease-out motion-reduce:transition-none ${
+                value === 0 ? 'opacity-0' : ''
+              }`}
+            />
+            {/* The marker line across the ring where the used part ends, a
+                little past both edges — the reference's tick. Drawn at 0% too,
+                where it is the one thing saying where counting starts. */}
+            <line
+              x1={tickFrom.x}
+              y1={tickFrom.y}
+              x2={tickTo.x}
+              y2={tickTo.y}
+              strokeWidth={1.5}
+              className="stroke-ink"
             />
           </svg>
           <figcaption className="absolute inset-0 flex flex-col items-center justify-center">
