@@ -11,6 +11,30 @@ import { useSkeleton } from '../../lib/skeleton'
 import { CARD_EDGE } from '../card'
 import Skeleton, { SkeletonRegion } from '../Skeleton'
 
+// --- DEMO: delete this block once real requests arrive -----------------------
+/**
+ * One invented request so the card can be seen with something in it while no
+ * real request exists. Shown **only when the real list is empty**, never mixed
+ * into real ones, and answering it touches nothing on the server.
+ */
+function demoRow() {
+  const start = new Date()
+  start.setDate(start.getDate() + 1)
+  start.setHours(14, 0, 0, 0)
+  return {
+    id: 'demo',
+    demo: true,
+    client_name: 'Nurkeldi',
+    client_phone: null,
+    service_name: 'Мужская стрижка',
+    price: 5000,
+    starts_at: start.toISOString(),
+    ends_at: new Date(start.getTime() + 30 * 60000).toISOString(),
+    conversation_id: null,
+  }
+}
+// --- end DEMO -----------------------------------------------------------------
+
 /** The panel's own rhythm for things that change while somebody is looking. */
 const POLL_MS = 15000
 /** How far ahead a request can be: past the booking horizon nothing is filed. */
@@ -96,13 +120,22 @@ function spanLabel(row) {
 export default function ConfirmationsCard({ className = '' }) {
   const t = useT()
   const navigate = useNavigate()
-  const [rows, setRows, reread] = usePending()
+  const [realRows, setRows, reread] = usePending()
+  // DEMO: the invented row stands in only while nothing real is waiting, and
+  // only until it has been answered once.
+  const [demoDone, setDemoDone] = useState(false)
+  const rows =
+    realRows && realRows.length === 0 && !demoDone ? [demoRow()] : realRows
   const [chosenId, setChosenId] = useState(null)
   const { pending, bars, reveal } = useSkeleton(rows === null)
 
   const chosen = rows?.find((row) => row.id === chosenId) ?? rows?.[0] ?? null
 
   const decide = (row, status) => {
+    if (row.demo) {
+      setDemoDone(true)
+      return
+    }
     const index = rows.findIndex((item) => item.id === row.id)
     const rest = rows.filter((item) => item.id !== row.id)
     setRows(rest)
@@ -127,7 +160,7 @@ export default function ConfirmationsCard({ className = '' }) {
           label={t('confirm.title')}
           className="flex min-h-0 flex-1 flex-col sm:flex-row"
         >
-          <div className="flex flex-col gap-1 p-2 sm:w-[42%] sm:border-r sm:border-card-edge">
+          <div className="flex flex-col gap-1 p-2 sm:w-1/2 sm:border-r sm:border-card-edge">
             {[0, 1, 2].map((index) => (
               <div key={index} className="flex flex-col gap-2 rounded-[10px] px-3 py-3">
                 <Skeleton className="h-3.5 w-1/2" />
@@ -151,7 +184,7 @@ export default function ConfirmationsCard({ className = '' }) {
           className={`flex min-h-0 flex-1 flex-col sm:flex-row ${reveal ? 'animate-content-reveal' : ''}`}
         >
           {/* Left: every request, soonest first. */}
-          <ul className="flex max-h-[45%] shrink-0 flex-col gap-1 overflow-y-auto border-b border-card-edge p-2 sm:max-h-none sm:w-[42%] sm:border-r sm:border-b-0">
+          <ul className="flex max-h-[45%] shrink-0 flex-col gap-1 overflow-y-auto border-b border-card-edge p-2 sm:max-h-none sm:w-1/2 sm:border-r sm:border-b-0">
             {rows.map((row) => {
               const selected = row.id === chosen?.id
               return (
