@@ -1,4 +1,4 @@
-import { useT } from '../../lib/i18n'
+import { getLocale, useT } from '../../lib/i18n'
 import { CARD_EDGE } from '../card'
 
 /** The ring's geometry, in its own 120-unit box. */
@@ -20,7 +20,16 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS
  * pair every quiet control here uses. Status colours stay out of it until a
  * limit exists that can actually be close to running out.
  */
-export default function LimitCard({ percent = 0, className = '' }) {
+/** «через 3 часа» / «через 20 минут» in the reader's language, the largest unit. */
+function untilLabel(iso) {
+  const seconds = Math.max(0, (Date.parse(iso) - Date.now()) / 1000)
+  const format = new Intl.RelativeTimeFormat(getLocale(), { numeric: 'auto' })
+  if (seconds < 3600) return format.format(Math.max(1, Math.ceil(seconds / 60)), 'minute')
+  if (seconds < 86400) return format.format(Math.ceil(seconds / 3600), 'hour')
+  return format.format(Math.ceil(seconds / 86400), 'day')
+}
+
+export default function LimitCard({ percent = 0, resetAt = null, className = '' }) {
   const t = useT()
   const value = Math.min(100, Math.max(0, Math.round(percent)))
   // Where the used arc ends, in the SVG's own (unrotated) angle: the dash
@@ -37,7 +46,21 @@ export default function LimitCard({ percent = 0, className = '' }) {
     <section
       className={`${CARD_EDGE} flex flex-col items-center overflow-hidden p-4 ${className}`}
     >
-      <h2 className="self-start text-[15px] font-semibold text-ink">{t('home.limit')}</h2>
+      {/* The name, and against the right edge what matters about the limit
+          now: used up, when it resets (or plainly that it is used up, when no
+          reset time is known); otherwise how much is left. */}
+      <div className="flex w-full items-baseline justify-between gap-2">
+        <h2 className="text-[15px] font-semibold text-ink">{t('home.limit')}</h2>
+        <p
+          className={`min-w-0 truncate text-[13px] ${value >= 100 ? 'font-medium text-ink' : 'text-muted'}`}
+        >
+          {value >= 100
+            ? resetAt
+              ? t('home.limitReset', { when: untilLabel(resetAt) })
+              : t('home.limitSpent')
+            : t('home.limitLeft', { value: 100 - value })}
+        </p>
+      </div>
 
       <div className="flex min-h-0 w-full flex-1 items-center justify-center">
         <figure

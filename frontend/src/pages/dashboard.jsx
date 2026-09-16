@@ -37,6 +37,8 @@ import styles from '../styles/Dashboard.module.css'
  * it is 0; both the limit ring and the robot's spinner read this one number.
  */
 const LIMIT_PERCENT = 0
+/** When the limit resets, as an ISO instant — unknown until there are plans. */
+const LIMIT_RESET_AT = null
 
 const HALF_HEIGHT =
   'h-[calc((100vh-118px-env(safe-area-inset-bottom)-2rem)/2)] sm:h-[calc((100vh-116px)/2)]'
@@ -59,7 +61,7 @@ export default function DashboardHomePage() {
         <AssistantCard limitReached={LIMIT_PERCENT >= 100} className={`${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
         {/* Лимит тарифа — кольцом. Считать пока нечего, поэтому 0: когда появятся
             тарифы и учёт, сюда придёт настоящая доля. */}
-        <LimitCard percent={LIMIT_PERCENT} className={`${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
+        <LimitCard percent={LIMIT_PERCENT} resetAt={LIMIT_RESET_AT} className={`${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
         <ConfirmationsCard className={`${HALF_HEIGHT} w-full sm:w-[calc(50%-1.5rem)]`} />
       </div>
     </div>
