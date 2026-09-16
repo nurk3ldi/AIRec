@@ -71,6 +71,19 @@ class LLMError(Exception):
     """The model could not produce a reply: refused, blocked, or unreachable."""
 
 
+def configured() -> tuple[str, str | None, bool]:
+    """(provider, model, whether a key is set) — what the dashboard reports.
+
+    **Configured, not proven.** A set key may still be wrong or out of quota;
+    finding that out means a paid request, and the log already says so the
+    first time a reply fails.
+    """
+    provider = settings.llm_provider.lower()
+    if provider == "gemini":
+        return provider, settings.gemini_model, settings.gemini_api_key is not None
+    return provider, None, False
+
+
 async def generate_reply(
     system: str, turns: list[Turn], tools: Sequence[Tool] = ()
 ) -> str:

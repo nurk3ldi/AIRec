@@ -116,3 +116,11 @@ class UpdateBusinessRequest(BaseModel):
         if value > 7 * 24 * 60:
             raise ValueError("Не больше 7 дней.")
         return value
+
+
+class AssistantModelPublic(BaseModel):
+    """Which model answers clients and whether it can: a key is set for it."""
+
+    provider: str
+    model: str | None = None
+    configured: bool

@@ -1,4 +1,5 @@
 import { CARD_EDGE } from '../components/card'
+import AssistantCard from '../components/home/AssistantCard'
 import ConfirmationsCard from '../components/home/ConfirmationsCard'
 import { useT } from '../lib/i18n'
 import styles from '../styles/Dashboard.module.css'
@@ -48,19 +49,8 @@ export default function DashboardHomePage() {
           нижней панелью (118px) и 32px отступов, и карточки идут столбиком во
           всю ширину, потому что четверть от 390pt — полоска. */}
       <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
-        {/* Робот ассистента — три четверти карточки, по центру ширины и у
-            верхнего края: `object-contain object-top`, чтобы фигура не
-            обрезалась и не съезжала вниз, какой бы вытянутой ни вышла карточка. */}
-        <section
-          className={`${CARD_EDGE} ${HALF_HEIGHT} flex w-full items-start justify-center overflow-hidden p-4 sm:w-[calc(25%-0.75rem)]`}
-        >
-          <img
-            src="/ai.png"
-            alt=""
-            draggable="false"
-            className="h-3/4 w-3/4 object-contain object-top select-none"
-          />
-        </section>
+        {/* Робот ассистента, а под ним — бот, потоки и модель. */}
+        <AssistantCard className={`${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
         <section className={`${CARD_EDGE} ${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
         <ConfirmationsCard className={`${HALF_HEIGHT} w-full sm:w-[calc(50%-1.5rem)]`} />
       </div>

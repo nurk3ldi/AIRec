@@ -5,7 +5,12 @@ from typing import Annotated
 from fastapi import APIRouter, File, UploadFile
 
 from app.api.deps import BusinessServiceDep, CurrentUser
-from app.schemas.business import BusinessPublic, UpdateBusinessRequest
+from app.core import llm
+from app.schemas.business import (
+    AssistantModelPublic,
+    BusinessPublic,
+    UpdateBusinessRequest,
+)
 from app.schemas.service import (
     ServiceListInput,
     ServicePublic,
@@ -25,6 +30,16 @@ async def get_business(
     user: CurrentUser, businesses: BusinessServiceDep
 ) -> BusinessPublic:
     return BusinessPublic.model_validate(await businesses.get_or_create(user))
+
+
+@router.get(
+    "/assistant",
+    response_model=AssistantModelPublic,
+    summary="The language model the assistant answers with, and whether it is set up",
+)
+async def get_assistant_model(user: CurrentUser) -> AssistantModelPublic:
+    provider, model, configured = llm.configured()
+    return AssistantModelPublic(provider=provider, model=model, configured=configured)
 
 
 @router.patch(

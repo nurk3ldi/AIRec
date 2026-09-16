@@ -620,6 +620,14 @@ export function disconnectWhatsApp(accessToken) {
 }
 
 /**
+ * Which model answers clients and whether a key is set for it:
+ * `{ provider, model, configured }`.
+ */
+export function getAssistantModel(accessToken) {
+  return request('/business/assistant', { method: 'GET', accessToken })
+}
+
+/**
  * The Telegram bot this business answers through, or `null`.
  *
  * `null` is not an error, for the same reason it is not one above.
