@@ -1,3 +1,4 @@
+import { CARD_EDGE } from '../components/card'
 import ConfirmationsCard from '../components/home/ConfirmationsCard'
 import { useT } from '../lib/i18n'
 import styles from '../styles/Dashboard.module.css'
@@ -30,18 +31,27 @@ import styles from '../styles/Dashboard.module.css'
  * пустая страница — честный ответ, 404 — нет. Это домашний экран после входа, а
  * не `/` — по тому адресу лендинг.
  */
+const HALF_HEIGHT =
+  'h-[calc((100vh-118px-env(safe-area-inset-bottom)-2rem)/2)] sm:h-[calc((100vh-116px)/2)]'
+
 export default function DashboardHomePage() {
   const t = useT()
 
   return (
     <div className={`${styles.page} p-4 sm:p-6`} aria-label={t('nav.dashboard')}>
-      {/* Половина ширины и половина высоты, у левого края. Высота посчитана из
-          тех же чисел, что и страница, а не `h-1/2`: у страницы только
-          `min-height`, и процент от неё не разрешается. На компьютере это
-          68px шапки и 48px отступов; на телефоне — шапка с нижней панелью
-          (118px) и 32px отступов, а ширина во всю строку, потому что половина
-          от 390pt — полоска. */}
-      <ConfirmationsCard className="h-[calc((100vh-118px-env(safe-area-inset-bottom)-2rem)/2)] w-full sm:h-[calc((100vh-116px)/2)] sm:w-1/2" />
+      {/* Один ряд: две пустые карточки по четверти ширины слева и
+          «Подтверждения» на половину справа, все в половину высоты. Ширины
+          вычитают свою долю двух зазоров по 24px, чтобы ряд сложился ровно в
+          100%. Высота посчитана из тех же чисел, что и страница, а не `h-1/2`:
+          у страницы только `min-height`, и процент от неё не разрешается. На
+          компьютере это 68px шапки и 48px отступов; на телефоне — шапка с
+          нижней панелью (118px) и 32px отступов, и карточки идут столбиком во
+          всю ширину, потому что четверть от 390pt — полоска. */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
+        <section className={`${CARD_EDGE} ${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
+        <section className={`${CARD_EDGE} ${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
+        <ConfirmationsCard className={`${HALF_HEIGHT} w-full sm:w-[calc(50%-1.5rem)]`} />
+      </div>
     </div>
   )
 }
