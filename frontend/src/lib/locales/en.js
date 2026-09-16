@@ -41,6 +41,8 @@ export default {
   'home.flows': 'Live chats',
   'home.modelOn': 'Working',
   'home.modelOff': 'Not connected',
+  'home.limit': 'Limit',
+  'home.limitUsed': 'used',
   'confirm.title': 'Confirmations',
   'confirm.empty': 'No new requests',
   'confirm.emptyHint': 'When the assistant agrees a booking with a client, it appears here',

@@ -41,6 +41,8 @@ export default {
   'home.flows': 'Ағындар',
   'home.modelOn': 'Жұмыс істеп тұр',
   'home.modelOff': 'Қосылмаған',
+  'home.limit': 'Лимит',
+  'home.limitUsed': 'пайдаланылды',
   'confirm.title': 'Растау',
   'confirm.empty': 'Жаңа өтінім жоқ',
   'confirm.emptyHint': 'Ассистент клиентпен келіскенде, өтінім осында шығады',

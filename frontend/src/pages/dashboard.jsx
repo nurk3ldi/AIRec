@@ -1,6 +1,6 @@
-import { CARD_EDGE } from '../components/card'
 import AssistantCard from '../components/home/AssistantCard'
 import ConfirmationsCard from '../components/home/ConfirmationsCard'
+import LimitCard from '../components/home/LimitCard'
 import { useT } from '../lib/i18n'
 import styles from '../styles/Dashboard.module.css'
 
@@ -51,7 +51,9 @@ export default function DashboardHomePage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
         {/* Робот ассистента, а под ним — бот, потоки и модель. */}
         <AssistantCard className={`${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
-        <section className={`${CARD_EDGE} ${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
+        {/* Лимит тарифа — кольцом. Считать пока нечего, поэтому 0: когда появятся
+            тарифы и учёт, сюда придёт настоящая доля. */}
+        <LimitCard percent={35} className={`${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
         <ConfirmationsCard className={`${HALF_HEIGHT} w-full sm:w-[calc(50%-1.5rem)]`} />
       </div>
     </div>

@@ -47,6 +47,8 @@ export default {
   'home.flows': 'Потоки',
   'home.modelOn': 'Работает',
   'home.modelOff': 'Не подключена',
+  'home.limit': 'Лимит',
+  'home.limitUsed': 'использовано',
   'confirm.title': 'Подтверждения',
   'confirm.empty': 'Новых заявок нет',
   'confirm.emptyHint': 'Когда ассистент договорится с клиентом, заявка появится здесь',
