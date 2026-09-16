@@ -184,7 +184,7 @@ export default function ConfirmationsCard({ className = '' }) {
           className={`flex min-h-0 flex-1 flex-col sm:flex-row ${reveal ? 'animate-content-reveal' : ''}`}
         >
           {/* Left: every request, soonest first. */}
-          <ul className="flex max-h-[45%] shrink-0 flex-col gap-1 overflow-y-auto border-b border-card-edge p-2 sm:max-h-none sm:w-1/2 sm:border-r sm:border-b-0">
+          <ul className="flex max-h-[45%] shrink-0 flex-col divide-y divide-card-edge overflow-y-auto border-b border-card-edge p-2 sm:max-h-none sm:w-1/2 sm:border-r sm:border-b-0">
             {rows.map((row) => {
               const selected = row.id === chosen?.id
               return (
@@ -193,9 +193,10 @@ export default function ConfirmationsCard({ className = '' }) {
                     type="button"
                     onClick={() => setChosenId(row.id)}
                     aria-current={selected || undefined}
-                    className={`flex w-full flex-col gap-0.5 rounded-[10px] px-3 py-2.5 text-left outline-none transition-[background-color,scale] duration-150 ease-out active:scale-[0.98] ${
-                      selected ? 'bg-ink/8' : 'hover:bg-ink/5 focus-visible:bg-ink/5'
-                    }`}
+                    // No fill at rest, the chosen one included — the details on
+                    // the right already say which it is. Grey only under the
+                    // cursor or keyboard focus, and hairlines part the rows.
+                    className="my-1 flex w-full flex-col gap-0.5 rounded-[10px] px-3 py-2.5 text-left outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.98]"
                   >
                     <span className="flex items-baseline gap-2">
                       <span className="truncate text-[14px] font-medium text-ink">
