@@ -10,6 +10,7 @@ import { authed } from '../../lib/auth'
 import { liveChats } from '../../lib/conversations'
 import { useT } from '../../lib/i18n'
 import { CARD_EDGE } from '../card'
+import RobotFace from './RobotFace'
 
 /** The panel's own rhythm for things that change while somebody is looking. */
 const POLL_MS = 15000
@@ -67,7 +68,7 @@ function useAssistantState() {
  * **«Работает» means a key is set**, which is what the backend can say without
  * spending a request; a wrong key shows up the first time a reply fails.
  */
-export default function AssistantCard({ className = '' }) {
+export default function AssistantCard({ limitReached = false, className = '' }) {
   const t = useT()
   const { bot, flows, model, enabled, setEnabled } = useAssistantState()
 
@@ -116,16 +117,15 @@ export default function AssistantCard({ className = '' }) {
         />
       </div>
 
-      {/* The robot, smaller now that the row above shares the card: it takes
-          what is left between the two rows, centred, never cropped. */}
-      <img
-        src="/ai.png"
-        alt=""
-        draggable="false"
-        className={`my-2 min-h-0 w-3/5 flex-1 object-contain transition-opacity duration-200 select-none ${
-          enabled === false ? 'opacity-40' : ''
-        }`}
-      />
+      {/* The robot, alive: it looks about while the assistant works, powers
+          down when switched off, and shows a spinner when the limit is used up.
+          It takes what is left between the two rows, sized by that height. */}
+      <div className="my-2 flex min-h-0 w-full flex-1 items-center justify-center">
+        <RobotFace
+          state={enabled === false ? 'off' : limitReached ? 'limit' : 'on'}
+          className="h-full max-w-full"
+        />
+      </div>
 
       {/* Under it, one row of three: the bot, how many conversations are
           live, and whether the model can answer — each named above its value

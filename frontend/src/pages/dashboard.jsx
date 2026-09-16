@@ -32,6 +32,12 @@ import styles from '../styles/Dashboard.module.css'
  * пустая страница — честный ответ, 404 — нет. Это домашний экран после входа, а
  * не `/` — по тому адресу лендинг.
  */
+/**
+ * How much of the plan's limit is used. There are no plans or metering yet, so
+ * it is 0; both the limit ring and the robot's spinner read this one number.
+ */
+const LIMIT_PERCENT = 0
+
 const HALF_HEIGHT =
   'h-[calc((100vh-118px-env(safe-area-inset-bottom)-2rem)/2)] sm:h-[calc((100vh-116px)/2)]'
 
@@ -50,10 +56,10 @@ export default function DashboardHomePage() {
           всю ширину, потому что четверть от 390pt — полоска. */}
       <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
         {/* Робот ассистента, а под ним — бот, потоки и модель. */}
-        <AssistantCard className={`${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
+        <AssistantCard limitReached={LIMIT_PERCENT >= 100} className={`${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
         {/* Лимит тарифа — кольцом. Считать пока нечего, поэтому 0: когда появятся
             тарифы и учёт, сюда придёт настоящая доля. */}
-        <LimitCard percent={0} className={`${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
+        <LimitCard percent={LIMIT_PERCENT} className={`${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
         <ConfirmationsCard className={`${HALF_HEIGHT} w-full sm:w-[calc(50%-1.5rem)]`} />
       </div>
     </div>

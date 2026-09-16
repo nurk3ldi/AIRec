@@ -624,6 +624,63 @@ a {
   }
 }
 
+/* --- the dashboard robot ---------------------------------------------------- */
+
+/* **The robot looks about.** One nine-second loop on the pair of eyes: held in
+   the middle for most of it, a glance left, back, a glance right, back — each
+   move eased at both ends, the way a head turns rather than slides. `translate`
+   rather than `transform`, so the switch-off can own `scale` on the same
+   element without the two overwriting each other. */
+@keyframes robot-look {
+  0%,
+  30%,
+  52%,
+  62%,
+  84%,
+  100% {
+    translate: 0 0;
+  }
+  36%,
+  46% {
+    translate: -4% 0;
+  }
+  68%,
+  78% {
+    translate: 4% 0;
+  }
+}
+
+/* **And blinks.** A quick close and open inside a 4.7-second loop — not a
+   divisor of the look's nine, so the blink lands at a different point of the
+   glance each time and never reads as a metronome. */
+@keyframes robot-blink {
+  0%,
+  92%,
+  100% {
+    scale: 1 1;
+  }
+  95% {
+    scale: 1 0.1;
+  }
+}
+
+@utility animate-robot-look {
+  animation: robot-look 9s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+
+  /* Travel stops under reduced motion; the eyes simply stay open. */
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@utility animate-robot-blink {
+  animation: robot-blink 4.7s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
 /* --- touch targets --------------------------------------------------------- */
 
 /* **A 44pt hit area on touch screens, without changing what anything looks
