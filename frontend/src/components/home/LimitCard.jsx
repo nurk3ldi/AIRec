@@ -52,7 +52,7 @@ export default function LimitCard({ percent = 0, resetAt = null, className = '' 
       <div className="flex w-full items-baseline justify-between gap-2">
         <h2 className="text-[15px] font-semibold text-ink">{t('home.limit')}</h2>
         <p
-          className={`min-w-0 truncate text-[13px] ${value >= 100 ? 'font-medium text-ink' : 'text-muted'}`}
+          className="min-w-0 truncate text-[13px] font-medium text-ink"
         >
           {value >= 100
             ? resetAt

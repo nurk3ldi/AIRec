@@ -55,7 +55,7 @@ export default {
   'home.limitReset': 'Сброс {when}',
   'home.limitSpent': 'Лимит исчерпан',
   'home.limitUsed': 'использовано',
-  'confirm.title': 'Подтверждения',
+  'confirm.title': 'Потоки',
   'confirm.empty': 'Новых заявок нет',
   'confirm.emptyHint': 'Когда ассистент договорится с клиентом, заявка появится здесь',
   'confirm.service': 'Услуга',

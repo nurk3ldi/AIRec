@@ -49,7 +49,7 @@ export default {
   'home.limitReset': 'Resets {when}',
   'home.limitSpent': 'Limit used up',
   'home.limitUsed': 'used',
-  'confirm.title': 'Confirmations',
+  'confirm.title': 'Live chats',
   'confirm.empty': 'No new requests',
   'confirm.emptyHint': 'When the assistant agrees a booking with a client, it appears here',
   'confirm.service': 'Service',

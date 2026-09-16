@@ -49,7 +49,7 @@ export default {
   'home.limitReset': 'Жаңарады: {when}',
   'home.limitSpent': 'Лимит таусылды',
   'home.limitUsed': 'пайдаланылды',
-  'confirm.title': 'Растау',
+  'confirm.title': 'Ағындар',
   'confirm.empty': 'Жаңа өтінім жоқ',
   'confirm.emptyHint': 'Ассистент клиентпен келіскенде, өтінім осында шығады',
   'confirm.service': 'Қызмет',

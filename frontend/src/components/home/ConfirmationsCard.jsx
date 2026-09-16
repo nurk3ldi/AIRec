@@ -112,7 +112,7 @@ export default function ConfirmationsCard({ className = '' }) {
 
   return (
     <section className={`${CARD_EDGE} flex flex-col overflow-hidden ${className}`}>
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b border-card-edge px-5">
+      <header className="flex h-12 shrink-0 items-center gap-2 px-5">
         <h2 className="text-[15px] font-semibold text-ink">{t('confirm.title')}</h2>
         {rows && rows.length > 0 && (
           <span className="rounded-md bg-ink/8 px-1.5 text-[12px] leading-5 text-muted tabular-nums">
