@@ -30,10 +30,11 @@ function demoRows() {
     start.setHours(hours, minutes, 0, 0)
     return start
   }
-  const row = (id, client_name, service_name, price, start, last_message) => ({
+  const row = (id, client_name, service_name, price, start, last_message, minutesAgo) => ({
     id,
     demo: true,
     last_message,
+    last_message_at: new Date(Date.now() - minutesAgo * 60000).toISOString(),
     client_name,
     client_phone: null,
     service_name,
@@ -43,8 +44,8 @@ function demoRows() {
     conversation_id: null,
   })
   return [
-    row('demo-1', 'Nurkeldi', 'Service 1', 5000, at(1, 14, 0), 'Можно завтра в 14:00?'),
-    row('demo-2', 'Unknown', 'Service 1', 8000, at(2, 11, 30), 'Здравствуйте, запишите меня'),
+    row('demo-1', 'Nurkeldi', 'Service 1', 5000, at(1, 14, 0), 'Можно завтра в 14:00?', 4),
+    row('demo-2', 'Unknown', 'Service 1', 8000, at(2, 11, 30), 'Здравствуйте, запишите меня', 26 * 60),
   ]
 }
 // --- end DEMO -----------------------------------------------------------------
@@ -140,6 +141,24 @@ function whenLabel(iso) {
   return `${date.charAt(0).toUpperCase()}${date.slice(1)}, ${clock}`
 }
 
+/** When a message was sent: the clock today, «Вчера» / a short date before. */
+function chatTime(iso) {
+  if (!iso) return ''
+  const at = new Date(iso)
+  const locale = getLocale()
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const day = new Date(at)
+  day.setHours(0, 0, 0, 0)
+  const diff = Math.round((today - day) / 86400000)
+  if (diff === 0) return at.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+  if (diff === 1) {
+    const word = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(-1, 'day')
+    return `${word.charAt(0).toUpperCase()}${word.slice(1)}`
+  }
+  return at.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
+}
+
 /** «14:00–14:30», or the start alone for a booking with no end. */
 function spanLabel(row) {
   const locale = getLocale()
@@ -178,9 +197,11 @@ export default function ConfirmationsCard({ className = '' }) {
   // DEMO: the invented rows' switches live here, since they have no thread.
   const [demoAi, setDemoAi] = useState({})
 
-  /** The last thing said in the request's chat; nothing for one with no chat. */
+  /** The last thing said in the request's chat, and when; nothing without a chat. */
   const lastMessage = (row) =>
     row.demo ? row.last_message : threads[row.conversation_id]?.last_message_preview
+  const lastMessageAt = (row) =>
+    row.demo ? row.last_message_at : threads[row.conversation_id]?.last_message_at
 
   /** Whether the assistant is on in that chat; `null` when there is no chat. */
   const aiOn = (row) => {
@@ -282,20 +303,26 @@ export default function ConfirmationsCard({ className = '' }) {
                     // cursor or keyboard focus, and hairlines part the rows.
                     className="my-1 flex w-full flex-col gap-1 rounded-[10px] px-3 py-2.5 text-left outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.98]"
                   >
-                    <span className="flex items-baseline gap-2">
-                      <span className="truncate text-[14px] font-medium text-ink">
-                        {row.client_name || t('chat.noName')}
-                      </span>
-                      <span className="ml-auto shrink-0 text-[12px] text-muted">
-                        {whenLabel(row.starts_at)}
-                      </span>
+                    {/* Top: the client, with room kept on the right for the
+                        switch laid over it. Bottom: what they wrote last, and
+                        when, against the right edge. */}
+                    <span className="truncate pr-32 text-[14px] font-medium text-ink">
+                      {row.client_name || t('chat.noName')}
                     </span>
-                    <span className="truncate pr-12 text-[13px] text-muted">
-                      {lastMessage(row) || '—'}
+                    <span className="flex items-baseline gap-2">
+                      <span className="min-w-0 truncate text-[13px] text-muted">
+                        {lastMessage(row) || '—'}
+                      </span>
+                      <span className="ml-auto shrink-0 text-[12px] text-muted tabular-nums">
+                        {chatTime(lastMessageAt(row))}
+                      </span>
                     </span>
                   </button>
                   {on !== null && (
-                    <span className="absolute right-3 bottom-[13px]">
+                    <span className="absolute top-[13px] right-3 flex items-center gap-2">
+                      <span aria-hidden="true" className="text-[12px] text-muted">
+                        {t('confirm.aiLabel')}
+                      </span>
                       <Switch
                         size="sm"
                         checked={on}
