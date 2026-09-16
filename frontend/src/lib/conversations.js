@@ -210,17 +210,3 @@ export function timeAgo(iso) {
   if (seconds < 86400) return format.format(-Math.floor(seconds / 3600), 'hour')
   return format.format(-Math.floor(seconds / 86400), 'day')
 }
-
-/**
- * Инициалы для кружка: первые буквы двух первых слов имени. У `@username` —
- * первая буква после `@`; у номера или «Без имени» букв нет, и тогда `null` —
- * вызывающий рисует силуэт, а не цифру.
- */
-export function initials(name) {
-  const letters = (name ?? '')
-    .replace(/^@/, '')
-    .split(/\s+/)
-    .map((word) => word.match(/\p{L}/u)?.[0])
-    .filter(Boolean)
-  return letters.length ? letters.slice(0, 2).join('').toUpperCase() : null
-}

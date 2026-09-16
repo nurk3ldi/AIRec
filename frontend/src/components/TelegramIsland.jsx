@@ -1,5 +1,5 @@
 import { HugeiconsIcon } from '@hugeicons/react'
-import { Cancel01Icon, TelegramIcon, UserIcon } from '@hugeicons/core-free-icons'
+import { Cancel01Icon, TelegramIcon } from '@hugeicons/core-free-icons'
 import {
   animate,
   domAnimation,
@@ -12,7 +12,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { listConversations } from '../lib/api'
 import { authed } from '../lib/auth'
-import { clientName, initials, timeAgo } from '../lib/conversations'
+import { clientName, timeAgo } from '../lib/conversations'
 import { useT } from '../lib/i18n'
 import {
   project,
@@ -222,8 +222,6 @@ export default function TelegramIsland() {
               key: `${row.id}-${at}`,
               id: row.id,
               name: clientName(row, t('chat.noName')),
-              // Из имени или @username, но не из номера и не из «Без имени».
-              initials: initials(row.client_name || row.client_username),
               at: row.last_message_at,
               text: row.last_message_preview ?? '',
               // Остальные непрочитанные этой ветки — «ещё N», а не потерянные.
@@ -378,24 +376,23 @@ export default function TelegramIsland() {
             >
               {/* Ряд сразу финальной ширины: текст не переносится, пока
                   карточка растёт, а обрезается её краем. Левое поле — чтобы
-                  36px аватар стоял ровно в центре свёрнутого 52px круга. */}
+                  36px знак стоял ровно в центре свёрнутого 52px круга. */}
               <button
                 type="button"
                 aria-label={t('island.open', { name: note.name })}
                 className="flex h-full items-center gap-2.5 pr-3.5 pl-[7px] text-left outline-none"
                 style={{ width: full.current - 2 }}
               >
-                {/* Кто написал — главное; из какого приложения — значок в углу,
-                    как у «коммуникационных» уведомлений iOS. */}
-                <span className="relative shrink-0">
-                  <span className="grid h-9 w-9 place-items-center rounded-full bg-ink/12 text-[13px] font-semibold text-ink">
-                    {note.initials ?? (
-                      <HugeiconsIcon icon={UserIcon} size={16} strokeWidth={2} />
-                    )}
-                  </span>
-                  <span className="absolute -right-0.5 -bottom-0.5 grid h-4 w-4 place-items-center rounded-full bg-ink text-surface ring-2 ring-surface-raised">
-                    <HugeiconsIcon icon={TelegramIcon} size={10} strokeWidth={2.2} />
-                  </span>
+                {/* Знак Telegram на месте аватара: имя клиента уже стоит рядом
+                    словами, а круг отвечает на второй вопрос — откуда пришло. */}
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/12 text-ink">
+                  <HugeiconsIcon
+                    icon={TelegramIcon}
+                    size={17}
+                    strokeWidth={1.8}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </span>
 
                 <m.span
