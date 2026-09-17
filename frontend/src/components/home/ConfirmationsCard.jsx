@@ -34,12 +34,12 @@ const POLL_MS = 15000
 const AHEAD_DAYS = 90
 
 /**
- * Booking requests waiting for the owner's word, soonest first. `null` until
- * the first answer. Re-read every 15 seconds while the tab is visible; a
- * failed read keeps what is on screen.
+ * The booking requests the assistant has filed and nobody has answered, by the
+ * chat they were agreed in. Re-read every 15 seconds while the tab is visible;
+ * a failed read keeps what is on screen.
  */
 function usePending() {
-  const [rows, setRows] = useState(null)
+  const [rows, setRows] = useState([])
 
   const read = () => {
     const today = new Date()
@@ -72,11 +72,12 @@ function usePending() {
 }
 
 /**
- * The chats behind the requests, by id: what was said last and whether the
- * assistant is on in that thread. Read with the same rhythm as the requests.
+ * **The chats themselves — what this card lists.** Every open conversation,
+ * newest first: a client writing to the bot is a стрим the moment they write,
+ * whether or not it ever becomes a booking. `null` until the first answer.
  */
 function useThreads() {
-  const [threads, setThreads] = useState({})
+  const [threads, setThreads] = useState(null)
 
   useEffect(() => {
     let alive = true
@@ -84,11 +85,15 @@ function useThreads() {
       authed((token) =>
         listConversations(token, { archived: false, deleted: false, limit: 100 }),
       )
-        .then((rows) => {
+        .then((all) => {
           if (!alive) return
-          setThreads(Object.fromEntries(rows.map((row) => [row.id, row])))
+          setThreads(
+            [...all].sort(
+              (a, b) => Date.parse(b.last_message_at ?? 0) - Date.parse(a.last_message_at ?? 0),
+            ),
+          )
         })
-        .catch(() => {})
+        .catch(() => setThreads((was) => was ?? []))
     read()
     const timer = setInterval(() => {
       if (document.visibilityState === 'visible') read()
@@ -175,33 +180,29 @@ function spanLabel(row) {
 export default function ConfirmationsCard({ className = '' }) {
   const t = useT()
   const navigate = useNavigate()
-  const [rows, setRows, reread] = usePending()
+  const [requests, setRequests, reread] = usePending()
   // Which request is open. `null` is the list; a request takes the whole card,
   // and «Назад» comes back — a split view would leave each half too narrow for
   // a message and a price at a quarter of the page.
   const [openId, setOpenId] = useState(null)
-  const [threads, setThreads] = useThreads()
+  const [rows, setThreads] = useThreads()
 
-  /** The last thing said in the request's chat, and when; nothing without a chat. */
-  const lastMessage = (row) => threads[row.conversation_id]?.last_message_preview
-  const lastMessageAt = (row) => threads[row.conversation_id]?.last_message_at
-
-  /** Whether the assistant is on in that chat; `null` when there is no chat. */
-  const aiOn = (row) => {
-    const thread = threads[row.conversation_id]
-    return thread ? thread.assistant_enabled : null
-  }
+  /** The request the assistant filed in this chat, if it filed one. */
+  const requestOf = (row) => requests.find((item) => item.conversation_id === row.id) ?? null
 
   // Optimistic, like every switch here: it moves under the finger, and a
   // failed save puts it back.
   const toggleAi = (row) => {
-    const next = !aiOn(row)
-    const id = row.conversation_id
+    const next = !row.assistant_enabled
     const put = (value) =>
-      setThreads((was) => ({ ...was, [id]: { ...was[id], assistant_enabled: value } }))
+      setThreads((was) =>
+        (was ?? []).map((item) =>
+          item.id === row.id ? { ...item, assistant_enabled: value } : item,
+        ),
+      )
     put(next)
-    authed((token) => updateConversation(token, id, { assistant_enabled: next })).catch(() =>
-      put(!next),
+    authed((token) => updateConversation(token, row.id, { assistant_enabled: next })).catch(
+      () => put(!next),
     )
   }
   const { pending, bars, reveal } = useSkeleton(rows === null)
@@ -213,6 +214,7 @@ export default function ConfirmationsCard({ className = '' }) {
   const [scrolled, setScrolled] = useState(false)
 
   const chosen = rows?.find((row) => row.id === openId) ?? null
+  const request = chosen ? requestOf(chosen) : null
 
   /** How the list and the request trade places: a drill-down, so it arrives
    *  from the right and leaves the same way — the path a press to «Назад» or a
@@ -236,15 +238,13 @@ export default function ConfirmationsCard({ className = '' }) {
     if (info.offset.x + project(info.velocity.x) > width * BACK_SHARE) setOpenId(null)
   }
 
-  const decide = (row, status) => {
-    // Answered, so the card goes back to the list — there is nothing left to
-    // look at on this one.
-    setOpenId(null)
-    setRows(rows.filter((item) => item.id !== row.id))
+  /** Answering the request a chat carries; the chat itself stays in the list. */
+  const decide = (request, status) => {
+    setRequests(requests.filter((item) => item.id !== request.id))
     // A decision is the one moment here worth a haptic: it is finished, and it
     // reaches a client.
     haptic('commit')
-    authed((token) => updateAppointment(token, row.id, { status })).catch(reread)
+    authed((token) => updateAppointment(token, request.id, { status })).catch(reread)
   }
 
   return (
@@ -330,7 +330,7 @@ export default function ConfirmationsCard({ className = '' }) {
               }`}
             >
             {rows.map((row, index) => {
-              const on = aiOn(row)
+              const on = row.assistant_enabled
               // The hairline under a row is dropped for the last row of each
               // column, so the list does not end on a line.
               const lastRow = index >= rows.length - (rows.length % 2 === 0 ? 2 : 1)
@@ -354,7 +354,7 @@ export default function ConfirmationsCard({ className = '' }) {
                       <span
                         aria-hidden="true"
                         className="h-1.5 w-1.5 shrink-0 rounded-full"
-                        style={{ background: dotColor(row.conversation_id ?? row.id) }}
+                        style={{ background: dotColor(row.id) }}
                       />
                       <span className="truncate text-[14px] font-medium text-ink">
                         {row.client_name || t('chat.noName')}
@@ -362,26 +362,24 @@ export default function ConfirmationsCard({ className = '' }) {
                     </span>
                     <span className="flex min-w-0 items-baseline gap-2">
                       <span className="min-w-0 truncate text-[13px] text-muted">
-                        {lastMessage(row) || '—'}
+                        {row.last_message_preview || '—'}
                       </span>
                       <span className="ml-auto shrink-0 text-[13px] font-medium text-ink tabular-nums">
-                        {chatTime(lastMessageAt(row))}
+                        {chatTime(row.last_message_at)}
                       </span>
                     </span>
                   </button>
-                  {on !== null && (
-                    <span className="absolute top-[11px] right-3 flex items-center gap-2">
+                  <span className="absolute top-[11px] right-3 flex items-center gap-2">
                       <span aria-hidden="true" className="text-[12px] text-ink">
                         {t('confirm.aiLabel')}
                       </span>
-                      <Switch
-                        size="sm"
-                        checked={on}
-                        onChange={() => toggleAi(row)}
-                        label={t('confirm.aiSwitch')}
-                      />
-                    </span>
-                  )}
+                    <Switch
+                      size="sm"
+                      checked={on}
+                      onChange={() => toggleAi(row)}
+                      label={t('confirm.aiSwitch')}
+                    />
+                  </span>
                   {/* The hairline between rows starts where the text does and
                       stops short of the edge, so the list reads as one block
                       rather than as boxes. */}
@@ -439,33 +437,53 @@ export default function ConfirmationsCard({ className = '' }) {
                     {t('confirm.back')}
                   </button>
                 </div>
+                {/* What there is to decide about this chat. With a request
+                    filed, the booking it would make; without one, the chat
+                    itself and a line saying there is nothing to answer yet. */}
                 <dl className="mt-3 flex flex-col divide-y divide-card-edge">
-                  <Row label={t('confirm.service')} value={chosen.service_name} />
-                  <Row
-                    label={t('confirm.when')}
-                    value={`${whenLabel(chosen.starts_at).split(', ').slice(0, -1).join(', ')}, ${spanLabel(chosen)}`}
-                  />
-                  <Row label={t('confirm.price')} value={formatPrice(chosen.price)} />
+                  {request ? (
+                    <>
+                      <Row label={t('confirm.service')} value={request.service_name} />
+                      <Row
+                        label={t('confirm.when')}
+                        value={`${whenLabel(request.starts_at).split(', ').slice(0, -1).join(', ')}, ${spanLabel(request)}`}
+                      />
+                      <Row label={t('confirm.price')} value={formatPrice(request.price)} />
+                    </>
+                  ) : (
+                    <>
+                      <Row
+                        label={t('confirm.lastMessage')}
+                        value={chosen.last_message_preview || '—'}
+                      />
+                      <Row
+                        label={t('confirm.when')}
+                        value={chatTime(chosen.last_message_at) || '—'}
+                      />
+                      <Row
+                        label={t('confirm.request')}
+                        value={<span className="text-muted">{t('confirm.noRequest')}</span>}
+                      />
+                    </>
+                  )}
                 </dl>
-
-
               </div>
 
               {/* The three answers in one row: the chat it was agreed in, and
                   the two decisions. */}
               <div className="flex shrink-0 gap-2 border-t border-card-edge p-3">
-                {chosen.conversation_id && (
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/inbox?chat=${chosen.conversation_id}`)}
-                    className="h-10 flex-1 rounded-[10px] bg-ink/8 text-[14px] font-medium text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/12 focus-visible:bg-ink/12 active:scale-[0.97]"
-                  >
-                    {t('confirm.openChat')}
-                  </button>
-                )}
                 <button
                   type="button"
-                  onClick={() => decide(chosen, 'cancelled')}
+                  onClick={() => navigate(`/inbox?chat=${chosen.id}`)}
+                  className="h-10 flex-1 rounded-[10px] bg-ink/8 text-[14px] font-medium text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/12 focus-visible:bg-ink/12 active:scale-[0.97]"
+                >
+                  {t('confirm.openChat')}
+                </button>
+                {request && (
+                <>
+                <button
+                  type="button"
+                  onClick={() => decide(request, 'cancelled')}
                   // Red, because declining is the one answer here that tells a
                   // client no — and it is a tint, not a filled red button: the
                   // loud shape belongs to the ordinary answer beside it.
@@ -475,11 +493,13 @@ export default function ConfirmationsCard({ className = '' }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => decide(chosen, 'confirmed')}
+                  onClick={() => decide(request, 'confirmed')}
                   className="h-10 flex-1 rounded-[10px] bg-ink text-[14px] font-medium text-surface outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-90 focus-visible:opacity-90 active:scale-[0.97]"
                 >
                   {t('confirm.approve')}
                 </button>
+                </>
+                )}
               </div>
             </m.div>
           )}
