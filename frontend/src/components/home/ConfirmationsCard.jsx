@@ -43,10 +43,39 @@ function demoRows() {
     ends_at: new Date(start.getTime() + 30 * 60000).toISOString(),
     conversation_id: null,
   })
-  return [
-    row('demo-1', 'Nurkeldi', 'Service 1', 5000, at(1, 14, 0), 'Можно завтра в 14:00?', 4),
-    row('demo-2', 'Unknown', 'Service 1', 8000, at(2, 11, 30), 'Здравствуйте, запишите меня', 26 * 60),
+  const names = [
+    'Nurkeldi',
+    'Unknown',
+    'Айгерим',
+    'Ерлан',
+    'Мадина',
+    'Дамир',
+    'Асель',
+    'Тимур',
+    'Гүлнар',
+    'Арман',
+    'Жанна',
+    'Бекзат',
   ]
+  const said = [
+    'Можно завтра в 14:00?',
+    'Здравствуйте, запишите меня',
+    'Сколько стоит?',
+    'А в субботу есть время?',
+    'Спасибо, буду',
+    'Можно перенести на вечер?',
+  ]
+  return names.map((name, index) =>
+    row(
+      `demo-${index + 1}`,
+      name,
+      'Service 1',
+      5000 + index * 1000,
+      at(1 + Math.floor(index / 4), 10 + (index % 4) * 2, index % 2 ? 30 : 0),
+      said[index % said.length],
+      index * 37 + 4,
+    ),
+  )
 }
 // --- end DEMO -----------------------------------------------------------------
 
@@ -364,7 +393,7 @@ export default function ConfirmationsCard({ className = '' }) {
                   </button>
                   {on !== null && (
                     <span className="absolute top-[13px] right-3 flex items-center gap-2">
-                      <span aria-hidden="true" className="text-[12px] text-muted">
+                      <span aria-hidden="true" className="text-[12px] text-ink">
                         {t('confirm.aiLabel')}
                       </span>
                       <Switch
@@ -429,10 +458,19 @@ export default function ConfirmationsCard({ className = '' }) {
               {/* The three answers in one row: the chat it was agreed in, and
                   the two decisions. */}
               <div className="flex shrink-0 gap-2 border-t border-card-edge p-3">
-                {chosen.conversation_id && (
+                {/* DEMO: an invented request has no chat, so the button opens
+                    «Диалоги» itself rather than a thread — it is there so the
+                    row can be seen whole. */}
+                {(chosen.conversation_id || chosen.demo) && (
                   <button
                     type="button"
-                    onClick={() => navigate(`/inbox?chat=${chosen.conversation_id}`)}
+                    onClick={() =>
+                      navigate(
+                        chosen.conversation_id
+                          ? `/inbox?chat=${chosen.conversation_id}`
+                          : '/inbox',
+                      )
+                    }
                     className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] bg-ink/8 text-[14px] font-medium text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/12 focus-visible:bg-ink/12 active:scale-[0.97]"
                   >
                     {t('confirm.openChat')}
