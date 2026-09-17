@@ -298,9 +298,20 @@ export default function ConfirmationsCard({ className = '' }) {
           {/* The list, every request soonest first — the whole card until one
               of them is opened. */}
           {!chosen && (
-          <ul className="flex min-h-0 flex-1 flex-col overflow-y-auto p-2">
-            {rows.map((row) => {
+          <div className="relative min-h-0 flex-1 overflow-y-auto">
+            {/* Two columns of equal width, parted down the middle: a request is
+                two short lines, and one column of them left half the card
+                empty. */}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-2 left-1/2 w-px bg-card-edge"
+            />
+            <ul className="grid grid-cols-2 p-2">
+            {rows.map((row, index) => {
               const on = aiOn(row)
+              // The hairline under a row is dropped for the last row of each
+              // column, so the list does not end on a line.
+              const lastRow = index >= rows.length - (rows.length % 2 === 0 ? 2 : 1)
               return (
                 // The switch is a sibling laid over the row, not a child of its
                 // button: a button inside a button is not valid, and a press on
@@ -317,7 +328,7 @@ export default function ConfirmationsCard({ className = '' }) {
                     {/* Two lines, as in Notes: the client on the first, then
                         when they last wrote and what they said on the second —
                         the time in ink, the message grey after it. */}
-                    <span className="truncate pr-32 text-[14px] font-medium text-ink">
+                    <span className="truncate pr-28 text-[14px] font-medium text-ink">
                       {row.client_name || t('chat.noName')}
                     </span>
                     <span className="flex min-w-0 items-baseline gap-2">
@@ -345,7 +356,7 @@ export default function ConfirmationsCard({ className = '' }) {
                   {/* The hairline between rows starts where the text does and
                       stops short of the edge, so the list reads as one block
                       rather than as boxes. */}
-                  {row.id !== rows[rows.length - 1].id && (
+                  {!lastRow && (
                     <span
                       aria-hidden="true"
                       className="pointer-events-none absolute inset-x-3 bottom-0 h-px bg-card-edge"
@@ -354,7 +365,8 @@ export default function ConfirmationsCard({ className = '' }) {
                 </li>
               )
             })}
-          </ul>
+            </ul>
+          </div>
           )}
 
           {/* One request, whole, across the card, and the two answers. */}
