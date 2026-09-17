@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, domMax, LazyMotion, m, useReducedMotion } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowLeft02Icon, ArrowRight02Icon } from '@hugeicons/core-free-icons'
@@ -12,6 +13,8 @@ import { authed } from '../../lib/auth'
 import { BOOKING_COLORS, formatPrice, tintOf } from '../../lib/appointments'
 import { dayKey } from '../../lib/dates'
 import { getLocale, useT } from '../../lib/i18n'
+import { haptic } from '../../lib/haptics'
+import { project, SPRING } from '../../lib/motion'
 import { useSkeleton } from '../../lib/skeleton'
 import { CARD_EDGE } from '../card'
 import Skeleton, { SkeletonRegion } from '../Skeleton'
@@ -78,6 +81,13 @@ function demoRows() {
   )
 }
 // --- end DEMO -----------------------------------------------------------------
+
+/**
+ * How far a swipe has to be *heading* for the request to close — a share of the
+ * card's width, asked of where the throw lands rather than where the finger
+ * stopped, so a short flick works and a slow drag back does not.
+ */
+const BACK_SHARE = 0.35
 
 /** The panel's own rhythm for things that change while somebody is looking. */
 const POLL_MS = 15000
@@ -272,8 +282,36 @@ export default function ConfirmationsCard({ className = '' }) {
     )
   }
   const { pending, bars, reveal } = useSkeleton(rows === null)
+  const reduce = useReducedMotion()
+  // Where the swipe-back is measured against, and whether the last haptic has
+  // already been spent on crossing the point of no return.
+  const stage = useRef(null)
+  const armed = useRef(false)
+  const [scrolled, setScrolled] = useState(false)
 
   const chosen = rows?.find((row) => row.id === openId) ?? null
+
+  /** How the list and the request trade places: a drill-down, so it arrives
+   *  from the right and leaves the same way — the path a press to «Назад» or a
+   *  swipe takes it back along. Under reduced motion nothing travels. */
+  const step = (direction) =>
+    reduce
+      ? { opacity: 0 }
+      : { opacity: 0, x: direction * (stage.current?.offsetWidth ?? 320) * 0.25 }
+
+  const onDrag = (event, info) => {
+    const width = stage.current?.offsetWidth ?? 320
+    const past = info.offset.x + project(info.velocity.x) > width * BACK_SHARE
+    // One tick on crossing, held by a ref so it cannot repeat per frame.
+    if (past && !armed.current) haptic('snap')
+    armed.current = past
+  }
+
+  const onDragEnd = (event, info) => {
+    const width = stage.current?.offsetWidth ?? 320
+    armed.current = false
+    if (info.offset.x + project(info.velocity.x) > width * BACK_SHARE) setOpenId(null)
+  }
 
   const decide = (row, status) => {
     // Answered, so the card goes back to the list — there is nothing left to
@@ -284,6 +322,9 @@ export default function ConfirmationsCard({ className = '' }) {
       return
     }
     setRows(rows.filter((item) => item.id !== row.id))
+    // A decision is the one moment here worth a haptic: it is finished, and it
+    // reaches a client.
+    haptic('commit')
     authed((token) => updateAppointment(token, row.id, { status })).catch(reread)
   }
 
@@ -294,7 +335,7 @@ export default function ConfirmationsCard({ className = '' }) {
           <button
             type="button"
             onClick={() => setOpenId(null)}
-            className="-ml-1.5 flex items-center gap-1 rounded-md px-1.5 py-1 text-[15px] font-semibold text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
+            className="touch-target relative -ml-1.5 flex items-center gap-1 rounded-md px-1.5 py-1 text-[15px] font-semibold text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
           >
             <HugeiconsIcon icon={ArrowLeft02Icon} size={16} strokeWidth={2.2} />
             {t('confirm.back')}
@@ -331,12 +372,19 @@ export default function ConfirmationsCard({ className = '' }) {
           </p>
         </div>
       ) : (
+        // `domMax`, not `domAnimation`: the smaller bundle leaves out drag, and
+        // the swipe back is a drag.
+        <LazyMotion features={domMax} strict>
         <div
-          key={chosen ? 'one' : 'list'}
-          className={`flex min-h-0 flex-1 flex-col ${chosen ? 'animate-content-reveal' : ''} ${
-            reveal ? 'animate-content-reveal' : ''
-          }`}
+          ref={stage}
+          className={`relative min-h-0 flex-1 overflow-hidden ${reveal ? 'animate-content-reveal' : ''}`}
         >
+        {/* **A drill-down, so it travels.** The request arrives from the right
+            and leaves the same way — the path «Назад» and the swipe take it
+            back along — on the critically damped spring this app uses for
+            everything a hand can touch. Both layers are present at once
+            (`popLayout`), so neither waits for the other. */}
+        <AnimatePresence initial={false} mode="popLayout">
           {/* The list, every request soonest first — the whole card until one
               of them is opened. Two columns of equal width, parted down the
               middle: a request is two short lines, and one column of them left
@@ -345,12 +393,29 @@ export default function ConfirmationsCard({ className = '' }) {
               gets, and the list itself scrolls when there are more requests
               than fit. */}
           {!chosen && (
-          <div className="relative min-h-0 flex-1">
+          <m.div
+            key="list"
+            initial={step(-1)}
+            animate={{ opacity: 1, x: 0 }}
+            exit={step(-1)}
+            transition={SPRING}
+            className="absolute inset-0"
+          >
             <span
               aria-hidden="true"
               className="pointer-events-none absolute inset-y-2 left-1/2 w-px bg-card-edge"
             />
-            <ul className="grid h-full grid-flow-row auto-rows-min grid-cols-2 content-start gap-x-4 overflow-y-auto p-2 [scrollbar-gutter:stable_both-edges]">
+            {/* A scroll edge rather than a rule under the heading: the first
+                row fades out as it goes under it, and there is nothing to see
+                while the list sits at the top. */}
+            <ul
+              onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 0)}
+              className={`grid h-full grid-flow-row auto-rows-min grid-cols-2 content-start gap-x-4 overflow-y-auto p-2 transition-[mask-image] duration-200 [scrollbar-gutter:stable_both-edges] ${
+                scrolled
+                  ? '[mask-image:linear-gradient(to_bottom,transparent_0,black_20px)]'
+                  : ''
+              }`}
+            >
             {rows.map((row, index) => {
               const on = aiOn(row)
               // The hairline under a row is dropped for the last row of each
@@ -417,15 +482,35 @@ export default function ConfirmationsCard({ className = '' }) {
               )
             })}
             </ul>
-          </div>
+          </m.div>
           )}
 
-          {/* One request, whole, across the card, and the two answers. */}
+          {/* One request, whole, across the card, and the two answers. It can
+              be dragged back with a finger: 1:1 rightwards, resisted the other
+              way, and it closes on where the throw was heading rather than on
+              how far it got. */}
           {chosen && (
-            <div className="flex min-h-0 flex-1 flex-col">
+            <m.div
+              key={chosen.id}
+              initial={step(1)}
+              animate={{ opacity: 1, x: 0 }}
+              exit={step(1)}
+              transition={SPRING}
+              // The gesture stays under reduced motion — a movement somebody
+              // is making with their own finger is not vestibular; only the
+              // entrance and the exit stop travelling.
+              drag="x"
+              dragDirectionLock
+              dragMomentum={false}
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={{ left: 0, right: 0.85 }}
+              onDrag={onDrag}
+              onDragEnd={onDragEnd}
+              className="absolute inset-0 flex touch-pan-y flex-col"
+            >
               {/* Details scroll; the two answers stay pinned under them, so a
                   short card never hides the buttons below its edge. */}
-              <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-4">
+              <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto px-5 pt-4">
                 <p className="text-[18px] font-semibold tracking-[-0.01em] text-ink">
                   {chosen.client_name || t('chat.noName')}
                 </p>
@@ -492,9 +577,11 @@ export default function ConfirmationsCard({ className = '' }) {
                   {t('confirm.approve')}
                 </button>
               </div>
-            </div>
+            </m.div>
           )}
+        </AnimatePresence>
         </div>
+        </LazyMotion>
       )}
     </section>
   )
