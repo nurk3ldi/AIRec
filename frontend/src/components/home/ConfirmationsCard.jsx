@@ -330,27 +330,16 @@ export default function ConfirmationsCard({ className = '' }) {
 
   return (
     <section className={`${CARD_EDGE} flex flex-col overflow-hidden ${className}`}>
-      <header className="flex h-10 shrink-0 items-center gap-2 px-5">
-        {chosen ? (
-          <button
-            type="button"
-            onClick={() => setOpenId(null)}
-            className="touch-target relative -ml-1.5 flex items-center gap-1 rounded-md px-1.5 py-1 text-[15px] font-semibold text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
-          >
-            <HugeiconsIcon icon={ArrowLeft02Icon} size={16} strokeWidth={2.2} />
-            {t('confirm.back')}
-          </button>
-        ) : (
-          <>
-            <h2 className="text-[15px] font-semibold text-ink">{t('confirm.title')}</h2>
-            {rows && rows.length > 0 && (
-              <span className="rounded-md bg-ink/8 px-1.5 text-[12px] leading-5 text-muted tabular-nums">
-                {rows.length}
-              </span>
-            )}
-          </>
-        )}
-      </header>
+      {!chosen && (
+        <header className="flex h-10 shrink-0 items-center gap-2 px-5">
+          <h2 className="text-[15px] font-semibold text-ink">{t('confirm.title')}</h2>
+          {rows && rows.length > 0 && (
+            <span className="rounded-md bg-ink/8 px-1.5 text-[12px] leading-5 text-muted tabular-nums">
+              {rows.length}
+            </span>
+          )}
+        </header>
+      )}
 
       {rows === null || pending ? (
         <SkeletonRegion
@@ -510,10 +499,22 @@ export default function ConfirmationsCard({ className = '' }) {
             >
               {/* Details scroll; the two answers stay pinned under them, so a
                   short card never hides the buttons below its edge. */}
-              <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto px-5 pt-4">
-                <p className="text-[18px] font-semibold tracking-[-0.01em] text-ink">
-                  {chosen.client_name || t('chat.noName')}
-                </p>
+              <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto px-5 pt-3">
+                {/* The client names the screen, and the way back sits at the end
+                    of that line — one row rather than a heading over a heading. */}
+                <div className="flex items-center justify-between gap-3">
+                  <p className="min-w-0 truncate text-[18px] font-semibold tracking-[-0.01em] text-ink">
+                    {chosen.client_name || t('chat.noName')}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setOpenId(null)}
+                    className="touch-target relative -mr-1.5 flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 text-[14px] font-medium text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
+                  >
+                    <HugeiconsIcon icon={ArrowLeft02Icon} size={15} strokeWidth={2.2} />
+                    {t('confirm.back')}
+                  </button>
+                </div>
                 <dl className="mt-3 flex flex-col divide-y divide-card-edge">
                   {/* The number is a row like the rest, and says so plainly
                       when there is none: a client who wrote from Telegram often
