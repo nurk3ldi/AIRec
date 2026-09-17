@@ -288,6 +288,9 @@ export default function ConfirmationsCard({ className = '' }) {
   const stage = useRef(null)
   const armed = useRef(false)
   const [scrolled, setScrolled] = useState(false)
+  // What is typed in the note, by request id — kept here so a re-read while
+  // somebody is writing cannot wipe what they have written.
+  const [notes, setNotes] = useState({})
 
   const chosen = rows?.find((row) => row.id === openId) ?? null
 
@@ -313,6 +316,22 @@ export default function ConfirmationsCard({ className = '' }) {
     if (info.offset.x + project(info.velocity.x) > width * BACK_SHARE) setOpenId(null)
   }
 
+  /** The note as it stands: what has been typed, or what the request carries. */
+  const noteOf = (row) => notes[row.id] ?? row.note ?? ''
+
+  /**
+   * Saved when the field is left rather than on every keystroke — a request a
+   * character is a request per letter, and nothing else on the card is racing
+   * for it. A demo request keeps its note on the page and nowhere else.
+   */
+  const saveNote = (row) => {
+    const value = noteOf(row).trim()
+    if (value === (row.note ?? '')) return
+    if (row.demo) return
+    setRows(rows.map((item) => (item.id === row.id ? { ...item, note: value } : item)))
+    authed((token) => updateAppointment(token, row.id, { note: value || null })).catch(reread)
+  }
+
   const decide = (row, status) => {
     // Answered, so the card goes back to the list — there is nothing left to
     // look at on this one.
@@ -330,8 +349,11 @@ export default function ConfirmationsCard({ className = '' }) {
 
   return (
     <section className={`${CARD_EDGE} flex flex-col overflow-hidden ${className}`}>
+      {/* The heading sits where «Ассистент» and «Лимит» sit on the cards beside
+          it: 16px down from the card's own edge, not centred in a bar of its
+          own. */}
       {!chosen && (
-        <header className="flex h-10 shrink-0 items-center gap-2 px-5">
+        <header className="flex shrink-0 items-center gap-2 px-5 pt-4 pb-2">
           <h2 className="text-[15px] font-semibold text-ink">{t('confirm.title')}</h2>
           {rows && rows.length > 0 && (
             <span className="rounded-md bg-ink/8 px-1.5 text-[12px] leading-5 text-muted tabular-nums">
@@ -499,7 +521,7 @@ export default function ConfirmationsCard({ className = '' }) {
             >
               {/* Details scroll; the two answers stay pinned under them, so a
                   short card never hides the buttons below its edge. */}
-              <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto px-5 pt-3">
+              <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto px-5 pt-4">
                 {/* The client names the screen, and the way back sits at the end
                     of that line — one row rather than a heading over a heading. */}
                 <div className="flex items-center justify-between gap-3">
@@ -516,21 +538,6 @@ export default function ConfirmationsCard({ className = '' }) {
                   </button>
                 </div>
                 <dl className="mt-3 flex flex-col divide-y divide-card-edge">
-                  {/* The number is a row like the rest, and says so plainly
-                      when there is none: a client who wrote from Telegram often
-                      never gave one, and a blank line reads as "did not load". */}
-                  <Row
-                    label={t('confirm.phone')}
-                    value={
-                      chosen.client_phone ? (
-                        <a href={`tel:${chosen.client_phone}`} className="hover:opacity-70">
-                          {chosen.client_phone}
-                        </a>
-                      ) : (
-                        <span className="text-muted">{t('confirm.noPhone')}</span>
-                      )
-                    }
-                  />
                   <Row label={t('confirm.service')} value={chosen.service_name} />
                   <Row
                     label={t('confirm.when')}
@@ -538,6 +545,23 @@ export default function ConfirmationsCard({ className = '' }) {
                   />
                   <Row label={t('confirm.price')} value={formatPrice(chosen.price)} />
                 </dl>
+
+                {/* A note for the owner, kept on the booking itself. Saved when
+                    the field is left, so a booking's note is the same field
+                    «Записи» edits — not a second place to look. */}
+                <label className="mt-3 flex flex-col gap-1.5 pb-4">
+                  <span className="text-[13px] text-muted">{t('confirm.note')}</span>
+                  <textarea
+                    value={noteOf(chosen)}
+                    onChange={(event) =>
+                      setNotes((was) => ({ ...was, [chosen.id]: event.target.value }))
+                    }
+                    onBlur={() => saveNote(chosen)}
+                    rows={2}
+                    placeholder={t('confirm.notePlaceholder')}
+                    className="w-full resize-none rounded-[10px] bg-ink/6 px-3 py-2 text-[16px] text-ink outline-none transition-[background-color] duration-150 placeholder:text-muted focus:bg-ink/10 sm:text-[14px]"
+                  />
+                </label>
 
               </div>
 
