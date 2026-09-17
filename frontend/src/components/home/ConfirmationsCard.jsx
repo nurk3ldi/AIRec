@@ -330,7 +330,7 @@ export default function ConfirmationsCard({ className = '' }) {
 
   return (
     <section className={`${CARD_EDGE} flex flex-col overflow-hidden ${className}`}>
-      <header className="flex h-12 shrink-0 items-center gap-2 px-5">
+      <header className="flex h-10 shrink-0 items-center gap-2 px-5">
         {chosen ? (
           <button
             type="button"
@@ -410,7 +410,7 @@ export default function ConfirmationsCard({ className = '' }) {
                 while the list sits at the top. */}
             <ul
               onScroll={(event) => setScrolled(event.currentTarget.scrollTop > 0)}
-              className={`grid h-full grid-flow-row auto-rows-min grid-cols-2 content-start gap-x-4 overflow-y-auto p-2 transition-[mask-image] duration-200 [scrollbar-gutter:stable_both-edges] ${
+              className={`grid h-full grid-flow-row auto-rows-min grid-cols-2 content-start gap-x-4 overflow-y-auto p-2 pt-0 transition-[mask-image] duration-200 [scrollbar-gutter:stable_both-edges] ${
                 scrolled
                   ? '[mask-image:linear-gradient(to_bottom,transparent_0,black_20px)]'
                   : ''
@@ -432,7 +432,7 @@ export default function ConfirmationsCard({ className = '' }) {
                     // No fill at rest, the chosen one included — the details on
                     // the right already say which it is. Grey only under the
                     // cursor or keyboard focus, and hairlines part the rows.
-                    className="my-1 flex w-full flex-col gap-1 rounded-[10px] px-3 py-2.5 text-left outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.98]"
+                    className="my-0.5 flex w-full flex-col gap-1 rounded-[10px] px-3 py-2.5 text-left outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.98]"
                   >
                     {/* Two lines, as in Notes: the client on the first, then
                         what they wrote last on the second, with when
@@ -457,7 +457,7 @@ export default function ConfirmationsCard({ className = '' }) {
                     </span>
                   </button>
                   {on !== null && (
-                    <span className="absolute top-[13px] right-3 flex items-center gap-2">
+                    <span className="absolute top-[11px] right-3 flex items-center gap-2">
                       <span aria-hidden="true" className="text-[12px] text-ink">
                         {t('confirm.aiLabel')}
                       </span>
