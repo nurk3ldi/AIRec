@@ -155,6 +155,17 @@ function chatTime(iso) {
   return at.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
 }
 
+/**
+ * Who said the last thing, in front of it: «Ассистент: » / «Вы: », and nothing
+ * for the client, whom the row is about anyway. The same words «Потоки» on
+ * `/inbox` uses, from the same keys.
+ */
+function authorPrefix(author, t) {
+  if (author === 'assistant') return t('home.streams.said')
+  if (author === 'owner') return `${t('thread.author.owner')}: `
+  return ''
+}
+
 /** «14:00–14:30», or the start alone for a booking with no end. */
 function spanLabel(row) {
   const locale = getLocale()
@@ -362,7 +373,9 @@ export default function ConfirmationsCard({ className = '' }) {
                     </span>
                     <span className="flex min-w-0 items-baseline gap-2">
                       <span className="min-w-0 truncate text-[13px] text-muted">
-                        {row.last_message_preview || '—'}
+                        {row.last_message_preview
+                          ? `${authorPrefix(row.last_message_author, t)}${row.last_message_preview}`
+                          : '—'}
                       </span>
                       <span className="ml-auto shrink-0 text-[13px] font-medium text-ink tabular-nums">
                         {chatTime(row.last_message_at)}
@@ -454,7 +467,11 @@ export default function ConfirmationsCard({ className = '' }) {
                     <>
                       <Row
                         label={t('confirm.lastMessage')}
-                        value={chosen.last_message_preview || '—'}
+                        value={
+                          chosen.last_message_preview
+                            ? `${authorPrefix(chosen.last_message_author, t)}${chosen.last_message_preview}`
+                            : '—'
+                        }
                       />
                       <Row
                         label={t('confirm.when')}
