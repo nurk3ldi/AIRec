@@ -328,17 +328,17 @@ export default function ConfirmationsCard({ className = '' }) {
                     className="my-1 flex w-full flex-col gap-1 rounded-[10px] px-3 py-2.5 text-left outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.98]"
                   >
                     {/* Two lines, as in Notes: the client on the first, then
-                        when they last wrote and what they said on the second —
-                        the time in ink, the message grey after it. */}
+                        what they wrote last on the second, with when
+                        against the right edge. */}
                     <span className="truncate pr-28 text-[14px] font-medium text-ink">
                       {row.client_name || t('chat.noName')}
                     </span>
                     <span className="flex min-w-0 items-baseline gap-2">
-                      <span className="shrink-0 text-[13px] font-medium text-ink tabular-nums">
-                        {chatTime(lastMessageAt(row))}
-                      </span>
                       <span className="min-w-0 truncate text-[13px] text-muted">
                         {lastMessage(row) || '—'}
+                      </span>
+                      <span className="ml-auto shrink-0 text-[13px] font-medium text-ink tabular-nums">
+                        {chatTime(lastMessageAt(row))}
                       </span>
                     </span>
                   </button>
