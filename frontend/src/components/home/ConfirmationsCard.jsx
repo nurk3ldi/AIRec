@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, domMax, LazyMotion, m, useReducedMotion } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowLeft02Icon, ArrowRight02Icon } from '@hugeicons/core-free-icons'
+import { ArrowLeft02Icon } from '@hugeicons/core-free-icons'
 import {
   listAppointments,
   listConversations,
@@ -556,16 +556,18 @@ export default function ConfirmationsCard({ className = '' }) {
                           : '/inbox',
                       )
                     }
-                    className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] bg-ink/8 text-[14px] font-medium text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/12 focus-visible:bg-ink/12 active:scale-[0.97]"
+                    className="h-10 flex-1 rounded-[10px] bg-ink/8 text-[14px] font-medium text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/12 focus-visible:bg-ink/12 active:scale-[0.97]"
                   >
                     {t('confirm.openChat')}
-                    <HugeiconsIcon icon={ArrowRight02Icon} size={14} strokeWidth={2} />
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={() => decide(chosen, 'cancelled')}
-                  className="h-10 flex-1 rounded-[10px] bg-ink/8 text-[14px] font-medium text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/12 focus-visible:bg-ink/12 active:scale-[0.97]"
+                  // Red, because declining is the one answer here that tells a
+                  // client no — and it is a tint, not a filled red button: the
+                  // loud shape belongs to the ordinary answer beside it.
+                  className="h-10 flex-1 rounded-[10px] bg-danger/12 text-[14px] font-medium text-danger outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-danger/20 focus-visible:bg-danger/20 active:scale-[0.97]"
                 >
                   {t('confirm.decline')}
                 </button>
