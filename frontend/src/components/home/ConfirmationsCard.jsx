@@ -350,7 +350,7 @@ export default function ConfirmationsCard({ className = '' }) {
               aria-hidden="true"
               className="pointer-events-none absolute inset-y-2 left-1/2 w-px bg-card-edge"
             />
-            <ul className="grid h-full grid-flow-row auto-rows-min grid-cols-2 content-start overflow-y-auto p-2">
+            <ul className="grid h-full grid-flow-row auto-rows-min grid-cols-2 content-start gap-x-4 overflow-y-auto p-2">
             {rows.map((row, index) => {
               const on = aiOn(row)
               // The hairline under a row is dropped for the last row of each
