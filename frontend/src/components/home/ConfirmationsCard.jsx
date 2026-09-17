@@ -355,8 +355,10 @@ export default function ConfirmationsCard({ className = '' }) {
       {!chosen && (
         <header className="flex shrink-0 items-center gap-2 px-5 pt-4 pb-2">
           <h2 className="text-[15px] font-semibold text-ink">{t('confirm.title')}</h2>
+          {/* How many are waiting, against the right edge and in ink — it is a
+              count somebody acts on, not a caption. */}
           {rows && rows.length > 0 && (
-            <span className="rounded-md bg-ink/8 px-1.5 text-[12px] leading-5 text-muted tabular-nums">
+            <span className="ml-auto rounded-md bg-ink/10 px-1.5 text-[12px] leading-5 font-medium text-ink tabular-nums">
               {rows.length}
             </span>
           )}
