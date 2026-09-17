@@ -288,9 +288,6 @@ export default function ConfirmationsCard({ className = '' }) {
   const stage = useRef(null)
   const armed = useRef(false)
   const [scrolled, setScrolled] = useState(false)
-  // What is typed in the note, by request id — kept here so a re-read while
-  // somebody is writing cannot wipe what they have written.
-  const [notes, setNotes] = useState({})
 
   const chosen = rows?.find((row) => row.id === openId) ?? null
 
@@ -314,22 +311,6 @@ export default function ConfirmationsCard({ className = '' }) {
     const width = stage.current?.offsetWidth ?? 320
     armed.current = false
     if (info.offset.x + project(info.velocity.x) > width * BACK_SHARE) setOpenId(null)
-  }
-
-  /** The note as it stands: what has been typed, or what the request carries. */
-  const noteOf = (row) => notes[row.id] ?? row.note ?? ''
-
-  /**
-   * Saved when the field is left rather than on every keystroke — a request a
-   * character is a request per letter, and nothing else on the card is racing
-   * for it. A demo request keeps its note on the page and nowhere else.
-   */
-  const saveNote = (row) => {
-    const value = noteOf(row).trim()
-    if (value === (row.note ?? '')) return
-    if (row.demo) return
-    setRows(rows.map((item) => (item.id === row.id ? { ...item, note: value } : item)))
-    authed((token) => updateAppointment(token, row.id, { note: value || null })).catch(reread)
   }
 
   const decide = (row, status) => {
@@ -548,22 +529,6 @@ export default function ConfirmationsCard({ className = '' }) {
                   <Row label={t('confirm.price')} value={formatPrice(chosen.price)} />
                 </dl>
 
-                {/* A note for the owner, kept on the booking itself. Saved when
-                    the field is left, so a booking's note is the same field
-                    «Записи» edits — not a second place to look. */}
-                <label className="mt-3 flex flex-col gap-1.5 pb-4">
-                  <span className="text-[13px] text-muted">{t('confirm.note')}</span>
-                  <textarea
-                    value={noteOf(chosen)}
-                    onChange={(event) =>
-                      setNotes((was) => ({ ...was, [chosen.id]: event.target.value }))
-                    }
-                    onBlur={() => saveNote(chosen)}
-                    rows={2}
-                    placeholder={t('confirm.notePlaceholder')}
-                    className="w-full resize-none rounded-[10px] bg-ink/6 px-3 py-2 text-[16px] text-ink outline-none transition-[background-color] duration-150 placeholder:text-muted focus:bg-ink/10 sm:text-[14px]"
-                  />
-                </label>
 
               </div>
 

@@ -54,8 +54,6 @@ export default {
   'confirm.back': 'Back',
   'confirm.aiLabel': 'Assistant',
   'confirm.aiSwitch': 'Assistant in this chat',
-  'confirm.note': 'Note',
-  'confirm.notePlaceholder': 'A note for yourself',
   'confirm.service': 'Service',
   'confirm.when': 'When',
   'confirm.price': 'Price',
