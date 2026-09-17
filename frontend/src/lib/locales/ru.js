@@ -57,6 +57,7 @@ export default {
   'home.limitUsed': 'использовано',
   'confirm.title': 'Потоки',
   'confirm.empty': 'Потоков нет',
+  'confirm.back': 'Назад',
   'confirm.aiLabel': 'Ассистент',
   'confirm.aiSwitch': 'Ассистент в этом чате',
   'confirm.service': 'Услуга',

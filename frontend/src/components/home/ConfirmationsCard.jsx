@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowRight02Icon } from '@hugeicons/core-free-icons'
+import { ArrowLeft02Icon, ArrowRight02Icon } from '@hugeicons/core-free-icons'
 import {
   listAppointments,
   listConversations,
@@ -192,7 +192,10 @@ export default function ConfirmationsCard({ className = '' }) {
     realRows && realRows.length === 0
       ? demoRows().filter((row) => !demoDone.includes(row.id))
       : realRows
-  const [chosenId, setChosenId] = useState(null)
+  // Which request is open. `null` is the list; a request takes the whole card,
+  // and «Назад» comes back — a split view would leave each half too narrow for
+  // a message and a price at a quarter of the page.
+  const [openId, setOpenId] = useState(null)
   const [threads, setThreads] = useThreads()
   // DEMO: the invented rows' switches live here, since they have no thread.
   const [demoAi, setDemoAi] = useState({})
@@ -228,30 +231,41 @@ export default function ConfirmationsCard({ className = '' }) {
   }
   const { pending, bars, reveal } = useSkeleton(rows === null)
 
-  const chosen = rows?.find((row) => row.id === chosenId) ?? rows?.[0] ?? null
+  const chosen = rows?.find((row) => row.id === openId) ?? null
 
   const decide = (row, status) => {
+    // Answered, so the card goes back to the list — there is nothing left to
+    // look at on this one.
+    setOpenId(null)
     if (row.demo) {
-      const rest = rows.filter((item) => item.id !== row.id)
       setDemoDone((done) => [...done, row.id])
-      setChosenId(rest[0]?.id ?? null)
       return
     }
-    const index = rows.findIndex((item) => item.id === row.id)
-    const rest = rows.filter((item) => item.id !== row.id)
-    setRows(rest)
-    setChosenId(rest[Math.min(index, rest.length - 1)]?.id ?? null)
+    setRows(rows.filter((item) => item.id !== row.id))
     authed((token) => updateAppointment(token, row.id, { status })).catch(reread)
   }
 
   return (
     <section className={`${CARD_EDGE} flex flex-col overflow-hidden ${className}`}>
       <header className="flex h-12 shrink-0 items-center gap-2 px-5">
-        <h2 className="text-[15px] font-semibold text-ink">{t('confirm.title')}</h2>
-        {rows && rows.length > 0 && (
-          <span className="rounded-md bg-ink/8 px-1.5 text-[12px] leading-5 text-muted tabular-nums">
-            {rows.length}
-          </span>
+        {chosen ? (
+          <button
+            type="button"
+            onClick={() => setOpenId(null)}
+            className="-ml-1.5 flex items-center gap-1 rounded-md px-1.5 py-1 text-[15px] font-semibold text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
+          >
+            <HugeiconsIcon icon={ArrowLeft02Icon} size={16} strokeWidth={2.2} />
+            {t('confirm.back')}
+          </button>
+        ) : (
+          <>
+            <h2 className="text-[15px] font-semibold text-ink">{t('confirm.title')}</h2>
+            {rows && rows.length > 0 && (
+              <span className="rounded-md bg-ink/8 px-1.5 text-[12px] leading-5 text-muted tabular-nums">
+                {rows.length}
+              </span>
+            )}
+          </>
         )}
       </header>
 
@@ -259,20 +273,14 @@ export default function ConfirmationsCard({ className = '' }) {
         <SkeletonRegion
           visible={bars}
           label={t('confirm.title')}
-          className="flex min-h-0 flex-1 flex-col sm:flex-row"
+          className="flex min-h-0 flex-1 flex-col gap-1 p-2"
         >
-          <div className="flex flex-col gap-1 p-2 sm:w-1/2 sm:border-r sm:border-card-edge">
-            {[0, 1, 2].map((index) => (
-              <div key={index} className="flex flex-col gap-2 rounded-[10px] px-3 py-3">
-                <Skeleton className="h-3.5 w-1/2" />
-                <Skeleton className="h-3 w-3/4" />
-              </div>
-            ))}
-          </div>
-          <div className="hidden flex-1 flex-col gap-3 p-5 sm:flex">
-            <Skeleton className="h-5 w-1/3" />
-            <Skeleton className="h-3.5 w-1/4" />
-          </div>
+          {[0, 1, 2].map((index) => (
+            <div key={index} className="flex flex-col gap-2 rounded-[10px] px-3 py-3">
+              <Skeleton className="h-3.5 w-1/2" />
+              <Skeleton className="h-3 w-3/4" />
+            </div>
+          ))}
         </SkeletonRegion>
       ) : rows.length === 0 ? (
         <div className="grid min-h-0 flex-1 place-items-center px-6 text-center">
@@ -282,12 +290,16 @@ export default function ConfirmationsCard({ className = '' }) {
         </div>
       ) : (
         <div
-          className={`flex min-h-0 flex-1 flex-col sm:flex-row ${reveal ? 'animate-content-reveal' : ''}`}
+          key={chosen ? 'one' : 'list'}
+          className={`flex min-h-0 flex-1 flex-col ${chosen ? 'animate-content-reveal' : ''} ${
+            reveal ? 'animate-content-reveal' : ''
+          }`}
         >
-          {/* Left: every request, soonest first. */}
-          <ul className="flex max-h-[45%] shrink-0 flex-col divide-y divide-card-edge overflow-y-auto border-b border-card-edge p-2 sm:max-h-none sm:w-1/2 sm:border-r sm:border-b-0">
+          {/* The list, every request soonest first — the whole card until one
+              of them is opened. */}
+          {!chosen && (
+          <ul className="flex min-h-0 flex-1 flex-col overflow-y-auto p-2">
             {rows.map((row) => {
-              const selected = row.id === chosen?.id
               const on = aiOn(row)
               return (
                 // The switch is a sibling laid over the row, not a child of its
@@ -296,25 +308,24 @@ export default function ConfirmationsCard({ className = '' }) {
                 <li key={row.id} className="relative">
                   <button
                     type="button"
-                    onClick={() => setChosenId(row.id)}
-                    aria-current={selected || undefined}
+                    onClick={() => setOpenId(row.id)}
                     // No fill at rest, the chosen one included — the details on
                     // the right already say which it is. Grey only under the
                     // cursor or keyboard focus, and hairlines part the rows.
                     className="my-1 flex w-full flex-col gap-1 rounded-[10px] px-3 py-2.5 text-left outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.98]"
                   >
-                    {/* Top: the client, with room kept on the right for the
-                        switch laid over it. Bottom: what they wrote last, and
-                        when, against the right edge. */}
+                    {/* Two lines, as in Notes: the client on the first, then
+                        when they last wrote and what they said on the second —
+                        the time in ink, the message grey after it. */}
                     <span className="truncate pr-32 text-[14px] font-medium text-ink">
                       {row.client_name || t('chat.noName')}
                     </span>
-                    <span className="flex items-baseline gap-2">
+                    <span className="flex min-w-0 items-baseline gap-2">
+                      <span className="shrink-0 text-[13px] font-medium text-ink tabular-nums">
+                        {chatTime(lastMessageAt(row))}
+                      </span>
                       <span className="min-w-0 truncate text-[13px] text-muted">
                         {lastMessage(row) || '—'}
-                      </span>
-                      <span className="ml-auto shrink-0 text-[12px] text-muted tabular-nums">
-                        {chatTime(lastMessageAt(row))}
                       </span>
                     </span>
                   </button>
@@ -331,14 +342,24 @@ export default function ConfirmationsCard({ className = '' }) {
                       />
                     </span>
                   )}
+                  {/* The hairline between rows starts where the text does and
+                      stops short of the edge, so the list reads as one block
+                      rather than as boxes. */}
+                  {row.id !== rows[rows.length - 1].id && (
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-x-3 bottom-0 h-px bg-card-edge"
+                    />
+                  )}
                 </li>
               )
             })}
           </ul>
+          )}
 
-          {/* Right: the chosen request, whole, and the two answers. */}
+          {/* One request, whole, across the card, and the two answers. */}
           {chosen && (
-            <div key={chosen.id} className="flex min-h-0 flex-1 flex-col">
+            <div className="flex min-h-0 flex-1 flex-col">
               {/* Details scroll; the two answers stay pinned under them, so a
                   short card never hides the buttons below its edge. */}
               <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-4">
