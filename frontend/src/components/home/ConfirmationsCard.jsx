@@ -296,17 +296,19 @@ export default function ConfirmationsCard({ className = '' }) {
           }`}
         >
           {/* The list, every request soonest first — the whole card until one
-              of them is opened. */}
+              of them is opened. Two columns of equal width, parted down the
+              middle: a request is two short lines, and one column of them left
+              half the card empty. The line is on the box that does *not*
+              scroll, so it runs the card's full height however long the list
+              gets, and the list itself scrolls when there are more requests
+              than fit. */}
           {!chosen && (
-          <div className="relative min-h-0 flex-1 overflow-y-auto">
-            {/* Two columns of equal width, parted down the middle: a request is
-                two short lines, and one column of them left half the card
-                empty. */}
+          <div className="relative min-h-0 flex-1">
             <span
               aria-hidden="true"
               className="pointer-events-none absolute inset-y-2 left-1/2 w-px bg-card-edge"
             />
-            <ul className="grid grid-cols-2 p-2">
+            <ul className="grid h-full grid-flow-row auto-rows-min grid-cols-2 content-start overflow-y-auto p-2">
             {rows.map((row, index) => {
               const on = aiOn(row)
               // The hairline under a row is dropped for the last row of each
