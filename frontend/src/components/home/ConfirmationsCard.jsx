@@ -9,7 +9,7 @@ import {
   updateConversation,
 } from '../../lib/api'
 import { authed } from '../../lib/auth'
-import { formatPrice } from '../../lib/appointments'
+import { BOOKING_COLORS, formatPrice, tintOf } from '../../lib/appointments'
 import { dayKey } from '../../lib/dates'
 import { getLocale, useT } from '../../lib/i18n'
 import { useSkeleton } from '../../lib/skeleton'
@@ -139,6 +139,19 @@ function whenLabel(iso) {
       ? new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(diff, 'day')
       : at.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'long' })
   return `${date.charAt(0).toUpperCase()}${date.slice(1)}, ${clock}`
+}
+
+/**
+ * A colour for the dot beside a client's name, from the booking palette.
+ *
+ * **Picked from the id, not at random and not from the row's position.** A
+ * colour that changed on every render would be noise, and one taken from the
+ * position would repaint every row left behind when a request is answered.
+ */
+function dotColor(id) {
+  let hash = 0
+  for (const character of String(id)) hash = (hash * 31 + character.charCodeAt(0)) >>> 0
+  return tintOf(BOOKING_COLORS[hash % BOOKING_COLORS.length])
 }
 
 /** When a message was sent: the clock today, «Вчера» / a short date before. */
@@ -330,8 +343,15 @@ export default function ConfirmationsCard({ className = '' }) {
                     {/* Two lines, as in Notes: the client on the first, then
                         what they wrote last on the second, with when
                         against the right edge. */}
-                    <span className="truncate pr-28 text-[14px] font-medium text-ink">
-                      {row.client_name || t('chat.noName')}
+                    <span className="flex min-w-0 items-center gap-2 pr-28">
+                      <span
+                        aria-hidden="true"
+                        className="h-1.5 w-1.5 shrink-0 rounded-full"
+                        style={{ background: dotColor(row.conversation_id ?? row.id) }}
+                      />
+                      <span className="truncate text-[14px] font-medium text-ink">
+                        {row.client_name || t('chat.noName')}
+                      </span>
                     </span>
                     <span className="flex min-w-0 items-baseline gap-2">
                       <span className="min-w-0 truncate text-[13px] text-muted">
