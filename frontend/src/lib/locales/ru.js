@@ -60,6 +60,8 @@ export default {
   'confirm.back': 'Назад',
   'confirm.aiLabel': 'Ассистент',
   'confirm.aiSwitch': 'Ассистент в этом чате',
+  'confirm.phone': 'Телефон',
+  'confirm.noPhone': 'Номер не указан',
   'confirm.service': 'Услуга',
   'confirm.when': 'Когда',
   'confirm.price': 'Стоимость',

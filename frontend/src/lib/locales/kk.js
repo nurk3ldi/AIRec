@@ -54,6 +54,8 @@ export default {
   'confirm.back': 'Артқа',
   'confirm.aiLabel': 'Ассистент',
   'confirm.aiSwitch': 'Осы чаттағы ассистент',
+  'confirm.phone': 'Телефон',
+  'confirm.noPhone': 'Нөмір көрсетілмеген',
   'confirm.service': 'Қызмет',
   'confirm.when': 'Қашан',
   'confirm.price': 'Бағасы',

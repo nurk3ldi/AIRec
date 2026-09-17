@@ -400,16 +400,22 @@ export default function ConfirmationsCard({ className = '' }) {
                 <p className="text-[18px] font-semibold tracking-[-0.01em] text-ink">
                   {chosen.client_name || t('chat.noName')}
                 </p>
-                {chosen.client_phone && (
-                  <a
-                    href={`tel:${chosen.client_phone}`}
-                    className="mt-0.5 w-fit text-[14px] text-muted hover:text-ink"
-                  >
-                    {chosen.client_phone}
-                  </a>
-                )}
-
                 <dl className="mt-3 flex flex-col divide-y divide-card-edge">
+                  {/* The number is a row like the rest, and says so plainly
+                      when there is none: a client who wrote from Telegram often
+                      never gave one, and a blank line reads as "did not load". */}
+                  <Row
+                    label={t('confirm.phone')}
+                    value={
+                      chosen.client_phone ? (
+                        <a href={`tel:${chosen.client_phone}`} className="hover:opacity-70">
+                          {chosen.client_phone}
+                        </a>
+                      ) : (
+                        <span className="text-muted">{t('confirm.noPhone')}</span>
+                      )
+                    }
+                  />
                   <Row label={t('confirm.service')} value={chosen.service_name} />
                   <Row
                     label={t('confirm.when')}
