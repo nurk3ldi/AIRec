@@ -1,3 +1,4 @@
+import { CARD_EDGE } from '../components/card'
 import AssistantCard from '../components/home/AssistantCard'
 import ConfirmationsCard from '../components/home/ConfirmationsCard'
 import LimitCard from '../components/home/LimitCard'
@@ -40,8 +41,14 @@ const LIMIT_PERCENT = 0
 /** When the limit resets, as an ISO instant — unknown until there are plans. */
 const LIMIT_RESET_AT = null
 
-const HALF_HEIGHT =
-  'h-[calc((100vh-118px-env(safe-area-inset-bottom)-2rem)/2)] sm:h-[calc((100vh-116px)/2)]'
+/**
+ * Одна из двух строк экрана. Из высоты вычтено всё, что не карточки: шапка,
+ * отступы страницы и зазор между рядами — иначе второй ряд не поместился бы и
+ * страница поехала бы вниз ровно на этот зазор. На телефоне карточки идут
+ * столбиком, и страница прокручивается в любом случае.
+ */
+const ROW_HEIGHT =
+  'h-[calc((100vh-118px-env(safe-area-inset-bottom)-2rem)/2)] sm:h-[calc((100vh-140px)/2)]'
 
 export default function DashboardHomePage() {
   const t = useT()
@@ -58,11 +65,16 @@ export default function DashboardHomePage() {
           всю ширину, потому что четверть от 390pt — полоска. */}
       <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
         {/* Робот ассистента, а под ним — бот, потоки и модель. */}
-        <AssistantCard limitReached={LIMIT_PERCENT >= 100} className={`${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
+        <AssistantCard limitReached={LIMIT_PERCENT >= 100} className={`${ROW_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
         {/* Лимит тарифа — кольцом. Считать пока нечего, поэтому 0: когда появятся
             тарифы и учёт, сюда придёт настоящая доля. */}
-        <LimitCard percent={LIMIT_PERCENT} resetAt={LIMIT_RESET_AT} className={`${HALF_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
-        <ConfirmationsCard className={`${HALF_HEIGHT} w-full sm:w-[calc(50%-1.5rem)]`} />
+        <LimitCard percent={LIMIT_PERCENT} resetAt={LIMIT_RESET_AT} className={`${ROW_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
+        <ConfirmationsCard className={`${ROW_HEIGHT} w-full sm:w-[calc(50%-1.5rem)]`} />
+      </div>
+
+      {/* Второй ряд — пока одна пустая карточка во всю ширину. */}
+      <div className="mt-4 flex flex-col gap-4 sm:mt-6 sm:flex-row sm:gap-6">
+        <section className={`${CARD_EDGE} ${ROW_HEIGHT} w-full`} />
       </div>
     </div>
   )
