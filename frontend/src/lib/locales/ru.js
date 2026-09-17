@@ -65,7 +65,7 @@ export default {
   'confirm.service': 'Услуга',
   'confirm.when': 'Когда',
   'confirm.price': 'Стоимость',
-  'confirm.openChat': 'Открыть чат',
+  'confirm.openChat': 'Перейти в чат',
   'confirm.decline': 'Отклонить',
   'confirm.approve': 'Подтвердить',
   'notifications.viewAll': 'Все уведомления',

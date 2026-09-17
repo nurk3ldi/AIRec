@@ -424,30 +424,32 @@ export default function ConfirmationsCard({ className = '' }) {
                   <Row label={t('confirm.price')} value={formatPrice(chosen.price)} />
                 </dl>
 
+              </div>
+
+              {/* The three answers in one row: the chat it was agreed in, and
+                  the two decisions. */}
+              <div className="flex shrink-0 gap-2 border-t border-card-edge p-3">
                 {chosen.conversation_id && (
                   <button
                     type="button"
                     onClick={() => navigate(`/inbox?chat=${chosen.conversation_id}`)}
-                    className="mt-2 mb-3 flex w-fit items-center gap-1.5 rounded-md text-[13px] font-medium text-ink outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-70 focus-visible:opacity-70 active:scale-[0.97]"
+                    className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] bg-ink/8 text-[14px] font-medium text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/12 focus-visible:bg-ink/12 active:scale-[0.97]"
                   >
                     {t('confirm.openChat')}
                     <HugeiconsIcon icon={ArrowRight02Icon} size={14} strokeWidth={2} />
                   </button>
                 )}
-              </div>
-
-              <div className="grid shrink-0 grid-cols-2 gap-2 border-t border-card-edge p-3">
                 <button
                   type="button"
                   onClick={() => decide(chosen, 'cancelled')}
-                  className="h-10 rounded-[10px] bg-ink/8 text-[14px] font-medium text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/12 focus-visible:bg-ink/12 active:scale-[0.97]"
+                  className="h-10 flex-1 rounded-[10px] bg-ink/8 text-[14px] font-medium text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/12 focus-visible:bg-ink/12 active:scale-[0.97]"
                 >
                   {t('confirm.decline')}
                 </button>
                 <button
                   type="button"
                   onClick={() => decide(chosen, 'confirmed')}
-                  className="h-10 rounded-[10px] bg-ink text-[14px] font-medium text-surface outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-90 focus-visible:opacity-90 active:scale-[0.97]"
+                  className="h-10 flex-1 rounded-[10px] bg-ink text-[14px] font-medium text-surface outline-none transition-[opacity,scale] duration-150 ease-out hover:opacity-90 focus-visible:opacity-90 active:scale-[0.97]"
                 >
                   {t('confirm.approve')}
                 </button>

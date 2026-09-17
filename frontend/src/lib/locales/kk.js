@@ -59,7 +59,7 @@ export default {
   'confirm.service': 'Қызмет',
   'confirm.when': 'Қашан',
   'confirm.price': 'Бағасы',
-  'confirm.openChat': 'Чатты ашу',
+  'confirm.openChat': 'Чатқа өту',
   'confirm.decline': 'Бас тарту',
   'confirm.approve': 'Растау',
   'notifications.viewAll': 'Барлық хабарламалар',

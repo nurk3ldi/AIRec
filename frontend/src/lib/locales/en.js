@@ -59,7 +59,7 @@ export default {
   'confirm.service': 'Service',
   'confirm.when': 'When',
   'confirm.price': 'Price',
-  'confirm.openChat': 'Open chat',
+  'confirm.openChat': 'Go to chat',
   'confirm.decline': 'Decline',
   'confirm.approve': 'Confirm',
   'notifications.viewAll': 'View all notifications',
