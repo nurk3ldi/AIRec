@@ -20,67 +20,6 @@ import { CARD_EDGE } from '../card'
 import Skeleton, { SkeletonRegion } from '../Skeleton'
 import Switch from '../Switch'
 
-// --- DEMO: delete this block once real requests arrive -----------------------
-/**
- * Two invented requests so the card can be seen with something in it while no
- * real request exists. Shown **only when the real list is empty**, never mixed
- * into real ones, and answering one touches nothing on the server.
- */
-function demoRows() {
-  const at = (days, hours, minutes) => {
-    const start = new Date()
-    start.setDate(start.getDate() + days)
-    start.setHours(hours, minutes, 0, 0)
-    return start
-  }
-  const row = (id, client_name, service_name, price, start, last_message, minutesAgo) => ({
-    id,
-    demo: true,
-    last_message,
-    last_message_at: new Date(Date.now() - minutesAgo * 60000).toISOString(),
-    client_name,
-    client_phone: null,
-    service_name,
-    price,
-    starts_at: start.toISOString(),
-    ends_at: new Date(start.getTime() + 30 * 60000).toISOString(),
-    conversation_id: null,
-  })
-  const names = [
-    'Nurkeldi',
-    'Unknown',
-    'Айгерим',
-    'Ерлан',
-    'Мадина',
-    'Дамир',
-    'Асель',
-    'Тимур',
-    'Гүлнар',
-    'Арман',
-    'Жанна',
-    'Бекзат',
-  ]
-  const said = [
-    'Можно завтра в 14:00?',
-    'Здравствуйте, запишите меня',
-    'Сколько стоит?',
-    'А в субботу есть время?',
-    'Спасибо, буду',
-    'Можно перенести на вечер?',
-  ]
-  return names.map((name, index) =>
-    row(
-      `demo-${index + 1}`,
-      name,
-      'Service 1',
-      5000 + index * 1000,
-      at(1 + Math.floor(index / 4), 10 + (index % 4) * 2, index % 2 ? 30 : 0),
-      said[index % said.length],
-      index * 37 + 4,
-    ),
-  )
-}
-// --- end DEMO -----------------------------------------------------------------
 
 /**
  * How far a swipe has to be *heading* for the request to close — a share of the
@@ -236,31 +175,19 @@ function spanLabel(row) {
 export default function ConfirmationsCard({ className = '' }) {
   const t = useT()
   const navigate = useNavigate()
-  const [realRows, setRows, reread] = usePending()
-  // DEMO: the invented rows stand in only while nothing real is waiting, each
-  // until it has been answered once.
-  const [demoDone, setDemoDone] = useState([])
-  const rows =
-    realRows && realRows.length === 0
-      ? demoRows().filter((row) => !demoDone.includes(row.id))
-      : realRows
+  const [rows, setRows, reread] = usePending()
   // Which request is open. `null` is the list; a request takes the whole card,
   // and «Назад» comes back — a split view would leave each half too narrow for
   // a message and a price at a quarter of the page.
   const [openId, setOpenId] = useState(null)
   const [threads, setThreads] = useThreads()
-  // DEMO: the invented rows' switches live here, since they have no thread.
-  const [demoAi, setDemoAi] = useState({})
 
   /** The last thing said in the request's chat, and when; nothing without a chat. */
-  const lastMessage = (row) =>
-    row.demo ? row.last_message : threads[row.conversation_id]?.last_message_preview
-  const lastMessageAt = (row) =>
-    row.demo ? row.last_message_at : threads[row.conversation_id]?.last_message_at
+  const lastMessage = (row) => threads[row.conversation_id]?.last_message_preview
+  const lastMessageAt = (row) => threads[row.conversation_id]?.last_message_at
 
   /** Whether the assistant is on in that chat; `null` when there is no chat. */
   const aiOn = (row) => {
-    if (row.demo) return demoAi[row.id] ?? true
     const thread = threads[row.conversation_id]
     return thread ? thread.assistant_enabled : null
   }
@@ -269,10 +196,6 @@ export default function ConfirmationsCard({ className = '' }) {
   // failed save puts it back.
   const toggleAi = (row) => {
     const next = !aiOn(row)
-    if (row.demo) {
-      setDemoAi((was) => ({ ...was, [row.id]: next }))
-      return
-    }
     const id = row.conversation_id
     const put = (value) =>
       setThreads((was) => ({ ...was, [id]: { ...was[id], assistant_enabled: value } }))
@@ -317,10 +240,6 @@ export default function ConfirmationsCard({ className = '' }) {
     // Answered, so the card goes back to the list — there is nothing left to
     // look at on this one.
     setOpenId(null)
-    if (row.demo) {
-      setDemoDone((done) => [...done, row.id])
-      return
-    }
     setRows(rows.filter((item) => item.id !== row.id))
     // A decision is the one moment here worth a haptic: it is finished, and it
     // reaches a client.
@@ -535,19 +454,10 @@ export default function ConfirmationsCard({ className = '' }) {
               {/* The three answers in one row: the chat it was agreed in, and
                   the two decisions. */}
               <div className="flex shrink-0 gap-2 border-t border-card-edge p-3">
-                {/* DEMO: an invented request has no chat, so the button opens
-                    «Диалоги» itself rather than a thread — it is there so the
-                    row can be seen whole. */}
-                {(chosen.conversation_id || chosen.demo) && (
+                {chosen.conversation_id && (
                   <button
                     type="button"
-                    onClick={() =>
-                      navigate(
-                        chosen.conversation_id
-                          ? `/inbox?chat=${chosen.conversation_id}`
-                          : '/inbox',
-                      )
-                    }
+                    onClick={() => navigate(`/inbox?chat=${chosen.conversation_id}`)}
                     className="h-10 flex-1 rounded-[10px] bg-ink/8 text-[14px] font-medium text-ink outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/12 focus-visible:bg-ink/12 active:scale-[0.97]"
                   >
                     {t('confirm.openChat')}
