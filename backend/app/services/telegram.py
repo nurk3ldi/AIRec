@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import secrets
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,9 +13,9 @@ from app.core.errors import (
     TelegramNotConnected,
     TelegramTokenInvalid,
 )
-from app.core.images import save_photo
+from app.core.images import CHAT_STORE, delete_image, save_image, save_photo
 from app.core.telegram import InboundMessage, TelegramAuthError
-from app.models.conversation import ConversationChannel
+from app.models.conversation import Conversation, ConversationChannel
 from app.models.telegram_account import TelegramAccount
 from app.models.user import User
 from app.repositories.telegram import TelegramAccountRepository
@@ -30,6 +30,10 @@ logger = logging.getLogger(__name__)
 # Where Telegram is told to send updates. One path for every bot — the secret
 # in the header is what tells them apart, see `TelegramAccount`.
 WEBHOOK_PATH = "/api/v1/webhooks/telegram"
+
+
+# How long a thread's profile photo is trusted before it is asked for again.
+AVATAR_RECHECK = timedelta(days=1)
 
 
 class TelegramService:
@@ -239,6 +243,49 @@ class TelegramService:
         )
         # The assistant answers in its own task, so Telegram gets its 200 now.
         schedule_reply(conversation.id, stored.id)
+        await self.refresh_avatar(account, conversation)
+
+    async def refresh_avatar(
+        self,
+        account: TelegramAccount,
+        conversation: Conversation,
+        *,
+        force: bool = False,
+    ) -> None:
+        """Fetch the client's profile photo, at most once a day per thread.
+
+        In a private chat the chat id *is* the user id, so `external_id` is all
+        `getUserProfilePhotos` needs. A photo that cannot be had leaves the old
+        one in place (a network blip must not blank a face that was there); a
+        photo that is gone — none returned at all — is the same answer, since
+        the two cannot be told apart from here. Nothing raises: this rides
+        along with a message.
+        """
+        if not conversation.external_id:
+            return
+        checked = conversation.client_avatar_checked_at
+        if not force and checked and datetime.now(UTC) - checked < AVATAR_RECHECK:
+            return
+
+        conversation.client_avatar_checked_at = datetime.now(UTC)
+        raw = await telegram.download_profile_photo(
+            token=account.bot_token, user_id=conversation.external_id
+        )
+        old = conversation.client_avatar_name
+        if raw:
+            try:
+                conversation.client_avatar_name = await save_image(CHAT_STORE, raw)
+            except Exception:
+                logger.warning(
+                    "A Telegram profile photo could not be stored.", exc_info=True
+                )
+                old = None
+        else:
+            old = None
+        await self._session.commit()
+        # The previous file goes only once the new name is committed.
+        if old and old != conversation.client_avatar_name:
+            await delete_image(CHAT_STORE, old)
 
     async def _store_photo(
         self, account: TelegramAccount, photo_id: str | None

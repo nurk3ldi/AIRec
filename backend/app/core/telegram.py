@@ -423,6 +423,39 @@ async def download_file(*, token: str, file_id: str) -> bytes | None:
         return None
 
 
+async def download_profile_photo(*, token: str, user_id: str) -> bytes | None:
+    """The user's current profile photo, or `None`.
+
+    `getUserProfilePhotos` lists them newest first, each in several sizes; the
+    first photo's largest size is what the client shows as themselves. `None`
+    is the ordinary answer too — no photo, or one hidden from bots by the
+    user's privacy settings — and nothing here raises, for the same reason
+    `download_file` does not: this rides along with a message and must never
+    cost it.
+    """
+    try:
+        async with httpx.AsyncClient(
+            timeout=settings.telegram_timeout_seconds
+        ) as client:
+            answer = await client.get(
+                _api_url(token, "getUserProfilePhotos"),
+                params={"user_id": user_id, "limit": 1},
+            )
+    except httpx.HTTPError as exc:
+        logger.info("Telegram profile photos could not be read: %s", exc)
+        return None
+
+    result = _parsed(answer).get("result")
+    photos = result.get("photos") if isinstance(result, dict) else None
+    if answer.status_code >= 400 or not photos or not isinstance(photos[0], list):
+        return None
+    sizes = [size for size in photos[0] if isinstance(size, dict)]
+    file_id = sizes[-1].get("file_id") if sizes else None
+    if not isinstance(file_id, str):
+        return None
+    return await download_file(token=token, file_id=file_id)
+
+
 async def set_webhook(*, token: str, url: str, secret: str) -> None:
     """Point Telegram at us, and hand it the secret every update must carry back.
 

@@ -56,6 +56,8 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
   // обратно. Ref, а не состояние: это не то, что рисуется, и перерисовка на
   // каждый пиксель прокрутки была бы платой ни за что.
   const pinned = useRef(true)
+  // Список сдвинут от верха — тогда у шапки появляется граница.
+  const [scrolled, setScrolled] = useState(false)
   const { pending, bars, reveal } = useSkeleton(messages === null)
   const reduce = useReducedMotion()
 
@@ -214,7 +216,14 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
           (панель остаётся на месте, список рядом), на узком — стрелка назад
           (экран уезжает туда, откуда приехал). Ровно один из двух: два способа
           выйти из одного места — это вопрос, который экран задаёт читателю. */}
-      <header className="flex shrink-0 items-center gap-2 border-b border-line px-5 py-3">
+      {/* **Сызық тек прокрутка болғанда** — Apple-дің scroll edge: басында
+          шапка мен переписка бір бет, ал хабарлар астына кіре бастағанда ғана
+          шекара шығады. */}
+      <header
+        className={`flex shrink-0 items-center gap-3 border-b px-4 py-2.5 transition-colors duration-200 ${
+          scrolled ? 'border-line' : 'border-transparent'
+        }`}
+      >
         {onBack && (
           <button
             type="button"
@@ -236,10 +245,16 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
             цвет и кегль у всех одни. `truncate` на всей строке, потому что
             узкая панель обрежет её с конца — с того, что известно и без неё
             (канал), а не с имени. */}
-        <p className="min-w-0 flex-1 truncate text-[14px] text-ink">
-          <span className="font-medium">{title}</span>
-          {details && ` · ${details}`}
-        </p>
+        {/* **Жинақы шапка: аватар, аты, астында байланыс.** Аты — басты
+            дерек, сондықтан жеке жолда және жуан; username мен арна — оның
+            астында кішірек әрі сұр, екінші деңгей ретінде. */}
+        <Avatar icon={UserIcon} src={conversation.client_avatar_url} small />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[15px] leading-5 font-semibold text-ink">{title}</p>
+          {details && (
+            <p className="truncate text-[12px] leading-4 text-muted">{details}</p>
+          )}
+        </div>
 
         {onClose && (
           <button
@@ -302,6 +317,8 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
             const box = event.currentTarget
             pinned.current =
               box.scrollHeight - box.scrollTop - box.clientHeight < 40
+            const away = box.scrollTop > 2
+            setScrolled((was) => (was === away ? was : away))
           }}
           // Переписка, пришедшая на смену заглушке, проявляется из размытия —
           // тот же приём, что у таблицы и списков: см. `useSkeleton`.
@@ -357,6 +374,7 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
                   <Bubble
                     message={message}
                     onPhoto={stick}
+                    clientAvatar={conversation.client_avatar_url}
               // **Аватар — у последнего сообщения подряд идущих, не у каждого.**
               // Четыре кружка в столбик рядом с четырьмя репликами одного
               // человека повторяют то, что уже сказано стороной, и превращают
@@ -440,7 +458,7 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
  * `surface-card`, а не `surface-raised`: пузырь лежит *на* панели, а не на
  * странице, и это ровно та разница, ради которой токен заведён.
  */
-function Bubble({ message, last = true, onPhoto }) {
+function Bubble({ message, last = true, onPhoto, clientAvatar }) {
   const t = useT()
   const mine = message.author !== 'client'
 
@@ -485,7 +503,7 @@ function Bubble({ message, last = true, onPhoto }) {
 
             `invisible`, а не отсутствие: место держится у всей серии, иначе
             пузыри одного человека встали бы по разным левым краям. */}
-        <Avatar icon={UserIcon} shown={last} />
+        <Avatar icon={UserIcon} src={clientAvatar} shown={last} />
 
         <Box message={message} onPhoto={onPhoto} />
       </div>

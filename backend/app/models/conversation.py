@@ -19,6 +19,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.images import CHAT_STORE, image_url
 from app.db.base import Base
 
 if TYPE_CHECKING:
@@ -140,6 +141,15 @@ class Conversation(Base):
     # it; the UI puts it back.
     client_username: Mapped[str | None] = mapped_column(String(64), nullable=True)
     client_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # The client's profile photo, fetched from Telegram through the bot and
+    # kept in the chat store — a filename, like `Message.media_name`. NULL when
+    # they have none or hide it from bots. `client_avatar_checked_at` is when
+    # that was last asked, so a client with no photo is asked once a day rather
+    # than on every message. See migration `0032`.
+    client_avatar_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    client_avatar_checked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     status: Mapped[str] = mapped_column(
         String(16),
@@ -228,6 +238,11 @@ class Conversation(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
+    @property
+    def client_avatar_url(self) -> str | None:
+        """Where the client's profile photo is served from, or `None`."""
+        return image_url(CHAT_STORE, self.client_avatar_name)
 
     @property
     def archived(self) -> bool:

@@ -224,6 +224,8 @@ class ConversationService:
         """
         conversation = await self.get(user, conversation_id, with_messages=True)
         media = [m.media_name for m in conversation.messages if m.media_name]
+        if conversation.client_avatar_name:
+            media.append(conversation.client_avatar_name)
         await self._conversations.remove(conversation)
         await self._session.commit()
         for name in media:

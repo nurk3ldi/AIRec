@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
+import { mediaUrl } from '../../lib/api'
 
 /**
  * Кружок со значком того, кто говорит: рядом с репликой в треде и в строке
@@ -25,15 +27,30 @@ import { HugeiconsIcon } from '@hugeicons/react'
  * **`invisible`, а не отсутствие**, когда реплика не последняя в серии: место
  * держится у всей серии, иначе пузыри одного автора встали бы по разным краям.
  */
-export default function Avatar({ icon, shown = true }) {
+export default function Avatar({ icon, src, shown = true, small = false }) {
+  // **Настоящее лицо, когда оно есть** — фото профиля клиента из Telegram
+  // (`client_avatar_url`). Не загрузилось — остаётся значок: пустой круг
+  // выглядел бы как ошибка, а силуэт честно говорит «фото нет».
+  const [broken, setBroken] = useState(false)
+  const url = src && !broken ? mediaUrl(src) : null
+
   return (
     <span
       aria-hidden="true"
-      className={`grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink/12 text-ink ${
-        shown ? '' : 'invisible'
-      }`}
+      className={`grid shrink-0 place-items-center overflow-hidden rounded-full bg-ink/12 text-ink ${
+        small ? 'h-8 w-8' : 'h-10 w-10'
+      } ${shown ? '' : 'invisible'}`}
     >
-      <HugeiconsIcon icon={icon} size={18} strokeWidth={2} />
+      {url ? (
+        <img
+          src={url}
+          alt=""
+          onError={() => setBroken(true)}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <HugeiconsIcon icon={icon} size={small ? 16 : 18} strokeWidth={2} />
+      )}
     </span>
   )
 }

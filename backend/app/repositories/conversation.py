@@ -257,10 +257,18 @@ class ConversationRepository:
                 )
             )
         ).all()
+        avatars = (
+            await self._session.scalars(
+                select(Conversation.client_avatar_name).where(
+                    Conversation.id.in_(expired),
+                    Conversation.client_avatar_name.isnot(None),
+                )
+            )
+        ).all()
         await self._session.execute(
             delete(Conversation).where(Conversation.id.in_(expired))
         )
-        return len(expired), [name for name in media if name]
+        return len(expired), [name for name in [*media, *avatars] if name]
 
 
 class MessageRepository:

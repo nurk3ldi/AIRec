@@ -52,6 +52,8 @@ class ConversationPublic(BaseModel):
     client_phone: str | None = None
     client_username: str | None = None
     client_name: str | None = None
+    # The client's own profile photo, when their channel gives one (Telegram).
+    client_avatar_url: str | None = None
     status: str
     assistant_enabled: bool
     last_message_at: datetime | None = None

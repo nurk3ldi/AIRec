@@ -51,7 +51,7 @@ export default function TelegramFeed({ rows, onOpen }) {
             onClick={() => onOpen(row.id)}
             className="flex w-full gap-3 rounded-[10px] bg-ink/5 p-3 text-left outline-none transition-[background-color,scale] duration-150 ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.98]"
           >
-            <Avatar icon={UserIcon} />
+            <Avatar icon={UserIcon} src={row.client_avatar_url} />
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="flex items-baseline gap-2">
                 <span className="truncate text-[14px] font-medium text-ink">
