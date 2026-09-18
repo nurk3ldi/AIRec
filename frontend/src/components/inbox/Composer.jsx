@@ -126,7 +126,7 @@ export default function Composer({ aiOn, onToggle, onSend }) {
           <m.div key="owner" {...swap}>
             {/* Обратный путь — тихой строкой над полем: виден всегда и не
                 спорит с тем, ради чего это состояние открыли. */}
-            <p className="mb-2 flex items-center gap-1.5 pl-1 text-[12px] text-muted">
+            <p className="mb-2 flex items-center gap-1.5 pl-1 text-[12px] text-ink">
               <HugeiconsIcon icon={ASSISTANT_ICON} size={14} strokeWidth={1.8} />
               <span>{t('thread.ai.youReply')}</span>
               <span aria-hidden="true">·</span>
