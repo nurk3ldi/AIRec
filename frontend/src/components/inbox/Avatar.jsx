@@ -49,7 +49,7 @@ export default function Avatar({ icon, src, shown = true, small = false }) {
           className="h-full w-full object-cover"
         />
       ) : (
-        <HugeiconsIcon icon={icon} size={small ? 16 : 18} strokeWidth={2} />
+        <HugeiconsIcon icon={icon} size={small ? 18 : 22} strokeWidth={1.8} />
       )}
     </span>
   )
