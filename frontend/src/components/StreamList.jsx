@@ -166,12 +166,10 @@ function Row({ chat, onOpen }) {
         disabled={!onOpen}
         className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-xl px-2 py-2 text-left outline-none transition-[background-color,scale] duration-[160ms] ease-out enabled:hover:bg-ink/6 enabled:focus-visible:bg-ink/6 enabled:active:scale-[0.99] enabled:active:bg-ink/12 disabled:cursor-default"
       >
-      {/* **Слева — кружок ассистента, как аватар в списке чатов.** Это список
-          потоков, которые ведёт ассистент, и значок — тот же, что стоит против
-          «Ассистента» в навигации и рядом с его репликами в треде
-          (`ASSISTANT_ICON` через общий `Avatar`): один предмет — один знак на
-          весь продукт. Кружок в 40px, по центру высоты двух строк. */}
-      <Avatar icon={ASSISTANT_ICON} />
+      {/* **Слева — лицо клиента, как в любом списке чатов**: его фото из
+          Telegram (`client_avatar_url`), а без него — значок ассистента, как
+          было. Кружок в 40px, по центру высоты двух строк. */}
+      <Avatar icon={ASSISTANT_ICON} src={chat.client_avatar_url} />
 
       <div className="min-w-0 flex-1">
         {/* **Три ступени, а не две, и третью добавил Telegram.** На WhatsApp
