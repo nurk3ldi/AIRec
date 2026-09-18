@@ -572,6 +572,14 @@ export function createMessage(accessToken, id, body) {
   })
 }
 
+/** A photo from the owner, with an optional caption — recorded and sent. */
+export function sendPhoto(accessToken, id, file, caption) {
+  const formData = new FormData()
+  formData.append('file', file)
+  if (caption) formData.append('caption', caption)
+  return request(`/conversations/${id}/photos`, { method: 'POST', formData, accessToken })
+}
+
 /**
  * The WhatsApp number this business answers on, or `null`.
  *

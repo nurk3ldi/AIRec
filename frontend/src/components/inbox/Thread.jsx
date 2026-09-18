@@ -10,6 +10,7 @@ import {
 import {
   createMessage,
   listMessages,
+  sendPhoto,
   markConversationRead,
   mediaUrl,
   updateConversation,
@@ -74,8 +75,10 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
     )
   }
 
-  const sendMessage = async (body) => {
-    const row = await authed((token) => createMessage(token, id, body))
+  const sendMessage = async (body, photo) => {
+    const row = await authed((token) =>
+      photo ? sendPhoto(token, id, photo, body) : createMessage(token, id, body),
+    )
     pinned.current = true
     setMessages((was) => (was?.some((item) => item.id === row.id) ? was : [...(was ?? []), row]))
   }
@@ -542,7 +545,13 @@ function Photo({ src, alt = '', onLoad, frame = '' }) {
 function Box({ message, mine = false, onPhoto }) {
   const photo = mediaUrl(message.media_url)
   const body = message.body?.trim() ?? ''
-  const caption = photo && body === PHOTO_PLACEHOLDER ? null : message.body
+  // У фото метка «[фото]» стоит в тексте ради поиска и превью в списке; под
+  // самой картинкой она лишняя — снимок и так виден.
+  const caption = photo
+    ? body.startsWith(PHOTO_PLACEHOLDER)
+      ? body.slice(PHOTO_PLACEHOLDER.length).trim() || null
+      : body || null
+    : message.body
 
   // **Фотография без подписи — это сама фотография, без пузыря под ней.**
   // Заливка и отступы существуют ради текста: они дают словам поле, на котором

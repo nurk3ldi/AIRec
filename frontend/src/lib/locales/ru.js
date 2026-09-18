@@ -138,6 +138,8 @@ export default {
   'thread.ai.turnOff': 'Выключить ассистента и ответить самому',
   'thread.ai.turnOn': 'Включить ассистента',
   'thread.placeholder': 'Сообщение',
+  'thread.photo.add': 'Прикрепить фото',
+  'thread.photo.remove': 'Убрать фото',
   'thread.send': 'Отправить',
   'thread.close': 'Закрыть разговор',
   'thread.author.client': 'Клиент',

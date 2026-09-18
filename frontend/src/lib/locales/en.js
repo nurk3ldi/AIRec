@@ -132,6 +132,8 @@ export default {
   'thread.ai.turnOff': 'Turn off the assistant and reply yourself',
   'thread.ai.turnOn': 'Turn on the assistant',
   'thread.placeholder': 'Message',
+  'thread.photo.add': 'Attach a photo',
+  'thread.photo.remove': 'Remove the photo',
   'thread.send': 'Send',
   'thread.close': 'Close the conversation',
   'thread.author.client': 'Client',

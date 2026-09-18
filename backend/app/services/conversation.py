@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import telegram, whatsapp
 from app.core.config import settings
 from app.core.errors import ConversationNotFound, MessageNotFound
-from app.core.images import CHAT_STORE, delete_image
+from app.core.images import CHAT_STORE, delete_image, save_photo
 from app.core.telegram import TelegramSendError
 from app.core.whatsapp import DeliveryReceipt, WhatsAppSendError
 from app.models.conversation import (
@@ -288,6 +288,34 @@ class ConversationService:
             conversation, data.author, data.body, data.sent_at or datetime.now(UTC)
         )
 
+    async def add_photo(
+        self,
+        user: User,
+        conversation_id: uuid.UUID,
+        raw: bytes,
+        caption: str | None,
+    ) -> Message:
+        """A photo the owner sends, with an optional caption.
+
+        The same path as `add_message` — an owner's message, so the assistant
+        goes quiet in this thread — with the picture re-encoded into the chat
+        store first (`save_photo` strips whatever came inside the file). The
+        body carries the photo placeholder, exactly as an inbound photo does,
+        so search and the thread list's preview see the same thing either way.
+        """
+        conversation = await self.get(user, conversation_id)
+        filename = await save_photo(raw)
+        caption = (caption or "").strip()[:1024]
+        placeholder = telegram.MEDIA_PLACEHOLDERS["photo"]
+        body = f"{placeholder} {caption}" if caption else placeholder
+        return await self._say(
+            conversation,
+            MessageAuthor.OWNER,
+            body,
+            datetime.now(UTC),
+            media_name=filename,
+        )
+
     async def say_as_assistant(self, conversation: Conversation, body: str) -> Message:
         """The assistant's reply, written into its thread and sent.
 
@@ -307,12 +335,14 @@ class ConversationService:
         author: MessageAuthor,
         body: str,
         sent_at: datetime,
+        media_name: str | None = None,
     ) -> Message:
         message = Message(
             conversation_id=conversation.id,
             author=author.value,
             body=body,
             sent_at=sent_at,
+            media_name=media_name,
             # Ours, so it has a delivery state; the client's messages keep NULL
             # — see `MessageStatus`.
             status=MessageStatus.PENDING,
@@ -413,11 +443,22 @@ class ConversationService:
             return
 
         try:
-            sent_id = await telegram.send_text(
-                token=account.bot_token,
-                chat_id=conversation.external_id,
-                body=message.body,
-            )
+            if message.media_name:
+                placeholder = telegram.MEDIA_PLACEHOLDERS["photo"]
+                caption = message.body.removeprefix(placeholder).strip() or None
+                photo = (CHAT_STORE.path() / message.media_name).read_bytes()
+                sent_id = await telegram.send_photo(
+                    token=account.bot_token,
+                    chat_id=conversation.external_id,
+                    photo=photo,
+                    caption=caption,
+                )
+            else:
+                sent_id = await telegram.send_text(
+                    token=account.bot_token,
+                    chat_id=conversation.external_id,
+                    body=message.body,
+                )
         except TelegramSendError as exc:
             message.status = MessageStatus.FAILED
             message.error = exc.reason

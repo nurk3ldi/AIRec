@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, m, useReducedMotion } from 'motion/react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowUp02Icon } from '@hugeicons/core-free-icons'
+import { ArrowUp02Icon, Cancel01Icon, PlusSignIcon } from '@hugeicons/core-free-icons'
 import { ASSISTANT_ICON } from '../navigation'
 import { CROSSFADE, SPRING } from '../../lib/motion'
 import { haptic } from '../../lib/haptics'
@@ -27,6 +27,10 @@ export default function Composer({ aiOn, replying, onToggle, onSend }) {
   const reduce = useReducedMotion()
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
+  // Выбранный снимок: сам файл и адрес превью. Уходит вместе с текстом —
+  // текст становится подписью.
+  const [photo, setPhoto] = useState(null)
+  const picker = useRef(null)
   const field = useRef(null)
   // Фокус — только когда поле открыли нажатием, не при открытии треда: иначе
   // на телефоне каждое открытие разговора поднимало бы клавиатуру.
@@ -44,15 +48,31 @@ export default function Composer({ aiOn, replying, onToggle, onSend }) {
     focusNext.current = false
   }, [aiOn])
 
-  const willSend = !aiOn && text.trim().length > 0
+  // Превью живёт, пока выбран снимок; старый адрес освобождается.
+  useEffect(() => () => photo && URL.revokeObjectURL(photo.url), [photo])
+  // Включили модель — выбранный снимок уже никуда не уйдёт.
+  useEffect(() => {
+    if (aiOn) setPhoto(null)
+  }, [aiOn])
+
+  const willSend = !aiOn && (text.trim().length > 0 || photo !== null)
+
+  const pick = (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setPhoto({ file, url: URL.createObjectURL(file) })
+    field.current?.focus()
+  }
 
   const send = async () => {
     const body = text.trim()
-    if (!body || sending) return
+    if ((!body && !photo) || sending) return
     setSending(true)
     try {
-      await onSend(body)
+      await onSend(body, photo?.file)
       setText('')
+      setPhoto(null)
       haptic('commit')
     } catch {
       // Текст остаётся в поле — повторить можно тем же нажатием.
@@ -76,6 +96,44 @@ export default function Composer({ aiOn, replying, onToggle, onSend }) {
       }}
       className="shrink-0 border-t border-line px-3 py-3"
     >
+      <input
+        ref={picker}
+        type="file"
+        accept="image/*"
+        onChange={pick}
+        className="hidden"
+        tabIndex={-1}
+      />
+
+      {/* Выбранный снимок — над полем, как в мессенджерах, с крестиком,
+          чтобы передумать. */}
+      <AnimatePresence initial={false}>
+        {photo && !aiOn && (
+          <m.div
+            key={photo.url}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, transition: CROSSFADE.out }}
+            transition={reduce ? CROSSFADE.in : { ...SPRING, opacity: CROSSFADE.in }}
+            className="relative mb-2 ml-1 w-fit"
+          >
+            <img
+              src={photo.url}
+              alt=""
+              className="h-20 max-w-[160px] rounded-xl object-cover ring-1 ring-line"
+            />
+            <button
+              type="button"
+              onClick={() => setPhoto(null)}
+              aria-label={t('thread.photo.remove')}
+              className="touch-target absolute -top-2 -right-2 grid h-6 w-6 place-items-center rounded-full bg-ink text-surface outline-none transition-[scale] duration-[160ms] ease-out active:scale-90"
+            >
+              <HugeiconsIcon icon={Cancel01Icon} size={12} strokeWidth={2.4} />
+            </button>
+          </m.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex items-end gap-2 rounded-[22px] bg-surface-raised py-1 pr-1 pl-2 shadow-[0_0_0_1px_var(--color-field)] transition-shadow duration-150 focus-within:shadow-[0_0_0_1px_var(--color-field-focus)]">
         {/* Выключатель ассистента — одна капсула: значок и ползунок на общей
             подложке, чтобы читались как один элемент «ассистент: вкл/выкл».
@@ -96,6 +154,28 @@ export default function Composer({ aiOn, replying, onToggle, onSend }) {
             label={t(aiOn ? 'thread.ai.turnOff' : 'thread.ai.turnOn')}
           />
         </span>
+
+        {/* Плюс — прикрепить фото. Только когда пишете вы: при включённой
+            модели полю ввода делать нечего, и снимку тоже. */}
+        <AnimatePresence initial={false}>
+          {!aiOn && (
+            <m.button
+              key="attach"
+              type="button"
+              onClick={() => picker.current?.click()}
+              aria-label={t('thread.photo.add')}
+              title={t('thread.photo.add')}
+              initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
+              transition={{ duration: 0.16, ease: 'easeOut' }}
+              whileTap={{ scale: 0.9 }}
+              className="touch-target relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/10 text-ink outline-none transition-colors duration-150 hover:bg-ink/16 focus-visible:ring-2 focus-visible:ring-ink/30"
+            >
+              <HugeiconsIcon icon={PlusSignIcon} size={18} strokeWidth={2} />
+            </m.button>
+          )}
+        </AnimatePresence>
 
         <div className="relative flex min-h-9 min-w-0 flex-1 items-center pl-1">
           <AnimatePresence mode="popLayout" initial={false}>

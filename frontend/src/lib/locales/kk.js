@@ -133,6 +133,8 @@ export default {
   'thread.ai.turnOff': 'Ассистентті өшіріп, өзім жауап беру',
   'thread.ai.turnOn': 'Ассистентті қосу',
   'thread.placeholder': 'Хабарлама',
+  'thread.photo.add': 'Фото тіркеу',
+  'thread.photo.remove': 'Фотоны алып тастау',
   'thread.send': 'Жіберу',
   'thread.close': 'Сөйлесуді жабу',
   'thread.author.client': 'Клиент',

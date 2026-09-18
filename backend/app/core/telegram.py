@@ -509,6 +509,40 @@ async def send_text(*, token: str, chat_id: str, body: str) -> str:
     return _sent_id(response)
 
 
+async def send_photo(
+    *, token: str, chat_id: str, photo: bytes, caption: str | None = None
+) -> str:
+    """Send one photo, uploaded as a file. Returns Telegram's `message_id`.
+
+    The bytes go up as multipart rather than as a URL for Telegram to fetch:
+    our media is served from a machine Telegram usually cannot reach (a laptop,
+    a LAN address), and a URL it cannot open is a send that fails for a reason
+    nobody on the panel could see. Same failure contract as `send_text`.
+    """
+    data: dict[str, str] = {"chat_id": chat_id}
+    if caption:
+        data["caption"] = caption[:1024]
+    try:
+        async with httpx.AsyncClient(
+            timeout=settings.telegram_timeout_seconds
+        ) as client:
+            response = await client.post(
+                _api_url(token, "sendPhoto"),
+                data=data,
+                files={"photo": ("photo.jpg", photo, "image/jpeg")},
+            )
+    except httpx.HTTPError as exc:
+        logger.warning("Telegram photo could not reach the API: %s", exc)
+        raise TelegramSendError(
+            "Не удалось связаться с Telegram. Попробуйте ещё раз."
+        ) from exc
+
+    if response.status_code >= 400:
+        raise _refusal(response)
+
+    return _sent_id(response)
+
+
 def _parsed(response: httpx.Response) -> dict[str, Any]:
     try:
         parsed = response.json()

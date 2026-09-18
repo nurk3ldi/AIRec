@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, File, Form, Query, UploadFile, status
 
 from app.api.deps import ConversationServiceDep, CurrentUser
 from app.models.conversation import ConversationStatus
@@ -237,6 +237,26 @@ async def create_message(
     """
     return MessagePublic.model_validate(
         await conversations.add_message(user, conversation_id, payload)
+    )
+
+
+@router.post(
+    "/{conversation_id}/photos",
+    response_model=MessagePublic,
+    status_code=201,
+    summary="Send a photo — an owner's message, so the assistant goes quiet",
+)
+async def create_photo(
+    conversation_id: uuid.UUID,
+    user: CurrentUser,
+    conversations: ConversationServiceDep,
+    file: Annotated[UploadFile, File()],
+    caption: Annotated[str | None, Form()] = None,
+) -> MessagePublic:
+    return MessagePublic.model_validate(
+        await conversations.add_photo(
+            user, conversation_id, await file.read(), caption
+        )
     )
 
 
