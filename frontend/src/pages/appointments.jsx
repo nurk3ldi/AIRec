@@ -642,14 +642,10 @@ export default function AppointmentsPage() {
             still to be designed — see the note on the page element — and this
             waits for it rather than pretending the problem is not there.
 
-            **It is handed nothing, so it draws its empty state.** The three
-            invented rows that used to be here are gone — `/inbox` reads the
-            real `GET /conversations` now, and this feed should show the same
-            answer rather than a second, fictional one. Wiring it to that
-            endpoint is the next thing it wants; until then an empty feed is
-            true. */}
+            **It reads the live conversations itself** (`GET /conversations`,
+            the `liveChats` window) and draws them with `StreamList`, the same
+            rows as «Потоки» on «Диалоги»; a row opens that chat there. */}
         <ChatFeed
-          timeZone={timeZone}
           // Close under the grip: the bar and the heading are one block — press
           // the bar and this is what rises into the room — where 16px of air
           // read as two regions with a gap between them.

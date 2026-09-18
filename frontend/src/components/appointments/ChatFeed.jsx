@@ -1,85 +1,55 @@
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { ArrowRight01Icon } from '@hugeicons/core-free-icons'
-import { clockOf } from '../../lib/appointments'
+import { listConversations } from '../../lib/api'
+import { authed } from '../../lib/auth'
+import { liveChats } from '../../lib/conversations'
 import { useT } from '../../lib/i18n'
+import { StreamList } from '../StreamList'
 
 /**
- * The conversations the assistant has open, under the calendar.
+ * «Диалоги» под календарём на «Записях» — разговоры, которые идут прямо сейчас.
  *
- * **It fills the room the month leaves rather than being placed in it.** The
- * right panel is the page's full height and the calendar is a fixed 300px card
- * at the top of it; everything below was empty, on the one screen where the
- * owner is already looking. A feed is the right shape for that space — it has
- * no natural height, so it takes whatever is left and scrolls inside itself.
+ * **Тот же список, что «Потоки» на «Диалогах»** (`StreamList`): аватар клиента,
+ * последняя реплика, время и что делает ассистент. Два разных рисунка одного и
+ * того же разговора разошлись бы при первой правке одного из них. «Идут прямо
+ * сейчас» — это `liveChats`, то же окно, что и там.
  *
- * **Why chats and not more bookings.** The three cards over the timetable
- * already answer every question the calendar can: who is in the chair, who is
- * next, when there is a gap. What none of them answers is the other half of the
- * day — somebody is messaging right now and has not been dealt with. That is
- * the thing you want visible while you are looking at the week, and it is
- * exactly the thing that is invisible until you leave for «Диалоги».
- *
- * **The feed is empty and honestly so.** There is no channel behind `/inbox`
- * yet and no message table under it, so nothing is fetched here and nothing is
- * invented: an analytics screen built on made-up figures was put on `/dashboard`
- * and taken back out for that reason. What exists is the shape, the row, and
- * the empty state a real new account would see anyway — the day the endpoint
- * lands, this takes a `chats` array and draws it.
- *
- * A chat is `{ id, at, client, preview, state }`, where `at` is an ISO instant
- * and `state` is one of `CHAT_TONE`'s keys. **They are drawn in the order they
- * are given and the newest belongs first** — this does no sorting of its own,
- * because the order a feed arrives in is the endpoint's answer to give, but a
- * feed that appends puts every new chat at the bottom of a box that scrolls,
- * which is the opposite of what "new chats drop in here" means.
+ * Читает `GET /conversations` сам (архив и корзина — нет) при появлении и раз
+ * в пятнадцать секунд, пока вкладка видна; неудачное чтение оставляет то, что
+ * на экране. Строка открывает разговор на «Диалогах».
  */
-
-/**
- * What a chat's state is said in.
- *
- * The same rule the grid's `STATUS_TONE` follows and for the same reason: the
- * colour is the signal, so it is spent on the two states that need looking at
- * and withheld from the one that does not. `waiting` is `--now` — somebody is
- * on the other end *at this moment*, which is what `--now` means everywhere
- * else in this product. `new` is `ok`: it arrived, nothing is wrong, and it is
- * not yet late. A chat already answered is muted, because it is the ordinary
- * case and a feed where every row is coloured is a feed that points nowhere.
- */
-const CHAT_TONE = {
-  waiting: 'text-now',
-  new: 'text-ok',
-}
-
-const STATE_KEYS = {
-  waiting: 'chat.waiting',
-  new: 'chat.new',
-  answered: 'chat.answered',
-}
-
-export default function ChatFeed({
-  chats,
-  timeZone,
-  limit,
-  className = '',
-}) {
+export default function ChatFeed({ className = '' }) {
   const t = useT()
+  const navigate = useNavigate()
+  const [chats, setChats] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    const read = () => {
+      if (document.visibilityState !== 'visible') return
+      authed((token) => listConversations(token, { archived: false, deleted: false }))
+        .then((rows) => alive && setChats(rows))
+        .catch(() => alive && setChats((was) => was ?? []))
+    }
+    read()
+    const timer = setInterval(read, POLL_MS)
+    document.addEventListener('visibilitychange', read)
+    return () => {
+      alive = false
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', read)
+    }
+  }, [])
 
   return (
-    // `min-h-0` beside `flex-1` is what lets the list inside actually scroll:
-    // without it a flex item refuses to shrink under its content and the
-    // overflow lands on the page, which on this screen has nowhere to put it.
-    //
-    // `display` is deliberately *not* set here. The caller decides at which
-    // breakpoint this exists at all, and a `flex` baked in would fight the
-    // `hidden` it is given — so the class it passes carries both.
     <section
       className={`min-h-0 flex-1 flex-col ${className}`}
       aria-label={t('nav.inbox')}
     >
-      {/* The heading and the way out of it, on one line — the same pairing the
-          reference uses. «Все» goes to the screen this is a window onto, so the
-          feed never has to grow a "show more" of its own. */}
+      {/* The heading and the way out of it, on one line. «Все» goes to the
+          screen this is a window onto, so the feed never grows a "show more". */}
       <header className="flex shrink-0 items-center justify-between gap-2 pb-2">
         <h2 className="font-display text-[15px] font-semibold text-ink">
           {t('nav.inbox')}
@@ -93,86 +63,15 @@ export default function ChatFeed({
         </Link>
       </header>
 
-      {chats?.length ? (
-        // **`limit` turns the scroll off, not just the row count down.** Inside
-        // the agenda this sits at the foot of a column that already scrolls,
-        // and a list with a scroll of its own there is two scrolls fighting
-        // over one thumb — the reason the caller wants a short feed at all is
-        // that «Все ›» is where the long one lives.
-        <div
-          className={
-            limit
-              ? 'space-y-2'
-              : 'min-h-0 flex-1 space-y-2 overflow-y-auto'
-          }
-        >
-          {(limit ? chats.slice(0, limit) : chats).map((chat) => (
-            <ChatRow key={chat.id} chat={chat} timeZone={timeZone} />
-          ))}
-        </div>
-      ) : (
-        // Centred in what is left rather than sitting under the heading: an
-        // empty state pinned to the top of a tall box reads as a list that
-        // failed to load, where one in the middle reads as a box with nothing
-        // in it yet.
-        <p className="grid min-h-0 flex-1 place-items-center px-4 text-center text-[13px] text-muted">
-          {t('chat.empty')}
-        </p>
-      )}
+      <StreamList
+        chats={chats}
+        live={liveChats(chats)}
+        bleed="-mx-2 px-2"
+        onOpen={(id) => navigate(`/inbox?chat=${id}`)}
+      />
     </section>
   )
 }
 
-/**
- * One conversation.
- *
- * **The time is the loudest thing on the row**, as it is in the reference: a
- * feed is read down the left edge, and when something came in is what orders it
- * in the reader's head. The state sits opposite it, and the line underneath is
- * who and about what — the same order the booking cards use, which is what
- * keeps the two halves of this screen reading as one product.
- *
- * **`surface-card`, not `surface-raised`.** Both are edgeless fills and the
- * difference is which ground they have to stand off. `surface-raised` is
- * `#0e0e0e` on the dark theme, which is a step off a *page* and no step at all
- * off the pure black this panel sits on — measurable, invisible. `surface-card`
- * is the token that already exists for exactly this, and it is what a booking
- * on the timetable wears for the same reason.
- */
-function ChatRow({ chat, timeZone }) {
-  const t = useT()
-  const tone = CHAT_TONE[chat.state] ?? 'text-muted'
-
-  return (
-    <Link
-      to="/inbox"
-      className="block rounded-xl bg-surface-card px-3 py-2.5 outline-none transition-opacity hover:opacity-85 focus-visible:opacity-85"
-    >
-      <span className="flex items-baseline justify-between gap-2">
-        <span className="font-display text-[17px] leading-none font-semibold tracking-[-0.01em] text-ink">
-          {clockOf(chat.at, timeZone)}
-        </span>
-        <span
-          className={`flex shrink-0 items-center gap-1.5 text-[12px] leading-none font-medium ${tone}`}
-        >
-          {t(STATE_KEYS[chat.state] ?? 'chat.answered')}
-          {/* `currentColor`, so the dot and the word cannot drift apart. */}
-          <span
-            aria-hidden="true"
-            className="h-1.5 w-1.5 shrink-0 rounded-full bg-current"
-          />
-        </span>
-      </span>
-
-      <span className="mt-1.5 block truncate text-[13px] leading-tight text-ink">
-        {chat.client}
-      </span>
-
-      {chat.preview && (
-        <span className="mt-0.5 block truncate text-[12px] leading-tight text-muted">
-          {chat.preview}
-        </span>
-      )}
-    </Link>
-  )
-}
+/** Как часто список перечитывается — тот же ритм, что у карточек главной. */
+const POLL_MS = 15000
