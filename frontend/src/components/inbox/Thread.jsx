@@ -189,6 +189,7 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
   if (!conversation) return null
 
   const title = clientName(conversation, t('chat.noName'))
+  const lastAuthor = messages?.[messages.length - 1]?.author
 
   // **Вторая строка шапки: как с человеком связаться и где.** Номер, а если его
   // нет — `@username`: у клиента из бота номера может не быть вовсе, и пустое
@@ -370,17 +371,61 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
                 </m.div>
               </Fragment>
             ))}
+
+            {/* **Что модель делает сейчас — в самой переписке, как в
+                iMessage.** Последним писал клиент — на стороне ассистента
+                печатающий пузырь; он уступает место ответу, когда тот придёт.
+                Ответ уже ушёл — тихая подпись под ним, без крутилки: ожидание
+                человека — не загрузка. Выводится из автора последнего
+                сообщения, а не из состояния сервера. */}
+            {aiOn && lastAuthor === 'client' && (
+              <m.div
+                key="typing"
+                initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, transition: CROSSFADE.out }}
+                transition={reduce ? CROSSFADE.in : { y: SPRING, opacity: CROSSFADE.in }}
+                onAnimationComplete={stick}
+                className="flex items-end gap-2 self-end"
+                aria-label={t('thread.ai.replying')}
+                role="status"
+              >
+                <span className="flex h-10 items-center gap-1 rounded-2xl bg-surface-chip px-4">
+                  {[0, 1, 2].map((dot) => (
+                    <m.span
+                      key={dot}
+                      aria-hidden="true"
+                      className="h-2 w-2 rounded-full bg-ink"
+                      animate={reduce ? { opacity: 0.5 } : { opacity: [0.25, 1, 0.25] }}
+                      transition={
+                        reduce
+                          ? { duration: 0 }
+                          : { duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: dot * 0.18 }
+                      }
+                    />
+                  ))}
+                </span>
+                <Avatar icon={ASSISTANT_ICON} />
+              </m.div>
+            )}
+            {aiOn && lastAuthor === 'assistant' && (
+              <m.p
+                key="waiting"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, transition: CROSSFADE.out }}
+                transition={CROSSFADE.in}
+                role="status"
+                className="-mt-1.5 self-end pr-12 text-[12px] text-muted"
+              >
+                {t('thread.ai.waiting')}
+              </m.p>
+            )}
           </AnimatePresence>
         </div>
       )}
 
-      <Composer
-        aiOn={aiOn}
-        // Последним писал клиент — значит, модель сейчас отвечает; иначе ждёт.
-        replying={messages?.[messages.length - 1]?.author === 'client'}
-        onToggle={toggleAi}
-        onSend={sendMessage}
-      />
+      <Composer aiOn={aiOn} onToggle={toggleAi} onSend={sendMessage} />
     </section>
   )
 }

@@ -6,34 +6,35 @@ import { ASSISTANT_ICON } from '../navigation'
 import { CROSSFADE, SPRING } from '../../lib/motion'
 import { haptic } from '../../lib/haptics'
 import { useT } from '../../lib/i18n'
-import Switch from '../Switch'
 
 /**
- * Низ треда: одно длинное поле и одна круглая кнопка в нём.
+ * Низ треда — кто ведёт разговор, и как его перехватить. Два состояния, и
+ * каждое — одно ясное действие, а не выключатель посреди поля ввода.
  *
- * **Слева — выключатель ассистента.** Пока модель включена, на месте текста — что она делает: «Отвечает…» с
- * бегущими точками, если последним писал клиент, и «Ждёт ответа клиента»,
- * если ответ уже ушёл. Писать в этот момент нельзя: сообщение рукой всё равно
- * выключило бы её (`add_message`), и это должно быть действием, а не
- * случайностью. Сдвинуть выключатель — модель выключается, поле становится
- * полем; набранный текст добавляет рядом стрелку отправки. Сдвинуть обратно —
- * модель снова отвечает сама.
+ * **Ассистент ведёт.** Поля нет вовсе: писать рукой сейчас значило бы выключить
+ * модель случайно (`add_message`). Вместо него — строка «Ассистент ведёт
+ * разговор» и одна кнопка «Ответить самому». Что модель делает прямо сейчас,
+ * сказано не здесь, а в самой переписке: печатающий пузырь или подпись «Ждёт
+ * ответа клиента» под последним сообщением — см. `Thread`.
  *
- * Enter отправляет, Shift+Enter — перенос. Текст уходит только после ответа
- * сервера: неудача оставляет его в поле.
+ * **Отвечаете вы.** Поле iMessage: «+» снаружи слева, поле без обводки, стрелка
+ * отправки внутри справа и только когда есть что отправить; выбранный снимок —
+ * внутри поля над текстом. Над полем — тихая строка «Вы отвечаете сами ·
+ * Вернуть ассистенту»: обратный путь виден всегда, но не спорит с полем.
+ *
+ * Смена состояний — одна и та же пружина в обе стороны (спокойная, без отскока:
+ * ничего не бросали), поле получает фокус, как только появилось, и только если его
+ * открыли нажатием, — иначе на телефоне каждое открытие треда поднимало бы
+ * клавиатуру.
  */
-export default function Composer({ aiOn, replying, onToggle, onSend }) {
+export default function Composer({ aiOn, onToggle, onSend }) {
   const t = useT()
   const reduce = useReducedMotion()
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
-  // Выбранный снимок: сам файл и адрес превью. Уходит вместе с текстом —
-  // текст становится подписью.
   const [photo, setPhoto] = useState(null)
   const picker = useRef(null)
   const field = useRef(null)
-  // Фокус — только когда поле открыли нажатием, не при открытии треда: иначе
-  // на телефоне каждое открытие разговора поднимало бы клавиатуру.
   const focusNext = useRef(false)
 
   useEffect(() => {
@@ -43,19 +44,25 @@ export default function Composer({ aiOn, replying, onToggle, onSend }) {
     box.style.height = `${Math.min(box.scrollHeight, MAX_FIELD)}px`
   }, [text, aiOn])
 
-  useEffect(() => {
-    if (!aiOn && focusNext.current) field.current?.focus()
-    focusNext.current = false
-  }, [aiOn])
-
   // Превью живёт, пока выбран снимок; старый адрес освобождается.
   useEffect(() => () => photo && URL.revokeObjectURL(photo.url), [photo])
-  // Включили модель — выбранный снимок уже никуда не уйдёт.
+  // Вернули ассистенту — выбранный снимок уже никуда не уйдёт.
   useEffect(() => {
     if (aiOn) setPhoto(null)
   }, [aiOn])
 
-  const willSend = !aiOn && (text.trim().length > 0 || photo !== null)
+  const canSend = text.trim().length > 0 || photo !== null
+
+  const takeOver = () => {
+    haptic('snap')
+    focusNext.current = true
+    onToggle(false)
+  }
+
+  const handBack = () => {
+    haptic('snap')
+    onToggle(true)
+  }
 
   const pick = (event) => {
     const file = event.target.files?.[0]
@@ -82,202 +89,170 @@ export default function Composer({ aiOn, replying, onToggle, onSend }) {
     }
   }
 
-  const toggle = () => {
-    haptic('snap')
-    focusNext.current = aiOn
-    onToggle(!aiOn)
+  // Одна пружина на вход и выход: состояние уезжает тем же путём, каким
+  // приехало, — чуть вниз и в прозрачность.
+  const swap = {
+    initial: reduce ? { opacity: 0 } : { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    exit: reduce
+      ? { opacity: 0, transition: CROSSFADE.out }
+      : { opacity: 0, y: 10, transition: { y: SPRING, opacity: CROSSFADE.out } },
+    transition: reduce ? CROSSFADE.in : { y: SPRING, opacity: CROSSFADE.in },
   }
 
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault()
-        send()
-      }}
-      className="shrink-0 border-t border-line px-3 py-3"
-    >
-      <input
-        ref={picker}
-        type="file"
-        accept="image/*"
-        onChange={pick}
-        className="hidden"
-        tabIndex={-1}
-      />
-
-      {/* Выбранный снимок — над полем, как в мессенджерах, с крестиком,
-          чтобы передумать. */}
-      <AnimatePresence initial={false}>
-        {photo && !aiOn && (
-          <m.div
-            key={photo.url}
-            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, transition: CROSSFADE.out }}
-            transition={reduce ? CROSSFADE.in : { ...SPRING, opacity: CROSSFADE.in }}
-            className="relative mb-2 ml-1 w-fit"
-          >
-            <img
-              src={photo.url}
-              alt=""
-              className="h-20 max-w-[160px] rounded-xl object-cover ring-1 ring-line"
-            />
+    <div className="shrink-0 border-t border-line px-3 pt-2.5 pb-3">
+      <AnimatePresence mode="wait" initial={false}>
+        {aiOn ? (
+          <m.div key="assistant" {...swap} className="flex min-h-11 items-center gap-3 pl-1">
+            <span
+              aria-hidden="true"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink/12 text-ink"
+            >
+              <HugeiconsIcon icon={ASSISTANT_ICON} size={17} strokeWidth={1.8} />
+            </span>
+            <p className="min-w-0 flex-1 truncate text-[14px] text-ink">
+              {t('thread.ai.leading')}
+            </p>
             <button
               type="button"
-              onClick={() => setPhoto(null)}
-              aria-label={t('thread.photo.remove')}
-              className="touch-target absolute -top-2 -right-2 grid h-6 w-6 place-items-center rounded-full bg-ink text-surface outline-none transition-[scale] duration-[160ms] ease-out active:scale-90"
+              onClick={takeOver}
+              className="h-9 shrink-0 rounded-full bg-accent px-4 text-[14px] font-medium text-surface outline-none transition-[scale,opacity] duration-[160ms] ease-out hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ink/30 active:scale-[0.96]"
             >
-              <HugeiconsIcon icon={Cancel01Icon} size={12} strokeWidth={2.4} />
+              {t('thread.ai.takeOver')}
             </button>
+          </m.div>
+        ) : (
+          <m.div key="owner" {...swap}>
+            {/* Обратный путь — тихой строкой над полем: виден всегда и не
+                спорит с тем, ради чего это состояние открыли. */}
+            <p className="mb-2 flex items-center gap-1.5 pl-1 text-[12px] text-muted">
+              <HugeiconsIcon icon={ASSISTANT_ICON} size={14} strokeWidth={1.8} />
+              <span>{t('thread.ai.youReply')}</span>
+              <span aria-hidden="true">·</span>
+              <button
+                type="button"
+                onClick={handBack}
+                className="touch-target relative font-medium text-ink outline-none transition-opacity duration-150 hover:opacity-70 focus-visible:underline active:opacity-50"
+              >
+                {t('thread.ai.handBack')}
+              </button>
+            </p>
+
+            <form
+              onSubmit={(event) => {
+                event.preventDefault()
+                send()
+              }}
+              className="flex items-end gap-2"
+            >
+              <input
+                ref={picker}
+                type="file"
+                accept="image/*"
+                onChange={pick}
+                className="hidden"
+                tabIndex={-1}
+              />
+
+              {/* «+» снаружи поля, слева, — как в iMessage: сначала «что
+                  прикрепить», потом «что сказать». */}
+              <button
+                type="button"
+                onClick={() => picker.current?.click()}
+                aria-label={t('thread.photo.add')}
+                title={t('thread.photo.add')}
+                className="touch-target relative grid h-9 w-9 shrink-0 place-items-center rounded-full text-ink outline-none transition-[opacity,scale] duration-[160ms] ease-out hover:opacity-70 focus-visible:ring-2 focus-visible:ring-ink/30 active:scale-90"
+              >
+                <HugeiconsIcon icon={PlusSignIcon} size={20} strokeWidth={2} />
+              </button>
+
+              {/* Поле — заливка без обводки: в тёмной теме рамка вокруг поля
+                  рядом с линией над ним читалась двумя чертами. */}
+              <div className="flex min-w-0 flex-1 flex-col rounded-[20px] bg-ink/8 transition-colors duration-150 focus-within:bg-ink/10">
+                <AnimatePresence initial={false}>
+                  {photo && (
+                    <m.div
+                      key={photo.url}
+                      initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.94 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, transition: CROSSFADE.out }}
+                      transition={reduce ? CROSSFADE.in : { scale: SPRING, opacity: CROSSFADE.in }}
+                      style={{ originX: 0, originY: 1 }}
+                      className="relative mt-2 ml-2 w-fit"
+                    >
+                      <img
+                        src={photo.url}
+                        alt=""
+                        className="h-24 max-w-[180px] rounded-2xl object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setPhoto(null)}
+                        aria-label={t('thread.photo.remove')}
+                        className="touch-target absolute top-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white outline-none backdrop-blur-sm transition-[scale] duration-[160ms] ease-out active:scale-90"
+                      >
+                        <HugeiconsIcon icon={Cancel01Icon} size={12} strokeWidth={2.4} />
+                      </button>
+                    </m.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="flex items-end gap-1 py-[3px] pr-[3px] pl-4">
+                  <textarea
+                    // Фокус в момент появления поля — если его открыли нажатием
+                    // «Ответить самому». Колбэк-реф, а не эффект: при
+                    // `mode="wait"` поле монтируется позже смены состояния, и
+                    // эффект на `aiOn` застал бы пустой ref.
+                    ref={(node) => {
+                      field.current = node
+                      if (node && focusNext.current) {
+                        focusNext.current = false
+                        node.focus({ preventScroll: true })
+                      }
+                    }}
+                    rows={1}
+                    value={text}
+                    onChange={(event) => setText(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+                        event.preventDefault()
+                        send()
+                      }
+                    }}
+                    placeholder={t('thread.placeholder')}
+                    aria-label={t('thread.placeholder')}
+                    className="max-h-[120px] min-w-0 flex-1 resize-none bg-transparent py-[7px] text-[16px] leading-5 text-ink outline-none placeholder:text-muted sm:text-[14px]"
+                  />
+
+                  {/* Стрелка — внутри поля и только когда есть что отправить:
+                      пустое поле не предлагает действия, которого нет. */}
+                  <AnimatePresence initial={false}>
+                    {canSend && (
+                      <m.button
+                        key="send"
+                        type="submit"
+                        disabled={sending}
+                        aria-label={t('thread.send')}
+                        title={t('thread.send')}
+                        initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.5 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.5 }}
+                        transition={reduce ? CROSSFADE.in : { scale: SPRING, opacity: { duration: 0.12 } }}
+                        whileTap={{ scale: 0.9 }}
+                        className="touch-target relative grid h-7 w-7 shrink-0 place-items-center rounded-full bg-accent text-surface outline-none focus-visible:ring-2 focus-visible:ring-ink/30 disabled:opacity-50"
+                      >
+                        <HugeiconsIcon icon={ArrowUp02Icon} size={15} strokeWidth={2.4} />
+                      </m.button>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </form>
           </m.div>
         )}
       </AnimatePresence>
-
-      <div className="flex items-end gap-2 rounded-[22px] bg-surface-raised py-1 pr-1 pl-2 shadow-[0_0_0_1px_var(--color-field)] transition-shadow duration-150 focus-within:shadow-[0_0_0_1px_var(--color-field-focus)]">
-        {/* Выключатель ассистента — одна капсула: значок и ползунок на общей
-            подложке, чтобы читались как один элемент «ассистент: вкл/выкл».
-            Значок тоже нажимается и делает то же, что ползунок. */}
-        <span className="-ml-1 flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-ink/10 pr-[5px] pl-2">
-          <span
-            aria-hidden="true"
-            onClick={toggle}
-            className={`grid cursor-pointer place-items-center transition-colors duration-200 ${
-              aiOn ? 'text-ink' : 'text-muted'
-            }`}
-          >
-            <HugeiconsIcon icon={ASSISTANT_ICON} size={22} strokeWidth={1.8} />
-          </span>
-          <Switch
-            checked={aiOn}
-            onChange={toggle}
-            label={t(aiOn ? 'thread.ai.turnOff' : 'thread.ai.turnOn')}
-          />
-        </span>
-
-
-        <div className="relative flex min-h-9 min-w-0 flex-1 items-center pl-1">
-          <AnimatePresence mode="popLayout" initial={false}>
-            {aiOn ? (
-              <m.p
-                key={replying ? 'replying' : 'waiting'}
-                initial={reduce ? { opacity: 0 } : { opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, transition: CROSSFADE.out }}
-                transition={reduce ? CROSSFADE.in : { y: SPRING, opacity: CROSSFADE.in }}
-                aria-live="polite"
-                className="ml-auto flex min-w-0 items-baseline py-1.5 pr-2 text-[16px] leading-5 text-ink sm:text-[14px]"
-              >
-                {replying ? (
-                  <>
-                    <span className="truncate text-ink">{t('thread.ai.replying')}</span>
-                    <Dots still={reduce} />
-                  </>
-                ) : (
-                  <>
-                    <span className="truncate">{t('thread.ai.waiting')}</span>
-                    {/* Маленький крутящийся круг: ожидание, у которого нет
-                        конца, который можно было бы показать полосой. */}
-                    <span
-                      aria-hidden="true"
-                      className="ml-2 inline-block h-3.5 w-3.5 shrink-0 animate-spin self-center rounded-full border-2 border-ink/20 border-t-ink"
-                    />
-                  </>
-                )}
-              </m.p>
-            ) : (
-              <m.textarea
-                key="field"
-                ref={field}
-                rows={1}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0, transition: CROSSFADE.out }}
-                transition={CROSSFADE.in}
-                value={text}
-                onChange={(event) => setText(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
-                    event.preventDefault()
-                    send()
-                  }
-                }}
-                placeholder={t('thread.placeholder')}
-                aria-label={t('thread.placeholder')}
-                className="max-h-[120px] w-full min-w-0 resize-none bg-transparent py-1.5 text-[16px] leading-5 text-ink outline-none placeholder:text-muted sm:text-[14px]"
-              />
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Плюс — прикрепить фото. Только когда пишете вы (при включённой
-            модели снимку некуда идти) и пока поле пустое: набранный текст
-            отдаёт это место стрелке отправки. */}
-        <AnimatePresence initial={false}>
-          {!aiOn && !text.trim() && (
-            <m.button
-              key="attach"
-              type="button"
-              onClick={() => picker.current?.click()}
-              aria-label={t('thread.photo.add')}
-              title={t('thread.photo.add')}
-              initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
-              transition={{ duration: 0.16, ease: 'easeOut' }}
-              whileTap={{ scale: 0.9 }}
-              className="touch-target relative grid h-9 w-9 shrink-0 place-items-center rounded-full text-ink outline-none transition-opacity duration-150 hover:opacity-70 focus-visible:ring-2 focus-visible:ring-ink/30"
-            >
-              <HugeiconsIcon icon={PlusSignIcon} size={18} strokeWidth={2} />
-            </m.button>
-          )}
-        </AnimatePresence>
-
-        {/* Стрелка отправки появляется, только когда есть что отправить, —
-            рядом с выключателем, а не вместо него: включить модель обратно
-            можно в любую секунду. */}
-        <AnimatePresence initial={false}>
-          {willSend && (
-            <m.button
-              key="send"
-              type="submit"
-              disabled={sending}
-              aria-label={t('thread.send')}
-              title={t('thread.send')}
-              initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
-              transition={{ duration: 0.16, ease: 'easeOut' }}
-              whileTap={{ scale: 0.92 }}
-              className="touch-target relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent text-surface outline-none focus-visible:ring-2 focus-visible:ring-ink/30"
-            >
-              <HugeiconsIcon icon={ArrowUp02Icon} size={17} strokeWidth={2.2} />
-            </m.button>
-          )}
-        </AnimatePresence>
-
-      </div>
-    </form>
-  )
-}
-
-/**
- * Три точки «печатает». Каждая дышит прозрачностью со сдвигом по фазе — волна
- * слева направо, как в мессенджерах. Под пониженным движением стоят на месте.
- */
-function Dots({ still }) {
-  return (
-    <span aria-hidden="true" className="ml-0.5 inline-flex text-ink">
-      {[0, 1, 2].map((index) => (
-        <m.span
-          key={index}
-          animate={still ? undefined : { opacity: [0.2, 1, 0.2] }}
-          transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: index * 0.2 }}
-        >
-          .
-        </m.span>
-      ))}
-    </span>
+    </div>
   )
 }
 
