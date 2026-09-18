@@ -11,7 +11,7 @@ import Switch from '../Switch'
 /**
  * Низ треда: одно длинное поле и одна круглая кнопка в нём.
  *
- * **Справа — выключатель ассистента.** Пока модель включена, на месте текста — что она делает: «Отвечает…» с
+ * **Слева — выключатель ассистента.** Пока модель включена, на месте текста — что она делает: «Отвечает…» с
  * бегущими точками, если последним писал клиент, и «Ждёт ответа клиента»,
  * если ответ уже ушёл. Писать в этот момент нельзя: сообщение рукой всё равно
  * выключило бы её (`add_message`), и это должно быть действием, а не
@@ -76,7 +76,23 @@ export default function Composer({ aiOn, replying, onToggle, onSend }) {
       }}
       className="shrink-0 border-t border-line px-3 py-3"
     >
-      <div className="flex items-end gap-2 rounded-[22px] bg-surface-raised py-1 pr-1 pl-4 shadow-[0_0_0_1px_var(--color-field)] transition-shadow duration-150 focus-within:shadow-[0_0_0_1px_var(--color-field-focus)]">
+      <div className="flex items-end gap-2 rounded-[22px] bg-surface-raised py-1 pr-1 pl-3 shadow-[0_0_0_1px_var(--color-field)] transition-shadow duration-150 focus-within:shadow-[0_0_0_1px_var(--color-field-focus)]">
+        {/* Выключатель ассистента: значок говорит, чей он, ползунок — включён
+            ли. Тот же `Switch`, что на главной у каждого потока. */}
+        <span className="flex h-9 shrink-0 items-center gap-2 pr-1">
+          <HugeiconsIcon
+            icon={ASSISTANT_ICON}
+            size={18}
+            strokeWidth={1.8}
+            className={`transition-colors duration-200 ${aiOn ? 'text-ink' : 'text-muted'}`}
+          />
+          <Switch
+            checked={aiOn}
+            onChange={toggle}
+            label={t(aiOn ? 'thread.ai.turnOff' : 'thread.ai.turnOn')}
+          />
+        </span>
+
         <div className="relative flex min-h-9 min-w-0 flex-1 items-center">
           <AnimatePresence mode="popLayout" initial={false}>
             {aiOn ? (
@@ -95,7 +111,15 @@ export default function Composer({ aiOn, replying, onToggle, onSend }) {
                     <Dots still={reduce} />
                   </>
                 ) : (
-                  <span className="truncate">{t('thread.ai.waiting')}</span>
+                  <>
+                    <span className="truncate">{t('thread.ai.waiting')}</span>
+                    {/* Маленький крутящийся круг: ожидание, у которого нет
+                        конца, который можно было бы показать полосой. */}
+                    <span
+                      aria-hidden="true"
+                      className="ml-2 inline-block h-3.5 w-3.5 shrink-0 animate-spin self-center rounded-full border-2 border-ink/20 border-t-ink"
+                    />
+                  </>
                 )}
               </m.p>
             ) : (
@@ -146,21 +170,6 @@ export default function Composer({ aiOn, replying, onToggle, onSend }) {
           )}
         </AnimatePresence>
 
-        {/* Выключатель ассистента: значок говорит, чей он, ползунок — включён
-            ли. Тот же `Switch`, что на главной у каждого потока. */}
-        <span className="flex h-9 shrink-0 items-center gap-2 pr-2 pl-1">
-          <HugeiconsIcon
-            icon={ASSISTANT_ICON}
-            size={18}
-            strokeWidth={1.8}
-            className={`transition-colors duration-200 ${aiOn ? 'text-ink' : 'text-muted'}`}
-          />
-          <Switch
-            checked={aiOn}
-            onChange={toggle}
-            label={t(aiOn ? 'thread.ai.turnOff' : 'thread.ai.turnOn')}
-          />
-        </span>
       </div>
     </form>
   )
