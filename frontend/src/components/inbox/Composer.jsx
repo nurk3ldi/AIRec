@@ -6,19 +6,18 @@ import { ASSISTANT_ICON } from '../navigation'
 import { CROSSFADE, SPRING } from '../../lib/motion'
 import { haptic } from '../../lib/haptics'
 import { useT } from '../../lib/i18n'
+import Switch from '../Switch'
 
 /**
  * Низ треда: одно длинное поле и одна круглая кнопка в нём.
  *
- * **Кнопка — это и ассистент, и отправка.** Пока модель включена, в кнопке её
- * значок (залитый круг), а на месте текста — что она делает: «Отвечает…» с
+ * **Справа — выключатель ассистента.** Пока модель включена, на месте текста — что она делает: «Отвечает…» с
  * бегущими точками, если последним писал клиент, и «Ждёт ответа клиента»,
  * если ответ уже ушёл. Писать в этот момент нельзя: сообщение рукой всё равно
  * выключило бы её (`add_message`), и это должно быть действием, а не
- * случайностью. Нажать значок — модель выключается, поле становится полем.
- * Пустое поле держит в кнопке значок ассистента (нажать — включить обратно),
- * набранный текст меняет его на стрелку отправки — как микрофон и стрелка в
- * мессенджерах: одна кнопка, и она всегда о следующем шаге.
+ * случайностью. Сдвинуть выключатель — модель выключается, поле становится
+ * полем; набранный текст добавляет рядом стрелку отправки. Сдвинуть обратно —
+ * модель снова отвечает сама.
  *
  * Enter отправляет, Shift+Enter — перенос. Текст уходит только после ответа
  * сервера: неудача оставляет его в поле.
@@ -63,22 +62,17 @@ export default function Composer({ aiOn, replying, onToggle, onSend }) {
     }
   }
 
-  const press = () => {
-    if (willSend) return send()
+  const toggle = () => {
     haptic('snap')
     focusNext.current = aiOn
     onToggle(!aiOn)
   }
 
-  const label = willSend
-    ? t('thread.send')
-    : t(aiOn ? 'thread.ai.turnOff' : 'thread.ai.turnOn')
-
   return (
     <form
       onSubmit={(event) => {
         event.preventDefault()
-        press()
+        send()
       }}
       className="shrink-0 border-t border-line px-3 py-3"
     >
@@ -129,33 +123,44 @@ export default function Composer({ aiOn, replying, onToggle, onSend }) {
           </AnimatePresence>
         </div>
 
-        <button
-          type="submit"
-          disabled={sending}
-          aria-label={label}
-          aria-pressed={willSend ? undefined : aiOn}
-          title={label}
-          className={`touch-target relative grid h-9 w-9 shrink-0 place-items-center rounded-full outline-none transition-[background-color,color,scale] duration-200 ease-out focus-visible:ring-2 focus-visible:ring-ink/30 active:scale-[0.92] ${
-            aiOn || willSend ? 'bg-accent text-surface' : 'bg-ink/12 text-ink hover:bg-ink/16'
-          }`}
-        >
-          <AnimatePresence mode="popLayout" initial={false}>
-            <m.span
-              key={willSend ? 'send' : 'ai'}
+        {/* Стрелка отправки появляется, только когда есть что отправить, —
+            рядом с выключателем, а не вместо него: включить модель обратно
+            можно в любую секунду. */}
+        <AnimatePresence initial={false}>
+          {willSend && (
+            <m.button
+              key="send"
+              type="submit"
+              disabled={sending}
+              aria-label={t('thread.send')}
+              title={t('thread.send')}
               initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
               transition={{ duration: 0.16, ease: 'easeOut' }}
-              className="grid place-items-center"
+              whileTap={{ scale: 0.92 }}
+              className="touch-target relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent text-surface outline-none focus-visible:ring-2 focus-visible:ring-ink/30"
             >
-              <HugeiconsIcon
-                icon={willSend ? ArrowUp02Icon : ASSISTANT_ICON}
-                size={willSend ? 17 : 19}
-                strokeWidth={willSend ? 2.2 : 1.8}
-              />
-            </m.span>
-          </AnimatePresence>
-        </button>
+              <HugeiconsIcon icon={ArrowUp02Icon} size={17} strokeWidth={2.2} />
+            </m.button>
+          )}
+        </AnimatePresence>
+
+        {/* Выключатель ассистента: значок говорит, чей он, ползунок — включён
+            ли. Тот же `Switch`, что на главной у каждого потока. */}
+        <span className="flex h-9 shrink-0 items-center gap-2 pr-2 pl-1">
+          <HugeiconsIcon
+            icon={ASSISTANT_ICON}
+            size={18}
+            strokeWidth={1.8}
+            className={`transition-colors duration-200 ${aiOn ? 'text-ink' : 'text-muted'}`}
+          />
+          <Switch
+            checked={aiOn}
+            onChange={toggle}
+            label={t(aiOn ? 'thread.ai.turnOff' : 'thread.ai.turnOn')}
+          />
+        </span>
       </div>
     </form>
   )
