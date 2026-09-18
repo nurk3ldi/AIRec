@@ -7,7 +7,14 @@ import {
   ImageNotFound01Icon,
   UserIcon,
 } from '@hugeicons/core-free-icons'
-import { listMessages, markConversationRead, mediaUrl } from '../../lib/api'
+import {
+  createMessage,
+  listMessages,
+  markConversationRead,
+  mediaUrl,
+  updateConversation,
+} from '../../lib/api'
+import Composer from './Composer'
 import { ASSISTANT_ICON } from '../navigation'
 import Avatar from './Avatar'
 import { authed } from '../../lib/auth'
@@ -28,11 +35,11 @@ import Skeleton, { SkeletonRegion } from '../Skeleton'
  * экран, приезжающий справа, с кнопкой «назад» (`onBack`), и уезжающий тем же
  * путём. Оба поведения — снаружи, в `/inbox`: здесь только то, что внутри.
  *
- * **Только чтение, и это не полуфабрикат.** Поле ввода — отдельное решение со
- * своими последствиями: отправленное сообщение выключает ассистента в этой
- * ветке (`ConversationService.add_message`), а значит ответ рукой должен быть
- * осознанным действием, а не тем, что случилось, потому что курсор стоял в
- * поле. Пока экран отвечает на вопрос «о чём договорились», и отвечает целиком.
+ * **Ответить рукой можно, но только выключив ассистента.** Отправленное
+ * сообщение выключает его в этой ветке (`ConversationService.add_message`),
+ * поэтому поле ввода появляется лишь после нажатия на значок ассистента внизу
+ * (`Composer`): ответ рукой — осознанное действие, а не то, что случилось,
+ * потому что курсор стоял в поле. Тот же значок включает модель обратно.
  *
  * **Кто сказал — подписью, а не только стороной.** Клиент слева, свои справа —
  * этого хватает, чтобы читать, и не хватает, чтобы отличить ассистента от
@@ -52,6 +59,26 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
   const reduce = useReducedMotion()
 
   const id = conversation?.id
+
+  // Кто отвечает в этой ветке. Своё состояние, чтобы выключатель двигался под
+  // пальцем сразу; с пропом сверяется, когда список принёс другое значение
+  // (например, выключили на главной).
+  const remoteAi = conversation?.assistant_enabled ?? true
+  const [aiOn, setAiOn] = useState(remoteAi)
+  useEffect(() => setAiOn(remoteAi), [id, remoteAi])
+
+  const toggleAi = (next) => {
+    setAiOn(next)
+    authed((token) => updateConversation(token, id, { assistant_enabled: next })).catch(() =>
+      setAiOn(!next),
+    )
+  }
+
+  const sendMessage = async (body) => {
+    const row = await authed((token) => createMessage(token, id, body))
+    pinned.current = true
+    setMessages((was) => (was?.some((item) => item.id === row.id) ? was : [...(was ?? []), row]))
+  }
 
   useEffect(() => {
     if (!id) return undefined
@@ -343,6 +370,8 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
           </AnimatePresence>
         </div>
       )}
+
+      <Composer aiOn={aiOn} onToggle={toggleAi} onSend={sendMessage} />
     </section>
   )
 }
