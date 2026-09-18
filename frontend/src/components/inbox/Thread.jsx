@@ -371,7 +371,13 @@ export default function Thread({ conversation, onClose, onBack, className = '' }
         </div>
       )}
 
-      <Composer aiOn={aiOn} onToggle={toggleAi} onSend={sendMessage} />
+      <Composer
+        aiOn={aiOn}
+        // Последним писал клиент — значит, модель сейчас отвечает; иначе ждёт.
+        replying={messages?.[messages.length - 1]?.author === 'client'}
+        onToggle={toggleAi}
+        onSend={sendMessage}
+      />
     </section>
   )
 }
