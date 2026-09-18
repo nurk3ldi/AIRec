@@ -89,11 +89,7 @@ export default function Composer({ aiOn, onToggle, onSend }) {
               transition={CROSSFADE.in}
               className="flex min-h-10 min-w-0 flex-1 items-center text-[13px] text-muted"
             >
-              <span className="truncate">
-                <span className="font-medium text-ink">{t('thread.ai.on')}</span>
-                {' · '}
-                {t('thread.ai.hint')}
-              </span>
+              <span className="truncate font-medium text-ink">{t('thread.ai.on')}</span>
             </m.p>
           ) : (
             // Поле выезжает из-под значка: сдвиг и масштаб от левого края,

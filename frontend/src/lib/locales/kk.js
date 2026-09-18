@@ -129,7 +129,6 @@ export default {
   'thread.empty': 'Бұл сөйлесуде әзірге ештеңе жоқ',
   'thread.back': 'Тізімге қайту',
   'thread.ai.on': 'Ассистент жауап береді',
-  'thread.ai.hint': 'бұл чатта клиентке өзі жазады',
   'thread.ai.turnOff': 'Ассистентті өшіріп, өзім жауап беру',
   'thread.ai.turnOn': 'Ассистентті қосу',
   'thread.placeholder': 'Хабарлама',

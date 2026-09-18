@@ -128,7 +128,6 @@ export default {
   'thread.empty': 'Nothing has been said here yet',
   'thread.back': 'Back to the list',
   'thread.ai.on': 'Assistant is replying',
-  'thread.ai.hint': 'it answers the client in this chat',
   'thread.ai.turnOff': 'Turn off the assistant and reply yourself',
   'thread.ai.turnOn': 'Turn on the assistant',
   'thread.placeholder': 'Message',

@@ -134,7 +134,6 @@ export default {
   'thread.empty': 'В этом разговоре пока ничего нет',
   'thread.back': 'Назад к списку',
   'thread.ai.on': 'Ассистент отвечает',
-  'thread.ai.hint': 'сам пишет клиенту в этом чате',
   'thread.ai.turnOff': 'Выключить ассистента и ответить самому',
   'thread.ai.turnOn': 'Включить ассистента',
   'thread.placeholder': 'Сообщение',
