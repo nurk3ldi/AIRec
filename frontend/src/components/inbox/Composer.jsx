@@ -170,7 +170,7 @@ export default function Composer({ aiOn, replying, onToggle, onSend }) {
               exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
               transition={{ duration: 0.16, ease: 'easeOut' }}
               whileTap={{ scale: 0.9 }}
-              className="touch-target relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/10 text-ink outline-none transition-colors duration-150 hover:bg-ink/16 focus-visible:ring-2 focus-visible:ring-ink/30"
+              className="touch-target relative grid h-9 w-9 shrink-0 place-items-center rounded-full text-ink outline-none transition-opacity duration-150 hover:opacity-70 focus-visible:ring-2 focus-visible:ring-ink/30"
             >
               <HugeiconsIcon icon={PlusSignIcon} size={18} strokeWidth={2} />
             </m.button>
