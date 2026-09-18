@@ -155,27 +155,6 @@ export default function Composer({ aiOn, replying, onToggle, onSend }) {
           />
         </span>
 
-        {/* Плюс — прикрепить фото. Только когда пишете вы: при включённой
-            модели полю ввода делать нечего, и снимку тоже. */}
-        <AnimatePresence initial={false}>
-          {!aiOn && (
-            <m.button
-              key="attach"
-              type="button"
-              onClick={() => picker.current?.click()}
-              aria-label={t('thread.photo.add')}
-              title={t('thread.photo.add')}
-              initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
-              transition={{ duration: 0.16, ease: 'easeOut' }}
-              whileTap={{ scale: 0.9 }}
-              className="touch-target relative grid h-9 w-9 shrink-0 place-items-center rounded-full text-ink outline-none transition-opacity duration-150 hover:opacity-70 focus-visible:ring-2 focus-visible:ring-ink/30"
-            >
-              <HugeiconsIcon icon={PlusSignIcon} size={18} strokeWidth={2} />
-            </m.button>
-          )}
-        </AnimatePresence>
 
         <div className="relative flex min-h-9 min-w-0 flex-1 items-center pl-1">
           <AnimatePresence mode="popLayout" initial={false}>
@@ -230,6 +209,29 @@ export default function Composer({ aiOn, replying, onToggle, onSend }) {
             )}
           </AnimatePresence>
         </div>
+
+        {/* Плюс — прикрепить фото. Только когда пишете вы (при включённой
+            модели снимку некуда идти) и пока поле пустое: набранный текст
+            отдаёт это место стрелке отправки. */}
+        <AnimatePresence initial={false}>
+          {!aiOn && !text.trim() && (
+            <m.button
+              key="attach"
+              type="button"
+              onClick={() => picker.current?.click()}
+              aria-label={t('thread.photo.add')}
+              title={t('thread.photo.add')}
+              initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.6 }}
+              transition={{ duration: 0.16, ease: 'easeOut' }}
+              whileTap={{ scale: 0.9 }}
+              className="touch-target relative grid h-9 w-9 shrink-0 place-items-center rounded-full text-ink outline-none transition-opacity duration-150 hover:opacity-70 focus-visible:ring-2 focus-visible:ring-ink/30"
+            >
+              <HugeiconsIcon icon={PlusSignIcon} size={18} strokeWidth={2} />
+            </m.button>
+          )}
+        </AnimatePresence>
 
         {/* Стрелка отправки появляется, только когда есть что отправить, —
             рядом с выключателем, а не вместо него: включить модель обратно
