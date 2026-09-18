@@ -76,16 +76,20 @@ export default function Composer({ aiOn, replying, onToggle, onSend }) {
       }}
       className="shrink-0 border-t border-line px-3 py-3"
     >
-      <div className="flex items-end gap-2 rounded-[22px] bg-surface-raised py-1 pr-1 pl-3 shadow-[0_0_0_1px_var(--color-field)] transition-shadow duration-150 focus-within:shadow-[0_0_0_1px_var(--color-field-focus)]">
-        {/* Выключатель ассистента: значок говорит, чей он, ползунок — включён
-            ли. Тот же `Switch`, что на главной у каждого потока. */}
-        <span className="flex h-9 shrink-0 items-center gap-2 pr-1">
-          <HugeiconsIcon
-            icon={ASSISTANT_ICON}
-            size={18}
-            strokeWidth={1.8}
-            className={`transition-colors duration-200 ${aiOn ? 'text-ink' : 'text-muted'}`}
-          />
+      <div className="flex items-end gap-2 rounded-[22px] bg-surface-raised py-1 pr-1 pl-2 shadow-[0_0_0_1px_var(--color-field)] transition-shadow duration-150 focus-within:shadow-[0_0_0_1px_var(--color-field-focus)]">
+        {/* Выключатель ассистента — одна капсула: значок и ползунок на общей
+            подложке, чтобы читались как один элемент «ассистент: вкл/выкл».
+            Значок тоже нажимается и делает то же, что ползунок. */}
+        <span className="-ml-1 flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-ink/10 pr-[5px] pl-2">
+          <span
+            aria-hidden="true"
+            onClick={toggle}
+            className={`grid cursor-pointer place-items-center transition-colors duration-200 ${
+              aiOn ? 'text-ink' : 'text-muted'
+            }`}
+          >
+            <HugeiconsIcon icon={ASSISTANT_ICON} size={22} strokeWidth={1.8} />
+          </span>
           <Switch
             checked={aiOn}
             onChange={toggle}
@@ -93,7 +97,7 @@ export default function Composer({ aiOn, replying, onToggle, onSend }) {
           />
         </span>
 
-        <div className="relative flex min-h-9 min-w-0 flex-1 items-center">
+        <div className="relative flex min-h-9 min-w-0 flex-1 items-center pl-1">
           <AnimatePresence mode="popLayout" initial={false}>
             {aiOn ? (
               <m.p
@@ -103,7 +107,7 @@ export default function Composer({ aiOn, replying, onToggle, onSend }) {
                 exit={{ opacity: 0, transition: CROSSFADE.out }}
                 transition={reduce ? CROSSFADE.in : { y: SPRING, opacity: CROSSFADE.in }}
                 aria-live="polite"
-                className="flex min-w-0 items-baseline py-1.5 text-[16px] leading-5 text-ink sm:text-[14px]"
+                className="ml-auto flex min-w-0 items-baseline py-1.5 pr-2 text-[16px] leading-5 text-ink sm:text-[14px]"
               >
                 {replying ? (
                   <>
