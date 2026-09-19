@@ -9,6 +9,7 @@ import {
 import { ToolButton, ViewSwitch } from '../appointments/MobileToolbar'
 import BookingPopover from '../appointments/BookingPopover'
 import MobileSearch from '../appointments/MobileSearch'
+import { DayAgenda } from '../appointments/MobileList'
 import WeekStrip from '../appointments/WeekStrip'
 import { getBusiness, getServices, getWorkingHours, listAppointments } from '../../lib/api'
 import { toBlock } from '../../lib/appointments'
@@ -193,6 +194,24 @@ export default function DayCard({ className = '' }) {
             .filter(Boolean)
             .join(' · ')}
         </p>
+      </div>
+
+      {/* **The day itself, as the phone's agenda draws it** — the same
+          `DayAgenda`: bookings with both ends of their span, pressable free
+          windows, the now line on today. It scrolls inside the card; the strip
+          and the heading above stay put. A booking opens the editor beside
+          itself here (`desktop`), as on the timetable. */}
+      <div className="-mx-1 mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1">
+        <DayAgenda
+          day={day}
+          bookings={bookings}
+          week={hours}
+          services={services}
+          timeZone={timeZone}
+          onSaved={saved}
+          desktop
+          inset="pb-1"
+        />
       </div>
 
       {/* Search takes the card over, from the top, and leaves the way it

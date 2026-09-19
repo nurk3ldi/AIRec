@@ -89,19 +89,6 @@ export default function MobileList({
     ([from, to]) => to - from >= MIN_GAP_MINUTES,
   )
 
-  /**
-   * Everything on the day, in the order it happens.
-   *
-   * The now marker is an item like the others rather than something drawn over
-   * them, so it lands wherever it belongs and the list needs no special case
-   * for it. Sorted plainly: everything above the line has begun and everything
-   * below has not, which is what a line across a day means.
-   */
-  const items = [
-    ...blocks.map((block) => ({ kind: 'booking', at: block.start, block })),
-    ...gaps.map(([from, to]) => ({ kind: 'gap', at: from, from, to })),
-    ...(isToday ? [{ kind: 'now', at: nowMinutes }] : []),
-  ].sort((a, b) => a.at - b.at)
 
   const counted = blocks.filter((b) => b.status !== 'cancelled')
 
@@ -152,55 +139,14 @@ export default function MobileList({
           </p>
         </div>
 
-        {items.length === 0 ? (
-          <p className="px-4 pt-8 text-center text-[13px] text-muted">
-            {t('appointments.dayEmpty')}
-          </p>
-        ) : (
-          // **Cards with air between them, not rows divided by hairlines.** A
-          // ruled list is right where every row is the same kind of thing; here
-          // three kinds share the column — a booking, an empty window, and the
-          // present moment — and a card is what says the first two are objects
-          // while the line between them is not.
-          <ul className="space-y-2 px-4 pb-6">
-            {items.map((item) =>
-              item.kind === 'now' ? (
-                <NowRow key="now" minutes={nowMinutes} />
-              ) : item.kind === 'gap' ? (
-                <GapRow
-                  key={`gap-${item.from}`}
-                  day={key}
-                  from={item.from}
-                  to={item.to}
-                  services={services}
-                  week={week}
-                  timeZone={timeZone}
-                  onSaved={onSaved}
-                />
-              ) : (
-                <BookingRow
-                  key={item.block.id}
-                  block={item.block}
-                  running={
-                    isToday &&
-                    item.block.start <= nowMinutes &&
-                    // With no end it is running until somebody says otherwise,
-                    // which is the whole point of writing it down that way.
-                    nowMinutes < (item.block.end ?? 24 * 60)
-                  }
-                  remaining={
-                    item.block.end === null ? null : item.block.end - nowMinutes
-                  }
-                  elapsed={nowMinutes - item.block.start}
-                  services={services}
-                  week={week}
-                  timeZone={timeZone}
-                  onSaved={onSaved}
-                />
-              ),
-            )}
-          </ul>
-        )}
+        <DayAgenda
+          day={day}
+          bookings={bookings}
+          week={week}
+          services={services}
+          timeZone={timeZone}
+          onSaved={onSaved}
+        />
       </div>
     </div>
   )
@@ -225,12 +171,17 @@ function BookingRow({
   week,
   timeZone,
   onSaved,
+  desktop = false,
 }) {
   const t = useT()
   const [open, setOpen] = useState(false)
+  // On a desktop the row opens the editor beside itself, as a card on the
+  // timetable does; on a phone, the read-only detail sheet.
+  const Shell = desktop ? BookingPopover : BookingDetail
 
   return (
-    <BookingDetail
+    <Shell
+      asAnchor={desktop || undefined}
       open={open}
       onOpenChange={setOpen}
       booking={block}
@@ -370,7 +321,7 @@ function BookingRow({
           </span>
         </button>
       </li>
-    </BookingDetail>
+    </Shell>
   )
 }
 
@@ -453,4 +404,97 @@ function useNow() {
   }, [])
 
   return now
+}
+
+/**
+ * **The day as a run of time** — bookings, free windows and the now line — the
+ * list this screen draws under its header. Exported so the dashboard's
+ * «Записи» card draws the same rows rather than a second drawing of them.
+ *
+ * `desktop` changes what a booking opens: the phone's read-only sheet here,
+ * the editor anchored to the row on a desktop, as the timetable does.
+ * `inset` is the list's own padding, which the card already supplies.
+ */
+export function DayAgenda({
+  day,
+  bookings,
+  week,
+  services,
+  timeZone,
+  onSaved,
+  desktop = false,
+  inset = 'px-4 pb-6',
+}) {
+  const t = useT()
+  const now = useNow()
+  const isToday = sameDay(day, now)
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+
+  const key = dayKey(day)
+  const blocks = (bookings ?? []).filter((b) => b.day === key).sort(byStart)
+  const busy = blocks
+    .filter((b) => b.status !== 'cancelled' && !b.open)
+    .map((b) => [b.start, b.end])
+
+  const hours = week?.find((row) => row.weekday === (day.getDay() + 6) % 7)
+  const gaps = freeWindows(hours, busy, isToday ? nowMinutes : 0).filter(
+    ([from, to]) => to - from >= MIN_GAP_MINUTES,
+  )
+
+  const items = [
+    ...blocks.map((block) => ({ kind: 'booking', at: block.start, block })),
+    ...gaps.map(([from, to]) => ({ kind: 'gap', at: from, from, to })),
+    ...(isToday ? [{ kind: 'now', at: nowMinutes }] : []),
+  ].sort((a, b) => a.at - b.at)
+
+  return items.length === 0 ? (
+      <p className="pt-8 text-center text-[13px] text-muted">
+        {t('appointments.dayEmpty')}
+      </p>
+    ) : (
+      // **Cards with air between them, not rows divided by hairlines.** A
+      // ruled list is right where every row is the same kind of thing; here
+      // three kinds share the column — a booking, an empty window, and the
+      // present moment — and a card is what says the first two are objects
+      // while the line between them is not.
+      <ul className={`space-y-2 ${inset}`}>
+        {items.map((item) =>
+          item.kind === 'now' ? (
+            <NowRow key="now" minutes={nowMinutes} />
+          ) : item.kind === 'gap' ? (
+            <GapRow
+              key={`gap-${item.from}`}
+              day={key}
+              from={item.from}
+              to={item.to}
+              services={services}
+              week={week}
+              timeZone={timeZone}
+              onSaved={onSaved}
+            />
+          ) : (
+            <BookingRow
+              key={item.block.id}
+              block={item.block}
+              running={
+                isToday &&
+                item.block.start <= nowMinutes &&
+                // With no end it is running until somebody says otherwise,
+                // which is the whole point of writing it down that way.
+                nowMinutes < (item.block.end ?? 24 * 60)
+              }
+              remaining={
+                item.block.end === null ? null : item.block.end - nowMinutes
+              }
+              elapsed={nowMinutes - item.block.start}
+              services={services}
+              week={week}
+              timeZone={timeZone}
+              onSaved={onSaved}
+              desktop={desktop}
+            />
+          ),
+        )}
+      </ul>
+    )
 }
