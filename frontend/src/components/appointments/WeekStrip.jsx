@@ -44,6 +44,9 @@ export default function WeekStrip({
   // only thing that knows. Absent is a valid answer and means no marks, which
   // is right for any caller that has not fetched a range wide enough to say.
   marked,
+  // Smaller cells for a place that is short of height — the dashboard's
+  // «Записи» card — where the phone's 36px circles would take a third of it.
+  compact = false,
   className = '',
 }) {
   const t = useT()
@@ -71,6 +74,7 @@ export default function WeekStrip({
       outside={item.getMonth() !== day.getMonth()}
       onDayChange={onDayChange}
       marked={marked}
+      compact={compact}
     />
   )
 
@@ -95,11 +99,14 @@ export default function WeekStrip({
       {/* One row for the whole strip rather than a letter over every date: the
           letters do not change from week to week, and repeated over six rows
           they would be the loudest thing in a block of numbers. */}
-      <div className="grid grid-cols-7 pb-1">
+      {/* Compact rows are spread edge to edge (`justify-between` over
+          fixed-width cells) rather than centred in seven equal columns, so the
+          first day sits on the card's left edge instead of half a column in. */}
+      <div className={compact ? 'flex justify-between pb-0.5' : 'grid grid-cols-7 pb-1'}>
         {letters.map((letter, index) => (
           <span
             key={letter}
-            className={`text-center text-[11px] font-medium ${
+            className={`text-center text-[11px] font-medium ${compact ? 'w-7' : ''} ${
               index >= 5 ? 'text-muted/70' : 'text-muted'
             }`}
           >
@@ -110,7 +117,7 @@ export default function WeekStrip({
 
       {fold(before)}
 
-      <div className="grid grid-cols-7">
+      <div className={compact ? 'flex justify-between' : 'grid grid-cols-7'}>
         {weekDays(day).map(cell)}
       </div>
 
@@ -144,7 +151,7 @@ export default function WeekStrip({
  * for today, both as a filled circle rather than a change of text colour — a
  * phone is read at arm's length and in sunlight, where two greys are one grey.
  */
-function Cell({ item, day, now, outside, onDayChange, marked }) {
+function Cell({ item, day, now, outside, onDayChange, marked, compact }) {
   const selected = sameDay(item, day)
   const today = sameDay(item, now)
   const weekend = item.getDay() === 0 || item.getDay() === 6
@@ -157,10 +164,14 @@ function Cell({ item, day, now, outside, onDayChange, marked }) {
       aria-current={today ? 'date' : undefined}
       // The press state sits on the button so the circle inside it comes along;
       // moving the transform onto the span would fight the fill it animates.
-      className="flex flex-col items-center gap-1 py-1 outline-none transition-transform duration-[160ms] ease-out active:scale-[0.95]"
+      className={`flex flex-col items-center outline-none transition-transform duration-[160ms] ease-out active:scale-[0.95] ${
+        compact ? 'w-7 gap-0.5 py-0.5' : 'gap-1 py-1'
+      }`}
     >
       <span
-        className={`grid h-9 w-9 place-items-center rounded-full font-display text-[17px] transition-colors ${
+        className={`grid place-items-center rounded-full font-display transition-colors ${
+          compact ? 'h-7 w-7 text-[14px]' : 'h-9 w-9 text-[17px]'
+        } ${
           selected
             ? 'bg-now font-semibold text-now-ink'
             : today

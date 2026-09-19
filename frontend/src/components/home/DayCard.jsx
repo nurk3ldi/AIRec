@@ -52,7 +52,18 @@ export default function DayCard({ className = '' }) {
 
   return (
     <section className={`${CARD_EDGE} flex flex-col overflow-hidden p-4 ${className}`}>
-      <WeekStrip day={day} onDayChange={setDay} marked={marked} />
+      {/* Верхняя строка: неделя — компактно, у левого края; справа место
+          для «Сегодня», поиска и «+», которые встанут туда следующими. */}
+      <div className="flex items-start gap-4">
+        <WeekStrip
+          day={day}
+          onDayChange={setDay}
+          marked={marked}
+          compact
+          className="-ml-2 w-[60%]"
+        />
+        <div className="ml-auto" />
+      </div>
     </section>
   )
 }
