@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
+import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons'
 import WeekStrip from '../appointments/WeekStrip'
+import { StepButton } from '../appointments/Timetable'
 import { getBusiness, listAppointments } from '../../lib/api'
 import { toBlock } from '../../lib/appointments'
 import { authed } from '../../lib/auth'
 import { dayKey, weekDays } from '../../lib/dates'
+import { useT } from '../../lib/i18n'
 import { CARD_EDGE } from '../card'
 
 /**
@@ -18,6 +21,7 @@ import { CARD_EDGE } from '../card'
  * часового пояса — запись около полуночи иначе встала бы не на тот день).
  */
 export default function DayCard({ className = '' }) {
+  const t = useT()
   const [day, setDay] = useState(() => new Date())
   const [timeZone, setTimeZone] = useState(undefined)
   const [bookings, setBookings] = useState([])
@@ -46,6 +50,11 @@ export default function DayCard({ className = '' }) {
     }
   }, [from, to, timeZone])
 
+  // ‹ › step the strip a whole week, keeping the weekday: the strip shows a
+  // week, so a week is what one press of its arrow moves.
+  const shiftWeek = (weeks) =>
+    setDay((was) => new Date(was.getFullYear(), was.getMonth(), was.getDate() + weeks * 7))
+
   const marked = new Set(
     bookings.filter((row) => row.status !== 'cancelled').map((row) => row.day),
   )
@@ -62,6 +71,18 @@ export default function DayCard({ className = '' }) {
           compact
           className="-ml-2 w-[60%]"
         />
+        <div className="flex shrink-0 gap-2 self-center">
+          <StepButton
+            label={t('appointments.prev')}
+            icon={ArrowLeft01Icon}
+            onClick={() => shiftWeek(-1)}
+          />
+          <StepButton
+            label={t('appointments.next')}
+            icon={ArrowRight01Icon}
+            onClick={() => shiftWeek(1)}
+          />
+        </div>
         <div className="ml-auto" />
       </div>
     </section>
