@@ -224,6 +224,7 @@ export default function DayCard({ className = '' }) {
         <MobileDay
           embedded
           desktop
+          fitHour
           day={day}
           onDayChange={setDay}
           bookings={bookings}

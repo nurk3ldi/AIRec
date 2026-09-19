@@ -124,6 +124,9 @@ export default function MobileDay({
   // fill, and (`desktop`) a booking opens the editor beside itself.
   embedded = false,
   desktop = false,
+  // One hour fills the visible height of the grid (the dashboard card, where
+  // the owner asked to see a single hour at a time) instead of the fixed 80px.
+  fitHour = false,
   className = '',
 }) {
   const t = useT()
@@ -275,13 +278,18 @@ export default function MobileDay({
    * into place. Measuring before it means there is no such frame.
    */
   const [boxWidth, setBoxWidth] = useState(0)
+  const [boxHeight, setBoxHeight] = useState(0)
   const scroller = useRef(null)
+  const hourPx = fitHour && boxHeight ? boxHeight : HOUR_HEIGHT
 
   useLayoutEffect(() => {
     const box = scroller.current
     if (!box) return
 
-    const measure = () => setBoxWidth(box.clientWidth)
+    const measure = () => {
+      setBoxWidth(box.clientWidth)
+      setBoxHeight(box.clientHeight)
+    }
     measure()
     const observer = new ResizeObserver(measure)
     observer.observe(box)
@@ -295,15 +303,16 @@ export default function MobileDay({
     const opens = week
       ?.map((row) => (row.is_24h || !row.opens_at ? null : toMinutes(row.opens_at)))
       .filter((minute) => minute !== null)
+    // With a single hour on screen, today opens with now in its middle.
     const target = sameDay(day, new Date())
-      ? nowMinutes - 60
+      ? nowMinutes - (fitHour ? 30 : 60)
       : (opens?.length ? Math.min(...opens) : 8 * 60) - 30
 
-    box.scrollTop = Math.max(((target - WINDOW_FROM) / 60) * HOUR_HEIGHT, 0)
+    box.scrollTop = Math.max(((target - WINDOW_FROM) / 60) * hourPx, 0)
     // Keyed on the day only: `nowMinutes` ticks every minute and would drag the
     // grid back under a thumb once a minute if it were in here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, week])
+  }, [key, week, hourPx])
 
   // The widest cluster of the day is how many lanes the column has to hold; a
   // day with nothing in it still has one, so the column is never zero wide.
@@ -447,7 +456,7 @@ export default function MobileDay({
             }`}
             style={{
               gridTemplateColumns: `${GUTTER}px ${columnWidth || 1}px`,
-              height: (END_HOUR - START_HOUR) * HOUR_HEIGHT,
+              height: (END_HOUR - START_HOUR) * hourPx,
             }}
           >
             {/* The gutter. Labels sit at the top of the hour they name rather
@@ -459,7 +468,7 @@ export default function MobileDay({
                 losing it means reading a card with no idea what hour it is in. */}
             <div className={`sticky left-0 z-10 ${embedded ? 'bg-surface-raised' : 'bg-ground'}`}>
               {hours.map((hour) => (
-                <div key={hour} className="relative" style={{ height: HOUR_HEIGHT }}>
+                <div key={hour} className="relative" style={{ height: hourPx }}>
                   <span className="absolute inset-x-0 top-1 text-center text-[12px] text-muted">
                     {fromMinutes(hour * 60)}
                   </span>
@@ -483,7 +492,7 @@ export default function MobileDay({
               {isToday && (
                 <span
                   className="absolute right-1 z-10 -translate-y-1/2 rounded-full bg-now px-1.5 py-0.5 font-display text-[11px] leading-none font-semibold text-now-ink tabular-nums"
-                  style={{ top: ((nowMinutes - WINDOW_FROM) / 60) * HOUR_HEIGHT }}
+                  style={{ top: ((nowMinutes - WINDOW_FROM) / 60) * hourPx }}
                 >
                   {fromMinutes(nowMinutes)}
                 </span>
@@ -499,7 +508,7 @@ export default function MobileDay({
                 <div
                   key={hour}
                   className="border-t border-line first:border-t-0"
-                  style={{ height: HOUR_HEIGHT }}
+                  style={{ height: hourPx }}
                 />
               ))}
 
@@ -517,7 +526,7 @@ export default function MobileDay({
               ))}
 
               {closed.map((range) => {
-                const height = ((range.to - range.from) / 60) * HOUR_HEIGHT
+                const height = ((range.to - range.from) / 60) * hourPx
                 // **A day off and a break are named; the hours before opening are
                 // not.** The first two are facts about the business and the hatch
                 // alone leaves you guessing which of them this is — that is what
@@ -537,7 +546,7 @@ export default function MobileDay({
                     key={`${range.kind}-${range.from}`}
                     className="pointer-events-none absolute inset-x-0 overflow-hidden"
                     style={{
-                      top: ((range.from - WINDOW_FROM) / 60) * HOUR_HEIGHT,
+                      top: ((range.from - WINDOW_FROM) / 60) * hourPx,
                       height,
                       backgroundImage: HATCH,
                     }}
@@ -570,6 +579,7 @@ export default function MobileDay({
                   timeZone={timeZone}
                   onSaved={onSaved}
                   desktop={desktop}
+                  hourPx={hourPx}
                 />
               ))}
 
@@ -580,7 +590,7 @@ export default function MobileDay({
                   aria-hidden="true"
                   className="pointer-events-none absolute inset-x-0 flex items-center"
                   style={{
-                    top: ((nowMinutes - WINDOW_FROM) / 60) * HOUR_HEIGHT,
+                    top: ((nowMinutes - WINDOW_FROM) / 60) * hourPx,
                   }}
                 >
                   {/* No dot at the head any more: the pill in the gutter is the
@@ -611,10 +621,19 @@ export default function MobileDay({
  * so what it opens has to be the thing you can read rather than the thing you
  * can change. See `BookingDetail`.
  */
-function DayBlock({ block, laneWidth, services, week, timeZone, onSaved, desktop = false }) {
+function DayBlock({
+  block,
+  laneWidth,
+  services,
+  week,
+  timeZone,
+  onSaved,
+  desktop = false,
+  hourPx = HOUR_HEIGHT,
+}) {
   const [open, setOpen] = useState(false)
-  const top = ((block.start - WINDOW_FROM) / 60) * HOUR_HEIGHT
-  const height = Math.max(((endOf(block) - block.start) / 60) * HOUR_HEIGHT, 34)
+  const top = ((block.start - WINDOW_FROM) / 60) * hourPx
+  const height = Math.max(((endOf(block) - block.start) / 60) * hourPx, 34)
   const cancelled = block.status === 'cancelled'
 
   // The editor beside the card on a desktop, the read-only sheet on a phone.
