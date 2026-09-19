@@ -111,7 +111,11 @@ export default function DayCard({ className = '' }) {
 
   return (
     <section
-      className={`${CARD_EDGE} relative flex flex-col overflow-hidden p-4 ${className}`}
+      // The grid view's header is one row of capsules, so it takes 8px above
+      // and below it rather than the list view's 16 and 12.
+      className={`${CARD_EDGE} relative flex flex-col overflow-hidden px-4 pb-4 ${
+        grid ? 'pt-2' : 'pt-4'
+      } ${className}`}
     >
       {/* Верхняя строка: неделя — компактно, у левого края; справа место
           для «Сегодня», поиска и «+», которые встанут туда следующими. */}
@@ -232,7 +236,7 @@ export default function DayCard({ className = '' }) {
           services={services}
           timeZone={timeZone}
           onSaved={saved}
-          className="-mx-4 mt-3 -mb-4 min-h-0 flex-1 border-t border-line"
+          className="-mx-4 mt-2 -mb-4 min-h-0 flex-1 border-t border-line"
         />
       ) : (
         <div className="-mx-1 mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1">
