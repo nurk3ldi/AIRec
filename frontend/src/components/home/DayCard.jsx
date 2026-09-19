@@ -47,6 +47,7 @@ export default function DayCard({ className = '' }) {
   // Calendar or list — the phone toolbar's own switch: the agenda, or the day
   // as a grid of hours (the phone's `MobileDay`).
   const [view, setView] = useState('list')
+  const grid = view === 'calendar'
   const [reload, setReload] = useState(0)
   const reduce = useReducedMotion()
 
@@ -117,15 +118,24 @@ export default function DayCard({ className = '' }) {
       <div className="flex items-start gap-4">
         {/* Up to 60% of the row, and it gives way first when the buttons
             beside it need the room — a fixed 60% pushed «+» off the card. */}
-        <div className="min-w-0 max-w-[60%] flex-1">
-          <WeekStrip
-            day={day}
-            onDayChange={setDay}
-            marked={marked}
-            compact
-            className="-ml-2"
-          />
-        </div>
+        {/* In the grid view the strip goes — the grid is one day and swipes
+            to the next — and the day in words takes its place on this row,
+            with no counts: the grid itself shows what is in the day. */}
+        {grid ? (
+          <p className="min-w-0 flex-1 self-center truncate text-[15px] font-semibold text-ink">
+            {isToday ? t('appointments.today') : dayLabel(day)}
+          </p>
+        ) : (
+          <div className="min-w-0 max-w-[60%] flex-1">
+            <WeekStrip
+              day={day}
+              onDayChange={setDay}
+              marked={marked}
+              compact
+              className="-ml-2"
+            />
+          </div>
+        )}
         {/* **Two capsules of one height, Apple Calendar's toolbar.** Moving
             through time is one group — ‹ Сегодня › — and acting on the card is
             the other — view, search, «+». Same 36px, same quiet fill, same
@@ -133,7 +143,9 @@ export default function DayCard({ className = '' }) {
             were three shapes arguing in one row. */}
         {/* Centred on the whole strip's height — letters and dates
             together — so the capsules sit in the middle of the calendar. */}
-        <div className="ml-auto flex shrink-0 -translate-y-1.5 items-center gap-2 self-center">
+        <div
+          className={`ml-auto flex shrink-0 items-center gap-2 self-center ${grid ? '' : '-translate-y-1.5'}`}
+        >
           <div className="flex items-center rounded-full bg-ink/8 p-0.5">
             <ToolButton
               small
@@ -181,6 +193,7 @@ export default function DayCard({ className = '' }) {
       {/* The chosen day in words, under the strip on the left — «Сегодня»
           on today, «Воскресенье, 20 сентября» otherwise: the same rule the
           phone's agenda heading follows. */}
+      {!grid && (
       <div className="mt-2 flex items-baseline justify-between gap-3">
         <p className="min-w-0 truncate text-[15px] font-semibold text-ink">
           {isToday ? t('appointments.today') : dayLabel(day)}
@@ -196,6 +209,7 @@ export default function DayCard({ className = '' }) {
             .join(' · ')}
         </p>
       </div>
+      )}
 
       {/* **The day itself, as the phone's agenda draws it** — the same
           `DayAgenda`: bookings with both ends of their span, pressable free
