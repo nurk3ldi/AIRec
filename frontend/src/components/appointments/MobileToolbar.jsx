@@ -118,7 +118,7 @@ export default function MobileToolbar({
  * has to be worked out. The tick beside the open item says the same thing again
  * inside the menu, which is where somebody has come to check.
  */
-function ViewSwitch({ value, onChange }) {
+export function ViewSwitch({ value, onChange }) {
   const t = useT()
   const options = [
     {
@@ -191,7 +191,7 @@ function ViewSwitch({ value, onChange }) {
  * them would be a button that never opened anything. React 19 passes `ref` as
  * an ordinary prop, so the spread carries it without `forwardRef`.
  */
-function ToolButton({ icon, label, ...rest }) {
+export function ToolButton({ icon, label, ...rest }) {
   return (
     <button
       type="button"

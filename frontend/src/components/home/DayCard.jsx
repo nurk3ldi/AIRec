@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, m, useReducedMotion } from 'motion/react'
 import {
+  Add01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
-  PlusSignIcon,
   Search01Icon,
 } from '@hugeicons/core-free-icons'
+import { ToolButton, ViewSwitch } from '../appointments/MobileToolbar'
 import BookingPopover from '../appointments/BookingPopover'
 import MobileSearch from '../appointments/MobileSearch'
 import WeekStrip from '../appointments/WeekStrip'
-import { StepButton, ToolbarPill } from '../appointments/Timetable'
+import { StepButton } from '../appointments/Timetable'
 import { getBusiness, getServices, getWorkingHours, listAppointments } from '../../lib/api'
 import { toBlock } from '../../lib/appointments'
 import { authed } from '../../lib/auth'
@@ -38,6 +39,9 @@ export default function DayCard({ className = '' }) {
   const [services, setServices] = useState(null)
   const [hours, setHours] = useState(null)
   const [searching, setSearching] = useState(false)
+  // Calendar or list — the phone toolbar's own switch. The card draws the list
+  // for now; the calendar view is what this choice will open next.
+  const [view, setView] = useState('list')
   const [reload, setReload] = useState(0)
   const reduce = useReducedMotion()
 
@@ -113,19 +117,22 @@ export default function DayCard({ className = '' }) {
           />
         </div>
 
-        {/* Right edge: back to today, search the history, write a booking —
-            the phone toolbar's three, as the desktop's round buttons. */}
-        <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
-          <ToolbarPill
-            fill="step"
+        {/* Right edge: the phone toolbar's own pill — view, search, «+» —
+            with «Сегодня» as text inside the same shape, so the four read as
+            one group rather than as a row of unrelated buttons. */}
+        <div className="ml-auto flex shrink-0 items-center gap-0.5 self-center rounded-full bg-surface-card p-1">
+          <button
+            type="button"
             onClick={() => setDay(new Date())}
             aria-current={sameDay(day, new Date()) ? 'date' : undefined}
+            className="h-10 rounded-full px-3 text-[14px] font-medium text-ink outline-none transition-[background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.95]"
           >
             {t('appointments.today')}
-          </ToolbarPill>
-          <StepButton
-            label={t('inbox.search')}
+          </button>
+          <ViewSwitch value={view} onChange={setView} />
+          <ToolButton
             icon={Search01Icon}
+            label={t('header.search')}
             onClick={() => setSearching(true)}
           />
           <BookingPopover
@@ -135,7 +142,7 @@ export default function DayCard({ className = '' }) {
             timeZone={timeZone}
             onSaved={saved}
           >
-            <StepButton label={t('appointments.create')} icon={PlusSignIcon} />
+            <ToolButton icon={Add01Icon} label={t('appointments.create')} />
           </BookingPopover>
         </div>
       </div>
