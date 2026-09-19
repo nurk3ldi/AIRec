@@ -10,6 +10,7 @@ import { ToolButton, ViewSwitch } from '../appointments/MobileToolbar'
 import BookingPopover from '../appointments/BookingPopover'
 import MobileSearch from '../appointments/MobileSearch'
 import { DayAgenda } from '../appointments/MobileList'
+import MobileDay from '../appointments/MobileDay'
 import WeekStrip from '../appointments/WeekStrip'
 import { getBusiness, getServices, getWorkingHours, listAppointments } from '../../lib/api'
 import { toBlock } from '../../lib/appointments'
@@ -43,8 +44,8 @@ export default function DayCard({ className = '' }) {
   const [services, setServices] = useState(null)
   const [hours, setHours] = useState(null)
   const [searching, setSearching] = useState(false)
-  // Calendar or list — the phone toolbar's own switch. The card draws the list
-  // for now; the calendar view is what this choice will open next.
+  // Calendar or list — the phone toolbar's own switch: the agenda, or the day
+  // as a grid of hours (the phone's `MobileDay`).
   const [view, setView] = useState('list')
   const [reload, setReload] = useState(0)
   const reduce = useReducedMotion()
@@ -201,18 +202,37 @@ export default function DayCard({ className = '' }) {
           windows, the now line on today. It scrolls inside the card; the strip
           and the heading above stay put. A booking opens the editor beside
           itself here (`desktop`), as on the timetable. */}
-      <div className="-mx-1 mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1">
-        <DayAgenda
+      {view === 'calendar' ? (
+        // The grid of hours — the phone's day screen without its own toolbar,
+        // strip and date line, which this card already has. It scrolls
+        // itself, opens on the working day (or now, on today), and a swipe
+        // sideways steps the day.
+        <MobileDay
+          embedded
+          desktop
           day={day}
+          onDayChange={setDay}
           bookings={bookings}
           week={hours}
           services={services}
           timeZone={timeZone}
           onSaved={saved}
-          desktop
-          inset="pb-1"
+          className="-mx-4 mt-3 -mb-4 min-h-0 flex-1 border-t border-line"
         />
-      </div>
+      ) : (
+        <div className="-mx-1 mt-3 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1">
+          <DayAgenda
+            day={day}
+            bookings={bookings}
+            week={hours}
+            services={services}
+            timeZone={timeZone}
+            onSaved={saved}
+            desktop
+            inset="pb-1"
+          />
+        </div>
+      )}
 
       {/* Search takes the card over, from the top, and leaves the way it
           came — the phone's own search, laid over this card instead of the

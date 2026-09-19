@@ -24,6 +24,7 @@ import { closedRanges, toMinutes } from '../../lib/schedule'
 import { project, velocityFrom, VELOCITY_WINDOW } from '../../lib/motion'
 import { useT } from '../../lib/i18n'
 import BookingDetail from './BookingDetail'
+import BookingPopover from './BookingPopover'
 import MobileToolbar from './MobileToolbar'
 import WeekStrip from './WeekStrip'
 import { HATCH, END_HOUR, START_HOUR, WINDOW_FROM } from './grid'
@@ -118,6 +119,11 @@ export default function MobileDay({
   onSearch,
   view,
   onViewChange,
+  // Inside the dashboard's «Записи» card: the grid alone — the card already
+  // carries the week, the day in words and the controls — on the card's own
+  // fill, and (`desktop`) a booking opens the editor beside itself.
+  embedded = false,
+  desktop = false,
   className = '',
 }) {
   const t = useT()
@@ -311,6 +317,8 @@ export default function MobileDay({
 
   return (
     <div className={`flex flex-col ${className}`}>
+      {!embedded && (
+        <>
       <MobileToolbar
         leading={
           <button
@@ -374,6 +382,9 @@ export default function MobileDay({
         {dayLabel(day)}
       </p>
 
+        </>
+      )}
+
       <div
         ref={scroller}
         onPointerDown={scrolls ? undefined : startSwipe}
@@ -429,7 +440,11 @@ export default function MobileDay({
             // `--column-bg` is what the cards below read to cut themselves out
             // of the hatch — see `BookingCard`. Declared here rather than
             // assumed, so the two grids in this app answer it the same way.
-            className="relative grid bg-[var(--column-bg)] [--column-bg:var(--color-ground)]"
+            className={`relative grid bg-[var(--column-bg)] ${
+              embedded
+                ? '[--column-bg:var(--color-surface-raised)]'
+                : '[--column-bg:var(--color-ground)]'
+            }`}
             style={{
               gridTemplateColumns: `${GUTTER}px ${columnWidth || 1}px`,
               height: (END_HOUR - START_HOUR) * HOUR_HEIGHT,
@@ -442,7 +457,7 @@ export default function MobileDay({
                 desktop lets its gutter scroll away with the columns, which is
                 affordable on a screen wide enough to hold the whole day; here
                 losing it means reading a card with no idea what hour it is in. */}
-            <div className="sticky left-0 z-10 bg-ground">
+            <div className={`sticky left-0 z-10 ${embedded ? 'bg-surface-raised' : 'bg-ground'}`}>
               {hours.map((hour) => (
                 <div key={hour} className="relative" style={{ height: HOUR_HEIGHT }}>
                   <span className="absolute inset-x-0 top-1 text-center text-[12px] text-muted">
@@ -554,6 +569,7 @@ export default function MobileDay({
                   week={week}
                   timeZone={timeZone}
                   onSaved={onSaved}
+                  desktop={desktop}
                 />
               ))}
 
@@ -595,14 +611,18 @@ export default function MobileDay({
  * so what it opens has to be the thing you can read rather than the thing you
  * can change. See `BookingDetail`.
  */
-function DayBlock({ block, laneWidth, services, week, timeZone, onSaved }) {
+function DayBlock({ block, laneWidth, services, week, timeZone, onSaved, desktop = false }) {
   const [open, setOpen] = useState(false)
   const top = ((block.start - WINDOW_FROM) / 60) * HOUR_HEIGHT
   const height = Math.max(((endOf(block) - block.start) / 60) * HOUR_HEIGHT, 34)
   const cancelled = block.status === 'cancelled'
 
+  // The editor beside the card on a desktop, the read-only sheet on a phone.
+  const Shell = desktop ? BookingPopover : BookingDetail
+
   return (
-    <BookingDetail
+    <Shell
+      asAnchor={desktop || undefined}
       open={open}
       onOpenChange={setOpen}
       booking={block}
@@ -692,7 +712,7 @@ function DayBlock({ block, laneWidth, services, week, timeZone, onSaved }) {
           </span>
         )}
       </button>
-    </BookingDetail>
+    </Shell>
   )
 }
 
