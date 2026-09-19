@@ -223,7 +223,9 @@ function BookingRow({
             backgroundColor: cardFill(block.color),
             color: cardInk(block.color),
           }}
-          className={`flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left outline-none transition-[opacity,scale] duration-[160ms] ease-out hover:opacity-85 focus-visible:opacity-85 active:scale-[0.97] ${
+          // Tighter in the dashboard card (`desktop`): the same row with less
+          // air, so a half-height card shows more of the day.
+          className={`flex w-full items-start gap-3 rounded-xl px-3 text-left outline-none ${desktop ? 'py-2' : 'py-3'} transition-[opacity,scale] duration-[160ms] ease-out hover:opacity-85 focus-visible:opacity-85 active:scale-[0.97] ${
             block.status === 'cancelled' ? 'opacity-45' : ''
           }`}
         >
@@ -236,7 +238,9 @@ function BookingRow({
 
               Centred, which the digits allow: `tabular-nums` makes every time
               the same width, so the rule lands under the middle of both. */}
-          <span className="flex w-[52px] shrink-0 flex-col items-center gap-1 pt-0.5">
+          <span
+            className={`flex w-[52px] shrink-0 flex-col items-center pt-0.5 ${desktop ? 'gap-0.5' : 'gap-1'}`}
+          >
             <span
               className={`font-display text-[14px] font-semibold tabular-nums ${
                 block.color ? '' : 'text-ink'
@@ -249,7 +253,7 @@ function BookingRow({
                 be a smudge on a painted card. */}
             <span
               aria-hidden="true"
-              className={`h-3 w-px ${block.color ? 'bg-current opacity-60' : 'bg-line-strong'}`}
+              className={`${desktop ? 'h-2' : 'h-3'} w-px ${block.color ? 'bg-current opacity-60' : 'bg-line-strong'}`}
             />
             {/* **Nothing under the rule when there is no end.** The line still
                 runs, because the column is a span and the span still started;
@@ -334,7 +338,7 @@ function BookingRow({
  * target — a button inside a row would be a second thing to aim at, on the one
  * screen where the hand is already busy.
  */
-function GapRow({ day, from, to, services, week, timeZone, onSaved }) {
+function GapRow({ day, from, to, services, week, timeZone, onSaved, desktop = false }) {
   const t = useT()
   const [open, setOpen] = useState(false)
 
@@ -356,7 +360,7 @@ function GapRow({ day, from, to, services, week, timeZone, onSaved }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex w-full items-center gap-3 rounded-xl border border-dashed border-line px-3 py-2.5 text-left outline-none transition-[border-color,scale] duration-[160ms] ease-out hover:border-line-strong focus-visible:border-line-strong active:scale-[0.97]"
+          className={`flex w-full items-center gap-3 rounded-xl border border-dashed border-line px-3 text-left ${desktop ? 'py-1.5' : 'py-2.5'} outline-none transition-[border-color,scale] duration-[160ms] ease-out hover:border-line-strong focus-visible:border-line-strong active:scale-[0.97]`}
         >
           <span className="w-[52px] shrink-0 font-display text-[14px] font-medium tabular-nums text-muted">
             {fromMinutes(from)}
@@ -457,7 +461,7 @@ export function DayAgenda({
       // three kinds share the column — a booking, an empty window, and the
       // present moment — and a card is what says the first two are objects
       // while the line between them is not.
-      <ul className={`space-y-2 ${inset}`}>
+      <ul className={`${desktop ? 'space-y-1.5' : 'space-y-2'} ${inset}`}>
         {items.map((item) =>
           item.kind === 'now' ? (
             <NowRow key="now" minutes={nowMinutes} />
@@ -471,6 +475,7 @@ export function DayAgenda({
               week={week}
               timeZone={timeZone}
               onSaved={onSaved}
+              desktop={desktop}
             />
           ) : (
             <BookingRow
