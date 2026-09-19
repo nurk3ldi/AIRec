@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { getLocale, useT } from '../../lib/i18n'
 import { CARD_EDGE } from '../card'
 
@@ -9,6 +10,35 @@ const RADIUS = (SIZE - STROKE) / 2 - 2
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS
 
 /**
+ * **Сақинаның түсі — оның орнына қарай**: 25%-ға дейін ақ (`ink`), 50-ге дейін
+ * жасыл, 75-ке дейін сары, 100-ге дейін қызыл, ал аралары бір-біріне біркелкі
+ * ауысады. Әр түс өз жолағының ортасында таза тұрады (12.5 / 37.5 / 62.5 /
+ * 87.5), шекарада екеуі `color-mix`-пен араласады — `ink` тақырыппен бірге
+ * ауысатын айнымалы болғандықтан, араластыру CSS-те жасалады, JS-те емес.
+ */
+const STOPS = [
+  [12.5, 'var(--ink)'],
+  [37.5, 'var(--ok)'],
+  [62.5, '#EAB308'],
+  [87.5, 'var(--danger)'],
+]
+const SEGMENTS = 100
+const SEGMENT = CIRCUMFERENCE / SEGMENTS
+
+function colorAt(position) {
+  if (position <= STOPS[0][0]) return STOPS[0][1]
+  for (let i = 1; i < STOPS.length; i += 1) {
+    const [to, toColor] = STOPS[i]
+    const [from, fromColor] = STOPS[i - 1]
+    if (position <= to) {
+      const share = Math.round(((to - position) / (to - from)) * 100)
+      return `color-mix(in oklab, ${fromColor} ${share}%, ${toColor})`
+    }
+  }
+  return STOPS[STOPS.length - 1][1]
+}
+
+/**
  * How much of the plan's limit is used, as a ring with the percentage in it.
  *
  * **There is no limit behind it yet** — no plans, no metering — so the page
@@ -16,9 +46,8 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS
  * `percent` changes. It is clamped to 0–100, so an overrun draws a full ring
  * rather than wrapping round.
  *
- * **One value, so one colour**: a thick ring, ink on an `ink/10` track, the same
- * pair every quiet control here uses. Status colours stay out of it until a
- * limit exists that can actually be close to running out.
+ * **The ring is coloured by how far round it is** — white, then green, yellow
+ * and red, blending into each other (see `STOPS`), on an `ink/10` track.
  */
 /** «через 3 часа» / «через 20 минут» in the reader's language, the largest unit. */
 function untilLabel(iso) {
@@ -31,6 +60,7 @@ function untilLabel(iso) {
 
 export default function LimitCard({ percent = 0, resetAt = null, className = '' }) {
   const t = useT()
+  const maskId = `limit${useId().replace(/[^a-zA-Z0-9-]/g, '')}`
   const value = Math.min(100, Math.max(0, Math.round(percent)))
   // Where the used arc ends, in the SVG's own (unrotated) angle: the dash
   // starts at 0 and runs with increasing angle, so the marker sits there.
@@ -79,22 +109,42 @@ export default function LimitCard({ percent = 0, resetAt = null, className = '' 
               strokeWidth={STROKE}
               className="stroke-ink/10"
             />
-            <circle
-              cx={SIZE / 2}
-              cy={SIZE / 2}
-              r={RADIUS}
-              fill="none"
-              strokeWidth={STROKE}
-              strokeDasharray={CIRCUMFERENCE}
-              strokeDashoffset={CIRCUMFERENCE * (1 - value / 100)}
-              // Flat ends, as in the reference: a thick round cap would
-              // overshoot the value by half the ring's width at each end. At
-              // 0% the zero-length dash still antialiases into a hairline at
-              // the bottom, so nothing used draws nothing.
-              className={`stroke-ink transition-[stroke-dashoffset] duration-700 ease-out motion-reduce:transition-none ${
-                value === 0 ? 'opacity-0' : ''
-              }`}
-            />
+            {/* The used part: the whole coloured ring, revealed by a mask
+                whose own arc is what grows — so the colour at any point is
+                fixed by its position, and filling up walks through white,
+                green, yellow and red rather than repainting one arc. */}
+            <mask id={maskId}>
+              <circle
+                cx={SIZE / 2}
+                cy={SIZE / 2}
+                r={RADIUS}
+                fill="none"
+                stroke="white"
+                strokeWidth={STROKE + 2}
+                strokeDasharray={CIRCUMFERENCE}
+                style={{ strokeDashoffset: CIRCUMFERENCE * (1 - value / 100) }}
+                className={`transition-[stroke-dashoffset] duration-700 ease-out motion-reduce:transition-none ${
+                  value === 0 ? 'opacity-0' : ''
+                }`}
+              />
+            </mask>
+            <g mask={`url(#${maskId})`}>
+              {Array.from({ length: SEGMENTS }, (_, index) => (
+                <circle
+                  key={index}
+                  cx={SIZE / 2}
+                  cy={SIZE / 2}
+                  r={RADIUS}
+                  fill="none"
+                  strokeWidth={STROKE}
+                  // A hair longer than its share so neighbours overlap and no
+                  // seam of the track shows between them.
+                  strokeDasharray={`${SEGMENT + 0.4} ${CIRCUMFERENCE}`}
+                  strokeDashoffset={-index * SEGMENT}
+                  style={{ stroke: colorAt(index + 0.5) }}
+                />
+              ))}
+            </g>
             {/* The marker line across the ring where the used part ends, a
                 little past both edges — the reference's tick. Drawn at 0% too,
                 where it is the one thing saying where counting starts. */}
