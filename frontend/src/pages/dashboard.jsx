@@ -1,6 +1,7 @@
 import { CARD_EDGE } from '../components/card'
 import AssistantCard from '../components/home/AssistantCard'
 import ConfirmationsCard from '../components/home/ConfirmationsCard'
+import DayCard from '../components/home/DayCard'
 import LimitCard from '../components/home/LimitCard'
 import { useT } from '../lib/i18n'
 import styles from '../styles/Dashboard.module.css'
@@ -78,7 +79,8 @@ export default function DashboardHomePage() {
           поэтому её край стоит ровно под краем второй карточки сверху. С
           `calc(50%-1.5rem)` половина выходила на 24px уже двух четвертей. */}
       <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-6 sm:grid-cols-4 sm:gap-6">
-        <section className={`${CARD_EDGE} ${ROW_HEIGHT} sm:col-span-2`} />
+        {/* Записи дня — как на телефоне: строка дней сверху. */}
+        <DayCard className={`${ROW_HEIGHT} sm:col-span-2`} />
         <section className={`${CARD_EDGE} ${ROW_HEIGHT}`} />
         <section className={`${CARD_EDGE} ${ROW_HEIGHT}`} />
       </div>
