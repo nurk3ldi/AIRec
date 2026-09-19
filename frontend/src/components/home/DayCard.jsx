@@ -10,7 +10,6 @@ import { ToolButton, ViewSwitch } from '../appointments/MobileToolbar'
 import BookingPopover from '../appointments/BookingPopover'
 import MobileSearch from '../appointments/MobileSearch'
 import WeekStrip from '../appointments/WeekStrip'
-import { StepButton } from '../appointments/Timetable'
 import { getBusiness, getServices, getWorkingHours, listAppointments } from '../../lib/api'
 import { toBlock } from '../../lib/appointments'
 import { authed } from '../../lib/auth'
@@ -104,46 +103,53 @@ export default function DayCard({ className = '' }) {
             className="-ml-2"
           />
         </div>
-        <div className="flex shrink-0 gap-2 self-center">
-          <StepButton
-            label={t('appointments.prev')}
-            icon={ArrowLeft01Icon}
-            onClick={() => shiftWeek(-1)}
-          />
-          <StepButton
-            label={t('appointments.next')}
-            icon={ArrowRight01Icon}
-            onClick={() => shiftWeek(1)}
-          />
-        </div>
+        {/* **Two capsules of one height, Apple Calendar's toolbar.** Moving
+            through time is one group — ‹ Сегодня › — and acting on the card is
+            the other — view, search, «+». Same 36px, same quiet fill, same
+            32px buttons inside: before, two loose circles and a taller pill
+            were three shapes arguing in one row. */}
+        <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
+          <div className="flex items-center rounded-full bg-ink/8 p-0.5">
+            <ToolButton
+              small
+              icon={ArrowLeft01Icon}
+              label={t('appointments.prev')}
+              onClick={() => shiftWeek(-1)}
+            />
+            <button
+              type="button"
+              onClick={() => setDay(new Date())}
+              aria-current={sameDay(day, new Date()) ? 'date' : undefined}
+              className="touch-target relative h-8 rounded-full px-2.5 text-[13px] font-medium text-ink outline-none transition-[background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.95]"
+            >
+              {t('appointments.today')}
+            </button>
+            <ToolButton
+              small
+              icon={ArrowRight01Icon}
+              label={t('appointments.next')}
+              onClick={() => shiftWeek(1)}
+            />
+          </div>
 
-        {/* Right edge: the phone toolbar's own pill — view, search, «+» —
-            with «Сегодня» as text inside the same shape, so the four read as
-            one group rather than as a row of unrelated buttons. */}
-        <div className="ml-auto flex shrink-0 items-center gap-0.5 self-center rounded-full bg-surface-card p-1">
-          <button
-            type="button"
-            onClick={() => setDay(new Date())}
-            aria-current={sameDay(day, new Date()) ? 'date' : undefined}
-            className="h-10 rounded-full px-3 text-[14px] font-medium text-ink outline-none transition-[background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.95]"
-          >
-            {t('appointments.today')}
-          </button>
-          <ViewSwitch value={view} onChange={setView} />
-          <ToolButton
-            icon={Search01Icon}
-            label={t('header.search')}
-            onClick={() => setSearching(true)}
-          />
-          <BookingPopover
-            onDayChange={setDay}
-            services={services}
-            week={hours}
-            timeZone={timeZone}
-            onSaved={saved}
-          >
-            <ToolButton icon={Add01Icon} label={t('appointments.create')} />
-          </BookingPopover>
+          <div className="flex items-center rounded-full bg-ink/8 p-0.5">
+            <ViewSwitch small value={view} onChange={setView} />
+            <ToolButton
+              small
+              icon={Search01Icon}
+              label={t('header.search')}
+              onClick={() => setSearching(true)}
+            />
+            <BookingPopover
+              onDayChange={setDay}
+              services={services}
+              week={hours}
+              timeZone={timeZone}
+              onSaved={saved}
+            >
+              <ToolButton small icon={Add01Icon} label={t('appointments.create')} />
+            </BookingPopover>
+          </div>
         </div>
       </div>
 

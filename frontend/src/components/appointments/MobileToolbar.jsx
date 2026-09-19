@@ -118,7 +118,7 @@ export default function MobileToolbar({
  * has to be worked out. The tick beside the open item says the same thing again
  * inside the menu, which is where somebody has come to check.
  */
-export function ViewSwitch({ value, onChange }) {
+export function ViewSwitch({ value, onChange, small = false }) {
   const t = useT()
   const options = [
     {
@@ -137,7 +137,7 @@ export function ViewSwitch({ value, onChange }) {
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
-        <ToolButton icon={current.icon} label={current.label} />
+        <ToolButton icon={current.icon} label={current.label} small={small} />
       </Popover.Trigger>
 
       <Popover.Portal>
@@ -191,19 +191,23 @@ export function ViewSwitch({ value, onChange }) {
  * them would be a button that never opened anything. React 19 passes `ref` as
  * an ordinary prop, so the spread carries it without `forwardRef`.
  */
-export function ToolButton({ icon, label, ...rest }) {
+export function ToolButton({ icon, label, small = false, ...rest }) {
   return (
     <button
       type="button"
       aria-label={label}
       // A deeper dip than the rows get: 0.97 of a 40px circle is under a pixel,
       // which is a press state you can measure and cannot see.
-      className="grid h-10 w-10 place-items-center rounded-full text-ink outline-none transition-[background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.95]"
+      // `small` is the desktop capsule's size (the dashboard's «Записи»): 32px
+      // inside a 36px capsule, where the phone's 40px would crowd a card.
+      className={`grid place-items-center rounded-full text-ink outline-none transition-[background-color,scale] duration-[160ms] ease-out hover:bg-ink/8 focus-visible:bg-ink/8 active:scale-[0.95] ${
+        small ? 'touch-target relative h-8 w-8' : 'h-10 w-10'
+      }`}
       {...rest}
     >
       <HugeiconsIcon
         icon={icon}
-        size={21}
+        size={small ? 17 : 21}
         strokeWidth={2}
         strokeLinecap="round"
         strokeLinejoin="round"
