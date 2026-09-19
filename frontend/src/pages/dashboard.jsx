@@ -64,22 +64,23 @@ export default function DashboardHomePage() {
           компьютере это 68px шапки и 48px отступов; на телефоне — шапка с
           нижней панелью (118px) и 32px отступов, и карточки идут столбиком во
           всю ширину, потому что четверть от 390pt — полоска. */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-4 sm:gap-6">
         {/* Робот ассистента, а под ним — бот, потоки и модель. */}
-        <AssistantCard limitReached={LIMIT_PERCENT >= 100} className={`${ROW_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
+        <AssistantCard limitReached={LIMIT_PERCENT >= 100} className={ROW_HEIGHT} />
         {/* Лимит тарифа — кольцом. Считать пока нечего, поэтому 0: когда появятся
             тарифы и учёт, сюда придёт настоящая доля. */}
-        <LimitCard percent={LIMIT_PERCENT} resetAt={LIMIT_RESET_AT} className={`${ROW_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
-        <ConfirmationsCard className={`${ROW_HEIGHT} w-full sm:w-[calc(50%-1.5rem)]`} />
+        <LimitCard percent={LIMIT_PERCENT} resetAt={LIMIT_RESET_AT} className={ROW_HEIGHT} />
+        <ConfirmationsCard className={`${ROW_HEIGHT} sm:col-span-2`} />
       </div>
 
-      {/* Второй ряд — 50/25/25, зеркало первого: половина слева и две четверти
-          справа. Пока пустые; ширины вычитают свою долю двух зазоров по 24px,
-          как и в первом ряду. */}
-      <div className="mt-4 flex flex-col gap-4 sm:mt-6 sm:flex-row sm:gap-6">
-        <section className={`${CARD_EDGE} ${ROW_HEIGHT} w-full sm:w-[calc(50%-1.5rem)]`} />
-        <section className={`${CARD_EDGE} ${ROW_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
-        <section className={`${CARD_EDGE} ${ROW_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
+      {/* Второй ряд — 50/25/25, зеркало первого, на той же сетке из четырёх
+          колонок: половина — это две колонки вместе с зазором между ними, и
+          поэтому её край стоит ровно под краем второй карточки сверху. С
+          `calc(50%-1.5rem)` половина выходила на 24px уже двух четвертей. */}
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-6 sm:grid-cols-4 sm:gap-6">
+        <section className={`${CARD_EDGE} ${ROW_HEIGHT} sm:col-span-2`} />
+        <section className={`${CARD_EDGE} ${ROW_HEIGHT}`} />
+        <section className={`${CARD_EDGE} ${ROW_HEIGHT}`} />
       </div>
     </div>
   )
