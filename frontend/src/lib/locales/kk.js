@@ -11,7 +11,7 @@ export default {
   'home.assistant.idle': 'Қазір ешкім жоқ',
   'home.assistant.replying': 'Жауап беруде',
   'home.assistant.waiting': 'Клиенттің жауабын күтуде',
-  'home.assistant.human': 'Жауапты сіз бересіз',
+  'home.assistant.human': 'Модель өшірулі',
   'notes.newFolder': 'Жаңа қалта',
   'notes.rename': 'Атын өзгерту',
   'notes.toArchive': 'Архивке',

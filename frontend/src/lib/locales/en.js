@@ -11,7 +11,7 @@ export default {
   'home.assistant.idle': 'Nobody right now',
   'home.assistant.replying': 'Replying to',
   'home.assistant.waiting': 'Waiting on the client',
-  'home.assistant.human': 'You are replying',
+  'home.assistant.human': 'Model is off',
   'notes.newFolder': 'New folder',
   'notes.rename': 'Rename',
   'notes.toArchive': 'Move to archive',

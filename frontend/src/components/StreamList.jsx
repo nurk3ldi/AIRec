@@ -216,13 +216,44 @@ function Row({ chat, onOpen }) {
             {authorPrefix(chat.last_message_author, t)}
             {chat.last_message_preview}
           </p>
-          <p className={`shrink-0 text-ink ${hot ? 'font-medium' : ''}`}>
+          {/* **Модельдің нақты күйі**, тредтегідей: жауап жазып жатса —
+              «Отвечает» және кезекпен дем алатын үш нүкте; жауап кетсе —
+              «Ждёт ответа клиента»; бұл чатта өшірулі болса — «Модель
+              выключена». */}
+          <p
+            className={`flex shrink-0 items-baseline text-ink ${hot ? 'font-medium' : ''}`}
+          >
             {t(`home.assistant.${chatState(chat)}`)}
+            {chatState(chat) === 'replying' && <TypingDots still={reduce} />}
           </p>
         </div>
       </div>
       </button>
     </m.li>
+  )
+}
+
+/**
+ * Три точки после «Отвечает» — те же, что в печатающем пузыре треда: каждая
+ * дышит прозрачностью со сдвигом по фазе. Под пониженным движением стоят.
+ */
+function TypingDots({ still }) {
+  return (
+    <span aria-hidden="true" className="ml-px inline-flex">
+      {[0, 1, 2].map((dot) => (
+        <m.span
+          key={dot}
+          animate={still ? { opacity: 0.6 } : { opacity: [0.2, 1, 0.2] }}
+          transition={
+            still
+              ? { duration: 0 }
+              : { duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: dot * 0.18 }
+          }
+        >
+          .
+        </m.span>
+      ))}
+    </span>
   )
 }
 

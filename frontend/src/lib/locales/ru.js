@@ -17,7 +17,7 @@ export default {
   'home.assistant.idle': 'Сейчас никого',
   'home.assistant.replying': 'Отвечает',
   'home.assistant.waiting': 'Ждёт ответа клиента',
-  'home.assistant.human': 'Отвечаете вы',
+  'home.assistant.human': 'Модель выключена',
   'notes.newFolder': 'Новая папка',
   'notes.rename': 'Переименовать',
   'notes.toArchive': 'В архив',
