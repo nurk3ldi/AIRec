@@ -51,6 +51,9 @@ export default function MobileSearch({
   week,
   timeZone,
   onSaved,
+  // Inside a card rather than over a screen (the dashboard's «Записи»): the
+  // field sits at the top instead of in the phone toolbar's reserved room.
+  compact = false,
   className = '',
 }) {
   const t = useT()
@@ -103,7 +106,7 @@ export default function MobileSearch({
       {/* The same room the toolbar had, so switching modes does not move the
           screen under the reader — see `CONTROLS_HEIGHT` in `grid.js`. */}
       <div
-        style={{ height: CONTROLS_HEIGHT }}
+        style={compact ? undefined : { height: CONTROLS_HEIGHT }}
         className="flex shrink-0 items-end gap-2 px-4 pb-2"
       >
         <div className="relative flex h-10 min-w-0 flex-1 items-center">
