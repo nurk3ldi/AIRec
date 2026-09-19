@@ -13,8 +13,9 @@ import WeekStrip from '../appointments/WeekStrip'
 import { getBusiness, getServices, getWorkingHours, listAppointments } from '../../lib/api'
 import { toBlock } from '../../lib/appointments'
 import { authed } from '../../lib/auth'
-import { dayKey, sameDay, weekDays } from '../../lib/dates'
+import { dayKey, dayLabel, sameDay, weekDays } from '../../lib/dates'
 import { CROSSFADE, SPRING } from '../../lib/motion'
+import { freeWindows } from '../../lib/schedule'
 import { useT } from '../../lib/i18n'
 import { CARD_EDGE } from '../card'
 
@@ -29,6 +30,9 @@ import { CARD_EDGE } from '../card'
  * Читает `GET /appointments` за неделю выбранного дня (и `GET /business` ради
  * часового пояса — запись около полуночи иначе встала бы не на тот день).
  */
+/** Below this a gap is not a window anybody can sell — the agenda's own floor. */
+const MIN_GAP_MINUTES = 15
+
 export default function DayCard({ className = '' }) {
   const t = useT()
   const [day, setDay] = useState(() => new Date())
@@ -84,6 +88,23 @@ export default function DayCard({ className = '' }) {
   )
 
   const saved = () => setReload((n) => n + 1)
+
+  // The day's counts, worked out the way the phone's agenda does them: a
+  // cancelled booking gave its hour back, an open-ended one claims no stretch,
+  // and today only the windows still ahead count.
+  const now = new Date()
+  const isToday = sameDay(day, now)
+  const ofDay = bookings.filter((b) => b.day === dayKey(day))
+  const busy = ofDay
+    .filter((b) => b.status !== 'cancelled' && !b.open)
+    .map((b) => [b.start, b.end])
+  const dayHours = hours?.find((row) => row.weekday === (day.getDay() + 6) % 7)
+  const gaps = freeWindows(
+    dayHours,
+    busy,
+    isToday ? now.getHours() * 60 + now.getMinutes() : 0,
+  ).filter(([from, to]) => to - from >= MIN_GAP_MINUTES)
+  const counted = ofDay.filter((b) => b.status !== 'cancelled')
 
   return (
     <section
@@ -153,6 +174,25 @@ export default function DayCard({ className = '' }) {
             </BookingPopover>
           </div>
         </div>
+      </div>
+
+      {/* The chosen day in words, under the strip on the left — «Сегодня»
+          on today, «Воскресенье, 20 сентября» otherwise: the same rule the
+          phone's agenda heading follows. */}
+      <div className="mt-2 flex items-baseline justify-between gap-3">
+        <p className="min-w-0 truncate text-[15px] font-semibold text-ink">
+          {isToday ? t('appointments.today') : dayLabel(day)}
+        </p>
+        {/* Against the right edge, what is in the day — a caption of the list
+            below, so muted and one step smaller. */}
+        <p className="shrink-0 text-[13px] text-muted">
+          {[
+            t('appointments.countBookings', { count: counted.length }),
+            gaps.length ? t('appointments.countWindows', { count: gaps.length }) : null,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+        </p>
       </div>
 
       {/* Search takes the card over, from the top, and leaves the way it
