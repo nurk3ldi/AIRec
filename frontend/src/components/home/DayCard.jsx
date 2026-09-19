@@ -108,7 +108,11 @@ export default function DayCard({ className = '' }) {
             the other — view, search, «+». Same 36px, same quiet fill, same
             32px buttons inside: before, two loose circles and a taller pill
             were three shapes arguing in one row. */}
-        <div className="ml-auto flex shrink-0 items-center gap-2 self-center">
+        {/* Centred on the row of dates, not on the whole strip: the letters
+            above them made the capsules float between the two lines. 16px down
+            = the letter row (18) plus the cell's 2px padding plus half the 28px
+            circle, less half the 36px capsule. */}
+        <div className="mt-4 ml-auto flex shrink-0 items-center gap-2 self-start">
           <div className="flex items-center rounded-full bg-ink/8 p-0.5">
             <ToolButton
               small
