@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { CARD_EDGE } from '../components/card'
 import AssistantCard from '../components/home/AssistantCard'
 import ConfirmationsCard from '../components/home/ConfirmationsCard'
@@ -42,21 +41,6 @@ const LIMIT_PERCENT = 0
 /** When the limit resets, as an ISO instant — unknown until there are plans. */
 const LIMIT_RESET_AT = null
 
-// ─── ВРЕМЕННО: демо лимита, удалить вместе с `useDemoLimit` ниже ─────────────
-// Кольцо само заполняется 0 → 100% шагами по 5 и начинает сначала, чтобы было
-// видно, как идут цвета. Поставь `DEMO_LIMIT = false` — и снова LIMIT_PERCENT.
-const DEMO_LIMIT = true
-
-function useDemoLimit() {
-  const [percent, setPercent] = useState(0)
-  useEffect(() => {
-    if (!DEMO_LIMIT) return undefined
-    const timer = setInterval(() => setPercent((was) => (was >= 100 ? 0 : was + 5)), 800)
-    return () => clearInterval(timer)
-  }, [])
-  return DEMO_LIMIT ? percent : LIMIT_PERCENT
-}
-// ─── конец демо ──────────────────────────────────────────────────────────────
 
 /**
  * Одна из двух строк экрана. Из высоты вычтено всё, что не карточки: шапка,
@@ -69,7 +53,6 @@ const ROW_HEIGHT =
 
 export default function DashboardHomePage() {
   const t = useT()
-  const limit = useDemoLimit()
 
   return (
     <div className={`${styles.page} p-4 sm:p-6`} aria-label={t('nav.dashboard')}>
@@ -83,16 +66,20 @@ export default function DashboardHomePage() {
           всю ширину, потому что четверть от 390pt — полоска. */}
       <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
         {/* Робот ассистента, а под ним — бот, потоки и модель. */}
-        <AssistantCard limitReached={limit >= 100} className={`${ROW_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
+        <AssistantCard limitReached={LIMIT_PERCENT >= 100} className={`${ROW_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
         {/* Лимит тарифа — кольцом. Считать пока нечего, поэтому 0: когда появятся
             тарифы и учёт, сюда придёт настоящая доля. */}
-        <LimitCard percent={limit} resetAt={LIMIT_RESET_AT} className={`${ROW_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
+        <LimitCard percent={LIMIT_PERCENT} resetAt={LIMIT_RESET_AT} className={`${ROW_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
         <ConfirmationsCard className={`${ROW_HEIGHT} w-full sm:w-[calc(50%-1.5rem)]`} />
       </div>
 
-      {/* Второй ряд — пока одна пустая карточка во всю ширину. */}
+      {/* Второй ряд — 50/25/25, зеркало первого: половина слева и две четверти
+          справа. Пока пустые; ширины вычитают свою долю двух зазоров по 24px,
+          как и в первом ряду. */}
       <div className="mt-4 flex flex-col gap-4 sm:mt-6 sm:flex-row sm:gap-6">
-        <section className={`${CARD_EDGE} ${ROW_HEIGHT} w-full`} />
+        <section className={`${CARD_EDGE} ${ROW_HEIGHT} w-full sm:w-[calc(50%-1.5rem)]`} />
+        <section className={`${CARD_EDGE} ${ROW_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
+        <section className={`${CARD_EDGE} ${ROW_HEIGHT} w-full sm:w-[calc(25%-0.75rem)]`} />
       </div>
     </div>
   )
