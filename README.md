@@ -1,5 +1,5 @@
 ```bash
-cd server && source .venv/bin/activate && uvicorn app.main:app --reload
+cd server && .venv/bin/uvicorn app.main:app --reload
 ```
 
 ```bash
