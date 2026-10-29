@@ -158,8 +158,14 @@ function LoadMap({ load, days, reveal }) {
                       ? `${labels[column]} ${clock(hour)} — ${Math.round(Math.min(1, cell.share) * 100)}%`
                       : undefined
                   }
-                  className={`min-h-0 rounded-[4px] ${
-                    current ? 'outline outline-1 outline-offset-1 outline-ink' : ''
+                  // The current hour's ring is two shadows — a gap in the
+                  // card's own fill, then ink — rather than an outline: a
+                  // shadow's corners grow from the cell's radius and stay
+                  // concentric, where an offset outline drew them sharp.
+                  className={`min-h-0 rounded-[6px] ${
+                    current
+                      ? 'shadow-[0_0_0_1.5px_var(--color-surface-raised),0_0_0_3px_var(--color-ink)]'
+                      : ''
                   }`}
                   style={filled ? { background: fillOf(cell.share) } : undefined}
                 />
