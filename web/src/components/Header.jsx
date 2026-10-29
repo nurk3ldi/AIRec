@@ -164,8 +164,9 @@ export default function Header({ className = '' }) {
         {/* **Four columns, each a heading card over a body card** — eight
             cards, empty for now. No edges: they sit inside a window that
             already has one, and a frame inside a frame is noise; a fill one
-            step off the window's is what separates them. 8px of air all round,
-            so their 12px corners run concentric with the window's 20px. On a
+            step off the window's is what separates them. 8px of air all round.
+            Their corners are 16px, not the concentric 12: a 12px squircle reads
+            as a nearly square corner beside the window's 20px. On a
             phone four columns do not fit side by side, so they become a shelf
             that scrolls sideways, the next column peeking in. */}
         <div className="flex min-h-0 flex-1 snap-x gap-2 overflow-x-auto p-2 pb-0 sm:grid sm:grid-cols-4 sm:overflow-visible">
@@ -182,7 +183,7 @@ export default function Header({ className = '' }) {
                     and turns ink once it holds something — a control with
                     nothing to act on should not look as ready as one that has.
                     It clears nothing yet. */}
-                <div className="flex h-12 shrink-0 items-center justify-between gap-2 rounded-t-[12px] corner-smooth bg-surface-raised pr-2.5 pl-4">
+                <div className="flex h-12 shrink-0 items-center justify-between gap-2 rounded-t-[16px] corner-smooth bg-surface-raised pr-2.5 pl-4">
                   <span className="flex min-w-0 items-center gap-2">
                     <span className="truncate text-[14px] font-medium text-ink">
                       {t(`notifications.${column}`)}
@@ -198,7 +199,7 @@ export default function Header({ className = '' }) {
                     {t('notifications.dismissAll')}
                   </button>
                 </div>
-                <div className="min-h-0 flex-1 overflow-y-auto rounded-b-[12px] corner-smooth bg-surface-raised">
+                <div className="min-h-0 flex-1 overflow-y-auto rounded-b-[16px] corner-smooth bg-surface-raised">
                   {column === 'telegram' && (
                     <TelegramFeed
                       rows={telegram}
