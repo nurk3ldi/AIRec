@@ -4,8 +4,8 @@ AIRec is an AI receptionist for small service businesses (salons, barbershops) i
 
 Two independent apps, no root `package.json` — run commands from inside each:
 
-- `frontend/` — React 19 + Vite + Tailwind v4 SPA. Rules: `frontend/CLAUDE.md`.
-- `backend/` — FastAPI + SQLAlchemy 2 async + PostgreSQL 18 + Alembic. Rules: `backend/CLAUDE.md`.
+- `web/` — React 19 + Vite + Tailwind v4 SPA. Rules: `web/CLAUDE.md`.
+- `server/` — FastAPI + SQLAlchemy 2 async + PostgreSQL 18 + Alembic. Rules: `server/CLAUDE.md`.
 
 No test suite exists in either app. No TypeScript.
 
@@ -30,16 +30,16 @@ No test suite exists in either app. No TypeScript.
 
 Both servers must run:
 
-- Backend on `:8000`: PostgreSQL started first, then `uvicorn app.main:app --reload` from `backend/`.
-- Frontend on `:3000`: `npm run dev` from `frontend/`.
+- Backend on `:8000`: PostgreSQL started first, then `uvicorn app.main:app --reload` from `server/`.
+- Frontend on `:3000`: `npm run dev` from `web/`.
 
-The browser only talks to port 3000. Vite's `server.proxy` forwards `/api` and `/media` to `127.0.0.1:8000`, so there is no CORS and opening the LAN URL from a phone just works. That is why `frontend/.env.local` leaves `VITE_API_URL` commented out — set it only to reach a backend the proxy cannot (a deployed one). Port 3000 is `strictPort` because the backend's `CORS_ORIGINS` names it.
+The browser only talks to port 3000. Vite's `server.proxy` forwards `/api` and `/media` to `127.0.0.1:8000`, so there is no CORS and opening the LAN URL from a phone just works. That is why `web/.env.local` leaves `VITE_API_URL` commented out — set it only to reach a backend the proxy cannot (a deployed one). Port 3000 is `strictPort` because the backend's `CORS_ORIGINS` names it.
 
-`backend/.env` is required (copy `.env.example`; `SECRET_KEY` ≥ 32 chars or the app refuses to boot).
+`server/.env` is required (copy `.env.example`; `SECRET_KEY` ≥ 32 chars or the app refuses to boot).
 
 ## Working rules
 
 - **Russian is the source language** for UI copy and API messages; Kazakh and English are translations. Write `ru` first.
-- **The data layer outlives screens.** Screens get redrawn often; `frontend/src/lib/` and the backend are what the next version builds on. Don't delete lib code or endpoints because a screen stopped using them.
+- **The data layer outlives screens.** Screens get redrawn often; `web/src/lib/` and the backend are what the next version builds on. Don't delete lib code or endpoints because a screen stopped using them.
 - **UI work:** use the `ui-ux-pro-max` skill for design guidance and the 21st MCP tools for component reference. Brand colours and font are fixed — treat their palette/font suggestions as reference only, unless a rebrand is asked for.
-- Reference images live in `design/` at the repo root (sources, never shipped); runtime images in `frontend/public/`.
+- Reference images live in `design/` at the repo root (sources, never shipped); runtime images in `web/public/`.

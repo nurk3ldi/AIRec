@@ -1,8 +1,8 @@
-# backend/CLAUDE.md
+# server/CLAUDE.md
 
 FastAPI + SQLAlchemy 2.0 async + asyncpg + PostgreSQL 18 + Alembic. Endpoint table and setup: `README.md`. No tests.
 
-## Commands (from `backend/`, venv active)
+## Commands (from `server/`, venv active)
 
 - `pip install -r requirements.txt` — versions pinned (`pyproject.toml` is tooling config only)
 - `alembic upgrade head`; `alembic check` fails on model/migration drift

@@ -42,7 +42,7 @@ The connection is configured as separate `DB_HOST` / `DB_PORT` / `DB_NAME` /
 assembles the DSN and URL-quotes the password, so special characters in it can't
 corrupt the connection string.
 
-In VS Code, select `backend/.venv` as the interpreter, otherwise the editor reports
+In VS Code, select `server/.venv` as the interpreter, otherwise the editor reports
 the dependencies as missing even though they are installed.
 
 ## Commands

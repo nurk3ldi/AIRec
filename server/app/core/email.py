@@ -10,7 +10,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Same tokens as frontend/src/styles/globals.css's `@theme` block — kept in
+# Same tokens as web/src/styles/globals.css's `@theme` block — kept in
 # sync by hand, since an email template can't import Tailwind config.
 _BRAND_BLUE = "#3248F2"
 _BRAND_BLACK = "#171215"

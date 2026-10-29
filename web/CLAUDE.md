@@ -1,4 +1,4 @@
-# frontend/CLAUDE.md
+# web/CLAUDE.md
 
 React 19 + Vite + Tailwind v4 SPA, plain JSX, no TypeScript, no tests.
 

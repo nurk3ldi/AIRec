@@ -5,7 +5,7 @@ carries its Russian text, a `field_validator` raises Russian prose, and both
 read the way they were written. The dictionaries below are keyed by that
 Russian string and hold only the other two languages — so a message with no
 entry falls through to Russian rather than to a key or an empty string, which
-is the same rule `frontend/src/lib/i18n.js` follows and the same reason: the
+is the same rule `web/src/lib/i18n.js` follows and the same reason: the
 product is sold in Kazakhstan, where Russian is readable to every owner
 whichever language they prefer.
 
