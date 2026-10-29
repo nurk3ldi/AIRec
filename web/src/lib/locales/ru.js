@@ -59,6 +59,8 @@ export default {
   'home.loadWeek': 'Эта неделя',
   'home.loadHours': '{used} из {open} ч',
   'home.loadNone': 'Рабочие часы не заданы',
+  'home.revenue': 'Выручка',
+  'home.revenueVs': 'к прошлой неделе',
   'confirm.title': 'Потоки',
   'confirm.empty': 'Потоков нет',
   'confirm.back': 'Назад',

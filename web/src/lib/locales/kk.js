@@ -53,6 +53,8 @@ export default {
   'home.loadWeek': 'Осы апта',
   'home.loadHours': '{used} / {open} сағ',
   'home.loadNone': 'Жұмыс уақыты көрсетілмеген',
+  'home.revenue': 'Түсім',
+  'home.revenueVs': 'өткен аптамен салыстырғанда',
   'confirm.title': 'Ағындар',
   'confirm.empty': 'Ағын жоқ',
   'confirm.back': 'Артқа',

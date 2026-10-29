@@ -53,6 +53,8 @@ export default {
   'home.loadWeek': 'This week',
   'home.loadHours': '{used} of {open} h',
   'home.loadNone': 'No working hours set',
+  'home.revenue': 'Revenue',
+  'home.revenueVs': 'vs last week',
   'confirm.title': 'Live chats',
   'confirm.empty': 'No live chats',
   'confirm.back': 'Back',

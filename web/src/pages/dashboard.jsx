@@ -1,9 +1,9 @@
-import { CARD_EDGE } from '../components/card'
 import AssistantCard from '../components/home/AssistantCard'
 import ConfirmationsCard from '../components/home/ConfirmationsCard'
 import DayCard from '../components/home/DayCard'
 import LimitCard from '../components/home/LimitCard'
 import LoadCard from '../components/home/LoadCard'
+import RevenueCard from '../components/home/RevenueCard'
 import { useT } from '../lib/i18n'
 import styles from '../styles/Dashboard.module.css'
 
@@ -84,7 +84,8 @@ export default function DashboardHomePage() {
         <DayCard className={`${ROW_HEIGHT} sm:col-span-2`} />
         {/* Загрузка недели — процент и карта часов. */}
         <LoadCard className={ROW_HEIGHT} />
-        <section className={`${CARD_EDGE} ${ROW_HEIGHT}`} />
+        {/* Выручка недели — сумма, сравнение с прошлой и столбцы по дням. */}
+        <RevenueCard className={ROW_HEIGHT} />
       </div>
     </div>
   )
