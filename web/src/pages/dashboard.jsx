@@ -3,6 +3,7 @@ import AssistantCard from '../components/home/AssistantCard'
 import ConfirmationsCard from '../components/home/ConfirmationsCard'
 import DayCard from '../components/home/DayCard'
 import LimitCard from '../components/home/LimitCard'
+import LoadCard from '../components/home/LoadCard'
 import { useT } from '../lib/i18n'
 import styles from '../styles/Dashboard.module.css'
 
@@ -81,7 +82,8 @@ export default function DashboardHomePage() {
       <div className="mt-4 grid grid-cols-1 gap-4 sm:mt-6 sm:grid-cols-4 sm:gap-6">
         {/* Записи дня — как на телефоне: строка дней сверху. */}
         <DayCard className={`${ROW_HEIGHT} sm:col-span-2`} />
-        <section className={`${CARD_EDGE} ${ROW_HEIGHT}`} />
+        {/* Загрузка недели — процент и карта часов. */}
+        <LoadCard className={ROW_HEIGHT} />
         <section className={`${CARD_EDGE} ${ROW_HEIGHT}`} />
       </div>
     </div>
