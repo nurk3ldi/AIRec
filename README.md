@@ -95,10 +95,6 @@ coalesced, and a reply the owner already overtook is dropped.
 
 <img src="docs/readme/screen-assistant.png" width="100%" alt="Assistant settings: services with prices, weekly working hours with a break, business details and the connected Telegram bot">
 
-#### Notes — folders, archive and bin for everything else
-
-<img src="docs/readme/screen-notes.png" width="100%" alt="Notes: folders on the left, the note list and an open note">
-
 #### On the phone
 
 <p align="center">
@@ -189,7 +185,7 @@ and the LAN address it prints opens on your phone too.
 
 **4 · Connect Telegram and the AI**
 
-Sign up in the web app, open **Ассистент**, add your services and hours, and
+Sign up in the web app, open **Assistant**, add your services and hours, and
 paste the bot token. Without a public URL, set `TELEGRAM_POLLING=true` so the
 server asks Telegram for updates instead of waiting for a webhook. Write to your
 bot — the assistant answers.
@@ -229,7 +225,7 @@ AIRec/
 │   ├── app/core/booking_tool.py   the request_booking tool
 │   └── alembic/            migrations
 ├── web/                    React 19 + Vite + Tailwind CSS v4
-│   ├── src/pages/          dashboard, inbox, appointments, assistant, notes
+│   ├── src/pages/          dashboard, inbox, appointments, assistant
 │   ├── src/components/     UI, one folder per screen
 │   └── src/lib/            API client, auth, dates, booking maths, i18n
 └── docs/readme/            the art on this page
