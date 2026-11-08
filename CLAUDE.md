@@ -23,7 +23,7 @@ No test suite exists in either app. No TypeScript.
 | Landing `/` | phone splash only; desktop empty on purpose |
 | Telegram channel (webhook or polling, photos, avatars) | done, has UI |
 | WhatsApp channel (signed webhook, sending, receipts) | backend done, **no UI** on purpose (Telegram leads) |
-| Assistant replies via LLM (Gemini) + `request_booking` tool | done |
+| Assistant replies via LLM (Gemini or Claude, `LLM_PROVIDER`) + `request_booking` tool | done |
 | Not built | schedule overrides, clients table, plans/metering, SSE/WebSocket, tests |
 
 ## Running locally

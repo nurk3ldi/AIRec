@@ -7,17 +7,20 @@ takes a system instruction and a transcript of plain values and gives back text.
 **The provider is a setting, not an import.** `generate_reply` dispatches on
 `settings.llm_provider`, and each provider is one private function that speaks
 its own HTTP API over the `httpx` already pinned for the channels — no SDK, so
-switching Gemini for GPT or Claude later is a new function here and a key in
-`.env`, and nothing above this file changes.
+adding a provider is a new function here and a key in `.env`, and nothing
+above this file changes. Two exist: Gemini (raw REST) and Claude (the official
+`anthropic` SDK).
 """
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal
 
+import anthropic
 import httpx
 
 from app.core.config import settings
@@ -81,6 +84,8 @@ def configured() -> tuple[str, str | None, bool]:
     provider = settings.llm_provider.lower()
     if provider == "gemini":
         return provider, settings.gemini_model, settings.gemini_api_key is not None
+    if provider == "claude":
+        return provider, settings.llm_claude_model, settings.anthropic_api_key is not None
     return provider, None, False
 
 
@@ -95,7 +100,131 @@ async def generate_reply(
     provider = settings.llm_provider.lower()
     if provider == "gemini":
         return await _gemini(system, turns, tools)
+    if provider == "claude":
+        return await _claude(system, turns, tools)
     raise LLMNotConfigured(f"Unknown LLM_PROVIDER {settings.llm_provider!r}")
+
+
+# --- Claude ------------------------------------------------------------------
+
+# Opt-in to server-side refusal fallbacks: if the model declines a turn, the
+# API re-runs it on a fallback model inside the same call, so a client never
+# gets silence because of a classifier false positive.
+_CLAUDE_BETAS = ["server-side-fallback-2026-07-01"]
+
+
+async def _claude(system: str, turns: list[Turn], tools: Sequence[Tool]) -> str:
+    """The Messages API through the official `anthropic` SDK.
+
+    **The transcript is shaped like Gemini's**: consecutive turns from one side
+    are merged and a transcript that opens with ours is trimmed to the first
+    client turn — the API wants a dialogue that starts with the user.
+
+    **A tool call is answered and the model asked again.** The assistant turn
+    goes back as the SDK returned it (`response.content`, thinking blocks
+    included — they must not be edited), followed by every `tool_result` in one
+    user message.
+    """
+    if settings.anthropic_api_key is None:
+        raise LLMNotConfigured("ANTHROPIC_API_KEY is not set")
+
+    messages: list[dict[str, Any]] = []
+    for turn in turns:
+        role = "user" if turn.speaker == "client" else "assistant"
+        if not messages and role == "assistant":
+            continue
+        if messages and messages[-1]["role"] == role:
+            messages[-1]["content"] += "\n\n" + turn.text
+        else:
+            messages.append({"role": role, "content": turn.text})
+
+    if not messages:
+        raise LLMError("Nothing from the client to answer")
+
+    by_name = {tool.name: tool for tool in tools}
+    tool_params = [
+        {
+            "name": tool.name,
+            "description": tool.description,
+            "input_schema": tool.parameters,
+        }
+        for tool in tools
+    ]
+
+    client = anthropic.AsyncAnthropic(
+        api_key=settings.anthropic_api_key.get_secret_value(),
+        timeout=settings.llm_timeout_seconds,
+    )
+    async with client:
+        for _ in range(MAX_TOOL_ROUNDS + 1):
+            response = await _claude_call(client, system, messages, tool_params)
+
+            if response.stop_reason == "refusal":
+                raise LLMError("Claude declined to answer")
+
+            calls = [block for block in response.content if block.type == "tool_use"]
+            if not calls:
+                text = "".join(
+                    block.text for block in response.content if block.type == "text"
+                ).strip()
+                if not text:
+                    raise LLMError(
+                        f"Claude gave no text (stop_reason={response.stop_reason})"
+                    )
+                return text[:MAX_REPLY_CHARS]
+
+            messages.append({"role": "assistant", "content": response.content})
+            results = []
+            for call in calls:
+                tool = by_name.get(call.name)
+                if tool is None:
+                    result: dict[str, Any] = {
+                        "ok": False,
+                        "error": f"Unknown tool {call.name}",
+                    }
+                else:
+                    result = await tool.run(dict(call.input or {}))
+                results.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": call.id,
+                        "content": json.dumps(result, ensure_ascii=False),
+                    }
+                )
+            messages.append({"role": "user", "content": results})
+
+    raise LLMError("Claude kept calling tools without answering")
+
+
+async def _claude_call(
+    client: anthropic.AsyncAnthropic,
+    system: str,
+    messages: list[dict[str, Any]],
+    tools: list[dict[str, Any]],
+) -> Any:
+    """One request; the SDK's typed errors become `LLMError`, retryable first."""
+    try:
+        return await client.beta.messages.create(
+            model=settings.llm_claude_model,
+            max_tokens=4096,
+            system=system,
+            messages=messages,
+            tools=tools,
+            # A receptionist's reply is short and somebody is waiting for it:
+            # little thinking, quick answer. Raise it in `.env` if replies need
+            # more care.
+            output_config={"effort": settings.llm_claude_effort},
+            betas=_CLAUDE_BETAS,
+            fallbacks="default",
+        )
+    except anthropic.RateLimitError as exc:
+        raise LLMError(f"Claude rate limited: {exc}") from exc
+    except anthropic.InternalServerError as exc:
+        raise LLMError(f"Claude server error: {exc}") from exc
+    except anthropic.APIStatusError as exc:
+        raise LLMError(f"Claude {exc.status_code}: {exc.message}") from exc
+    except anthropic.APIConnectionError as exc:
+        raise LLMError(f"Claude unreachable: {exc}") from exc
 
 
 # --- Gemini ------------------------------------------------------------------

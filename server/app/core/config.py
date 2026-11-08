@@ -224,9 +224,9 @@ class Settings(BaseSettings):
 
     # --- The assistant's language model ---
     # **Which model writes the replies, named in one place.** `llm_provider`
-    # picks the adapter in `app/core/llm.py`; only `gemini` exists today, and
-    # GPT or Claude is a second adapter there plus its key here — nothing in
-    # the services knows which model answered.
+    # picks the adapter in `app/core/llm.py` — `gemini` or `claude` — and a new
+    # provider is one more adapter there plus its key here; nothing in the
+    # services knows which model answered.
     #
     # **Unset key is a working state**: the assistant stays silent, the message
     # still lands in the inbox, and the log says why. That is right for a
@@ -240,6 +240,13 @@ class Settings(BaseSettings):
     # changes how the business talks without anybody deploying.
     gemini_model: str = "gemini-3.5-flash"
     gemini_api_base: str = "https://generativelanguage.googleapis.com/v1beta"
+    # `LLM_PROVIDER=claude`: Anthropic's Messages API. Opus 5.5 at low effort —
+    # a short, careful reply without a long think. Named `LLM_CLAUDE_*`, not
+    # `CLAUDE_*`: Claude Code exports `CLAUDE_EFFORT`, and a shell it opened
+    # would silently override ours.
+    anthropic_api_key: SecretStr | None = None
+    llm_claude_model: str = "claude-opus-5-5"
+    llm_claude_effort: str = "low"
     # Longer than a send: a model thinks before it answers, and a client is
     # used to waiting a few seconds for a person to type.
     llm_timeout_seconds: float = 30.0
