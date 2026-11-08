@@ -1,3 +1,5 @@
+import { translate } from './i18n'
+
 /**
  * Arithmetic and rules for a working week.
  *
@@ -16,8 +18,10 @@ export const toMinutes = (time) => {
 export const formatSpan = (minutes) => {
   const hours = Math.floor(minutes / 60)
   const rest = minutes % 60
-  if (!hours) return `${rest} мин`
-  return rest ? `${hours} ч ${rest} мин` : `${hours} ч`
+  if (!hours) return translate('duration.minutes', { m: rest })
+  return rest
+    ? translate('duration.hoursMinutes', { h: hours, m: rest })
+    : translate('duration.hours', { h: hours })
 }
 
 /**

@@ -1,3 +1,5 @@
+import { translate } from './i18n'
+
 /** Turning the API's bookings into something the calendar can place. */
 
 /**
@@ -112,8 +114,15 @@ export const stateOf = (status) =>
   BOOKING_STATES.find((state) => state.covers.includes(status))?.id ??
   'confirmed'
 
-export const statusLabel = (status) =>
-  BOOKING_STATES.find((state) => state.id === stateOf(status))?.label ?? ''
+const STATE_KEYS = {
+  confirmed: 'booking.active',
+  completed: 'booking.completed',
+  no_show: 'booking.noShow',
+  cancelled: 'booking.cancelled',
+}
+
+/** The status in the current language — read at call time, like `translate`. */
+export const statusLabel = (status) => translate(STATE_KEYS[stateOf(status)])
 
 /**
  * What colour a booking's status is said in, as a text class.
@@ -392,8 +401,10 @@ export const formatPrice = (value) => `${value.toLocaleString('ru-RU')} ₸`
 export function formatDuration(minutes) {
   const hours = Math.floor(minutes / 60)
   const rest = minutes % 60
-  if (!hours) return `${rest} мин`
-  return rest ? `${hours} ч ${rest} мин` : `${hours} ч`
+  if (!hours) return translate('duration.minutes', { m: rest })
+  return rest
+    ? translate('duration.hoursMinutes', { h: hours, m: rest })
+    : translate('duration.hours', { h: hours })
 }
 
 /** "13:00" → 780. Null for a day that has no break. */

@@ -101,7 +101,7 @@ Entry: `index.html` → `src/main.jsx` (fonts, `globals.css`, `BrowserRouter`) �
 - Use `{name}` placeholders, never string concatenation.
 - **A module-level constant may not hold a translated string** — store keys (`labelKey`) and call `t()` at render.
 - Dates through `Intl` with `getLocale()` (functions, not constants). Language names are written in their own language.
-- Still Russian-only: `formatPrice`/`formatDuration`, `BOOKING_STATES` labels (UI uses `booking.*` keys instead), `cities.js`, `businessOptions.js`.
+- `statusLabel` and `formatDuration` translate at call time (`booking.*`, `duration.*` keys). Still Russian-only: `formatPrice`, `BOOKING_STATES[].label` (read `statusLabel`/`booking.*` instead), `cities.js`, `businessOptions.js`.
 
 ## Screen-specific rules worth knowing
 
